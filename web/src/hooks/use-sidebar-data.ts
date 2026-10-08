@@ -19,6 +19,9 @@ For commercial licensing, please contact support@quantumnous.com
 import {
   Activity,
   Box,
+  Building2,
+  FolderKanban,
+  KeyRound,
   ClipboardList,
   CreditCard,
   FileText,
@@ -104,6 +107,28 @@ export function useSidebarData(): SidebarData {
             activeUrls: ['/usage-logs/drawing'],
             configUrls: ['/usage-logs/drawing', '/usage-logs/task'],
             icon: ListTodo,
+          },
+        ],
+      },
+      {
+        // 企业控制台：仅企业主账号可见（见 use-sidebar-view）
+        id: 'enterprise',
+        title: t('Enterprise'),
+        items: [
+          {
+            title: t('Organization'),
+            url: '/enterprise/organization',
+            icon: Building2,
+          },
+          {
+            title: t('Projects'),
+            url: '/enterprise/projects',
+            icon: FolderKanban,
+          },
+          {
+            title: t('Employee API Keys'),
+            url: '/enterprise/keys',
+            icon: KeyRound,
           },
         ],
       },

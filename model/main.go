@@ -377,6 +377,10 @@ func migrateDB() error {
 		&AuthzRole{},
 		&UserAccessToken{},
 		&Enterprise{},
+		&EnterpriseDepartment{},
+		&EnterpriseEmployee{},
+		&EnterpriseProject{},
+		&EnterpriseTokenAssignment{},
 	)
 	if err != nil {
 		return err

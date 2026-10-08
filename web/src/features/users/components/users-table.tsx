@@ -148,7 +148,9 @@ export function UsersTable() {
         statusFilter.length > 0 ||
         roleFilter.length > 0 ||
         groupFilter.length > 0
+      // 企业主账号在"企业用户"页签单独管理，这里只列普通用户
       const params = {
+        user_type: 'personal' as const,
         p: pagination.pageIndex + 1,
         page_size: pagination.pageSize,
         ...sortParams,

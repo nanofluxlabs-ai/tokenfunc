@@ -36,6 +36,9 @@ const usersSearchSchema = z.object({
     .optional()
     .catch([]),
   group: z.array(z.string()).optional().catch([]),
+  // 用户类型页签：普通用户 / 企业用户
+  type: z.enum(['personal', 'enterprise']).optional().catch('personal'),
+  billingMode: z.array(z.string()).optional().catch([]),
 })
 
 export const Route = createFileRoute('/_authenticated/users/')({

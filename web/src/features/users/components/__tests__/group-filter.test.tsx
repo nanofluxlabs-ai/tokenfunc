@@ -38,7 +38,7 @@ import { UsersTable } from '../users-table'
 
 const clients: QueryClient[] = []
 const premiumSearchUrl =
-  '/api/user/search?keyword=&group=premium&p=1&page_size=20'
+  '/api/user/search?keyword=&user_type=personal&group=premium&p=1&page_size=20'
 
 beforeEach(() => {
   vi.spyOn(window, 'scrollTo').mockImplementation(() => {})
@@ -125,7 +125,7 @@ it('searches only the selected user group and lists all users again after the fi
   const user = userEvent.setup()
   const { get, router } = await renderUsers()
   expect(get).toHaveBeenCalledWith('/api/user/', {
-    params: { p: 1, page_size: 20 },
+    params: { user_type: 'personal', p: 1, page_size: 20 },
   })
 
   await user.click(getGroupFilterTrigger())
@@ -139,7 +139,7 @@ it('searches only the selected user group and lists all users again after the fi
 
   await waitFor(() =>
     expect(get).toHaveBeenLastCalledWith('/api/user/', {
-      params: { p: 1, page_size: 20 },
+      params: { user_type: 'personal', p: 1, page_size: 20 },
     })
   )
   expect(router.state.location.search).not.toHaveProperty('group')

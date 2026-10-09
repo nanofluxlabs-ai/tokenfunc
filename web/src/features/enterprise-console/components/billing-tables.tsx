@@ -5,6 +5,7 @@ import {
   type StaticDataTableColumn,
 } from '@/components/data-table'
 import { StatusBadge } from '@/components/status-badge'
+import { Button } from '@/components/ui/button'
 import { formatQuotaWithCurrency } from '@/lib/currency'
 import { formatTimestampToDate } from '@/lib/format'
 
@@ -73,6 +74,8 @@ export function LedgerTable(props: {
 export function CreditPeriodsTable(props: {
   periods: CreditPeriod[]
   isLoading?: boolean
+  /** 管理员：对 closing 期立即出账（不等在途请求清零） */
+  onIssueNow?: (period: CreditPeriod) => void
 }) {
   const { t } = useTranslation()
   const columns: StaticDataTableColumn<CreditPeriod>[] = [
@@ -107,6 +110,24 @@ export function CreditPeriodsTable(props: {
         )
       },
     },
+    ...(props.onIssueNow
+      ? [
+          {
+            id: 'actions',
+            header: t('Actions'),
+            cell: (row: CreditPeriod) =>
+              row.status === 'closing' ? (
+                <Button
+                  variant='outline'
+                  size='sm'
+                  onClick={() => props.onIssueNow?.(row)}
+                >
+                  {t('Issue bill now')}
+                </Button>
+              ) : null,
+          },
+        ]
+      : []),
   ]
   return (
     <StaticDataTable

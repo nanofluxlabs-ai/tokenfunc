@@ -1,0 +1,202 @@
+import {
+  keepPreviousData,
+  useQuery,
+  useQueryClient,
+} from '@tanstack/react-query'
+import { Ban, HandCoins, Settings2 } from 'lucide-react'
+import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
+import { toast } from 'sonner'
+
+import { ConfirmDialog } from '@/components/confirm-dialog'
+import { SectionPageLayout } from '@/components/layout'
+import { Button } from '@/components/ui/button'
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Textarea } from '@/components/ui/textarea'
+import { BillsTable } from '@/features/enterprise-console/components/bills-table'
+import type { Bill } from '@/features/enterprise-console/types'
+import { handleServerError } from '@/lib/handle-server-error'
+import { requireServerSuccess } from '@/lib/server-error-message'
+
+import { listAdminBills, voidBill } from '../api'
+import { BillPaymentDialog } from './bill-payment-dialog'
+import { SellerProfileDialog } from './seller-profile-dialog'
+
+const PAGE_SIZE = 20
+type Filter = 'all' | 'unpaid' | 'overdue' | 'paid' | 'statement'
+
+function BillsAdminContent(props: { onOpenSeller: () => void }) {
+  const { t } = useTranslation()
+  const queryClient = useQueryClient()
+  const [filter, setFilter] = useState<Filter>('unpaid')
+  const [page, setPage] = useState(1)
+  const [paying, setPaying] = useState<Bill | null>(null)
+  const [voiding, setVoiding] = useState<Bill | null>(null)
+  const [voidRemark, setVoidRemark] = useState('')
+
+  const params = {
+    all: {},
+    unpaid: { status: 'unpaid' },
+    overdue: { overdue: 'true' as const },
+    paid: { status: 'paid' },
+    statement: { bill_type: 'statement' },
+  }[filter]
+  const { data, isLoading } = useQuery({
+    queryKey: ['admin-enterprise', 'bills', filter, page],
+    queryFn: async () =>
+      requireServerSuccess(
+        await listAdminBills({ ...params, p: page, page_size: PAGE_SIZE })
+      ).data ?? { items: [], total: 0 },
+    placeholderData: keepPreviousData,
+  })
+  const total = data?.total ?? 0
+  const pageCount = Math.max(1, Math.ceil(total / PAGE_SIZE))
+  const refresh = () =>
+    void queryClient.invalidateQueries({ queryKey: ['admin-enterprise'] })
+
+  const handleVoid = async () => {
+    if (!voiding) return
+    try {
+      const result = await voidBill(voiding.id, voidRemark)
+      if (!result.success) {
+        handleServerError(result)
+        return
+      }
+      toast.success(t('Bill voided'))
+      setVoiding(null)
+      setVoidRemark('')
+      refresh()
+    } catch (error) {
+      handleServerError(error)
+    }
+  }
+
+  return (
+    <div className='flex flex-col gap-4'>
+      <div className='flex flex-wrap items-center gap-2'>
+        <Tabs
+          value={filter}
+          onValueChange={(value) => {
+            setFilter(value as Filter)
+            setPage(1)
+          }}
+        >
+          <TabsList className='max-w-full flex-wrap justify-start group-data-horizontal/tabs:h-auto'>
+            <TabsTrigger value='unpaid'>{t('Unpaid')}</TabsTrigger>
+            <TabsTrigger value='overdue'>{t('Overdue')}</TabsTrigger>
+            <TabsTrigger value='paid'>{t('Paid')}</TabsTrigger>
+            <TabsTrigger value='statement'>
+              {t('Monthly statement')}
+            </TabsTrigger>
+            <TabsTrigger value='all'>{t('All')}</TabsTrigger>
+          </TabsList>
+        </Tabs>
+        <div className='flex-1' />
+        <Button variant='outline' size='sm' onClick={props.onOpenSeller}>
+          <Settings2 className='h-4 w-4' />
+          {t('Invoice issuer settings')}
+        </Button>
+      </div>
+      <BillsTable
+        bills={data?.items ?? []}
+        isLoading={isLoading}
+        showEnterprise
+        renderActions={(bill) =>
+          bill.bill_type === 'credit' &&
+          (bill.status === 'unpaid' || bill.status === 'partially_paid') ? (
+            <>
+              <Button
+                variant='ghost'
+                size='icon-sm'
+                aria-label={t('Register payment')}
+                onClick={() => setPaying(bill)}
+              >
+                <HandCoins />
+              </Button>
+              <Button
+                variant='ghost'
+                size='icon-sm'
+                aria-label={t('Void bill')}
+                onClick={() => setVoiding(bill)}
+              >
+                <Ban />
+              </Button>
+            </>
+          ) : null
+        }
+      />
+      <div className='text-muted-foreground flex items-center justify-end gap-2 text-sm'>
+        <span>{t('Total: {{count}}', { count: total })}</span>
+        <Button
+          variant='outline'
+          size='sm'
+          disabled={page <= 1}
+          onClick={() => setPage(page - 1)}
+        >
+          {t('Previous')}
+        </Button>
+        <span>
+          {page} / {pageCount}
+        </span>
+        <Button
+          variant='outline'
+          size='sm'
+          disabled={page >= pageCount}
+          onClick={() => setPage(page + 1)}
+        >
+          {t('Next')}
+        </Button>
+      </div>
+      <BillPaymentDialog
+        bill={paying}
+        onOpenChange={(open) => !open && setPaying(null)}
+        onSaved={refresh}
+      />
+      <ConfirmDialog
+        open={voiding !== null}
+        onOpenChange={(open) => {
+          if (!open) {
+            setVoiding(null)
+            setVoidRemark('')
+          }
+        }}
+        title={t('Void bill')}
+        desc={
+          voiding
+            ? `${voiding.bill_no} · ${t('The bill will be cancelled and cannot be paid. The credit period stays billed.')}`
+            : ''
+        }
+        destructive
+        confirmText={t('Void bill')}
+        disabled={voidRemark.trim() === ''}
+        handleConfirm={() => void handleVoid()}
+      >
+        <Textarea
+          value={voidRemark}
+          onChange={(event) => setVoidRemark(event.target.value)}
+          placeholder={t('Reason (required)')}
+          rows={2}
+          aria-label={t('Reason (required)')}
+        />
+      </ConfirmDialog>
+    </div>
+  )
+}
+
+export function EnterpriseBillsAdmin() {
+  const { t } = useTranslation()
+  const [sellerOpen, setSellerOpen] = useState(false)
+  return (
+    <>
+      <SectionPageLayout>
+        <SectionPageLayout.Title>
+          {t('Enterprise Bills')}
+        </SectionPageLayout.Title>
+        <SectionPageLayout.Content>
+          <BillsAdminContent onOpenSeller={() => setSellerOpen(true)} />
+        </SectionPageLayout.Content>
+      </SectionPageLayout>
+      <SellerProfileDialog open={sellerOpen} onOpenChange={setSellerOpen} />
+    </>
+  )
+}

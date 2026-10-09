@@ -1,6 +1,8 @@
 import type {
+  Bill,
   CreditPeriod,
   LedgerEntry,
+  SellerProfile,
   UsageGroupBy,
   UsageSummary,
   PageData,
@@ -111,4 +113,58 @@ export async function getEnterpriseUsageSummary(
 
 export function adminUsageExportUrl(id: number): string {
   return `${ADMIN_ENTERPRISE_BASE}/${id}/usage/export`
+}
+
+export async function listAdminBills(params: {
+  enterprise_id?: number
+  status?: string
+  bill_type?: string
+  overdue?: 'true'
+  p?: number
+  page_size?: number
+}): Promise<ApiResponse<PageData<Bill>>> {
+  const res = await api.get('/api/admin/enterprise/bills', { params })
+  return res.data
+}
+
+export async function registerBillPayment(
+  id: number,
+  payload: { amount_usd: number; reference: string; remark: string }
+): Promise<ApiResponse<Bill>> {
+  const res = await api.post(
+    `/api/admin/enterprise/bills/${id}/payments`,
+    payload
+  )
+  return res.data
+}
+
+export async function voidBill(
+  id: number,
+  remark: string
+): Promise<ApiResponse> {
+  const res = await api.post(`/api/admin/enterprise/bills/${id}/void`, {
+    remark,
+  })
+  return res.data
+}
+
+export async function issueBillNow(
+  periodId: number
+): Promise<ApiResponse<Bill | null>> {
+  const res = await api.post(
+    `/api/admin/enterprise/credit-periods/${periodId}/issue`
+  )
+  return res.data
+}
+
+export async function getSellerProfile(): Promise<ApiResponse<SellerProfile>> {
+  const res = await api.get('/api/admin/enterprise/settings/seller')
+  return res.data
+}
+
+export async function updateSellerProfile(
+  profile: SellerProfile
+): Promise<ApiResponse> {
+  const res = await api.put('/api/admin/enterprise/settings/seller', profile)
+  return res.data
 }

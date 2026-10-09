@@ -2,6 +2,7 @@ import { api } from '@/lib/api'
 
 import type {
   ApiResponse,
+  Bill,
   CreditPeriod,
   Department,
   Employee,
@@ -189,3 +190,18 @@ export async function downloadUsageCsv(
 }
 
 export const USAGE_EXPORT_URL = `${BASE}/usage/export`
+
+export async function listBills(params: {
+  bill_type?: string
+  status?: string
+  p?: number
+  page_size?: number
+}): Promise<ApiResponse<PageData<Bill>>> {
+  const res = await api.get(`${BASE}/bills`, { params })
+  return res.data
+}
+
+export async function getBill(id: number): Promise<ApiResponse<Bill>> {
+  const res = await api.get(`${BASE}/bills/${id}`)
+  return res.data
+}

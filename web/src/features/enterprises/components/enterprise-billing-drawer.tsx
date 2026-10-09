@@ -33,6 +33,7 @@ import {
   disableEnterpriseCredit,
   getEnterprise,
   getEnterpriseUsageSummary,
+  issueBillNow,
   listEnterpriseCreditPeriods,
   listEnterpriseLedger,
   setEnterpriseStatus,
@@ -87,6 +88,24 @@ export function EnterpriseBillingDrawer(props: EnterpriseBillingDrawerProps) {
       queryKey: ['admin-enterprise', enterpriseId],
     })
     triggerRefresh()
+  }
+
+  const handleIssueNow = async (periodId: number) => {
+    try {
+      const result = await issueBillNow(periodId)
+      if (!result.success) {
+        handleServerError(result)
+        return
+      }
+      toast.success(
+        result.data
+          ? t('Bill {{billNo}} issued', { billNo: result.data.bill_no })
+          : t('Period closed without usage')
+      )
+      refresh()
+    } catch (error) {
+      handleServerError(error)
+    }
   }
 
   const handleConfirm = async () => {
@@ -236,6 +255,7 @@ export function EnterpriseBillingDrawer(props: EnterpriseBillingDrawerProps) {
                 <CreditPeriodsTable
                   periods={periods.data ?? []}
                   isLoading={periods.isLoading}
+                  onIssueNow={(period) => void handleIssueNow(period.id)}
                 />
               </SideDrawerSection>
             )}

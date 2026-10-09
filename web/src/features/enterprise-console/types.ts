@@ -170,3 +170,68 @@ export interface UsageSummary {
   group_by: UsageGroupBy
   items: UsageSummaryItem[]
 }
+
+export type BillStatus = 'unpaid' | 'partially_paid' | 'paid' | 'void'
+export type BillType = 'credit' | 'statement'
+
+export interface UsageSnapshotGroup {
+  key_id: number
+  key_name: string
+  request_count: number
+  prompt_tokens: number
+  completion_tokens: number
+  quota: number
+}
+
+export interface Bill {
+  id: number
+  bill_no: string
+  enterprise_id: number
+  period_id: number
+  bill_type: BillType
+  period_start: number
+  period_end: number
+  amount_quota: number
+  amount_usd: string
+  adjustment_usd: string
+  total_usd: string
+  paid_usd: string
+  currency: string
+  status: BillStatus
+  issued_at: number
+  due_at: number
+  paid_at: number
+  reminder_count: number
+  reconcile_diff_quota: number
+  usage_snapshot: Record<string, unknown> | null
+  seller_snapshot: SellerProfile | null
+  buyer_snapshot: {
+    enterprise_name?: string
+    contact_name?: string
+    contact_email?: string
+    billing_profile?: {
+      company_name?: string
+      address?: string
+      tax_id?: string
+      billing_email?: string
+      phone?: string
+      country?: string
+    }
+  } | null
+  remark: string
+}
+
+export interface SellerProfile {
+  company_name: string
+  address: string
+  tax_id: string
+  email: string
+  phone: string
+  bank_name: string
+  bank_account_name: string
+  bank_account_no: string
+  swift_code: string
+  payment_notes: string
+  footer_notes: string
+  logo_url: string
+}

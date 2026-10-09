@@ -23,6 +23,8 @@ import {
   Building2,
   FolderKanban,
   Gauge,
+  Receipt,
+  ReceiptText,
   KeyRound,
   ClipboardList,
   CreditCard,
@@ -142,6 +144,11 @@ export function useSidebarData(): SidebarData {
             url: '/enterprise/usage',
             icon: BarChart3,
           },
+          {
+            title: t('Bills'),
+            url: '/enterprise/bills',
+            icon: Receipt,
+          },
         ],
       },
       {
@@ -183,6 +190,11 @@ export function useSidebarData(): SidebarData {
             title: t('Users'),
             url: '/users',
             icon: Users,
+          },
+          {
+            title: t('Enterprise Bills'),
+            url: '/enterprise-billing',
+            icon: ReceiptText,
           },
           {
             title: t('Redemption Codes'),

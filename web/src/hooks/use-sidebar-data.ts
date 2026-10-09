@@ -21,6 +21,7 @@ import {
   Box,
   Building2,
   FolderKanban,
+  Gauge,
   KeyRound,
   ClipboardList,
   CreditCard,
@@ -115,6 +116,11 @@ export function useSidebarData(): SidebarData {
         id: 'enterprise',
         title: t('Enterprise'),
         items: [
+          {
+            title: t('Enterprise Overview'),
+            url: '/enterprise/overview',
+            icon: Gauge,
+          },
           {
             title: t('Organization'),
             url: '/enterprise/organization',

@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next'
 
 import { Button } from '@/components/ui/button'
 
+import { EnterpriseBillingDrawer } from './components/enterprise-billing-drawer'
 import { EnterpriseMutateDrawer } from './components/enterprise-mutate-drawer'
 import {
   EnterprisesProvider,
@@ -36,6 +37,11 @@ export function EnterprisesPanel() {
         open={open === 'create' || open === 'update'}
         onOpenChange={(isOpen) => !isOpen && setOpen(null)}
         currentRow={open === 'update' ? currentRow || undefined : undefined}
+      />
+      <EnterpriseBillingDrawer
+        open={open === 'billing'}
+        onOpenChange={(isOpen) => !isOpen && setOpen(null)}
+        currentRow={open === 'billing' ? currentRow || undefined : undefined}
       />
     </>
   )

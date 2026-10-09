@@ -80,4 +80,16 @@ export type ListEnterprisesResponse = ApiResponse<{
   total: number
 }>
 
-export type EnterprisesDialogType = 'create' | 'update'
+export type EnterprisesDialogType = 'create' | 'update' | 'billing'
+
+export interface CreditConfigPayload {
+  cycle_type: 'natural_month' | 'fixed_days'
+  cycle_days: number
+  limit_usd: number
+}
+
+export interface TopupPayload {
+  amount_usd: number
+  reference: string
+  remark: string
+}

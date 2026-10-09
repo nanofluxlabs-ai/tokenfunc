@@ -2,13 +2,16 @@ import { api } from '@/lib/api'
 
 import type {
   ApiResponse,
+  CreditPeriod,
   Department,
   Employee,
   EmployeeImportResult,
   EmployeeImportRow,
   EmployeePayload,
+  EnterpriseOverview,
   EnterpriseSelf,
   EnterpriseToken,
+  LedgerEntry,
   PageData,
   Project,
   ProjectPayload,
@@ -139,5 +142,28 @@ export async function updateTokenAssignment(
   payload: TokenAssignmentPayload
 ): Promise<ApiResponse> {
   const res = await api.put(`${BASE}/tokens/${id}/assignment`, payload)
+  return res.data
+}
+
+export async function getEnterpriseOverview(): Promise<
+  ApiResponse<EnterpriseOverview>
+> {
+  const res = await api.get(`${BASE}/overview`)
+  return res.data
+}
+
+export async function listLedger(params: {
+  p?: number
+  page_size?: number
+}): Promise<ApiResponse<PageData<LedgerEntry>>> {
+  const res = await api.get(`${BASE}/ledger`, { params })
+  return res.data
+}
+
+export async function listCreditPeriods(params: {
+  p?: number
+  page_size?: number
+}): Promise<ApiResponse<PageData<CreditPeriod>>> {
+  const res = await api.get(`${BASE}/credit-periods`, { params })
   return res.data
 }

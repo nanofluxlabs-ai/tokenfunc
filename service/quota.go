@@ -436,6 +436,21 @@ func postConsumeQuotaWithResult(relayInfo *relaycommon.RelayInfo, quota int, pre
 			}
 			relayInfo.SubscriptionPostDelta += delta
 		}
+	} else if relayInfo != nil && relayInfo.BillingSource == BillingSourceCredit {
+		// 企业授信：直扣路径（如违规费）记入预扣时的账期
+		if relayInfo.CreditPeriodId == 0 {
+			return result, errors.New("credit period id is missing")
+		}
+		info, err := model.GetEnterpriseBillingInfo(relayInfo.UserId)
+		if err != nil {
+			return result, err
+		}
+		if info == nil {
+			return result, errors.New("enterprise billing info is missing")
+		}
+		if err := model.ApplyCreditSettlement(info.EnterpriseId, relayInfo.CreditPeriodId, int64(quota), 0); err != nil {
+			return result, err
+		}
 	} else {
 		// Wallet
 		if quota > 0 {

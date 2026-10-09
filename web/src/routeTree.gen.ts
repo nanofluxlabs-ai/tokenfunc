@@ -40,6 +40,7 @@ import { Route as AuthenticatedDashboardIndexRouteImport } from './routes/_authe
 import { Route as AuthenticatedDashboardSectionRouteImport } from './routes/_authenticated/dashboard/$section'
 import { Route as AuthenticatedEnterpriseKeysRouteImport } from './routes/_authenticated/enterprise/keys'
 import { Route as AuthenticatedEnterpriseOrganizationRouteImport } from './routes/_authenticated/enterprise/organization'
+import { Route as AuthenticatedEnterpriseOverviewRouteImport } from './routes/_authenticated/enterprise/overview'
 import { Route as AuthenticatedEnterpriseProjectsRouteImport } from './routes/_authenticated/enterprise/projects'
 import { Route as AuthenticatedErrorsErrorRouteImport } from './routes/_authenticated/errors/$error'
 import { Route as AuthenticatedKeysIndexRouteImport } from './routes/_authenticated/keys/index'
@@ -233,6 +234,12 @@ const AuthenticatedEnterpriseOrganizationRoute =
   AuthenticatedEnterpriseOrganizationRouteImport.update({
     id: '/enterprise/organization',
     path: '/enterprise/organization',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedEnterpriseOverviewRoute =
+  AuthenticatedEnterpriseOverviewRouteImport.update({
+    id: '/enterprise/overview',
+    path: '/enterprise/overview',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
 const AuthenticatedEnterpriseProjectsRoute =
@@ -471,6 +478,7 @@ export interface FileRoutesByFullPath {
   '/dashboard/$section': typeof AuthenticatedDashboardSectionRoute
   '/enterprise/keys': typeof AuthenticatedEnterpriseKeysRoute
   '/enterprise/organization': typeof AuthenticatedEnterpriseOrganizationRoute
+  '/enterprise/overview': typeof AuthenticatedEnterpriseOverviewRoute
   '/enterprise/projects': typeof AuthenticatedEnterpriseProjectsRoute
   '/errors/$error': typeof AuthenticatedErrorsErrorRoute
   '/models/$section': typeof AuthenticatedModelsSectionRoute
@@ -536,6 +544,7 @@ export interface FileRoutesByTo {
   '/dashboard/$section': typeof AuthenticatedDashboardSectionRoute
   '/enterprise/keys': typeof AuthenticatedEnterpriseKeysRoute
   '/enterprise/organization': typeof AuthenticatedEnterpriseOrganizationRoute
+  '/enterprise/overview': typeof AuthenticatedEnterpriseOverviewRoute
   '/enterprise/projects': typeof AuthenticatedEnterpriseProjectsRoute
   '/errors/$error': typeof AuthenticatedErrorsErrorRoute
   '/models/$section': typeof AuthenticatedModelsSectionRoute
@@ -605,6 +614,7 @@ export interface FileRoutesById {
   '/_authenticated/dashboard/$section': typeof AuthenticatedDashboardSectionRoute
   '/_authenticated/enterprise/keys': typeof AuthenticatedEnterpriseKeysRoute
   '/_authenticated/enterprise/organization': typeof AuthenticatedEnterpriseOrganizationRoute
+  '/_authenticated/enterprise/overview': typeof AuthenticatedEnterpriseOverviewRoute
   '/_authenticated/enterprise/projects': typeof AuthenticatedEnterpriseProjectsRoute
   '/_authenticated/errors/$error': typeof AuthenticatedErrorsErrorRoute
   '/_authenticated/models/$section': typeof AuthenticatedModelsSectionRoute
@@ -673,6 +683,7 @@ export interface FileRouteTypes {
     | '/dashboard/$section'
     | '/enterprise/keys'
     | '/enterprise/organization'
+    | '/enterprise/overview'
     | '/enterprise/projects'
     | '/errors/$error'
     | '/models/$section'
@@ -738,6 +749,7 @@ export interface FileRouteTypes {
     | '/dashboard/$section'
     | '/enterprise/keys'
     | '/enterprise/organization'
+    | '/enterprise/overview'
     | '/enterprise/projects'
     | '/errors/$error'
     | '/models/$section'
@@ -806,6 +818,7 @@ export interface FileRouteTypes {
     | '/_authenticated/dashboard/$section'
     | '/_authenticated/enterprise/keys'
     | '/_authenticated/enterprise/organization'
+    | '/_authenticated/enterprise/overview'
     | '/_authenticated/enterprise/projects'
     | '/_authenticated/errors/$error'
     | '/_authenticated/models/$section'
@@ -1081,6 +1094,13 @@ declare module '@tanstack/react-router' {
       path: '/enterprise/organization'
       fullPath: '/enterprise/organization'
       preLoaderRoute: typeof AuthenticatedEnterpriseOrganizationRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/enterprise/overview': {
+      id: '/_authenticated/enterprise/overview'
+      path: '/enterprise/overview'
+      fullPath: '/enterprise/overview'
+      preLoaderRoute: typeof AuthenticatedEnterpriseOverviewRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/enterprise/projects': {
@@ -1427,6 +1447,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedDashboardSectionRoute: typeof AuthenticatedDashboardSectionRoute
   AuthenticatedEnterpriseKeysRoute: typeof AuthenticatedEnterpriseKeysRoute
   AuthenticatedEnterpriseOrganizationRoute: typeof AuthenticatedEnterpriseOrganizationRoute
+  AuthenticatedEnterpriseOverviewRoute: typeof AuthenticatedEnterpriseOverviewRoute
   AuthenticatedEnterpriseProjectsRoute: typeof AuthenticatedEnterpriseProjectsRoute
   AuthenticatedErrorsErrorRoute: typeof AuthenticatedErrorsErrorRoute
   AuthenticatedModelsSectionRoute: typeof AuthenticatedModelsSectionRoute
@@ -1457,6 +1478,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedEnterpriseKeysRoute: AuthenticatedEnterpriseKeysRoute,
   AuthenticatedEnterpriseOrganizationRoute:
     AuthenticatedEnterpriseOrganizationRoute,
+  AuthenticatedEnterpriseOverviewRoute: AuthenticatedEnterpriseOverviewRoute,
   AuthenticatedEnterpriseProjectsRoute: AuthenticatedEnterpriseProjectsRoute,
   AuthenticatedErrorsErrorRoute: AuthenticatedErrorsErrorRoute,
   AuthenticatedModelsSectionRoute: AuthenticatedModelsSectionRoute,

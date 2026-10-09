@@ -381,6 +381,8 @@ func migrateDB() error {
 		&EnterpriseEmployee{},
 		&EnterpriseProject{},
 		&EnterpriseTokenAssignment{},
+		&EnterpriseCreditPeriod{},
+		&EnterpriseLedgerEntry{},
 	)
 	if err != nil {
 		return err

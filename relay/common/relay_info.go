@@ -142,6 +142,8 @@ type RelayInfo struct {
 	// BillingSource indicates whether this request is billed from wallet quota or subscription.
 	// "" or "wallet" => wallet; "subscription" => subscription
 	BillingSource string
+	// CreditPeriodId 企业授信预扣时确定的账期 id（BillingSource == "credit" 时有效）
+	CreditPeriodId int64
 	// SubscriptionId is the user_subscriptions.id used when BillingSource == "subscription"
 	SubscriptionId int
 	// SubscriptionPreConsumed is the amount pre-consumed on subscription item (quota units or 1)

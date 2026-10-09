@@ -60,10 +60,15 @@ export function useEnterprisesColumns(): ColumnDef<EnterpriseListItem>[] {
       cell: ({ row }) => {
         const config = ENTERPRISE_BILLING_MODES[row.original.billing_mode]
         if (!config) return null
+        const suspended = row.original.status === 'suspended'
         return (
           <StatusBadge
-            label={t(config.labelKey)}
-            variant={config.variant}
+            label={
+              suspended
+                ? `${t(config.labelKey)} · ${t('Suspended')}`
+                : t(config.labelKey)
+            }
+            variant={suspended ? 'danger' : config.variant}
             copyable={false}
             className='-ml-1.5'
           />

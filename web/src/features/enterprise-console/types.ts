@@ -113,3 +113,36 @@ export interface EmployeeImportResult {
   created_departments: string[]
   errors: { row: number; message: string }[]
 }
+
+export interface LedgerEntry {
+  id: number
+  type: string
+  amount_quota: number
+  balance_after_quota: number
+  reference: string
+  remark: string
+  operator_id: number
+  created_at: number
+}
+
+export interface CreditPeriod {
+  id: number
+  period_no: number
+  start_at: number
+  end_at: number
+  limit_quota: number
+  used_quota: number
+  inflight_count: number
+  status: 'open' | 'closing' | 'billed'
+}
+
+export interface EnterpriseOverview {
+  enterprise: EnterpriseSelf & {
+    credit_cycle_type: string
+    credit_cycle_days: number
+    credit_limit_quota: number
+    payment_terms_days: number
+  }
+  balance_quota: number
+  open_period: CreditPeriod | null
+}

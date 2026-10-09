@@ -42,6 +42,7 @@ func setupEnterprisePostgres(t *testing.T) {
 
 var enterpriseTestTables = []any{
 	&User{}, &Token{}, &Enterprise{}, &EnterpriseDepartment{}, &EnterpriseEmployee{}, &EnterpriseProject{}, &EnterpriseTokenAssignment{},
+	&EnterpriseCreditPeriod{}, &EnterpriseLedgerEntry{},
 }
 
 func createEnterpriseTestUser(t *testing.T, username string, role int) *User {
@@ -302,4 +303,126 @@ func TestEnterpriseEmployeeImportIsAllOrNothing(t *testing.T) {
 	items, _, err = ListEnterpriseEmployees(ent.Id, EnterpriseEmployeeFilter{Keyword: "carol"}, 0, 20)
 	require.NoError(t, err)
 	assert.Equal(t, "New Dept", items[0].DepartmentName)
+}
+
+func TestEnterpriseCreditPeriodsAndUsage(t *testing.T) {
+	setupEnterprisePostgres(t)
+	owner := createEnterpriseTestUser(t, "creditowner", common.RoleCommonUser)
+	require.NoError(t, UpgradeUserToEnterprise(owner.Id, &Enterprise{Name: "Credit Co"}))
+	ent, err := GetEnterpriseByUserId(owner.Id)
+	require.NoError(t, err)
+
+	// 预付企业没有账期；开通授信后立刻有一个 open 期，额度即配置值
+	_, err = GetOpenCreditPeriod(ent.Id)
+	assert.ErrorIs(t, err, ErrEnterpriseCreditNoOpenPeriod)
+	assert.ErrorIs(t, ConfigureEnterpriseCredit(ent.Id, EnterpriseCreditConfig{CycleType: "weekly"}, 1), ErrEnterpriseCreditConfig)
+	require.NoError(t, ConfigureEnterpriseCredit(ent.Id, EnterpriseCreditConfig{CycleType: EnterpriseCreditCycleFixedDays, CycleDays: 30, LimitQuota: 1000}, 1))
+	period, err := GetOpenCreditPeriod(ent.Id)
+	require.NoError(t, err)
+	assert.Equal(t, 1, period.PeriodNo)
+	assert.Equal(t, int64(1000), period.LimitQuota)
+	assert.Equal(t, period.StartAt+30*86400, period.EndAt)
+	info, err := GetEnterpriseBillingInfo(owner.Id)
+	require.NoError(t, err)
+	assert.Equal(t, EnterpriseBillingModeCredit, info.BillingMode)
+	assert.Equal(t, period.Id, info.OpenPeriodId)
+
+	// 额度内预扣成功并计入在途；超额预扣失败且不改变计数
+	ok, err := AddCreditUsage(period.Id, 600, 1, true)
+	require.NoError(t, err)
+	assert.True(t, ok)
+	ok, err = AddCreditUsage(period.Id, 500, 1, true)
+	require.NoError(t, err)
+	assert.False(t, ok)
+	period, _ = GetCreditPeriodById(period.Id)
+	assert.Equal(t, int64(600), period.UsedQuota)
+	assert.Equal(t, 1, period.InflightCount)
+
+	// 上调额度立即作用于当前期，之前失败的预扣现在成功
+	require.NoError(t, ConfigureEnterpriseCredit(ent.Id, EnterpriseCreditConfig{CycleType: EnterpriseCreditCycleFixedDays, CycleDays: 30, LimitQuota: 2000}, 1))
+	ok, err = AddCreditUsage(period.Id, 500, 1, true)
+	require.NoError(t, err)
+	assert.True(t, ok)
+	// 结算差额不受额度限制（允许超额），并释放在途
+	ok, err = AddCreditUsage(period.Id, 1500, -1, false)
+	require.NoError(t, err)
+	assert.True(t, ok)
+	period, _ = GetCreditPeriodById(period.Id)
+	assert.Equal(t, int64(2600), period.UsedQuota)
+	assert.Equal(t, 1, period.InflightCount)
+
+	// 到期滚动（模拟时间前进 30 天：锚点与账期整体后移）：旧期 closing，新期 open 且连续；在途结算仍可记到 closing 期
+	const shift = int64(30 * 86400)
+	require.NoError(t, DB.Model(&Enterprise{}).Where("id = ?", ent.Id).Update("credit_anchor_at", gorm.Expr("credit_anchor_at - ?", shift)).Error)
+	require.NoError(t, DB.Model(&EnterpriseCreditPeriod{}).Where("id = ?", period.Id).Updates(map[string]any{
+		"start_at": gorm.Expr("start_at - ?", shift), "end_at": gorm.Expr("end_at - ?", shift),
+	}).Error)
+	rolled, err := RolloverDueCreditPeriods(common.GetTimestamp())
+	require.NoError(t, err)
+	assert.Equal(t, 1, rolled)
+	previous, _ := GetCreditPeriodById(period.Id)
+	assert.Equal(t, EnterpriseCreditPeriodClosing, previous.Status)
+	next, err := GetOpenCreditPeriod(ent.Id)
+	require.NoError(t, err)
+	assert.Equal(t, 2, next.PeriodNo)
+	assert.Equal(t, previous.EndAt, next.StartAt)
+	assert.Equal(t, next.StartAt+shift, next.EndAt)
+	assert.Equal(t, int64(2000), next.LimitQuota)
+	assert.Equal(t, int64(0), next.UsedQuota)
+	ok, err = AddCreditUsage(previous.Id, 100, -1, false)
+	require.NoError(t, err)
+	assert.True(t, ok)
+	ok, err = AddCreditUsage(previous.Id, 1, 1, true)
+	require.NoError(t, err)
+	assert.False(t, ok, "closing period must not accept new pre-consume")
+
+	// 已出账的期再收到结算差额：记入当前 open 期并写跨期调整流水
+	require.NoError(t, DB.Model(&EnterpriseCreditPeriod{}).Where("id = ?", previous.Id).Update("status", EnterpriseCreditPeriodBilled).Error)
+	require.NoError(t, ApplyCreditSettlement(ent.Id, previous.Id, 70, 0))
+	next, _ = GetCreditPeriodById(next.Id)
+	assert.Equal(t, int64(70), next.UsedQuota)
+	entries, total, err := ListEnterpriseLedger(ent.Id, EnterpriseLedgerCrossPeriodAdjustment, 0, 10)
+	require.NoError(t, err)
+	assert.Equal(t, int64(1), total)
+	assert.Equal(t, int64(70), entries[0].AmountQuota)
+
+	// 授信企业不能登记充值；切回预付后 open 期转为 closing
+	_, err = RegisterEnterpriseTopup(ent.Id, 100, 1, "", "")
+	assert.ErrorIs(t, err, ErrEnterpriseNotPrepaid)
+	require.NoError(t, SwitchEnterpriseToPrepaid(ent.Id, 1))
+	_, err = GetOpenCreditPeriod(ent.Id)
+	assert.ErrorIs(t, err, ErrEnterpriseCreditNoOpenPeriod)
+	info, _ = GetEnterpriseBillingInfo(owner.Id)
+	assert.Equal(t, EnterpriseBillingModePrepaid, info.BillingMode)
+}
+
+func TestEnterpriseTopupAndStatus(t *testing.T) {
+	setupEnterprisePostgres(t)
+	owner := createEnterpriseTestUser(t, "topupowner", common.RoleCommonUser)
+	require.NoError(t, UpgradeUserToEnterprise(owner.Id, &Enterprise{Name: "Topup Co"}))
+	ent, err := GetEnterpriseByUserId(owner.Id)
+	require.NoError(t, err)
+
+	entry, err := RegisterEnterpriseTopup(ent.Id, 250, 9, "WIRE-001", "Oct top-up")
+	require.NoError(t, err)
+	assert.Equal(t, int64(1250), entry.BalanceAfterQuota)
+	quota, err := GetUserQuota(owner.Id, true)
+	require.NoError(t, err)
+	assert.Equal(t, 1250, quota)
+	_, err = RegisterEnterpriseTopup(ent.Id, 0, 9, "", "")
+	assert.Error(t, err)
+	entries, total, err := ListEnterpriseLedger(ent.Id, "", 0, 10)
+	require.NoError(t, err)
+	assert.Equal(t, int64(1), total)
+	assert.Equal(t, "WIRE-001", entries[0].Reference)
+
+	require.NoError(t, SetEnterpriseStatus(ent.Id, EnterpriseStatusSuspended))
+	info, err := GetEnterpriseBillingInfo(owner.Id)
+	require.NoError(t, err)
+	assert.Equal(t, EnterpriseStatusSuspended, info.Status)
+	assert.Error(t, SetEnterpriseStatus(ent.Id, "paused"))
+	assert.ErrorIs(t, SetEnterpriseStatus(ent.Id+100, EnterpriseStatusActive), ErrEnterpriseResourceNotFound)
+	nonEnterprise, err := GetEnterpriseBillingInfo(999999)
+	require.NoError(t, err)
+	assert.Nil(t, nonEnterprise)
 }

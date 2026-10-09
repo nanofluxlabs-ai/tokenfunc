@@ -132,6 +132,9 @@ func main() {
 	// Codex credential auto-refresh check every 10 minutes, refresh when expires within 1 day
 	service.StartCodexCredentialAutoRefreshTask()
 
+	// 企业授信账期滚动（TokenFunc 二开）
+	service.StartEnterpriseCreditTask()
+
 	// Subscription quota reset task (daily/weekly/monthly/custom)
 	service.StartSubscriptionQuotaResetTask()
 

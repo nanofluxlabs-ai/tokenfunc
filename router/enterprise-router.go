@@ -16,6 +16,12 @@ func registerEnterpriseRoutes(apiRouter *gin.RouterGroup) {
 		adminRoute.POST("/enterprises", controller.AdminCreateEnterprise)
 		adminRoute.GET("/enterprises/:id", controller.AdminGetEnterprise)
 		adminRoute.PUT("/enterprises/:id", controller.AdminUpdateEnterprise)
+		adminRoute.PUT("/enterprises/:id/credit", controller.AdminConfigureEnterpriseCredit)
+		adminRoute.DELETE("/enterprises/:id/credit", controller.AdminSwitchEnterprisePrepaid)
+		adminRoute.PUT("/enterprises/:id/status", controller.AdminSetEnterpriseStatus)
+		adminRoute.POST("/enterprises/:id/topup", controller.AdminRegisterEnterpriseTopup)
+		adminRoute.GET("/enterprises/:id/ledger", controller.AdminListEnterpriseLedger)
+		adminRoute.GET("/enterprises/:id/credit-periods", controller.AdminListEnterpriseCreditPeriods)
 	}
 
 	// 当前用户的企业资料：非企业用户也可调用，返回 null
@@ -24,6 +30,10 @@ func registerEnterpriseRoutes(apiRouter *gin.RouterGroup) {
 	consoleRoute := apiRouter.Group("/enterprise")
 	consoleRoute.Use(middleware.UserAuth(), middleware.EnterpriseOwnerAuth())
 	{
+		consoleRoute.GET("/overview", controller.GetEnterpriseOverview)
+		consoleRoute.GET("/ledger", controller.ListEnterpriseLedgerSelf)
+		consoleRoute.GET("/credit-periods", controller.ListEnterpriseCreditPeriodsSelf)
+
 		consoleRoute.GET("/departments", controller.ListEnterpriseDepartments)
 		consoleRoute.POST("/departments", controller.CreateEnterpriseDepartment)
 		consoleRoute.PUT("/departments/:id", controller.UpdateEnterpriseDepartment)

@@ -23,6 +23,9 @@ func init() {
 		"POST /api/admin/enterprise/credit-periods/:id/issue":      accessTokenScopeRule("billing:write"),
 		"GET /api/admin/enterprise/settings/seller":                accessTokenScopeRule("billing:read"),
 		"PUT /api/admin/enterprise/settings/seller":                accessTokenScopeRule("billing:write"),
+		"GET /api/admin/enterprise/quotes":                         accessTokenScopeRule("billing:read"),
+		"POST /api/admin/enterprise/quotes":                        accessTokenScopeRule("billing:write"),
+		"GET /api/admin/enterprise/quotes/:id":                     accessTokenScopeRule("billing:read"),
 
 		// router/enterprise-router.go: /api/enterprise（企业控制台，支持带 enterprise:* 作用域的访问令牌做自动化）
 		"GET /api/enterprise/self":                  accessTokenScopeRule("enterprise:read"),

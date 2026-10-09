@@ -31,6 +31,9 @@ func registerEnterpriseRoutes(apiRouter *gin.RouterGroup) {
 		adminRoute.POST("/credit-periods/:id/issue", controller.AdminIssueBillNow)
 		adminRoute.GET("/settings/seller", controller.AdminGetSellerProfile)
 		adminRoute.PUT("/settings/seller", controller.AdminUpdateSellerProfile)
+		adminRoute.GET("/quotes", controller.AdminListQuotes)
+		adminRoute.POST("/quotes", controller.AdminCreateQuote)
+		adminRoute.GET("/quotes/:id", controller.AdminGetQuote)
 	}
 
 	// 当前用户的企业资料：非企业用户也可调用，返回 null

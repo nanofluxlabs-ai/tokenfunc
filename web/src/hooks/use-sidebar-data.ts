@@ -25,6 +25,7 @@ import {
   Gauge,
   Receipt,
   ReceiptText,
+  FileSignature,
   KeyRound,
   ClipboardList,
   CreditCard,
@@ -195,6 +196,11 @@ export function useSidebarData(): SidebarData {
             title: t('Enterprise Bills'),
             url: '/enterprise-billing',
             icon: ReceiptText,
+          },
+          {
+            title: t('Quotations'),
+            url: '/quotes',
+            icon: FileSignature,
           },
           {
             title: t('Redemption Codes'),

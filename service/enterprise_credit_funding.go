@@ -16,9 +16,6 @@ import (
 // BillingSourceCredit 企业授信资金来源标识
 const BillingSourceCredit = "credit"
 
-// ContextKeyEnterpriseCreditPeriod gin 上下文里的预扣账期 id，供用量聚合按账期归因
-const ContextKeyEnterpriseCreditPeriod = "enterprise_credit_period_id"
-
 var (
 	// ErrInsufficientCreditQuota 本期授信额度已用完（原子预扣未命中），未发生任何扣减
 	ErrInsufficientCreditQuota = errors.New("enterprise credit limit reached")
@@ -143,6 +140,6 @@ func enterpriseBillingGate(c *gin.Context, relayInfo *relaycommon.RelayInfo, pre
 		return nil, true, apiErr
 	}
 	relayInfo.CreditPeriodId = funding.periodId
-	c.Set(ContextKeyEnterpriseCreditPeriod, funding.periodId)
+	c.Set(model.ContextKeyEnterpriseCreditPeriod, funding.periodId)
 	return session, true, nil
 }

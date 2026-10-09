@@ -146,3 +146,27 @@ export interface EnterpriseOverview {
   balance_quota: number
   open_period: CreditPeriod | null
 }
+
+export type UsageGroupBy =
+  | 'department'
+  | 'employee'
+  | 'project'
+  | 'model'
+  | 'token'
+  | 'day'
+
+export interface UsageSummaryItem {
+  key_id: number
+  key_name: string
+  request_count: number
+  prompt_tokens: number
+  completion_tokens: number
+  quota: number
+}
+
+export interface UsageSummary {
+  from: string
+  to: string
+  group_by: UsageGroupBy
+  items: UsageSummaryItem[]
+}

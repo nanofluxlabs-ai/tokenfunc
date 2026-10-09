@@ -42,6 +42,7 @@ import { Route as AuthenticatedEnterpriseKeysRouteImport } from './routes/_authe
 import { Route as AuthenticatedEnterpriseOrganizationRouteImport } from './routes/_authenticated/enterprise/organization'
 import { Route as AuthenticatedEnterpriseOverviewRouteImport } from './routes/_authenticated/enterprise/overview'
 import { Route as AuthenticatedEnterpriseProjectsRouteImport } from './routes/_authenticated/enterprise/projects'
+import { Route as AuthenticatedEnterpriseUsageRouteImport } from './routes/_authenticated/enterprise/usage'
 import { Route as AuthenticatedErrorsErrorRouteImport } from './routes/_authenticated/errors/$error'
 import { Route as AuthenticatedKeysIndexRouteImport } from './routes/_authenticated/keys/index'
 import { Route as AuthenticatedModelsIndexRouteImport } from './routes/_authenticated/models/index'
@@ -246,6 +247,12 @@ const AuthenticatedEnterpriseProjectsRoute =
   AuthenticatedEnterpriseProjectsRouteImport.update({
     id: '/enterprise/projects',
     path: '/enterprise/projects',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedEnterpriseUsageRoute =
+  AuthenticatedEnterpriseUsageRouteImport.update({
+    id: '/enterprise/usage',
+    path: '/enterprise/usage',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
 const AuthenticatedErrorsErrorRoute =
@@ -480,6 +487,7 @@ export interface FileRoutesByFullPath {
   '/enterprise/organization': typeof AuthenticatedEnterpriseOrganizationRoute
   '/enterprise/overview': typeof AuthenticatedEnterpriseOverviewRoute
   '/enterprise/projects': typeof AuthenticatedEnterpriseProjectsRoute
+  '/enterprise/usage': typeof AuthenticatedEnterpriseUsageRoute
   '/errors/$error': typeof AuthenticatedErrorsErrorRoute
   '/models/$section': typeof AuthenticatedModelsSectionRoute
   '/usage-logs/$section': typeof AuthenticatedUsageLogsSectionRoute
@@ -546,6 +554,7 @@ export interface FileRoutesByTo {
   '/enterprise/organization': typeof AuthenticatedEnterpriseOrganizationRoute
   '/enterprise/overview': typeof AuthenticatedEnterpriseOverviewRoute
   '/enterprise/projects': typeof AuthenticatedEnterpriseProjectsRoute
+  '/enterprise/usage': typeof AuthenticatedEnterpriseUsageRoute
   '/errors/$error': typeof AuthenticatedErrorsErrorRoute
   '/models/$section': typeof AuthenticatedModelsSectionRoute
   '/usage-logs/$section': typeof AuthenticatedUsageLogsSectionRoute
@@ -616,6 +625,7 @@ export interface FileRoutesById {
   '/_authenticated/enterprise/organization': typeof AuthenticatedEnterpriseOrganizationRoute
   '/_authenticated/enterprise/overview': typeof AuthenticatedEnterpriseOverviewRoute
   '/_authenticated/enterprise/projects': typeof AuthenticatedEnterpriseProjectsRoute
+  '/_authenticated/enterprise/usage': typeof AuthenticatedEnterpriseUsageRoute
   '/_authenticated/errors/$error': typeof AuthenticatedErrorsErrorRoute
   '/_authenticated/models/$section': typeof AuthenticatedModelsSectionRoute
   '/_authenticated/usage-logs/$section': typeof AuthenticatedUsageLogsSectionRoute
@@ -685,6 +695,7 @@ export interface FileRouteTypes {
     | '/enterprise/organization'
     | '/enterprise/overview'
     | '/enterprise/projects'
+    | '/enterprise/usage'
     | '/errors/$error'
     | '/models/$section'
     | '/usage-logs/$section'
@@ -751,6 +762,7 @@ export interface FileRouteTypes {
     | '/enterprise/organization'
     | '/enterprise/overview'
     | '/enterprise/projects'
+    | '/enterprise/usage'
     | '/errors/$error'
     | '/models/$section'
     | '/usage-logs/$section'
@@ -820,6 +832,7 @@ export interface FileRouteTypes {
     | '/_authenticated/enterprise/organization'
     | '/_authenticated/enterprise/overview'
     | '/_authenticated/enterprise/projects'
+    | '/_authenticated/enterprise/usage'
     | '/_authenticated/errors/$error'
     | '/_authenticated/models/$section'
     | '/_authenticated/usage-logs/$section'
@@ -1108,6 +1121,13 @@ declare module '@tanstack/react-router' {
       path: '/enterprise/projects'
       fullPath: '/enterprise/projects'
       preLoaderRoute: typeof AuthenticatedEnterpriseProjectsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/enterprise/usage': {
+      id: '/_authenticated/enterprise/usage'
+      path: '/enterprise/usage'
+      fullPath: '/enterprise/usage'
+      preLoaderRoute: typeof AuthenticatedEnterpriseUsageRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/errors/$error': {
@@ -1449,6 +1469,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedEnterpriseOrganizationRoute: typeof AuthenticatedEnterpriseOrganizationRoute
   AuthenticatedEnterpriseOverviewRoute: typeof AuthenticatedEnterpriseOverviewRoute
   AuthenticatedEnterpriseProjectsRoute: typeof AuthenticatedEnterpriseProjectsRoute
+  AuthenticatedEnterpriseUsageRoute: typeof AuthenticatedEnterpriseUsageRoute
   AuthenticatedErrorsErrorRoute: typeof AuthenticatedErrorsErrorRoute
   AuthenticatedModelsSectionRoute: typeof AuthenticatedModelsSectionRoute
   AuthenticatedUsageLogsSectionRoute: typeof AuthenticatedUsageLogsSectionRoute
@@ -1480,6 +1501,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
     AuthenticatedEnterpriseOrganizationRoute,
   AuthenticatedEnterpriseOverviewRoute: AuthenticatedEnterpriseOverviewRoute,
   AuthenticatedEnterpriseProjectsRoute: AuthenticatedEnterpriseProjectsRoute,
+  AuthenticatedEnterpriseUsageRoute: AuthenticatedEnterpriseUsageRoute,
   AuthenticatedErrorsErrorRoute: AuthenticatedErrorsErrorRoute,
   AuthenticatedModelsSectionRoute: AuthenticatedModelsSectionRoute,
   AuthenticatedUsageLogsSectionRoute: AuthenticatedUsageLogsSectionRoute,

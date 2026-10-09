@@ -19,6 +19,7 @@ For commercial licensing, please contact support@quantumnous.com
 import {
   Activity,
   Box,
+  BarChart3,
   Building2,
   FolderKanban,
   Gauge,
@@ -135,6 +136,11 @@ export function useSidebarData(): SidebarData {
             title: t('Employee API Keys'),
             url: '/enterprise/keys',
             icon: KeyRound,
+          },
+          {
+            title: t('Usage Report'),
+            url: '/enterprise/usage',
+            icon: BarChart3,
           },
         ],
       },

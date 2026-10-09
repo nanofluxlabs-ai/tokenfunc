@@ -23,13 +23,16 @@ import {
   CreditPeriodsTable,
   LedgerTable,
 } from '@/features/enterprise-console/components/billing-tables'
+import { UsagePanel } from '@/features/enterprise-console/components/usage-panel'
 import { formatQuotaWithCurrency } from '@/lib/currency'
 import { handleServerError } from '@/lib/handle-server-error'
 import { requireServerSuccess } from '@/lib/server-error-message'
 
 import {
+  adminUsageExportUrl,
   disableEnterpriseCredit,
   getEnterprise,
+  getEnterpriseUsageSummary,
   listEnterpriseCreditPeriods,
   listEnterpriseLedger,
   setEnterpriseStatus,
@@ -243,6 +246,18 @@ export function EnterpriseBillingDrawer(props: EnterpriseBillingDrawerProps) {
                 isLoading={ledger.isLoading}
               />
             </SideDrawerSection>
+            {enterpriseId > 0 && (
+              <SideDrawerSection>
+                <SideDrawerSectionHeader title={t('Usage Report')} />
+                <UsagePanel
+                  queryKey={['admin-enterprise', enterpriseId]}
+                  fetchSummary={(params) =>
+                    getEnterpriseUsageSummary(enterpriseId, params)
+                  }
+                  exportUrl={adminUsageExportUrl(enterpriseId)}
+                />
+              </SideDrawerSection>
+            )}
           </div>
         </SheetContent>
       </Sheet>

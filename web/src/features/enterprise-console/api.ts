@@ -12,6 +12,8 @@ import type {
   EnterpriseSelf,
   EnterpriseToken,
   LedgerEntry,
+  UsageGroupBy,
+  UsageSummary,
   PageData,
   Project,
   ProjectPayload,
@@ -167,3 +169,23 @@ export async function listCreditPeriods(params: {
   const res = await api.get(`${BASE}/credit-periods`, { params })
   return res.data
 }
+
+export type UsageQuery = { group_by: UsageGroupBy; from: string; to: string }
+
+export async function getUsageSummary(
+  params: UsageQuery
+): Promise<ApiResponse<UsageSummary>> {
+  const res = await api.get(`${BASE}/usage/summary`, { params })
+  return res.data
+}
+
+/** 下载用量 CSV（服务端生成，带 BOM） */
+export async function downloadUsageCsv(
+  url: string,
+  params: { from: string; to: string }
+): Promise<Blob> {
+  const res = await api.get(url, { params, responseType: 'blob' })
+  return res.data as Blob
+}
+
+export const USAGE_EXPORT_URL = `${BASE}/usage/export`

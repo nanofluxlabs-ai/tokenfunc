@@ -1,6 +1,8 @@
 import type {
   CreditPeriod,
   LedgerEntry,
+  UsageGroupBy,
+  UsageSummary,
   PageData,
 } from '@/features/enterprise-console/types'
 import { api } from '@/lib/api'
@@ -95,4 +97,18 @@ export async function listEnterpriseCreditPeriods(
     params,
   })
   return res.data
+}
+
+export async function getEnterpriseUsageSummary(
+  id: number,
+  params: { group_by: UsageGroupBy; from: string; to: string }
+): Promise<ApiResponse<UsageSummary>> {
+  const res = await api.get(`${ADMIN_ENTERPRISE_BASE}/${id}/usage/summary`, {
+    params,
+  })
+  return res.data
+}
+
+export function adminUsageExportUrl(id: number): string {
+  return `${ADMIN_ENTERPRISE_BASE}/${id}/usage/export`
 }

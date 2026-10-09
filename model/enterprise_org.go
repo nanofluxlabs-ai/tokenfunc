@@ -336,7 +336,7 @@ func UpdateEnterpriseEmployee(employee *EnterpriseEmployee) error {
 	if err := employee.normalize(); err != nil {
 		return err
 	}
-	return DB.Transaction(func(tx *gorm.DB) error {
+	err := DB.Transaction(func(tx *gorm.DB) error {
 		existing, err := getEnterpriseEmployee(lockForUpdate(tx), employee.EnterpriseId, employee.Id)
 		if err != nil {
 			return err
@@ -364,6 +364,10 @@ func UpdateEnterpriseEmployee(employee *EnterpriseEmployee) error {
 		}
 		return nil
 	})
+	if err == nil {
+		InvalidateAllTokenAttribution()
+	}
+	return err
 }
 
 // DeleteEnterpriseEmployee 软删除员工并停用其名下 key；key 归属保留，历史统计不受影响
@@ -592,7 +596,7 @@ func upsertTokenAssignment(tx *gorm.DB, enterpriseId int, tokenId int, employeeI
 
 // AssignEnterpriseToken 修改 key 的员工/项目归属，只影响之后的请求统计
 func AssignEnterpriseToken(enterpriseId int, ownerUserId int, tokenId int, employeeId int, projectId int) error {
-	return DB.Transaction(func(tx *gorm.DB) error {
+	err := DB.Transaction(func(tx *gorm.DB) error {
 		var count int64
 		if err := tx.Model(&Token{}).Where("id = ? AND user_id = ?", tokenId, ownerUserId).Count(&count).Error; err != nil {
 			return err
@@ -605,6 +609,8 @@ func AssignEnterpriseToken(enterpriseId int, ownerUserId int, tokenId int, emplo
 		}
 		return upsertTokenAssignment(tx, enterpriseId, tokenId, employeeId, projectId)
 	})
+	InvalidateTokenAttribution(tokenId)
+	return err
 }
 
 // CreateEnterpriseToken 为企业主账号创建 key 并写入归属（同一事务）

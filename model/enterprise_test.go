@@ -42,7 +42,7 @@ func setupEnterprisePostgres(t *testing.T) {
 
 var enterpriseTestTables = []any{
 	&User{}, &Token{}, &Enterprise{}, &EnterpriseDepartment{}, &EnterpriseEmployee{}, &EnterpriseProject{}, &EnterpriseTokenAssignment{},
-	&EnterpriseCreditPeriod{}, &EnterpriseLedgerEntry{},
+	&EnterpriseCreditPeriod{}, &EnterpriseLedgerEntry{}, &EnterpriseUsageDaily{},
 }
 
 func createEnterpriseTestUser(t *testing.T, username string, role int) *User {
@@ -425,4 +425,77 @@ func TestEnterpriseTopupAndStatus(t *testing.T) {
 	nonEnterprise, err := GetEnterpriseBillingInfo(999999)
 	require.NoError(t, err)
 	assert.Nil(t, nonEnterprise)
+}
+
+func TestEnterpriseUsageAggregationSnapshotsAttribution(t *testing.T) {
+	setupEnterprisePostgres(t)
+	owner := createEnterpriseTestUser(t, "usageowner", common.RoleCommonUser)
+	require.NoError(t, UpgradeUserToEnterprise(owner.Id, &Enterprise{Name: "Usage Co"}))
+	ent, err := GetEnterpriseByUserId(owner.Id)
+	require.NoError(t, err)
+	sales := &EnterpriseDepartment{EnterpriseId: ent.Id, Name: "Sales"}
+	require.NoError(t, CreateEnterpriseDepartment(sales))
+	ops := &EnterpriseDepartment{EnterpriseId: ent.Id, Name: "Ops"}
+	require.NoError(t, CreateEnterpriseDepartment(ops))
+	alice := &EnterpriseEmployee{EnterpriseId: ent.Id, DepartmentId: sales.Id, Name: "Alice"}
+	require.NoError(t, CreateEnterpriseEmployee(alice))
+	project := &EnterpriseProject{EnterpriseId: ent.Id, Name: "Bot"}
+	require.NoError(t, CreateEnterpriseProject(project))
+	token := &Token{UserId: owner.Id, Name: "alice-key", Key: "alicekey0000000000000000000000000000000000000002", Status: common.TokenStatusEnabled, ExpiredTime: -1, UnlimitedQuota: true}
+	require.NoError(t, CreateEnterpriseToken(ent.Id, token, alice.Id, project.Id))
+	InvalidateEnterpriseBillingInfo(owner.Id)
+
+	now := common.GetTimestamp()
+	event := EnterpriseUsageEvent{UserId: owner.Id, TokenId: token.Id, ModelName: "gpt-4o", PromptTokens: 100, CompletionTokens: 50, Quota: 7, CreatedAt: now}
+	require.NoError(t, RecordEnterpriseUsage(event))
+	require.NoError(t, RecordEnterpriseUsage(event))
+	// 非企业用户不写任何东西
+	require.NoError(t, RecordEnterpriseUsage(EnterpriseUsageEvent{UserId: 424242, TokenId: 1, ModelName: "x", CreatedAt: now}))
+
+	from, to := DefaultEnterpriseUsageRange()
+	byEmployee, err := SummarizeEnterpriseUsage(ent.Id, EnterpriseUsageGroupEmployee, from, to)
+	require.NoError(t, err)
+	require.Len(t, byEmployee, 1)
+	assert.Equal(t, "Alice", byEmployee[0].KeyName)
+	assert.Equal(t, int64(2), byEmployee[0].RequestCount)
+	assert.Equal(t, int64(200), byEmployee[0].PromptTokens)
+	assert.Equal(t, int64(14), byEmployee[0].Quota)
+
+	// 员工换部门后：历史仍归 Sales，新用量归 Ops（写入时快照）
+	alice.DepartmentId = ops.Id
+	require.NoError(t, UpdateEnterpriseEmployee(alice))
+	require.NoError(t, RecordEnterpriseUsage(EnterpriseUsageEvent{UserId: owner.Id, TokenId: token.Id, ModelName: "gpt-4o", Quota: 3, CreatedAt: now}))
+	byDepartment, err := SummarizeEnterpriseUsage(ent.Id, EnterpriseUsageGroupDepartment, from, to)
+	require.NoError(t, err)
+	totals := map[string]int64{}
+	for _, item := range byDepartment {
+		totals[item.KeyName] = item.Quota
+	}
+	assert.Equal(t, map[string]int64{"Sales": 14, "Ops": 3}, totals)
+
+	// 其它维度与导出
+	byModel, err := SummarizeEnterpriseUsage(ent.Id, EnterpriseUsageGroupModel, from, to)
+	require.NoError(t, err)
+	require.Len(t, byModel, 1)
+	assert.Equal(t, "gpt-4o", byModel[0].KeyName)
+	assert.Equal(t, int64(17), byModel[0].Quota)
+	_, err = SummarizeEnterpriseUsage(ent.Id, "channel", from, to)
+	assert.ErrorIs(t, err, ErrEnterpriseUsageGroup)
+	rows, err := ExportEnterpriseUsage(ent.Id, from, to)
+	require.NoError(t, err)
+	require.Len(t, rows, 2)
+	assert.Equal(t, "Bot", rows[0].ProjectName)
+	assert.Equal(t, "alice-key", rows[0].TokenName)
+	assert.Equal(t, int64(17), rows[0].Quota+rows[1].Quota)
+
+	// 授信企业按账期归因；账期明细合计可用于出账对账
+	require.NoError(t, ConfigureEnterpriseCredit(ent.Id, EnterpriseCreditConfig{CycleType: EnterpriseCreditCycleNaturalMonth, LimitQuota: 1000}, 1))
+	period, err := GetOpenCreditPeriod(ent.Id)
+	require.NoError(t, err)
+	require.NoError(t, RecordEnterpriseUsage(EnterpriseUsageEvent{UserId: owner.Id, TokenId: token.Id, ModelName: "gpt-4o", Quota: 5, CreatedAt: now, CreditPeriodId: period.Id}))
+	periodTotal, err := SumEnterpriseUsageByPeriod(ent.Id, period.Id)
+	require.NoError(t, err)
+	assert.Equal(t, int64(5), periodTotal)
+	assert.NoError(t, ValidateEnterpriseUsageDay("2026-10-09"))
+	assert.Error(t, ValidateEnterpriseUsageDay("2026/10/09"))
 }

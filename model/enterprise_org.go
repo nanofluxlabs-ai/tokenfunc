@@ -619,3 +619,132 @@ func CreateEnterpriseToken(enterpriseId int, token *Token, employeeId int, proje
 		return upsertTokenAssignment(tx, enterpriseId, token.Id, employeeId, projectId)
 	})
 }
+
+// ---------------------------------------------------------------------------
+// 员工批量导入
+// ---------------------------------------------------------------------------
+
+const EnterpriseEmployeeImportMaxRows = 1000
+
+// EnterpriseEmployeeImportRow 导入的一行；Department 按名称匹配已有部门，找不到则新建为顶级部门
+type EnterpriseEmployeeImportRow struct {
+	Name       string `json:"name"`
+	Email      string `json:"email"`
+	EmployeeNo string `json:"employee_no"`
+	Department string `json:"department"`
+}
+
+// EnterpriseEmployeeImportError 行级错误，Row 从 1 开始计数
+type EnterpriseEmployeeImportError struct {
+	Row     int    `json:"row"`
+	Message string `json:"message"`
+}
+
+type EnterpriseEmployeeImportResult struct {
+	Created            int                             `json:"created"`
+	CreatedDepartments []string                        `json:"created_departments"`
+	Errors             []EnterpriseEmployeeImportError `json:"errors"`
+}
+
+// ImportEnterpriseEmployees 批量导入员工：先整体校验，任一行有错则全部不写入（全成功或全失败）
+func ImportEnterpriseEmployees(enterpriseId int, rows []EnterpriseEmployeeImportRow) (*EnterpriseEmployeeImportResult, error) {
+	result := &EnterpriseEmployeeImportResult{CreatedDepartments: []string{}, Errors: []EnterpriseEmployeeImportError{}}
+	if len(rows) == 0 {
+		return result, errors.New("no rows to import")
+	}
+	if len(rows) > EnterpriseEmployeeImportMaxRows {
+		return result, fmt.Errorf("at most %d rows per import", EnterpriseEmployeeImportMaxRows)
+	}
+	err := DB.Transaction(func(tx *gorm.DB) error {
+		var departments []EnterpriseDepartment
+		if err := tx.Where("enterprise_id = ?", enterpriseId).Order("sort ASC, id ASC").Find(&departments).Error; err != nil {
+			return err
+		}
+		departmentIds := map[string]int{}
+		for _, department := range departments {
+			key := strings.ToLower(department.Name)
+			if _, exists := departmentIds[key]; !exists {
+				departmentIds[key] = department.Id
+			}
+		}
+		var existingNos []string
+		if err := tx.Model(&EnterpriseEmployee{}).Where("enterprise_id = ? AND employee_no <> ''", enterpriseId).Pluck("employee_no", &existingNos).Error; err != nil {
+			return err
+		}
+		usedNos := map[string]bool{}
+		for _, no := range existingNos {
+			usedNos[no] = true
+		}
+
+		employees := make([]*EnterpriseEmployee, 0, len(rows))
+		departmentKeys := make([]string, 0, len(rows)) // 与 employees 一一对应的部门键（小写名），空表示未分配
+		newDepartments := map[string]string{}          // 小写名 -> 原始名
+		for i, row := range rows {
+			employee := &EnterpriseEmployee{
+				EnterpriseId: enterpriseId,
+				Name:         row.Name,
+				Email:        row.Email,
+				EmployeeNo:   row.EmployeeNo,
+				Status:       EnterpriseEmployeeStatusActive,
+			}
+			if err := employee.normalize(); err != nil {
+				result.Errors = append(result.Errors, EnterpriseEmployeeImportError{Row: i + 1, Message: err.Error()})
+				continue
+			}
+			if employee.EmployeeNo != "" {
+				if usedNos[employee.EmployeeNo] {
+					result.Errors = append(result.Errors, EnterpriseEmployeeImportError{Row: i + 1, Message: "duplicate employee number: " + employee.EmployeeNo})
+					continue
+				}
+				usedNos[employee.EmployeeNo] = true
+			}
+			departmentKey := ""
+			if departmentName := strings.TrimSpace(row.Department); departmentName != "" {
+				if len([]rune(departmentName)) > 64 {
+					result.Errors = append(result.Errors, EnterpriseEmployeeImportError{Row: i + 1, Message: "department name is too long"})
+					continue
+				}
+				departmentKey = strings.ToLower(departmentName)
+				if _, exists := departmentIds[departmentKey]; !exists {
+					if _, pending := newDepartments[departmentKey]; !pending {
+						newDepartments[departmentKey] = departmentName // 首次出现的写法作为部门名
+					}
+				}
+			}
+			employees = append(employees, employee)
+			departmentKeys = append(departmentKeys, departmentKey)
+		}
+		if len(result.Errors) > 0 {
+			return errImportRejected
+		}
+
+		now := common.GetTimestamp()
+		for key, name := range newDepartments {
+			department := &EnterpriseDepartment{EnterpriseId: enterpriseId, Name: name, CreatedAt: now, UpdatedAt: now}
+			if err := tx.Create(department).Error; err != nil {
+				return err
+			}
+			departmentIds[key] = department.Id
+			result.CreatedDepartments = append(result.CreatedDepartments, name)
+		}
+		for i, employee := range employees {
+			if departmentKeys[i] != "" {
+				employee.DepartmentId = departmentIds[departmentKeys[i]]
+			}
+			employee.CreatedAt = now
+			employee.UpdatedAt = now
+		}
+		if err := tx.Create(&employees).Error; err != nil {
+			return err
+		}
+		result.Created = len(employees)
+		return nil
+	})
+	if errors.Is(err, errImportRejected) {
+		return result, nil
+	}
+	return result, err
+}
+
+// errImportRejected 用于回滚事务：行校验失败时不写入任何数据
+var errImportRejected = errors.New("import rejected")

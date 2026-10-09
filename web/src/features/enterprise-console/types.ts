@@ -100,3 +100,16 @@ export interface DepartmentNode extends Department {
   depth: number
   children: DepartmentNode[]
 }
+
+export interface EmployeeImportRow {
+  name: string
+  email: string
+  employee_no: string
+  department: string
+}
+
+export interface EmployeeImportResult {
+  created: number
+  created_departments: string[]
+  errors: { row: number; message: string }[]
+}

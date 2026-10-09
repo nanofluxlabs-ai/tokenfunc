@@ -21,9 +21,10 @@ import { formatQuotaWithCurrency } from '@/lib/currency'
 import { requireServerSuccess } from '@/lib/server-error-message'
 
 import { listEnterpriseTokens } from '../api'
-import { useAssignmentOptions } from '../hooks/use-assignment-options'
 import { useEnterpriseSelf } from '../hooks/use-enterprise-self'
+import { useProjectOptions } from '../hooks/use-project-options'
 import type { EnterpriseToken } from '../types'
+import { EMPLOYEE_PICKER_ANY, EmployeePicker } from './employee-picker'
 import { EnterpriseGuard } from './enterprise-guard'
 import { EntitySelect } from './entity-select'
 import { TokenAssignDialog } from './token-assign-dialog'
@@ -31,12 +32,12 @@ import { TokenCreateDialog } from './token-create-dialog'
 
 const PAGE_SIZE = 20
 // 筛选值：-1 不筛选，0 未分配，正数为具体 id
-const ANY = -1
+const ANY = EMPLOYEE_PICKER_ANY
 
 function KeysTable() {
   const { t } = useTranslation()
   const queryClient = useQueryClient()
-  const { employeeOptions, projectOptions } = useAssignmentOptions()
+  const projectOptions = useProjectOptions()
   const [keyword, setKeyword] = useState('')
   const debouncedKeyword = useDebounce(keyword, 400)
   const [employeeId, setEmployeeId] = useState(ANY)
@@ -156,18 +157,15 @@ function KeysTable() {
             setPage(1)
           }}
         />
-        <div className='w-48'>
-          <EntitySelect
+        <div className='w-56'>
+          <EmployeePicker
             aria-label={t('Filter by employee')}
             value={employeeId}
             onChange={(value) => {
               setEmployeeId(value)
               setPage(1)
             }}
-            options={[
-              { value: ANY, label: t('All Employees') },
-              ...employeeOptions,
-            ]}
+            allowAny
             noneLabel={t('Shared (no employee)')}
           />
         </div>

@@ -24,7 +24,8 @@ import { parseQuotaFromDollars } from '@/lib/format'
 import { handleServerError } from '@/lib/handle-server-error'
 
 import { createEnterpriseToken } from '../api'
-import { useAssignmentOptions } from '../hooks/use-assignment-options'
+import { useProjectOptions } from '../hooks/use-project-options'
+import { EmployeePicker } from './employee-picker'
 import { EntitySelect } from './entity-select'
 
 type TokenCreateDialogProps = {
@@ -37,7 +38,7 @@ export function TokenCreateDialog(props: TokenCreateDialogProps) {
   const { t } = useTranslation()
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [createdKey, setCreatedKey] = useState<string | null>(null)
-  const { employeeOptions, projectOptions } = useAssignmentOptions()
+  const projectOptions = useProjectOptions()
   const schema = useMemo(
     () =>
       z.object({
@@ -177,10 +178,9 @@ export function TokenCreateDialog(props: TokenCreateDialogProps) {
             render={({ field }) => (
               <FormItem>
                 <FormLabel>{t('Employee')}</FormLabel>
-                <EntitySelect
+                <EmployeePicker
                   value={field.value}
                   onChange={field.onChange}
-                  options={employeeOptions}
                   noneLabel={t('Shared (no employee)')}
                   aria-label={t('Employee')}
                 />

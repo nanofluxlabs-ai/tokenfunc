@@ -4,6 +4,8 @@ import type {
   ApiResponse,
   Department,
   Employee,
+  EmployeeImportResult,
+  EmployeeImportRow,
   EmployeePayload,
   EnterpriseSelf,
   EnterpriseToken,
@@ -63,6 +65,13 @@ export async function createEmployee(
   payload: EmployeePayload
 ): Promise<ApiResponse<Employee>> {
   const res = await api.post(`${BASE}/employees`, payload)
+  return res.data
+}
+
+export async function importEmployees(
+  rows: EmployeeImportRow[]
+): Promise<ApiResponse<EmployeeImportResult>> {
+  const res = await api.post(`${BASE}/employees/import`, { rows })
   return res.data
 }
 

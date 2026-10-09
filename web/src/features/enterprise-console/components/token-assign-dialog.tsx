@@ -8,8 +8,9 @@ import { Label } from '@/components/ui/label'
 import { handleServerError } from '@/lib/handle-server-error'
 
 import { updateTokenAssignment } from '../api'
-import { useAssignmentOptions } from '../hooks/use-assignment-options'
+import { useProjectOptions } from '../hooks/use-project-options'
 import type { EnterpriseToken } from '../types'
+import { EmployeePicker } from './employee-picker'
 import { EntitySelect } from './entity-select'
 
 type TokenAssignDialogProps = {
@@ -20,7 +21,7 @@ type TokenAssignDialogProps = {
 
 export function TokenAssignDialog(props: TokenAssignDialogProps) {
   const { t } = useTranslation()
-  const { employeeOptions, projectOptions } = useAssignmentOptions()
+  const projectOptions = useProjectOptions()
   const [employeeId, setEmployeeId] = useState(0)
   const [projectId, setProjectId] = useState(0)
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -70,11 +71,11 @@ export function TokenAssignDialog(props: TokenAssignDialogProps) {
       <div className='flex flex-col gap-4'>
         <div className='flex flex-col gap-2'>
           <Label htmlFor='assign-employee'>{t('Employee')}</Label>
-          <EntitySelect
+          <EmployeePicker
             id='assign-employee'
             value={employeeId}
             onChange={setEmployeeId}
-            options={employeeOptions}
+            selectedLabel={props.token?.employee_name}
             noneLabel={t('Shared (no employee)')}
           />
         </div>

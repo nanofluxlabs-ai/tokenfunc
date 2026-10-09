@@ -200,6 +200,23 @@ func CreateEnterpriseEmployee(c *gin.Context) {
 	common.ApiSuccess(c, employee)
 }
 
+// ImportEnterpriseEmployees 批量导入员工（JSON 行数组，CSV 由前端解析）；任一行出错则整批不写入
+func ImportEnterpriseEmployees(c *gin.Context) {
+	var req struct {
+		Rows []model.EnterpriseEmployeeImportRow `json:"rows"`
+	}
+	if err := common.DecodeJson(c.Request.Body, &req); err != nil {
+		common.ApiErrorMsg(c, "invalid request body")
+		return
+	}
+	result, err := model.ImportEnterpriseEmployees(currentEnterprise(c).Id, req.Rows)
+	if err != nil {
+		common.ApiError(c, err)
+		return
+	}
+	common.ApiSuccess(c, result)
+}
+
 func UpdateEnterpriseEmployee(c *gin.Context) {
 	id, ok := paramId(c)
 	if !ok {

@@ -3,7 +3,7 @@ import {
   useQuery,
   useQueryClient,
 } from '@tanstack/react-query'
-import { Pencil, Plus, Trash2 } from 'lucide-react'
+import { Pencil, Plus, Trash2, Upload } from 'lucide-react'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
@@ -24,6 +24,7 @@ import { deleteEmployee, listEmployees } from '../api'
 import type { DepartmentNode, Employee } from '../types'
 import type { DepartmentSelection } from './department-panel'
 import { EmployeeDialog } from './employee-dialog'
+import { EmployeeImportDialog } from './employee-import-dialog'
 
 const PAGE_SIZE = 20
 
@@ -38,6 +39,7 @@ export function EmployeesSection(props: {
   const [page, setPage] = useState(1)
   const [dialog, setDialog] = useState<{ employee?: Employee } | null>(null)
   const [deleting, setDeleting] = useState<Employee | null>(null)
+  const [importing, setImporting] = useState(false)
 
   const departmentId = props.department === 'all' ? undefined : props.department
   const { data, isLoading } = useQuery({
@@ -158,6 +160,10 @@ export function EmployeesSection(props: {
           }}
         />
         <div className='flex-1' />
+        <Button variant='outline' size='sm' onClick={() => setImporting(true)}>
+          <Upload className='h-4 w-4' />
+          {t('Import CSV')}
+        </Button>
         <Button size='sm' onClick={() => setDialog({})}>
           <Plus className='h-4 w-4' />
           {t('Add Employee')}
@@ -202,6 +208,11 @@ export function EmployeesSection(props: {
           typeof props.department === 'number' ? props.department : 0
         }
         onSaved={refresh}
+      />
+      <EmployeeImportDialog
+        open={importing}
+        onOpenChange={setImporting}
+        onImported={refresh}
       />
       <ConfirmDialog
         open={deleting !== null}

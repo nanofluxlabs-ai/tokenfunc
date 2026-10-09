@@ -31,6 +31,7 @@ func registerEnterpriseRoutes(apiRouter *gin.RouterGroup) {
 
 		consoleRoute.GET("/employees", controller.ListEnterpriseEmployees)
 		consoleRoute.POST("/employees", controller.CreateEnterpriseEmployee)
+		consoleRoute.POST("/employees/import", controller.ImportEnterpriseEmployees)
 		consoleRoute.PUT("/employees/:id", controller.UpdateEnterpriseEmployee)
 		consoleRoute.DELETE("/employees/:id", controller.DeleteEnterpriseEmployee)
 

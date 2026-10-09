@@ -25,6 +25,7 @@ func setupEnterprisePostgres(t *testing.T) {
 	require.NoError(t, err)
 
 	previousDB := DB
+	previousMain, previousLog := common.MainDatabaseType(), common.LogDatabaseType()
 	DB = db
 	common.SetDatabaseTypes(common.DatabaseTypePostgreSQL, common.DatabaseTypePostgreSQL)
 	initCol()
@@ -32,7 +33,7 @@ func setupEnterprisePostgres(t *testing.T) {
 		require.NoError(t, db.Migrator().DropTable(enterpriseTestTables...))
 		require.NoError(t, sqlDB.Close())
 		DB = previousDB
-		common.SetDatabaseTypes(common.DatabaseTypeSQLite, common.DatabaseTypeSQLite)
+		common.SetDatabaseTypes(previousMain, previousLog)
 		initCol()
 	})
 	require.NoError(t, db.Migrator().DropTable(enterpriseTestTables...))
@@ -248,4 +249,57 @@ func TestEnterpriseTokenAssignmentAndEmployeeLifecycle(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, int64(0), total)
 	assert.Empty(t, employees)
+}
+
+func TestEnterpriseEmployeeImportIsAllOrNothing(t *testing.T) {
+	setupEnterprisePostgres(t)
+	owner := createEnterpriseTestUser(t, "importowner", common.RoleCommonUser)
+	require.NoError(t, UpgradeUserToEnterprise(owner.Id, &Enterprise{Name: "Import Co"}))
+	ent, err := GetEnterpriseByUserId(owner.Id)
+	require.NoError(t, err)
+	require.NoError(t, CreateEnterpriseDepartment(&EnterpriseDepartment{EnterpriseId: ent.Id, Name: "Sales"}))
+	require.NoError(t, CreateEnterpriseEmployee(&EnterpriseEmployee{EnterpriseId: ent.Id, Name: "Existing", EmployeeNo: "E100"}))
+
+	// 一行有错（工号与库中重复、文件内重复、缺姓名）→ 整批拒绝，不新建任何员工或部门
+	result, err := ImportEnterpriseEmployees(ent.Id, []EnterpriseEmployeeImportRow{
+		{Name: "Alice", EmployeeNo: "E100", Department: "sales"},
+		{Name: "Bob", EmployeeNo: "E101", Department: "New Dept"},
+		{Name: "Carol", EmployeeNo: "E101"},
+		{Name: " "},
+	})
+	require.NoError(t, err)
+	assert.Equal(t, 0, result.Created)
+	rows := make([]int, 0, len(result.Errors))
+	for _, importError := range result.Errors {
+		rows = append(rows, importError.Row)
+	}
+	assert.Equal(t, []int{1, 3, 4}, rows)
+	_, total, err := ListEnterpriseEmployees(ent.Id, EnterpriseEmployeeFilter{}, 0, 20)
+	require.NoError(t, err)
+	assert.Equal(t, int64(1), total)
+	departments, err := ListEnterpriseDepartments(ent.Id)
+	require.NoError(t, err)
+	assert.Len(t, departments, 1)
+
+	// 全部合法：部门按名称（不区分大小写）匹配，缺失的新建为顶级部门
+	result, err = ImportEnterpriseEmployees(ent.Id, []EnterpriseEmployeeImportRow{
+		{Name: "Alice", Email: "alice@x.com", EmployeeNo: "E201", Department: "SALES"},
+		{Name: "Bob", Department: "New Dept"},
+		{Name: "Carol", Department: "new dept"},
+		{Name: "Dave"},
+	})
+	require.NoError(t, err)
+	assert.Empty(t, result.Errors)
+	assert.Equal(t, 4, result.Created)
+	assert.Equal(t, []string{"New Dept"}, result.CreatedDepartments)
+	departments, err = ListEnterpriseDepartments(ent.Id)
+	require.NoError(t, err)
+	assert.Len(t, departments, 2)
+	items, total, err := ListEnterpriseEmployees(ent.Id, EnterpriseEmployeeFilter{Keyword: "alice"}, 0, 20)
+	require.NoError(t, err)
+	require.Equal(t, int64(1), total)
+	assert.Equal(t, "Sales", items[0].DepartmentName)
+	items, _, err = ListEnterpriseEmployees(ent.Id, EnterpriseEmployeeFilter{Keyword: "carol"}, 0, 20)
+	require.NoError(t, err)
+	assert.Equal(t, "New Dept", items[0].DepartmentName)
 }

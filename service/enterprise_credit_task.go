@@ -59,7 +59,8 @@ func runEnterpriseCreditTaskOnce() {
 			return
 		}
 	}
-	rolled, err := model.RolloverDueCreditPeriods(common.GetTimestamp())
+	now := common.GetTimestamp()
+	rolled, err := model.RolloverDueCreditPeriods(now)
 	if err != nil {
 		logger.LogWarn(ctx, fmt.Sprintf("enterprise credit rollover failed: %v", err))
 		return
@@ -67,4 +68,5 @@ func runEnterpriseCreditTaskOnce() {
 	if rolled > 0 {
 		logger.LogInfo(ctx, fmt.Sprintf("enterprise credit periods rolled over: %d", rolled))
 	}
+	runEnterpriseBillingOnce(ctx, now)
 }

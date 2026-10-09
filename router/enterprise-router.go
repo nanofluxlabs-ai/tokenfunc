@@ -24,6 +24,13 @@ func registerEnterpriseRoutes(apiRouter *gin.RouterGroup) {
 		adminRoute.GET("/enterprises/:id/credit-periods", controller.AdminListEnterpriseCreditPeriods)
 		adminRoute.GET("/enterprises/:id/usage/summary", controller.AdminGetEnterpriseUsageSummary)
 		adminRoute.GET("/enterprises/:id/usage/export", controller.AdminExportEnterpriseUsage)
+		adminRoute.GET("/bills", controller.AdminListEnterpriseBills)
+		adminRoute.GET("/bills/:id", controller.AdminGetEnterpriseBill)
+		adminRoute.POST("/bills/:id/payments", controller.AdminRegisterBillPayment)
+		adminRoute.POST("/bills/:id/void", controller.AdminVoidEnterpriseBill)
+		adminRoute.POST("/credit-periods/:id/issue", controller.AdminIssueBillNow)
+		adminRoute.GET("/settings/seller", controller.AdminGetSellerProfile)
+		adminRoute.PUT("/settings/seller", controller.AdminUpdateSellerProfile)
 	}
 
 	// 当前用户的企业资料：非企业用户也可调用，返回 null
@@ -37,6 +44,8 @@ func registerEnterpriseRoutes(apiRouter *gin.RouterGroup) {
 		consoleRoute.GET("/credit-periods", controller.ListEnterpriseCreditPeriodsSelf)
 		consoleRoute.GET("/usage/summary", controller.GetEnterpriseUsageSummary)
 		consoleRoute.GET("/usage/export", controller.ExportEnterpriseUsageSelf)
+		consoleRoute.GET("/bills", controller.ListEnterpriseBillsSelf)
+		consoleRoute.GET("/bills/:id", controller.GetEnterpriseBillSelf)
 
 		consoleRoute.GET("/departments", controller.ListEnterpriseDepartments)
 		consoleRoute.POST("/departments", controller.CreateEnterpriseDepartment)

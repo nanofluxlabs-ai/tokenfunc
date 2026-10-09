@@ -19,8 +19,8 @@ const ContextKeyEnterpriseCreditPeriod = "enterprise_credit_period_id"
 
 // EnterpriseUsageDaily 企业用量日聚合：员工/部门/项目在写入时快照（并作为主键的一部分），历史不随组织调整漂移
 type EnterpriseUsageDaily struct {
-	Day          string `json:"day" gorm:"type:varchar(10);primaryKey"`
-	EnterpriseId int    `json:"enterprise_id" gorm:"primaryKey;autoIncrement:false;index:idx_ent_usage_ent_day,priority:1"`
+	Day          string `json:"day" gorm:"type:varchar(10);primaryKey;index:idx_ent_usage_enterprise_day,priority:2"`
+	EnterpriseId int    `json:"enterprise_id" gorm:"primaryKey;autoIncrement:false;index:idx_ent_usage_enterprise_day,priority:1"`
 	TokenId      int    `json:"token_id" gorm:"primaryKey;autoIncrement:false"`
 	ModelName    string `json:"model_name" gorm:"type:varchar(128);primaryKey"`
 	PeriodId     int64  `json:"period_id" gorm:"primaryKey;autoIncrement:false;index"`
@@ -32,7 +32,7 @@ type EnterpriseUsageDaily struct {
 	PromptTokens     int64 `json:"prompt_tokens" gorm:"not null;default:0"`
 	CompletionTokens int64 `json:"completion_tokens" gorm:"not null;default:0"`
 	Quota            int64 `json:"quota" gorm:"not null;default:0"`
-	UpdatedAt        int64 `json:"updated_at" gorm:"not null;index:idx_ent_usage_ent_day,priority:2"`
+	UpdatedAt        int64 `json:"updated_at" gorm:"not null"`
 }
 
 func (EnterpriseUsageDaily) TableName() string { return "ent_usage_daily" }

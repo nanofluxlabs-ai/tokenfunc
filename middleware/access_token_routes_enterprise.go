@@ -16,6 +16,13 @@ func init() {
 		"GET /api/admin/enterprise/enterprises/:id/credit-periods": accessTokenScopeRule("billing:read"),
 		"GET /api/admin/enterprise/enterprises/:id/usage/summary":  accessTokenScopeRule("billing:read"),
 		"GET /api/admin/enterprise/enterprises/:id/usage/export":   accessTokenScopeRule("billing:read"),
+		"GET /api/admin/enterprise/bills":                          accessTokenScopeRule("billing:read"),
+		"GET /api/admin/enterprise/bills/:id":                      accessTokenScopeRule("billing:read"),
+		"POST /api/admin/enterprise/bills/:id/payments":            accessTokenScopeRule("billing:write"),
+		"POST /api/admin/enterprise/bills/:id/void":                accessTokenScopeRule("billing:write"),
+		"POST /api/admin/enterprise/credit-periods/:id/issue":      accessTokenScopeRule("billing:write"),
+		"GET /api/admin/enterprise/settings/seller":                accessTokenScopeRule("billing:read"),
+		"PUT /api/admin/enterprise/settings/seller":                accessTokenScopeRule("billing:write"),
 
 		// router/enterprise-router.go: /api/enterprise（企业控制台，支持带 enterprise:* 作用域的访问令牌做自动化）
 		"GET /api/enterprise/self":                  accessTokenScopeRule("enterprise:read"),
@@ -24,6 +31,8 @@ func init() {
 		"GET /api/enterprise/credit-periods":        accessTokenScopeRule("enterprise:read"),
 		"GET /api/enterprise/usage/summary":         accessTokenScopeRule("enterprise:read"),
 		"GET /api/enterprise/usage/export":          accessTokenScopeRule("enterprise:read"),
+		"GET /api/enterprise/bills":                 accessTokenScopeRule("enterprise:read"),
+		"GET /api/enterprise/bills/:id":             accessTokenScopeRule("enterprise:read"),
 		"GET /api/enterprise/departments":           accessTokenScopeRule("enterprise:read"),
 		"POST /api/enterprise/departments":          accessTokenScopeRule("enterprise:write"),
 		"PUT /api/enterprise/departments/:id":       accessTokenScopeRule("enterprise:write"),

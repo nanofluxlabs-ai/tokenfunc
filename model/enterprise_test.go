@@ -3,9 +3,11 @@ package model
 import (
 	"os"
 	"testing"
+	"time"
 
 	"github.com/QuantumNous/new-api/common"
 
+	"github.com/shopspring/decimal"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"gorm.io/driver/postgres"
@@ -42,7 +44,7 @@ func setupEnterprisePostgres(t *testing.T) {
 
 var enterpriseTestTables = []any{
 	&User{}, &Token{}, &Enterprise{}, &EnterpriseDepartment{}, &EnterpriseEmployee{}, &EnterpriseProject{}, &EnterpriseTokenAssignment{},
-	&EnterpriseCreditPeriod{}, &EnterpriseLedgerEntry{}, &EnterpriseUsageDaily{},
+	&EnterpriseCreditPeriod{}, &EnterpriseLedgerEntry{}, &EnterpriseUsageDaily{}, &EnterpriseBill{},
 }
 
 func createEnterpriseTestUser(t *testing.T, username string, role int) *User {
@@ -498,4 +500,142 @@ func TestEnterpriseUsageAggregationSnapshotsAttribution(t *testing.T) {
 	assert.Equal(t, int64(5), periodTotal)
 	assert.NoError(t, ValidateEnterpriseUsageDay("2026-10-09"))
 	assert.Error(t, ValidateEnterpriseUsageDay("2026/10/09"))
+}
+
+func TestEnterpriseCreditBillLifecycle(t *testing.T) {
+	setupEnterprisePostgres(t)
+	owner := createEnterpriseTestUser(t, "billowner", common.RoleCommonUser)
+	require.NoError(t, UpgradeUserToEnterprise(owner.Id, &Enterprise{Name: "Bill Co", ContactEmail: "ap@bill.co", PaymentTermsDays: 10}))
+	ent, err := GetEnterpriseByUserId(owner.Id)
+	require.NoError(t, err)
+	require.NoError(t, ConfigureEnterpriseCredit(ent.Id, EnterpriseCreditConfig{CycleType: EnterpriseCreditCycleNaturalMonth, LimitQuota: 10_000_000}, 1))
+	period, err := GetOpenCreditPeriod(ent.Id)
+	require.NoError(t, err)
+	token := &Token{UserId: owner.Id, Name: "k", Key: "billkey00000000000000000000000000000000000000001", Status: common.TokenStatusEnabled, ExpiredTime: -1, UnlimitedQuota: true}
+	require.NoError(t, CreateEnterpriseToken(ent.Id, token, 0, 0))
+	InvalidateEnterpriseBillingInfo(owner.Id)
+
+	// 本期消费 1,000,000 quota（$2），明细比计数器少 100（模拟聚合丢失一条）
+	ok, err := AddCreditUsage(period.Id, 1_000_000, 1, true)
+	require.NoError(t, err)
+	require.True(t, ok)
+	require.NoError(t, RecordEnterpriseUsage(EnterpriseUsageEvent{UserId: owner.Id, TokenId: token.Id, ModelName: "gpt-4o", Quota: 999_900, CreatedAt: common.GetTimestamp(), CreditPeriodId: period.Id}))
+
+	// 在途未清零且未超时：不出账
+	require.NoError(t, DB.Model(&EnterpriseCreditPeriod{}).Where("id = ?", period.Id).Updates(map[string]any{"status": EnterpriseCreditPeriodClosing, "closed_at": common.GetTimestamp()}).Error)
+	ready, err := FindClosingPeriodsReadyToBill(common.GetTimestamp())
+	require.NoError(t, err)
+	assert.Empty(t, ready)
+	_, err = IssueCreditBill(period.Id)
+	require.NoError(t, err, "manual issue is allowed while closing")
+	// 重新构造：在途清零后自动出账
+	require.NoError(t, DB.Model(&EnterpriseCreditPeriod{}).Where("id = ?", period.Id).Updates(map[string]any{"status": EnterpriseCreditPeriodClosing, "bill_id": 0, "inflight_count": 0}).Error)
+	require.NoError(t, DB.Where("enterprise_id = ?", ent.Id).Delete(&EnterpriseBill{}).Error)
+	require.NoError(t, DB.Where("enterprise_id = ? AND type = ?", ent.Id, EnterpriseLedgerBillIssued).Delete(&EnterpriseLedgerEntry{}).Error)
+	ready, err = FindClosingPeriodsReadyToBill(common.GetTimestamp())
+	require.NoError(t, err)
+	require.Len(t, ready, 1)
+	bill, err := IssueCreditBill(period.Id)
+	require.NoError(t, err)
+	require.NotNil(t, bill)
+	assert.Regexp(t, `^TF-\d{6}-\d{6}$`, bill.BillNo)
+	assert.Equal(t, int64(1_000_000), bill.AmountQuota)
+	assert.Equal(t, "2", bill.TotalUSD.String())
+	assert.Equal(t, int64(100), bill.ReconcileDiffQuota)
+	assert.Equal(t, EnterpriseBillUnpaid, bill.Status)
+	assert.Equal(t, bill.IssuedAt+10*86400, bill.DueAt)
+	assert.Contains(t, string(bill.UsageSnapshot), "gpt-4o")
+	assert.Contains(t, string(bill.BuyerSnapshot), "Bill Co")
+	billed, _ := GetCreditPeriodById(period.Id)
+	assert.Equal(t, EnterpriseCreditPeriodBilled, billed.Status)
+	assert.Equal(t, bill.Id, billed.BillId)
+	again, err := IssueCreditBill(period.Id)
+	require.NoError(t, err)
+	assert.Equal(t, bill.Id, again.Id, "issuing twice must return the same bill")
+	entries, _, err := ListEnterpriseLedger(ent.Id, EnterpriseLedgerBillIssued, 0, 10)
+	require.NoError(t, err)
+	require.Len(t, entries, 1)
+	assert.Equal(t, bill.BillNo, entries[0].Reference)
+
+	// 收款：部分 → 超额拒绝 → 结清；结清后不能作废
+	paid, err := RegisterBillPayment(bill.Id, decimal.NewFromFloat(0.5), 9, "WIRE-1", "")
+	require.NoError(t, err)
+	assert.Equal(t, EnterpriseBillPartiallyPaid, paid.Status)
+	_, err = RegisterBillPayment(bill.Id, decimal.NewFromFloat(1.6), 9, "", "")
+	assert.ErrorIs(t, err, ErrEnterpriseBillOverpaid)
+	paid, err = RegisterBillPayment(bill.Id, decimal.NewFromFloat(1.5), 9, "WIRE-2", "")
+	require.NoError(t, err)
+	assert.Equal(t, EnterpriseBillPaid, paid.Status)
+	assert.True(t, paid.Outstanding().IsZero())
+	assert.ErrorIs(t, VoidBill(bill.Id, 9, "dup"), ErrEnterpriseBillNotPayable)
+
+	// 零消费的 closing 期：不出账单，直接 billed
+	require.NoError(t, ConfigureEnterpriseCredit(ent.Id, EnterpriseCreditConfig{CycleType: EnterpriseCreditCycleNaturalMonth, LimitQuota: 10_000_000}, 1))
+	empty, err := GetOpenCreditPeriod(ent.Id)
+	require.NoError(t, err)
+	require.NoError(t, DB.Model(&EnterpriseCreditPeriod{}).Where("id = ?", empty.Id).Updates(map[string]any{"status": EnterpriseCreditPeriodClosing, "closed_at": common.GetTimestamp()}).Error)
+	noBill, err := IssueCreditBill(empty.Id)
+	require.NoError(t, err)
+	assert.Nil(t, noBill)
+	emptyAfter, _ := GetCreditPeriodById(empty.Id)
+	assert.Equal(t, EnterpriseCreditPeriodBilled, emptyAfter.Status)
+	assert.Zero(t, emptyAfter.BillId)
+}
+
+func TestEnterpriseBillRemindersAndStatements(t *testing.T) {
+	setupEnterprisePostgres(t)
+	owner := createEnterpriseTestUser(t, "stmtowner", common.RoleCommonUser)
+	require.NoError(t, UpgradeUserToEnterprise(owner.Id, &Enterprise{Name: "Stmt Co"}))
+	ent, err := GetEnterpriseByUserId(owner.Id)
+	require.NoError(t, err)
+	now := common.GetTimestamp()
+	newBill := func(dueOffsetDays int, status string) *EnterpriseBill {
+		bill := &EnterpriseBill{EnterpriseId: ent.Id, BillType: EnterpriseBillTypeCredit, Status: status, TotalUSD: decimal.NewFromInt(10),
+			IssuedAt: now - 20*86400, DueAt: now - int64(dueOffsetDays)*86400 - 60, CreatedAt: now, UpdatedAt: now}
+		require.NoError(t, DB.Create(bill).Error)
+		require.NoError(t, DB.Model(bill).Update("bill_no", enterpriseBillNo(now, bill.Id)).Error)
+		return bill
+	}
+	dueToday := newBill(0, EnterpriseBillUnpaid)
+	overdue3 := newBill(3, EnterpriseBillPartiallyPaid)
+	overdue2 := newBill(2, EnterpriseBillUnpaid)
+	paidOld := newBill(7, EnterpriseBillPaid)
+	due, err := FindBillsDueForReminder(now)
+	require.NoError(t, err)
+	ids := []int64{}
+	for _, bill := range due {
+		ids = append(ids, bill.Id)
+	}
+	assert.ElementsMatch(t, []int64{dueToday.Id, overdue3.Id}, ids, "only day 0/1/3/7/14 are reminded; paid bills never")
+	_ = overdue2
+	_ = paidOld
+	require.NoError(t, MarkBillReminded(dueToday.Id, now))
+	due, err = FindBillsDueForReminder(now)
+	require.NoError(t, err)
+	assert.Len(t, due, 1, "a bill is reminded at most once per day")
+	reminded, _ := GetEnterpriseBill(dueToday.Id)
+	assert.Equal(t, 1, reminded.ReminderCount)
+	assert.True(t, overdue3.IsOverdue(now))
+	assert.False(t, paidOld.IsOverdue(now))
+
+	// 预付月度对账单：上月充值 300、消耗 120，当前余额 1000 → 期初 820；重复生成不新建
+	current := time.Unix(now, 0).In(enterpriseBillingLocation)
+	monthStart := time.Date(current.Year(), current.Month(), 1, 0, 0, 0, 0, enterpriseBillingLocation)
+	lastMonth := monthStart.AddDate(0, -1, 0)
+	require.NoError(t, DB.Create(&EnterpriseLedgerEntry{EnterpriseId: ent.Id, Type: EnterpriseLedgerTopup, AmountQuota: 300, CreatedAt: lastMonth.Unix() + 3600}).Error)
+	require.NoError(t, DB.Create(&EnterpriseUsageDaily{Day: lastMonth.AddDate(0, 0, 2).Format("2006-01-02"), EnterpriseId: ent.Id, TokenId: 1, ModelName: "m", RequestCount: 1, Quota: 120, UpdatedAt: now}).Error)
+	created, err := GenerateMonthlyStatements(now)
+	require.NoError(t, err)
+	assert.Equal(t, 1, created)
+	created, err = GenerateMonthlyStatements(now)
+	require.NoError(t, err)
+	assert.Equal(t, 0, created)
+	statements, total, err := ListEnterpriseBills(EnterpriseBillFilter{EnterpriseId: ent.Id, BillType: EnterpriseBillTypeStatement}, 0, 10)
+	require.NoError(t, err)
+	require.Equal(t, int64(1), total)
+	assert.Regexp(t, `^ST-\d{6}-\d{6}$`, statements[0].BillNo)
+	assert.Equal(t, lastMonth.Unix(), statements[0].PeriodStart)
+	var snapshot map[string]int64
+	require.NoError(t, common.Unmarshal(statements[0].UsageSnapshot, &snapshot))
+	assert.Equal(t, map[string]int64{"opening_quota": 820, "topup_quota": 300, "consumption_quota": 120, "adjustment_quota": 0, "closing_quota": 1000}, snapshot)
 }

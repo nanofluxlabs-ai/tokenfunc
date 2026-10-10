@@ -97,7 +97,7 @@ export function PillTabs<T extends string>(props: {
     >
       <TabsList
         aria-label={props['aria-label']}
-        className='border-border h-auto flex-wrap gap-1 rounded-full border bg-transparent p-1'
+        className='border-border h-auto flex-wrap gap-1 rounded-full border bg-transparent p-1 group-data-horizontal/tabs:h-auto'
       >
         {props.items.map((item) => (
           <TabsTrigger

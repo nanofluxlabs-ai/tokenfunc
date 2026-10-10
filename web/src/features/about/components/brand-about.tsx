@@ -97,11 +97,12 @@ export function BrandAbout() {
         </div>
       </Panel>
 
-      <div className='grid [grid-template-columns:repeat(auto-fit,minmax(min(100%,220px),1fr))] gap-6'>
+      {/* 五张卡在大屏固定一行，避免 auto-fit 折成 4+1 */}
+      <div className='grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5'>
         {CAPABILITIES.map((capability) => {
           const Icon = CAPABILITY_ICONS[capability.id]
           return (
-            <Panel key={capability.id} className='flex flex-col gap-5 p-6'>
+            <Panel key={capability.id} className='flex flex-col gap-4 p-5'>
               <span className='bg-primary/10 text-primary flex size-12 items-center justify-center rounded-lg'>
                 <Icon className='size-5' aria-hidden='true' />
               </span>

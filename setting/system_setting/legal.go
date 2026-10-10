@@ -5,13 +5,11 @@ import (
 	"github.com/QuantumNous/new-api/setting/config"
 )
 
-// tokenfunc 二开：服务条款、隐私政策与关于页的默认正文写在代码里，
+// tokenfunc 二开：服务条款与隐私政策的默认正文写在代码里，
 // 任何新实例开箱即有；后台「系统设置 → 站点 → 系统信息」仍可覆盖。
 // 值是 {"zh-CN": …, "en": …} 形式的 JSON，前端按界面语言选取，
 // 管理员也可以直接填单语 Markdown、HTML 或 URL。
 
-const legalCompanyName = "湖南多点计算科技有限公司"
-const legalCompanyNameEN = "Hunan Duodian Computing Technology Co., Ltd."
 const legalContactEmail = "support@tokenfunc.com"
 const legalEffectiveDate = "2026-10-10"
 
@@ -26,7 +24,7 @@ var defaultLegalSettings = LegalSettings{
 
 生效日期：` + legalEffectiveDate + `
 
-欢迎使用 TokenFunc（以下简称"本平台"），本平台由 ` + legalCompanyName + `（以下简称"我们"）运营。访问、注册或使用本平台，即表示你已阅读、理解并同意遵守以下条款。
+欢迎使用 TokenFunc（以下简称"本平台"或"我们"）。访问、注册或使用本平台，即表示你已阅读、理解并同意遵守以下条款。
 
 ## 1. 服务定位
 
@@ -93,7 +91,6 @@ var defaultLegalSettings = LegalSettings{
 
 ## 10. 联系我们
 
-- 运营主体：` + legalCompanyName + `
 - 联系邮箱：` + legalContactEmail + `
 - 如对本条款有任何疑问、投诉或合规咨询，请通过上述邮箱与我们联系。
 `,
@@ -101,7 +98,7 @@ var defaultLegalSettings = LegalSettings{
 
 Effective date: ` + legalEffectiveDate + `
 
-Welcome to TokenFunc ("the Platform"), operated by ` + legalCompanyNameEN + ` ("we", "us"). By accessing, registering for, or using the Platform, you confirm that you have read, understood, and agreed to the following terms.
+Welcome to TokenFunc ("the Platform", "we", "us"). By accessing, registering for, or using the Platform, you confirm that you have read, understood, and agreed to the following terms.
 
 ## 1. Service Scope
 
@@ -168,7 +165,6 @@ You must not use the Platform to:
 
 ## 10. Contact Us
 
-- Operator: ` + legalCompanyNameEN + `
 - Email: ` + legalContactEmail + `
 - For questions, complaints, or compliance inquiries about these terms, contact us at the address above.
 `,
@@ -178,7 +174,7 @@ You must not use the Platform to:
 
 生效日期：` + legalEffectiveDate + `
 
-本隐私政策说明 TokenFunc（以下简称"本平台"，由 ` + legalCompanyName + ` 运营）如何收集、使用、保存和披露与你有关的信息。
+本隐私政策说明 TokenFunc（以下简称"本平台"或"我们"）如何收集、使用、保存和披露与你有关的信息。
 
 ## 1. 我们可能收集的信息
 
@@ -234,14 +230,13 @@ You must not use the Platform to:
 
 ## 9. 联系我们
 
-- 运营主体：` + legalCompanyName + `
 - 联系邮箱：` + legalContactEmail + `
 `,
 		"en": `# Privacy Policy
 
 Effective date: ` + legalEffectiveDate + `
 
-This Privacy Policy explains how TokenFunc ("the Platform", operated by ` + legalCompanyNameEN + `) collects, uses, stores, and discloses information related to you.
+This Privacy Policy explains how TokenFunc ("the Platform", "we", "us") collects, uses, stores, and discloses information related to you.
 
 ## 1. Information We May Collect
 
@@ -297,73 +292,10 @@ This Privacy Policy explains how TokenFunc ("the Platform", operated by ` + lega
 
 ## 9. Contact Us
 
-- Operator: ` + legalCompanyNameEN + `
 - Email: ` + legalContactEmail + `
 `,
 	}),
 }
-
-// DefaultAboutContent 是「关于」页的默认正文，口径与营销页保持一致。
-var DefaultAboutContent = mustMarshalLocalizedContent(map[string]string{
-	"zh-CN": `# 关于 TokenFunc
-
-TokenFunc 是面向企业的大模型 API 网关。一个密钥接入 Claude、GPT、Gemini、xAI 等官方模型，为研发团队提供统一鉴权、稳定供给、透明计量与可追溯的账单。
-
-## 我们的承诺
-
-- **安全合规**：企业级访问控制、按组织与项目隔离的密钥、完整审计日志；不落盘存储请求体、响应体与提示词。
-- **真实不掺假**：按你指定的模型转发至官方或授权上游，不替换、不降级；按上游返回的用量据实计费，不虚报 Token。
-- **稳定供给**：多渠道冗余与自动故障切换，服务可用性承诺覆盖网关自身，上游状态在状态页公开。
-- **高性能低延迟**：就近接入与连接复用，流式响应原样透传。
-- **高缓存命中**：支持上游提示词缓存，帮助长上下文场景降低成本。
-
-## 企业服务
-
-- 组织、部门、项目与员工密钥的分级管理，用量按项目聚合，支持报表导出。
-- 签署正式服务合同与数据处理协议（DPA），提供企业资质与安全文档用于供应商准入。
-- 授信结算、线下充值、月度账单与发票。
-
-## 联系我们
-
-- 商务与技术支持：` + legalContactEmail + `
-- 申请企业试用：返回首页提交试用申请，或[立即注册](/sign-up)体验。
-
-## 合规说明
-
-本平台服务不面向中国大陆公众开放，仅供企业客户内部使用。使用本平台即表示你同意[服务条款与使用政策](/user-agreement)与[隐私政策](/privacy-policy)。
-
-运营主体：` + legalCompanyName + `
-`,
-	"en": `# About TokenFunc
-
-TokenFunc is an enterprise-grade gateway for large language model APIs. One key gives your engineering teams access to official Claude, GPT, Gemini, and xAI models, with unified authentication, stable supply, transparent metering, and auditable billing.
-
-## Our Commitments
-
-- **Security and compliance**: enterprise access control, keys isolated by organization and project, complete audit logs; request bodies, response bodies, and prompts are never persisted.
-- **Real models, no substitution**: every request is relayed to the official or authorized upstream of the model you specify. We never swap or downgrade models, and we bill exactly the usage the upstream reports.
-- **Stable supply**: multi-channel redundancy with automatic failover. Our availability commitment covers the gateway itself, and upstream status is published on the status page.
-- **High performance, low latency**: edge-close ingress with connection reuse; streaming responses are passed through untouched.
-- **High cache hit rate**: upstream prompt caching is supported to cut cost on long-context workloads.
-
-## Enterprise Services
-
-- Hierarchical management of organizations, departments, projects, and employee keys, with usage aggregated per project and exportable reports.
-- A formal service contract and Data Processing Agreement (DPA), plus company credentials and security documentation for vendor onboarding.
-- Credit-based settlement, offline top-ups, monthly statements, and invoices.
-
-## Contact Us
-
-- Sales and technical support: ` + legalContactEmail + `
-- Enterprise trial: submit a trial request from the home page, or [sign up](/sign-up) to get started.
-
-## Compliance Notice
-
-The Platform is not offered to the general public in mainland China and is intended for internal use by enterprise customers only. By using the Platform you agree to the [Terms of Service and Acceptable Use Policy](/user-agreement) and the [Privacy Policy](/privacy-policy).
-
-Operator: ` + legalCompanyNameEN + `
-`,
-})
 
 func mustMarshalLocalizedContent(content map[string]string) string {
 	raw, err := common.Marshal(content)

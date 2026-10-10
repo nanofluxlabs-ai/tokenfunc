@@ -12,7 +12,8 @@ name: tokenfunc
 
 services:
   postgres:
-    image: postgres:17.11-bookworm
+    # 接管已有数据卷时用 TF_PG_IMAGE 钉住与数据文件一致的大版本（如 postgres:15）
+    image: ${TF_PG_IMAGE:-postgres:17.11-bookworm}
     container_name: tokenfunc-postgres
     restart: unless-stopped
     environment:
@@ -36,7 +37,7 @@ services:
       - tokenfunc
 
   redis:
-    image: redis:7.4.11-bookworm
+    image: ${TF_REDIS_IMAGE:-redis:7.4.11-bookworm}
     container_name: tokenfunc-redis
     restart: unless-stopped
     command: ["sh", "-c", "exec redis-server --appendonly yes --requirepass \"$$REDIS_PASSWORD\""]
@@ -65,7 +66,8 @@ services:
     restart: unless-stopped
     command: --log-dir /app/logs
     ports:
-      - "${TF_API_PORT:-3000}:3000"
+      # 只绑回环：生产由宿主机 nginx 终止 TLS 后转发到这里
+      - "127.0.0.1:${TF_API_PORT:-3000}:3000"
     volumes:
       - api-data:/data
       - api-logs:/app/logs
@@ -77,6 +79,8 @@ services:
       SESSION_COOKIE_SECURE: ${TF_SESSION_COOKIE_SECURE:-false}
       SESSION_COOKIE_TRUSTED_URL: ${TF_SESSION_COOKIE_TRUSTED_URL:-}
       NODE_NAME: ${TF_NODE_NAME:-tokenfunc-api-1}
+      # 留空时应用默认信任回环与私网网段并打印告警；生产填 nginx 所在的 docker 网段
+      TRUSTED_PROXIES: ${TF_TRUSTED_PROXIES:-}
       ERROR_LOG_ENABLED: "true"
       BATCH_UPDATE_ENABLED: "true"
       TZ: ${TZ:-Asia/Shanghai}

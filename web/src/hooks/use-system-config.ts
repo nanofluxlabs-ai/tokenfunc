@@ -94,7 +94,8 @@ export function useSystemConfig(options: UseSystemConfigOptions = {}) {
       logo,
       () => {
         setLoadedLogoUrl(logo)
-        applyFaviconToDom(logo)
+        // 默认品牌 logo 不覆盖 index.html 里的 favicon，只有管理员自定义 logo 时才同步
+        if (logo !== DEFAULT_LOGO) applyFaviconToDom(logo)
       },
       () => {
         if (logo !== DEFAULT_LOGO) {

@@ -34,7 +34,9 @@ API_URL     := http://127.0.0.1:$(TF_API_PORT)
 # 宿主机进程连接 docker 内实例用的地址
 PG_HOST_URL    := postgresql://$(TF_PG_USER):$(TF_PG_PASSWORD)@127.0.0.1:$(TF_PG_PORT)/$(TF_PG_DB)
 DEV_SQL_DSN    := $(PG_HOST_URL)?search_path=$(TF_DEV_SCHEMA)
-TEST_SQL_DSN   := $(PG_HOST_URL)?search_path=$(TF_TEST_SCHEMA)
+# test 后面带 public：上游部分用例会用这个 DSN 新建临时库再连入，临时库里没有 test schema，
+# 只写 test 会在建表时报 3F000；主库仍优先落在 test
+TEST_SQL_DSN   := $(PG_HOST_URL)?search_path=$(TF_TEST_SCHEMA),public
 REDIS_HOST_URL := redis://:$(TF_REDIS_PASSWORD)@127.0.0.1:$(TF_REDIS_PORT)
 DEV_REDIS      := $(REDIS_HOST_URL)/$(TF_DEV_REDIS_DB)
 TEST_REDIS     := $(REDIS_HOST_URL)/$(TF_TEST_REDIS_DB)

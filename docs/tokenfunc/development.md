@@ -26,7 +26,7 @@
 | 测试 | `make test-db` 跑 Go 测试 | 同一实例，schema `test` | 同一实例，db `1` | makefile 自动注入 `TEST_POSTGRES_DSN` |
 | 全栈联调 / 生产 | 容器 `tokenfunc-api`（profile `app`） | schema `public`（`TF_PG_SCHEMA`） | db `TF_REDIS_DB` | `.env`（生产必须改密码与密钥） |
 
-隔离方式是 PostgreSQL schema（DSN 带 `?search_path=`）而不是多库，所以本地永远只有一个 PG 实例、一个 Redis 实例。
+隔离方式是 PostgreSQL schema（DSN 带 `?search_path=`）而不是多库，所以本地永远只有一个 PG 实例、一个 Redis 实例。测试 DSN 是 `search_path=test,public`：上游部分用例会用它新建临时库再连入，临时库里只有 `public`。
 
 ## 2. 一分钟上手
 

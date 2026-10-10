@@ -411,6 +411,7 @@ ssh tokenfunc "docker logs --since '<SINCE>' tokenfunc-api 2>&1 | grep -c '^\[GI
 | `gh run watch … \| tail` 把网络错误吞成成功 | 轮询 `gh run view --json status,conclusion`，以 conclusion 为准 |
 | `gh pr merge` / `gh api` 报 `Post … EOF` | 网络抖动，重试并用 `gh pr view --json state` 确认真实状态 |
 | 上游断言与二开默认值冲突（如 `/api/status.theme` 期望 `default`） | 属断言陈旧，改测试与二开行为对齐，不是停发理由 |
+| `make test-db` 下 controller 的 `*DatabaseMatrix` 用例报 `SQLSTATE 3F000` | 这些用例用 DSN 新建临时库再连入，DSN 的 `search_path` 必须是 `test,public`（makefile 已固定），不要手写只带 `test` 的 DSN |
 | 生产 `/v1/models` 为空 | 还没配渠道，relay 冒烟标 ⏭️ 并说明，不算失败 |
 | 回滚时 `docker compose down` 或重启 postgres | prediroute 的库在同一实例里，只 `up -d --wait api`，其余不动 |
 | 回滚只改容器不改 `.env` | 下次任何人 `docker compose up` 又会拉回坏版本；回滚必须同时 `sed` 改 `TF_API_IMAGE` |

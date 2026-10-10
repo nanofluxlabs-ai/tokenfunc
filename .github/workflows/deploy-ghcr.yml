@@ -1,9 +1,12 @@
 name: Build & Deploy (GHCR)
 
-# Builds the image from source, pushes it to GHCR under this repository's
-# namespace, then deploys it to the production host over SSH.
+# Builds the image from source and pushes it to GHCR under this repository's
+# namespace. Pushing a release tag (v*) additionally deploys it to the production
+# host over SSH; pushes to main only build a `main-<date>-<sha>` image.
 # The host keeps the repo's compose.yml and a production .env in /opt/tokenfunc;
-# TF_API_IMAGE selects the freshly pushed tag.
+# TF_API_IMAGE in that .env is rewritten to the deployed tag so a plain
+# `docker compose --profile app up -d` (or a rollback) always knows the image.
+# Release entry point: the `/release-standalone` skill in .claude/skills.
 #
 # Required repository secrets:
 #   DEPLOY_HOST         production host address
@@ -15,6 +18,8 @@ on:
   push:
     branches:
       - main
+    tags:
+      - 'v*'
   workflow_dispatch:
     inputs:
       skip_deploy:
@@ -39,6 +44,7 @@ jobs:
       packages: write
     outputs:
       version: ${{ steps.version.outputs.version }}
+      release: ${{ steps.version.outputs.release }}
     steps:
       - name: Check out
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
@@ -48,7 +54,13 @@ jobs:
       - name: Resolve version & write VERSION
         id: version
         run: |
-          VERSION="main-$(date +'%Y%m%d')-$(git rev-parse --short HEAD)"
+          if [[ "$GITHUB_REF" == refs/tags/v* ]]; then
+            VERSION="${GITHUB_REF#refs/tags/}"
+            echo "release=true" >> "$GITHUB_OUTPUT"
+          else
+            VERSION="main-$(date +'%Y%m%d')-$(git rev-parse --short HEAD)"
+            echo "release=false" >> "$GITHUB_OUTPUT"
+          fi
           echo "$VERSION" > VERSION
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
           echo "Building $VERSION"
@@ -69,16 +81,17 @@ jobs:
           context: .
           platforms: linux/amd64
           push: true
+          # Release tags also move :latest; main builds only get their own tag
           tags: |
             ${{ env.IMAGE }}:${{ steps.version.outputs.version }}
-            ${{ env.IMAGE }}:latest
+            ${{ steps.version.outputs.release == 'true' && format('{0}:latest', env.IMAGE) || '' }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
   deploy:
     name: Deploy to production
     needs: [build]
-    if: ${{ !inputs.skip_deploy }}
+    if: ${{ needs.build.outputs.release == 'true' && !inputs.skip_deploy }}
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -100,10 +113,18 @@ jobs:
             "docker login ghcr.io -u ${{ github.actor }} --password-stdin"
 
       - name: Pull & restart
+        # Records the previously running image in the job log (rollback target),
+        # pins the new tag into .env, then rolls the api container.
         run: |
           ssh -i ~/.ssh/deploy_key \
             "${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}" \
-            "cd /opt/tokenfunc && export TF_API_IMAGE='${{ env.IMAGE }}:${{ needs.build.outputs.version }}' && docker compose --profile app pull api && docker compose --profile app up -d --wait && docker image prune -f"
+            "cd /opt/tokenfunc \
+             && echo \"previous image: \$(docker inspect -f '{{.Config.Image}}' tokenfunc-api 2>/dev/null || echo none)\" \
+             && sed -i 's#^TF_API_IMAGE=.*#TF_API_IMAGE=${{ env.IMAGE }}:${{ needs.build.outputs.version }}#' .env \
+             && grep -q '^TF_API_IMAGE=' .env \
+             && docker compose --profile app pull api \
+             && docker compose --profile app up -d --wait \
+             && docker image prune -f"
 
       - name: Wait for healthy status
         run: |

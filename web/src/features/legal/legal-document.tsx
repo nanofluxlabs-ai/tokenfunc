@@ -25,7 +25,11 @@ import { RichContent } from '@/components/rich-content'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
-import { isHttpUrl, isLikelyHtml } from '@/lib/content-format'
+import {
+  isHttpUrl,
+  isLikelyHtml,
+  resolveLocalizedDocument,
+} from '@/lib/content-format'
 
 import type { LegalDocumentResponse } from './types'
 
@@ -42,14 +46,18 @@ export function LegalDocument({
   fetchDocument,
   emptyMessage,
 }: LegalDocumentProps) {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
   const { data, isLoading } = useQuery({
     queryKey: [queryKey],
     queryFn: fetchDocument,
     staleTime: 10 * 60 * 1000,
   })
 
-  const rawContent = data?.data?.trim() ?? ''
+  // 后台可填多语言 JSON，按当前界面语言取正文
+  const rawContent = resolveLocalizedDocument(
+    data?.data ?? '',
+    i18n.resolvedLanguage ?? i18n.language
+  ).trim()
   const hasContent = rawContent.length > 0
   const isUrl = hasContent && isHttpUrl(rawContent)
   const contentIsHtml = hasContent && isLikelyHtml(rawContent)

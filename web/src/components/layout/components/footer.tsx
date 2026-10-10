@@ -98,9 +98,8 @@ function LegalLinks(props: { leadingSeparator?: boolean }) {
       href: '/privacy-policy',
     })
   }
-  if (items.length === 0) {
-    return null
-  }
+  // tokenfunc 二开：关于页有默认内容，页脚常驻入口
+  items.push({ key: 'about', label: t('About'), href: '/about' })
   return (
     <>
       {items.map((item, index) => (

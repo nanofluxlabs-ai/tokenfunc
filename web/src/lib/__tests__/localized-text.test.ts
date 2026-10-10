@@ -69,6 +69,12 @@ describe('resolveLocalizedText', () => {
       expected: '可灵视频生成',
     },
     {
+      name: 'falls back from zhTW to zh-CN before en when only zh-CN and en exist',
+      value: { en: KLING.en, 'zh-CN': KLING.zh },
+      language: 'zhTW',
+      expected: '可灵视频生成',
+    },
+    {
       name: 'maps the project i18next code zhCN onto the zh primary subtag',
       value: { en: KLING.en, zh: KLING.zh },
       language: 'zhCN',

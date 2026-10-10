@@ -31,7 +31,8 @@ export type LocalizedTextValue = string | Record<string, string>
  * (`en`, `zh`, `zh-TW`). Matching is case-insensitive and also accepts
  * hyphenated tags (`zh-TW`, `en-US`) so callers can pass either shape.
  *
- * Fallback: exact tag → primary subtag → `en` → first key in sorted order → `''`.
+ * Fallback: exact tag → primary subtag → `zh-cn` (zh* only) → `en` → first key
+ * in sorted order → `''`.
  */
 export function resolveLocalizedText(
   value: LocalizedTextValue | undefined | null,
@@ -77,6 +78,8 @@ function localeFallbackKeys(language: string): string[] {
   } else if (normalized === 'zhcn' || normalized === 'zhtw') {
     add('zh')
   }
+  // 中文变体之间互相回退：繁体读者读简体比读英文更合适
+  if (normalized.startsWith('zh')) add('zh-cn')
   add('en')
   return keys
 }

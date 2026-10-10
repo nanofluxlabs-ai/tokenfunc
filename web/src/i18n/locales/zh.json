@@ -3342,8 +3342,8 @@
     "Leave empty for fallback": "留空作为兜底",
     "Leave empty for never expires": "留空表示永不失效",
     "Leave empty only for the final fallback split.": "只有最后一个兜底分流可以留空。",
-    "Leave empty to disable the agreement requirement. Supports Markdown, HTML, or a full URL to redirect users.": "留空以禁用协议要求。支持 Markdown、HTML 或用于重定向用户的完整 URL。",
-    "Leave empty to disable the privacy policy requirement. Supports Markdown, HTML, or a full URL to redirect users.": "留空以禁用隐私政策要求。支持 Markdown、HTML 或用于重定向用户的完整 URL。",
+    "Leave empty to disable the agreement requirement. Supports Markdown, HTML, or a full URL. A JSON object keyed by language ({\"zh-CN\": \"...\", \"en\": \"...\"}) switches content with the interface language.": "留空以禁用协议要求。支持 Markdown、HTML 或完整 URL。填入按语言分键的 JSON 对象（{\"zh-CN\": \"...\", \"en\": \"...\"}）可随界面语言切换内容。",
+    "Leave empty to disable the privacy policy requirement. Supports Markdown, HTML, or a full URL. A JSON object keyed by language ({\"zh-CN\": \"...\", \"en\": \"...\"}) switches content with the interface language.": "留空以禁用隐私政策要求。支持 Markdown、HTML 或完整 URL。填入按语言分键的 JSON 对象（{\"zh-CN\": \"...\", \"en\": \"...\"}）可随界面语言切换内容。",
     "Leave empty to disband the tag": "留空以解散标签",
     "Leave empty to keep existing key": "留空以保留现有密钥",
     "Leave empty to keep unchanged": "留空以保持不变",
@@ -5912,7 +5912,7 @@
     "Supported parameters": "支持的参数",
     "Supported variables": "支持变量",
     "Supports `-thinking`, `-thinking-": "支持 `-thinking`、`-thinking-`",
-    "Supports HTML markup or iframe embedding. Enter HTML code directly, or provide a complete URL to automatically embed it as an iframe.": "支持 HTML 标记或 iframe 嵌入。直接输入 HTML 代码，或提供完整的 URL 以将其自动嵌入为 iframe。",
+    "Supports Markdown, HTML, or a complete URL to embed as an iframe. A JSON object keyed by language ({\"zh-CN\": \"...\", \"en\": \"...\"}) switches content with the interface language.": "支持 Markdown、HTML 或完整 URL（以 iframe 嵌入）。填入按语言分键的 JSON 对象（{\"zh-CN\": \"...\", \"en\": \"...\"}）可随界面语言切换内容。",
     "Supports one-click configuration and perfectly adapts to NewAPI multi-protocol configuration.": "支持一键配置并完美适配 NewAPI 多协议配置",
     "Supports plugin extensions": "支持插件扩展",
     "Supports PNG, JPG, SVG, or WebP. Recommended size: 128×128 or smaller.": "支持 PNG、JPG、SVG 或 WebP，建议尺寸不超过 128×128。",
@@ -7369,6 +7369,8 @@
     "3 models": "3 个模型",
     "First-token latency": "首 token",
     "OFFICIAL · direct access to the Claude / GPT / Gemini / Grok vendor channels": "OFFICIAL · 直连 Claude / GPT / Gemini / Grok 官方源头渠道",
-    "Built for enterprises: official direct access to Anthropic, OpenAI, Google and xAI. Smart routing with automatic failover, 99.95% availability, dedicated deployment on request, secure and stable.": "企业级用户专用，官方直连 Anthropic、OpenAI、Google、xAI。智能路由、自动切换，99.95% 服务可用性，支持企业定制化部署，安全稳定。"
+    "Built for enterprises: official direct access to Anthropic, OpenAI, Google and xAI. Smart routing with automatic failover, 99.95% availability, dedicated deployment on request, secure and stable.": "企业级用户专用，官方直连 Anthropic、OpenAI、Google、xAI。智能路由、自动切换，99.95% 服务可用性，支持企业定制化部署，安全稳定。",
+    "By clicking sign in, you agree to our": "点击登录即表示你同意我们的",
+    "By creating an account, you agree to our": "创建账号即表示你同意我们的"
   }
 }

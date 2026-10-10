@@ -23,7 +23,11 @@ import { useTranslation } from 'react-i18next'
 import { PublicLayout } from '@/components/layout'
 import { RichContent } from '@/components/rich-content'
 import { Skeleton } from '@/components/ui/skeleton'
-import { isHttpUrl, isLikelyHtml } from '@/lib/content-format'
+import {
+  isHttpUrl,
+  isLikelyHtml,
+  resolveLocalizedDocument,
+} from '@/lib/content-format'
 import { requireServerSuccess } from '@/lib/server-error-message'
 
 import { getAboutContent } from './api'
@@ -114,13 +118,17 @@ function EmptyAboutState() {
 }
 
 export function About() {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
   const { data, isLoading } = useQuery({
     queryKey: ['about-content'],
     queryFn: async () => requireServerSuccess(await getAboutContent()),
   })
 
-  const rawContent = data?.data?.trim() ?? ''
+  // 后台可填多语言 JSON，按当前界面语言取正文
+  const rawContent = resolveLocalizedDocument(
+    data?.data ?? '',
+    i18n.resolvedLanguage ?? i18n.language
+  ).trim()
   const hasContent = rawContent.length > 0
   const isUrl = hasContent && isHttpUrl(rawContent)
   const contentIsHtml = hasContent && isLikelyHtml(rawContent)

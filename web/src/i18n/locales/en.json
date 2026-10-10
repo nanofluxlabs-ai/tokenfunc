@@ -3342,8 +3342,8 @@
     "Leave empty for fallback": "Leave empty for fallback",
     "Leave empty for never expires": "Leave empty for never expires",
     "Leave empty only for the final fallback split.": "Leave empty only for the final fallback split.",
-    "Leave empty to disable the agreement requirement. Supports Markdown, HTML, or a full URL to redirect users.": "Leave empty to disable the agreement requirement. Supports Markdown, HTML, or a full URL to redirect users.",
-    "Leave empty to disable the privacy policy requirement. Supports Markdown, HTML, or a full URL to redirect users.": "Leave empty to disable the privacy policy requirement. Supports Markdown, HTML, or a full URL to redirect users.",
+    "Leave empty to disable the agreement requirement. Supports Markdown, HTML, or a full URL. A JSON object keyed by language ({\"zh-CN\": \"...\", \"en\": \"...\"}) switches content with the interface language.": "Leave empty to disable the agreement requirement. Supports Markdown, HTML, or a full URL. A JSON object keyed by language ({\"zh-CN\": \"...\", \"en\": \"...\"}) switches content with the interface language.",
+    "Leave empty to disable the privacy policy requirement. Supports Markdown, HTML, or a full URL. A JSON object keyed by language ({\"zh-CN\": \"...\", \"en\": \"...\"}) switches content with the interface language.": "Leave empty to disable the privacy policy requirement. Supports Markdown, HTML, or a full URL. A JSON object keyed by language ({\"zh-CN\": \"...\", \"en\": \"...\"}) switches content with the interface language.",
     "Leave empty to disband the tag": "Leave empty to disband the tag",
     "Leave empty to keep existing key": "Leave empty to keep existing key",
     "Leave empty to keep unchanged": "Leave empty to keep unchanged",
@@ -5912,7 +5912,7 @@
     "Supported parameters": "Supported parameters",
     "Supported variables": "Supported variables",
     "Supports `-thinking`, `-thinking-": "Supports `-thinking`, `-thinking-",
-    "Supports HTML markup or iframe embedding. Enter HTML code directly, or provide a complete URL to automatically embed it as an iframe.": "Supports HTML markup or iframe embedding. Enter HTML code directly, or provide a complete URL to automatically embed it as an iframe.",
+    "Supports Markdown, HTML, or a complete URL to embed as an iframe. A JSON object keyed by language ({\"zh-CN\": \"...\", \"en\": \"...\"}) switches content with the interface language.": "Supports Markdown, HTML, or a complete URL to embed as an iframe. A JSON object keyed by language ({\"zh-CN\": \"...\", \"en\": \"...\"}) switches content with the interface language.",
     "Supports one-click configuration and perfectly adapts to NewAPI multi-protocol configuration.": "Supports one-click configuration and perfectly adapts to NewAPI multi-protocol configuration.",
     "Supports plugin extensions": "Supports plugin extensions",
     "Supports PNG, JPG, SVG, or WebP. Recommended size: 128×128 or smaller.": "Supports PNG, JPG, SVG, or WebP. Recommended size: 128×128 or smaller.",
@@ -7369,6 +7369,8 @@
     "3 models": "3 models",
     "First-token latency": "First-token latency",
     "OFFICIAL · direct access to the Claude / GPT / Gemini / Grok vendor channels": "OFFICIAL · direct access to the Claude / GPT / Gemini / Grok vendor channels",
-    "Built for enterprises: official direct access to Anthropic, OpenAI, Google and xAI. Smart routing with automatic failover, 99.95% availability, dedicated deployment on request, secure and stable.": "Built for enterprises: official direct access to Anthropic, OpenAI, Google and xAI. Smart routing with automatic failover, 99.95% availability, dedicated deployment on request, secure and stable."
+    "Built for enterprises: official direct access to Anthropic, OpenAI, Google and xAI. Smart routing with automatic failover, 99.95% availability, dedicated deployment on request, secure and stable.": "Built for enterprises: official direct access to Anthropic, OpenAI, Google and xAI. Smart routing with automatic failover, 99.95% availability, dedicated deployment on request, secure and stable.",
+    "By clicking sign in, you agree to our": "By clicking sign in, you agree to our",
+    "By creating an account, you agree to our": "By creating an account, you agree to our"
   }
 }

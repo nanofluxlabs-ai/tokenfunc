@@ -3342,8 +3342,8 @@
     "Leave empty for fallback": "Laisser vide pour le repli",
     "Leave empty for never expires": "Laissez vide pour qu'il n'expire jamais",
     "Leave empty only for the final fallback split.": "Laissez vide uniquement pour la dernière branche de repli.",
-    "Leave empty to disable the agreement requirement. Supports Markdown, HTML, or a full URL to redirect users.": "Laissez vide pour désactiver l'exigence d'accord. Prend en charge Markdown, HTML ou une URL complète pour rediriger les utilisateurs.",
-    "Leave empty to disable the privacy policy requirement. Supports Markdown, HTML, or a full URL to redirect users.": "Laissez vide pour désactiver l'exigence de politique de confidentialité. Prend en charge Markdown, HTML ou une URL complète pour rediriger les utilisateurs.",
+    "Leave empty to disable the agreement requirement. Supports Markdown, HTML, or a full URL. A JSON object keyed by language ({\"zh-CN\": \"...\", \"en\": \"...\"}) switches content with the interface language.": "Leave empty to disable the agreement requirement. Supports Markdown, HTML, or a full URL. A JSON object keyed by language ({\"zh-CN\": \"...\", \"en\": \"...\"}) switches content with the interface language.",
+    "Leave empty to disable the privacy policy requirement. Supports Markdown, HTML, or a full URL. A JSON object keyed by language ({\"zh-CN\": \"...\", \"en\": \"...\"}) switches content with the interface language.": "Leave empty to disable the privacy policy requirement. Supports Markdown, HTML, or a full URL. A JSON object keyed by language ({\"zh-CN\": \"...\", \"en\": \"...\"}) switches content with the interface language.",
     "Leave empty to disband the tag": "Laissez vide pour dissoudre l'étiquette",
     "Leave empty to keep existing key": "Laissez vide pour conserver la clé existante",
     "Leave empty to keep unchanged": "Laissez vide pour conserver inchangé",
@@ -5912,7 +5912,7 @@
     "Supported parameters": "Paramètres pris en charge",
     "Supported variables": "Variables supportées",
     "Supports `-thinking`, `-thinking-": "Prend en charge `-thinking`, `-thinking-",
-    "Supports HTML markup or iframe embedding. Enter HTML code directly, or provide a complete URL to automatically embed it as an iframe.": "Prend en charge le balisage HTML ou l'intégration d'iframe. Entrez le code HTML directement, ou fournissez une URL complète pour l'intégrer automatiquement en tant qu'iframe.",
+    "Supports Markdown, HTML, or a complete URL to embed as an iframe. A JSON object keyed by language ({\"zh-CN\": \"...\", \"en\": \"...\"}) switches content with the interface language.": "Supports Markdown, HTML, or a complete URL to embed as an iframe. A JSON object keyed by language ({\"zh-CN\": \"...\", \"en\": \"...\"}) switches content with the interface language.",
     "Supports one-click configuration and perfectly adapts to NewAPI multi-protocol configuration.": "Prend en charge la configuration en un clic et s'adapte parfaitement à la configuration multi-protocole NewAPI.",
     "Supports plugin extensions": "Prend en charge les extensions",
     "Supports PNG, JPG, SVG, or WebP. Recommended size: 128×128 or smaller.": "Prend en charge PNG, JPG, SVG ou WebP. Taille recommandée : 128×128 ou moins.",
@@ -7369,6 +7369,8 @@
     "3 models": "3 models",
     "First-token latency": "First-token latency",
     "OFFICIAL · direct access to the Claude / GPT / Gemini / Grok vendor channels": "OFFICIAL · direct access to the Claude / GPT / Gemini / Grok vendor channels",
-    "Built for enterprises: official direct access to Anthropic, OpenAI, Google and xAI. Smart routing with automatic failover, 99.95% availability, dedicated deployment on request, secure and stable.": "Built for enterprises: official direct access to Anthropic, OpenAI, Google and xAI. Smart routing with automatic failover, 99.95% availability, dedicated deployment on request, secure and stable."
+    "Built for enterprises: official direct access to Anthropic, OpenAI, Google and xAI. Smart routing with automatic failover, 99.95% availability, dedicated deployment on request, secure and stable.": "Built for enterprises: official direct access to Anthropic, OpenAI, Google and xAI. Smart routing with automatic failover, 99.95% availability, dedicated deployment on request, secure and stable.",
+    "By clicking sign in, you agree to our": "By clicking sign in, you agree to our",
+    "By creating an account, you agree to our": "By creating an account, you agree to our"
   }
 }

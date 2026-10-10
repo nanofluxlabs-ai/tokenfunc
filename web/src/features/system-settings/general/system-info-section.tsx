@@ -372,7 +372,7 @@ export function SystemInfoSection({ defaultValues }: SystemInfoSectionProps) {
                     </FormControl>
                     <FormDescription>
                       {t(
-                        'Supports HTML markup or iframe embedding. Enter HTML code directly, or provide a complete URL to automatically embed it as an iframe.'
+                        'Supports Markdown, HTML, or a complete URL to embed as an iframe. A JSON object keyed by language ({"zh-CN": "...", "en": "..."}) switches content with the interface language.'
                       )}
                     </FormDescription>
                     <FormMessage />
@@ -422,7 +422,7 @@ export function SystemInfoSection({ defaultValues }: SystemInfoSectionProps) {
                     </FormControl>
                     <FormDescription>
                       {t(
-                        'Leave empty to disable the agreement requirement. Supports Markdown, HTML, or a full URL to redirect users.'
+                        'Leave empty to disable the agreement requirement. Supports Markdown, HTML, or a full URL. A JSON object keyed by language ({"zh-CN": "...", "en": "..."}) switches content with the interface language.'
                       )}
                     </FormDescription>
                     <FormMessage />
@@ -447,7 +447,7 @@ export function SystemInfoSection({ defaultValues }: SystemInfoSectionProps) {
                     </FormControl>
                     <FormDescription>
                       {t(
-                        'Leave empty to disable the privacy policy requirement. Supports Markdown, HTML, or a full URL to redirect users.'
+                        'Leave empty to disable the privacy policy requirement. Supports Markdown, HTML, or a full URL. A JSON object keyed by language ({"zh-CN": "...", "en": "..."}) switches content with the interface language.'
                       )}
                     </FormDescription>
                     <FormMessage />

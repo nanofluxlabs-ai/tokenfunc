@@ -16,6 +16,8 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
+import { resolveLocalizedText } from './localized-text'
+
 export function isHttpUrl(value: string): boolean {
   try {
     const url = new URL(value)
@@ -23,6 +25,33 @@ export function isHttpUrl(value: string): boolean {
   } catch {
     return false
   }
+}
+
+/**
+ * 用户协议、隐私政策、关于页等 option 允许填 `{"zh-CN": "...", "en": "..."}`
+ * 形式的多语言 JSON；按当前界面语言选出一份正文，再交给 URL / HTML / Markdown 判断。
+ * 不是这种 JSON（单语 Markdown、HTML、URL）时原样返回。
+ */
+export function resolveLocalizedDocument(
+  value: string,
+  language: string
+): string {
+  const trimmed = value.trim()
+  if (!trimmed.startsWith('{')) return value
+  let parsed: unknown
+  try {
+    parsed = JSON.parse(trimmed)
+  } catch {
+    return value
+  }
+  if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+    return value
+  }
+  const resolved = resolveLocalizedText(
+    parsed as Record<string, string>,
+    language
+  )
+  return resolved === '' ? value : resolved
 }
 
 export function isLikelyHtml(value: string): boolean {

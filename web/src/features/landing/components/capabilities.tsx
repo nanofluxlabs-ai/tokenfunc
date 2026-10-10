@@ -29,7 +29,7 @@ function CapabilityRow(props: { capability: Capability }) {
   return (
     <div
       ref={ref}
-      className='tf-reveal border-border grid grid-cols-[repeat(auto-fit,minmax(min(100%,400px),1fr))] items-center gap-12 border-b py-14'
+      className='tf-reveal border-border grid grid-cols-[repeat(auto-fit,minmax(min(100%,400px),1fr))] items-center gap-12 border-b py-14 last:border-b-0 last:pb-0'
     >
       <div className='flex flex-col gap-5'>
         <Eyebrow>{props.capability.eyebrow}</Eyebrow>

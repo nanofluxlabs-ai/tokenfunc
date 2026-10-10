@@ -39,6 +39,7 @@ import { Route as AuthenticatedChatChatIdRouteImport } from './routes/_authentic
 import { Route as AuthenticatedDashboardIndexRouteImport } from './routes/_authenticated/dashboard/index'
 import { Route as AuthenticatedDashboardSectionRouteImport } from './routes/_authenticated/dashboard/$section'
 import { Route as AuthenticatedEnterpriseBillingIndexRouteImport } from './routes/_authenticated/enterprise-billing/index'
+import { Route as AuthenticatedEnterpriseLeadsIndexRouteImport } from './routes/_authenticated/enterprise-leads/index'
 import { Route as AuthenticatedEnterpriseKeysRouteImport } from './routes/_authenticated/enterprise/keys'
 import { Route as AuthenticatedEnterpriseOrganizationRouteImport } from './routes/_authenticated/enterprise/organization'
 import { Route as AuthenticatedEnterpriseOverviewRouteImport } from './routes/_authenticated/enterprise/overview'
@@ -233,6 +234,12 @@ const AuthenticatedEnterpriseBillingIndexRoute =
   AuthenticatedEnterpriseBillingIndexRouteImport.update({
     id: '/enterprise-billing/',
     path: '/enterprise-billing/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedEnterpriseLeadsIndexRoute =
+  AuthenticatedEnterpriseLeadsIndexRouteImport.update({
+    id: '/enterprise-leads/',
+    path: '/enterprise-leads/',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
 const AuthenticatedEnterpriseKeysRoute =
@@ -523,6 +530,7 @@ export interface FileRoutesByFullPath {
   '/channels/': typeof AuthenticatedChannelsIndexRoute
   '/dashboard/': typeof AuthenticatedDashboardIndexRoute
   '/enterprise-billing/': typeof AuthenticatedEnterpriseBillingIndexRoute
+  '/enterprise-leads/': typeof AuthenticatedEnterpriseLeadsIndexRoute
   '/keys/': typeof AuthenticatedKeysIndexRoute
   '/models/': typeof AuthenticatedModelsIndexRoute
   '/playground/': typeof AuthenticatedPlaygroundIndexRoute
@@ -594,6 +602,7 @@ export interface FileRoutesByTo {
   '/channels': typeof AuthenticatedChannelsIndexRoute
   '/dashboard': typeof AuthenticatedDashboardIndexRoute
   '/enterprise-billing': typeof AuthenticatedEnterpriseBillingIndexRoute
+  '/enterprise-leads': typeof AuthenticatedEnterpriseLeadsIndexRoute
   '/keys': typeof AuthenticatedKeysIndexRoute
   '/models': typeof AuthenticatedModelsIndexRoute
   '/playground': typeof AuthenticatedPlaygroundIndexRoute
@@ -669,6 +678,7 @@ export interface FileRoutesById {
   '/_authenticated/channels/': typeof AuthenticatedChannelsIndexRoute
   '/_authenticated/dashboard/': typeof AuthenticatedDashboardIndexRoute
   '/_authenticated/enterprise-billing/': typeof AuthenticatedEnterpriseBillingIndexRoute
+  '/_authenticated/enterprise-leads/': typeof AuthenticatedEnterpriseLeadsIndexRoute
   '/_authenticated/keys/': typeof AuthenticatedKeysIndexRoute
   '/_authenticated/models/': typeof AuthenticatedModelsIndexRoute
   '/_authenticated/playground/': typeof AuthenticatedPlaygroundIndexRoute
@@ -743,6 +753,7 @@ export interface FileRouteTypes {
     | '/channels/'
     | '/dashboard/'
     | '/enterprise-billing/'
+    | '/enterprise-leads/'
     | '/keys/'
     | '/models/'
     | '/playground/'
@@ -814,6 +825,7 @@ export interface FileRouteTypes {
     | '/channels'
     | '/dashboard'
     | '/enterprise-billing'
+    | '/enterprise-leads'
     | '/keys'
     | '/models'
     | '/playground'
@@ -888,6 +900,7 @@ export interface FileRouteTypes {
     | '/_authenticated/channels/'
     | '/_authenticated/dashboard/'
     | '/_authenticated/enterprise-billing/'
+    | '/_authenticated/enterprise-leads/'
     | '/_authenticated/keys/'
     | '/_authenticated/models/'
     | '/_authenticated/playground/'
@@ -1152,6 +1165,13 @@ declare module '@tanstack/react-router' {
       path: '/enterprise-billing'
       fullPath: '/enterprise-billing/'
       preLoaderRoute: typeof AuthenticatedEnterpriseBillingIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/enterprise-leads/': {
+      id: '/_authenticated/enterprise-leads/'
+      path: '/enterprise-leads'
+      fullPath: '/enterprise-leads/'
+      preLoaderRoute: typeof AuthenticatedEnterpriseLeadsIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/enterprise/keys': {
@@ -1557,6 +1577,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedChannelsIndexRoute: typeof AuthenticatedChannelsIndexRoute
   AuthenticatedDashboardIndexRoute: typeof AuthenticatedDashboardIndexRoute
   AuthenticatedEnterpriseBillingIndexRoute: typeof AuthenticatedEnterpriseBillingIndexRoute
+  AuthenticatedEnterpriseLeadsIndexRoute: typeof AuthenticatedEnterpriseLeadsIndexRoute
   AuthenticatedKeysIndexRoute: typeof AuthenticatedKeysIndexRoute
   AuthenticatedModelsIndexRoute: typeof AuthenticatedModelsIndexRoute
   AuthenticatedPlaygroundIndexRoute: typeof AuthenticatedPlaygroundIndexRoute
@@ -1594,6 +1615,8 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedDashboardIndexRoute: AuthenticatedDashboardIndexRoute,
   AuthenticatedEnterpriseBillingIndexRoute:
     AuthenticatedEnterpriseBillingIndexRoute,
+  AuthenticatedEnterpriseLeadsIndexRoute:
+    AuthenticatedEnterpriseLeadsIndexRoute,
   AuthenticatedKeysIndexRoute: AuthenticatedKeysIndexRoute,
   AuthenticatedModelsIndexRoute: AuthenticatedModelsIndexRoute,
   AuthenticatedPlaygroundIndexRoute: AuthenticatedPlaygroundIndexRoute,

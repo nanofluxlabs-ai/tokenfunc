@@ -11,6 +11,7 @@ import { api } from '@/lib/api'
 
 import type {
   ApiResponse,
+  TrialLead,
   CreateEnterprisePayload,
   CreditConfigPayload,
   Enterprise,
@@ -166,5 +167,22 @@ export async function updateSellerProfile(
   profile: SellerProfile
 ): Promise<ApiResponse> {
   const res = await api.put('/api/admin/enterprise/settings/seller', profile)
+  return res.data
+}
+
+export async function listTrialLeads(params: {
+  status?: string
+  p?: number
+  page_size?: number
+}): Promise<ApiResponse<PageData<TrialLead>>> {
+  const res = await api.get('/api/admin/enterprise/leads', { params })
+  return res.data
+}
+
+export async function updateTrialLead(
+  id: number,
+  payload: { status: TrialLead['status']; remark: string }
+): Promise<ApiResponse<null>> {
+  const res = await api.put(`/api/admin/enterprise/leads/${id}`, payload)
   return res.data
 }

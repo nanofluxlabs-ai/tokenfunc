@@ -34,7 +34,12 @@ func registerEnterpriseRoutes(apiRouter *gin.RouterGroup) {
 		adminRoute.GET("/quotes", controller.AdminListQuotes)
 		adminRoute.POST("/quotes", controller.AdminCreateQuote)
 		adminRoute.GET("/quotes/:id", controller.AdminGetQuote)
+		adminRoute.GET("/leads", controller.AdminListEnterpriseTrialLeads)
+		adminRoute.PUT("/leads/:id", controller.AdminUpdateEnterpriseTrialLead)
 	}
+
+	// 营销页匿名留资：严格限流 + 请求体大小限制，服务端再按 IP 做日配额
+	apiRouter.POST("/enterprise/leads", middleware.CriticalRateLimit(), middleware.AnonymousRequestBodyLimit(), controller.CreateEnterpriseTrialLead)
 
 	// 当前用户的企业资料：非企业用户也可调用，返回 null
 	apiRouter.GET("/enterprise/self", middleware.UserAuth(), controller.GetEnterpriseSelf)

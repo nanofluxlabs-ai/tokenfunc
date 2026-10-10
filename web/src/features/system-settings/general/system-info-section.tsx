@@ -61,6 +61,7 @@ const _systemInfoSchema = z.object({
   TaskPublicAddress: z.string().refine(isValidTaskPublicAddress),
   Logo: z.string().url().optional().or(z.literal('')),
   ThemePreset: z.string(),
+  SalesContactQRCodeImageURL: z.string().url().optional().or(z.literal('')),
   Footer: z.string().optional(),
   About: z.string().optional(),
   HomePageContent: z.string().optional(),
@@ -94,6 +95,9 @@ export function SystemInfoSection({ defaultValues }: SystemInfoSectionProps) {
     TaskPublicAddress: normalizeValue(defaultValues.TaskPublicAddress),
     Logo: normalizeValue(defaultValues.Logo),
     ThemePreset: normalizeValue(defaultValues.ThemePreset) || 'tokenfunc',
+    SalesContactQRCodeImageURL: normalizeValue(
+      defaultValues.SalesContactQRCodeImageURL
+    ),
     Footer: normalizeValue(defaultValues.Footer),
     About: normalizeValue(defaultValues.About),
     HomePageContent: normalizeValue(defaultValues.HomePageContent),
@@ -119,6 +123,7 @@ export function SystemInfoSection({ defaultValues }: SystemInfoSectionProps) {
     }),
     Logo: z.string().url().optional().or(z.literal('')),
     ThemePreset: z.string(),
+    SalesContactQRCodeImageURL: z.string().url().optional().or(z.literal('')),
     Footer: z.string().optional(),
     About: z.string().optional(),
     HomePageContent: z.string().optional(),
@@ -278,6 +283,28 @@ export function SystemInfoSection({ defaultValues }: SystemInfoSectionProps) {
                     <FormDescription>
                       {t(
                         'Color preset applied to every user. Users can only switch between light and dark mode.'
+                      )}
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name='SalesContactQRCodeImageURL'
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>{t('Sales WeChat QR code URL')}</FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder={t('https://example.com/sales-wechat.png')}
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormDescription>
+                      {t(
+                        'Shown in the "Contact sales" dialog on the home page (optional)'
                       )}
                     </FormDescription>
                     <FormMessage />

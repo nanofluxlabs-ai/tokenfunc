@@ -30,10 +30,10 @@ export function SignUp() {
   const { status } = useStatus()
 
   return (
-    <AuthLayout>
+    <AuthLayout variant='sign-up'>
       <div className='w-full space-y-8'>
         <div className='space-y-2'>
-          <h2 className='text-center text-2xl font-semibold tracking-tight sm:text-left'>
+          <h2 className='text-[32px] leading-10 font-semibold tracking-[-0.6px]'>
             {t('Create an account')}
           </h2>
           <p className='text-muted-foreground text-left text-sm sm:text-base'>

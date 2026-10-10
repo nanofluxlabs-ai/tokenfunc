@@ -16,6 +16,9 @@ var SystemName = "tokenfunc"
 
 // ThemePreset 管理员选定的全站配色预设，经 /api/status 下发给前端，普通用户不可修改
 var ThemePreset = "tokenfunc"
+
+// SalesContactQRCodeImageURL 营销页"联系销售"弹窗展示的商务微信二维码图片地址
+var SalesContactQRCodeImageURL = ""
 var Footer = ""
 var Logo = ""
 var TopUpLink = ""

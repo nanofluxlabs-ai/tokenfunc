@@ -44,7 +44,7 @@ func setupEnterprisePostgres(t *testing.T) {
 
 var enterpriseTestTables = []any{
 	&User{}, &Token{}, &Enterprise{}, &EnterpriseDepartment{}, &EnterpriseEmployee{}, &EnterpriseProject{}, &EnterpriseTokenAssignment{},
-	&EnterpriseCreditPeriod{}, &EnterpriseLedgerEntry{}, &EnterpriseUsageDaily{}, &EnterpriseBill{}, &EnterpriseQuote{},
+	&EnterpriseCreditPeriod{}, &EnterpriseLedgerEntry{}, &EnterpriseUsageDaily{}, &EnterpriseBill{}, &EnterpriseQuote{}, &EnterpriseTrialLead{},
 }
 
 func createEnterpriseTestUser(t *testing.T, username string, role int) *User {
@@ -677,4 +677,37 @@ func TestEnterpriseQuoteSnapshotsDiscountedPrices(t *testing.T) {
 	fetched, err := GetEnterpriseQuote(quote.Id)
 	require.NoError(t, err)
 	assert.Equal(t, quote.QuoteNo, fetched.QuoteNo)
+}
+
+func TestEnterpriseTrialLeadLifecycle(t *testing.T) {
+	setupEnterprisePostgres(t)
+
+	// 校验：公司名为空 / 联系方式过短 / 用量档位非法
+	require.ErrorIs(t, CreateEnterpriseTrialLead(&EnterpriseTrialLead{Company: " ", Contact: "wx_123456"}), ErrEnterpriseLeadInvalid)
+	require.ErrorIs(t, CreateEnterpriseTrialLead(&EnterpriseTrialLead{Company: "Acme", Contact: "1234"}), ErrEnterpriseLeadInvalid)
+	require.ErrorIs(t, CreateEnterpriseTrialLead(&EnterpriseTrialLead{Company: "Acme", Contact: "wx_123456", Volume: "huge"}), ErrEnterpriseLeadInvalid)
+
+	lead := &EnterpriseTrialLead{Company: "  Acme Inc  ", Contact: "wx_123456", Volume: "1k_10k", ClientIP: "10.0.0.1", Status: "closed"}
+	require.NoError(t, CreateEnterpriseTrialLead(lead))
+	assert.Equal(t, "Acme Inc", lead.Company)
+	assert.Equal(t, EnterpriseLeadStatusNew, lead.Status, "客户端不能预设状态")
+	assert.NotZero(t, lead.CreatedAt)
+
+	count, err := CountRecentEnterpriseTrialLeadsByIP("10.0.0.1")
+	require.NoError(t, err)
+	assert.Equal(t, int64(1), count)
+
+	leads, total, err := ListEnterpriseTrialLeads(EnterpriseLeadStatusNew, 0, 10)
+	require.NoError(t, err)
+	assert.Equal(t, int64(1), total)
+	require.Len(t, leads, 1)
+
+	require.NoError(t, UpdateEnterpriseTrialLeadStatus(lead.Id, EnterpriseLeadStatusContacted, " 已加微信 "))
+	leads, _, err = ListEnterpriseTrialLeads(EnterpriseLeadStatusContacted, 0, 10)
+	require.NoError(t, err)
+	require.Len(t, leads, 1)
+	assert.Equal(t, "已加微信", leads[0].Remark)
+
+	require.ErrorIs(t, UpdateEnterpriseTrialLeadStatus(lead.Id, "bogus", ""), ErrEnterpriseLeadInvalid)
+	require.ErrorIs(t, UpdateEnterpriseTrialLeadStatus(lead.Id+999, EnterpriseLeadStatusClosed, ""), gorm.ErrRecordNotFound)
 }

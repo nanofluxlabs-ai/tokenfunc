@@ -29,6 +29,7 @@ const defaultSiteSettings: SiteSettings = {
   SystemName: 'tokenfunc',
   Logo: '',
   ThemePreset: 'tokenfunc',
+  SalesContactQRCodeImageURL: '',
   Footer: '',
   About: '',
   HomePageContent: '',

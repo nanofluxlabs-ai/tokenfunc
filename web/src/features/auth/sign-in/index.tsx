@@ -31,10 +31,10 @@ export function SignIn() {
   const { status } = useStatus()
 
   return (
-    <AuthLayout>
+    <AuthLayout variant='sign-in'>
       <div className='w-full space-y-8'>
         <div className='space-y-2'>
-          <h2 className='text-center text-2xl font-semibold tracking-tight sm:text-left'>
+          <h2 className='text-[32px] leading-10 font-semibold tracking-[-0.6px]'>
             {t('Sign in')}
           </h2>
           {!status?.self_use_mode_enabled &&

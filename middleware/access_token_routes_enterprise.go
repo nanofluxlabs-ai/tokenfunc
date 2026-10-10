@@ -26,6 +26,10 @@ func init() {
 		"GET /api/admin/enterprise/quotes":                         accessTokenScopeRule("billing:read"),
 		"POST /api/admin/enterprise/quotes":                        accessTokenScopeRule("billing:write"),
 		"GET /api/admin/enterprise/quotes/:id":                     accessTokenScopeRule("billing:read"),
+		"GET /api/admin/enterprise/leads":                          accessTokenScopeRule("user:read"),
+		"PUT /api/admin/enterprise/leads/:id":                      accessTokenScopeRule("user:write"),
+		// 营销页匿名留资，无需作用域
+		"POST /api/enterprise/leads": accessTokenAnyRule,
 
 		// router/enterprise-router.go: /api/enterprise（企业控制台，支持带 enterprise:* 作用域的访问令牌做自动化）
 		"GET /api/enterprise/self":                  accessTokenScopeRule("enterprise:read"),

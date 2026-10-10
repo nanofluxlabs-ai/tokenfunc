@@ -39,6 +39,7 @@ const SITE_SECTIONS = [
           SystemName: settings.SystemName,
           Logo: settings.Logo,
           ThemePreset: settings.ThemePreset,
+          SalesContactQRCodeImageURL: settings.SalesContactQRCodeImageURL,
           Footer: settings.Footer,
           About: settings.About,
           HomePageContent: settings.HomePageContent,

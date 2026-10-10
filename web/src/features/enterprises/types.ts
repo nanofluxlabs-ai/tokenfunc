@@ -93,3 +93,16 @@ export interface TopupPayload {
   reference: string
   remark: string
 }
+
+/** 营销页提交的企业试用申请 */
+export interface TrialLead {
+  id: number
+  company: string
+  contact: string
+  volume: '' | 'lt_1k' | '1k_10k' | 'gt_10k'
+  status: 'new' | 'contacted' | 'closed'
+  remark: string
+  client_ip: string
+  created_at: number
+  updated_at: number
+}

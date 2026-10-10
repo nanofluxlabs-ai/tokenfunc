@@ -145,6 +145,7 @@ export type SiteSettings = {
   SystemName: string
   Logo: string
   ThemePreset: string
+  SalesContactQRCodeImageURL: string
   Footer: string
   About: string
   HomePageContent: string

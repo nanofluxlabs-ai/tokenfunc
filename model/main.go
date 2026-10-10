@@ -386,6 +386,7 @@ func migrateDB() error {
 		&EnterpriseUsageDaily{},
 		&EnterpriseBill{},
 		&EnterpriseQuote{},
+		&EnterpriseTrialLead{},
 	)
 	if err != nil {
 		return err

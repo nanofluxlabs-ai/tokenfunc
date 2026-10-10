@@ -26,6 +26,7 @@ import {
   Receipt,
   ReceiptText,
   FileSignature,
+  Inbox,
   KeyRound,
   ClipboardList,
   CreditCard,
@@ -201,6 +202,11 @@ export function useSidebarData(): SidebarData {
             title: t('Quotations'),
             url: '/quotes',
             icon: FileSignature,
+          },
+          {
+            title: t('Trial Requests'),
+            url: '/enterprise-leads',
+            icon: Inbox,
           },
           {
             title: t('Redemption Codes'),

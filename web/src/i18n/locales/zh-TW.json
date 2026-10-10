@@ -7151,6 +7151,8 @@
     "Zhipu": "智譜",
     "Zhipu GLM": "智譜GLM",
     "Zhipu V4": "智譜 V4",
-    "Zoom": "縮放"
+    "Zoom": "縮放",
+    "preset.tokenfunc": "tokenfunc",
+    "Color preset applied to every user. Users can only switch between light and dark mode.": "全站統一的配色預設，使用者只能切換明暗模式。"
   }
 }

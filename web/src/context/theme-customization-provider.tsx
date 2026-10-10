@@ -25,19 +25,17 @@ import {
   useState,
 } from 'react'
 
+import { useStatus } from '@/hooks/use-status'
+import { readCachedStatus } from '@/lib/status-query'
 import {
   CONTENT_LAYOUT_VALUES,
   type ContentLayout,
   DEFAULT_THEME_CUSTOMIZATION,
+  normalizeServerPreset,
   resolveThemeFont,
-  THEME_FONT_VALUES,
-  THEME_PRESET_VALUES,
-  THEME_RADIUS_VALUES,
   THEME_SCALE_VALUES,
   type ThemeCustomization,
-  type ThemeFont,
   type ThemePreset,
-  type ThemeRadius,
   type ThemeScale,
 } from '@/lib/theme-customization'
 import {
@@ -57,12 +55,21 @@ function applyAttribute(name: string, value: string | null) {
   }
 }
 
+/**
+ * 首帧预设来源优先级：服务端注入在 <body> 上的属性 → localStorage 里的 status 快照 → default。
+ * 前两者都存在时说明已经和后端一致，React 挂载后不会再闪一次默认主题。
+ */
+function readInitialPreset(): ThemePreset {
+  if (typeof document !== 'undefined') {
+    const injected = document.body?.getAttribute('data-theme-preset')
+    if (injected) return normalizeServerPreset(injected)
+  }
+  return normalizeServerPreset(readCachedStatus()?.theme)
+}
+
 type ThemeCustomizationContextType = {
   defaults: ThemeCustomization
   customization: ThemeCustomization
-  setPreset: (preset: ThemePreset) => void
-  setFont: (font: ThemeFont) => void
-  setRadius: (radius: ThemeRadius) => void
   setScale: (scale: ThemeScale) => void
   setContentLayout: (contentLayout: ContentLayout) => void
   resetCustomization: () => void
@@ -75,9 +82,6 @@ type ThemeCustomizationContextType = {
 const FALLBACK_CONTEXT: ThemeCustomizationContextType = {
   defaults: DEFAULT_THEME_CUSTOMIZATION,
   customization: DEFAULT_THEME_CUSTOMIZATION,
-  setPreset: () => {},
-  setFont: () => {},
-  setRadius: () => {},
   setScale: () => {},
   setContentLayout: () => {},
   resetCustomization: () => {},
@@ -86,30 +90,20 @@ const FALLBACK_CONTEXT: ThemeCustomizationContextType = {
 const ThemeCustomizationContext =
   createContext<ThemeCustomizationContextType>(FALLBACK_CONTEXT)
 
+/**
+ * tokenfunc 二开：配色预设由管理员在系统设置中指定并通过 /api/status 下发，
+ * 用户不能自行更换预设、字体或圆角；只保留密度与内容宽度这类布局偏好。
+ */
 export function ThemeCustomizationProvider(props: {
   children: React.ReactNode
 }) {
-  const [preset, _setPreset] = useState<ThemePreset>(() =>
-    readThemePreference<ThemePreset>(
-      THEME_STORAGE_KEYS.preset,
-      THEME_PRESET_VALUES,
-      DEFAULT_THEME_CUSTOMIZATION.preset
-    )
-  )
-  const [font, _setFont] = useState<ThemeFont>(() =>
-    readThemePreference<ThemeFont>(
-      THEME_STORAGE_KEYS.font,
-      THEME_FONT_VALUES,
-      DEFAULT_THEME_CUSTOMIZATION.font
-    )
-  )
-  const [radius, _setRadius] = useState<ThemeRadius>(() =>
-    readThemePreference<ThemeRadius>(
-      THEME_STORAGE_KEYS.radius,
-      THEME_RADIUS_VALUES,
-      DEFAULT_THEME_CUSTOMIZATION.radius
-    )
-  )
+  const { status } = useStatus()
+  const [initialPreset] = useState<ThemePreset>(readInitialPreset)
+  const preset =
+    status && 'theme' in status
+      ? normalizeServerPreset(status.theme)
+      : initialPreset
+
   const [scale, _setScale] = useState<ThemeScale>(() =>
     readThemePreference<ThemeScale>(
       THEME_STORAGE_KEYS.scale,
@@ -134,22 +128,10 @@ export function ThemeCustomizationProvider(props: {
     )
   }, [preset])
 
-  // Font is the one axis where we resolve before writing the attribute:
-  // the persisted preference may be `default`, but CSS works in terms of
-  // the concrete `sans`/`serif` choice that should drive the cascade.
-  // Resolving here (instead of in CSS via `:not()` selectors) keeps the
-  // stylesheet to one simple `[data-theme-font='serif']` selector and lets
-  // future presets opt into typography via `PRESET_DEFAULT_FONT` alone.
+  // 字体完全由预设决定（见 PRESET_DEFAULT_FONT），DOM 上始终写入解析后的具体值。
   useEffect(() => {
-    applyAttribute('data-theme-font', resolveThemeFont(font, preset))
-  }, [font, preset])
-
-  useEffect(() => {
-    applyAttribute(
-      'data-theme-radius',
-      radius === DEFAULT_THEME_CUSTOMIZATION.radius ? null : radius
-    )
-  }, [radius])
+    applyAttribute('data-theme-font', resolveThemeFont('default', preset))
+  }, [preset])
 
   useEffect(() => {
     applyAttribute(
@@ -161,30 +143,6 @@ export function ThemeCustomizationProvider(props: {
   useEffect(() => {
     applyAttribute('data-theme-content-layout', contentLayout)
   }, [contentLayout])
-
-  const setPreset = useCallback((value: ThemePreset) => {
-    _setPreset(value)
-    writeThemePreference(
-      THEME_STORAGE_KEYS.preset,
-      value === DEFAULT_THEME_CUSTOMIZATION.preset ? null : value
-    )
-  }, [])
-
-  const setFont = useCallback((value: ThemeFont) => {
-    _setFont(value)
-    writeThemePreference(
-      THEME_STORAGE_KEYS.font,
-      value === DEFAULT_THEME_CUSTOMIZATION.font ? null : value
-    )
-  }, [])
-
-  const setRadius = useCallback((value: ThemeRadius) => {
-    _setRadius(value)
-    writeThemePreference(
-      THEME_STORAGE_KEYS.radius,
-      value === DEFAULT_THEME_CUSTOMIZATION.radius ? null : value
-    )
-  }, [])
 
   const setScale = useCallback((value: ThemeScale) => {
     _setScale(value)
@@ -203,33 +161,22 @@ export function ThemeCustomizationProvider(props: {
   }, [])
 
   const resetCustomization = useCallback(() => {
-    setPreset(DEFAULT_THEME_CUSTOMIZATION.preset)
-    setFont(DEFAULT_THEME_CUSTOMIZATION.font)
-    setRadius(DEFAULT_THEME_CUSTOMIZATION.radius)
     setScale(DEFAULT_THEME_CUSTOMIZATION.scale)
     setContentLayout(DEFAULT_THEME_CUSTOMIZATION.contentLayout)
-  }, [setPreset, setFont, setRadius, setScale, setContentLayout])
+  }, [setScale, setContentLayout])
 
   const value = useMemo<ThemeCustomizationContextType>(
     () => ({
       defaults: DEFAULT_THEME_CUSTOMIZATION,
-      customization: { preset, font, radius, scale, contentLayout },
-      setPreset,
-      setFont,
-      setRadius,
+      customization: { preset, scale, contentLayout },
       setScale,
       setContentLayout,
       resetCustomization,
     }),
     [
       preset,
-      font,
-      radius,
       scale,
       contentLayout,
-      setPreset,
-      setFont,
-      setRadius,
       setScale,
       setContentLayout,
       resetCustomization,

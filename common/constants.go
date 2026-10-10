@@ -12,7 +12,10 @@ import (
 
 var StartTime = time.Now().Unix() // unit: second
 var Version = "v0.0.0"            // this hard coding will be replaced automatically when building, no need to manually change
-var SystemName = "New API"
+var SystemName = "tokenfunc"
+
+// ThemePreset 管理员选定的全站配色预设，经 /api/status 下发给前端，普通用户不可修改
+var ThemePreset = "tokenfunc"
 var Footer = ""
 var Logo = ""
 var TopUpLink = ""

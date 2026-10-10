@@ -26,9 +26,15 @@ For commercial licensing, please contact support@quantumnous.com
  * that activates it. Loaded globally so font-switching is instantaneous
  * with no FOUT once the variable is fetched. */
 @import '@fontsource-variable/lora';
+/* tokenfunc 品牌字体：Figtree（Latin）+ Noto Sans SC（CJK，按 unicode-range 分包按需加载）
+ * + Geist Mono（密钥/代码）。由 brand-presets.css 的 `brand` 字体轴与品牌预设引用。 */
+@import '@fontsource-variable/figtree';
+@import '@fontsource-variable/noto-sans-sc';
+@import '@fontsource-variable/geist-mono';
 
 @import './theme.css';
 @import './theme-presets.css';
+@import './brand-presets.css';
 
 @layer base {
   :root {

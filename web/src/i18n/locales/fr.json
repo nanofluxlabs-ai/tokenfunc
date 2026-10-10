@@ -7151,6 +7151,8 @@
     "Zhipu": "Zhipu",
     "Zhipu GLM": "Zhipu GLM",
     "Zhipu V4": "Zhipu V4",
-    "Zoom": "Zoom"
+    "Zoom": "Zoom",
+    "preset.tokenfunc": "tokenfunc",
+    "Color preset applied to every user. Users can only switch between light and dark mode.": "Préréglage de couleurs appliqué à tous les utilisateurs. Ils ne peuvent que basculer entre les modes clair et sombre."
   }
 }

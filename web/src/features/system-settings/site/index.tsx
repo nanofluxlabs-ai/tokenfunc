@@ -26,8 +26,9 @@ import {
 
 const defaultSiteSettings: SiteSettings = {
   Notice: '',
-  SystemName: 'New API',
+  SystemName: 'tokenfunc',
   Logo: '',
+  ThemePreset: 'tokenfunc',
   Footer: '',
   About: '',
   HomePageContent: '',

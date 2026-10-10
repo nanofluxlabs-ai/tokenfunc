@@ -4,6 +4,7 @@ import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { Button } from '@/components/ui/button'
+import { cn } from '@/lib/utils'
 
 import { HERO_PHRASES, HERO_STATS } from '../content'
 import { useTypewriter } from '../hooks/use-typewriter'
@@ -25,6 +26,9 @@ export function Hero(props: { registerEnabled: boolean }) {
     (max, phrase) => (phrase.length > max.length ? phrase : max),
     ''
   )
+  // 中日文短语短，和 "TokenFunc," 同行并预留最长短语的宽度防抖动；
+  // 其他语言短语太长放不下，改为独立一行居中，允许换行
+  const stacked = !/^(zh|ja)/i.test(i18n.resolvedLanguage ?? '')
 
   return (
     <section
@@ -50,13 +54,30 @@ export function Hero(props: { registerEnabled: boolean }) {
             <ChevronRight className='size-3.5 opacity-60' aria-hidden='true' />
           </a>
 
-          <h1 className='text-foreground m-0 mt-14 flex flex-wrap items-baseline justify-center gap-x-[0.28em] gap-y-[0.1em] text-[clamp(40px,6.8vw,96px)] leading-[1.1] font-bold tracking-[-0.045em] md:mt-16'>
+          <h1
+            className={cn(
+              'text-foreground m-0 mt-14 flex justify-center gap-x-[0.28em] gap-y-[0.1em] text-[clamp(40px,6.8vw,96px)] leading-[1.1] font-bold tracking-[-0.045em] md:mt-16',
+              stacked ? 'flex-col items-center' : 'flex-wrap items-baseline'
+            )}
+          >
             <span>TokenFunc,</span>
-            <span className='text-brand-ink inline-grid text-left font-mono text-[0.9em] font-semibold tracking-[-0.02em] whitespace-nowrap'>
-              <span aria-hidden='true' className='invisible [grid-area:1/1]'>
-                {longest}
-              </span>
-              <span className='[grid-area:1/1]' aria-live='polite'>
+            <span
+              className={cn(
+                'text-brand-ink font-mono font-semibold tracking-[-0.02em]',
+                stacked
+                  ? 'block min-h-[1.2em] text-center text-[0.62em] leading-[1.2] text-balance'
+                  : 'inline-grid text-left text-[0.9em] whitespace-nowrap'
+              )}
+            >
+              {!stacked && (
+                <span aria-hidden='true' className='invisible [grid-area:1/1]'>
+                  {longest}
+                </span>
+              )}
+              <span
+                className={stacked ? undefined : '[grid-area:1/1]'}
+                aria-live='polite'
+              >
                 {typed}
                 <span
                   aria-hidden='true'

@@ -1,5 +1,5 @@
 {
-  "name": "new-api-electron",
+  "name": "tokenfunc-electron",
   "version": "1.0.0",
   "description": "New API - AI Model Gateway Desktop Application",
   "main": "main.js",
@@ -18,10 +18,10 @@
     "openai",
     "claude"
   ],
-  "author": "QuantumNous",
+  "author": "tokenfunc",
   "repository": {
     "type": "git",
-    "url": "https://github.com/QuantumNous/new-api"
+    "url": "https://tokenfunc.com"
   },
   "devDependencies": {
     "cross-env": "^7.0.3",
@@ -29,8 +29,8 @@
     "electron-builder": "^26.15.3"
   },
   "build": {
-    "appId": "com.newapi.desktop",
-    "productName": "New-API-App",
+    "appId": "com.tokenfunc.desktop",
+    "productName": "TokenFunc",
     "publish": null,
     "directories": {
       "output": "dist"
@@ -57,8 +57,8 @@
       ],
       "extraResources": [
         {
-          "from": "../new-api",
-          "to": "bin/new-api"
+          "from": "../tokenfunc",
+          "to": "bin/tokenfunc"
         },
         {
           "from": "../LICENSE",
@@ -90,8 +90,8 @@
       ],
       "extraResources": [
         {
-          "from": "../new-api.exe",
-          "to": "bin/new-api.exe"
+          "from": "../tokenfunc.exe",
+          "to": "bin/tokenfunc.exe"
         },
         {
           "from": "../LICENSE",
@@ -124,8 +124,8 @@
       "category": "Development",
       "extraResources": [
         {
-          "from": "../new-api",
-          "to": "bin/new-api"
+          "from": "../tokenfunc",
+          "to": "bin/tokenfunc"
         },
         {
           "from": "../LICENSE",

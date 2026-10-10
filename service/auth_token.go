@@ -23,8 +23,8 @@ const (
 	RefreshReplayWindow   = 30 * time.Second
 	accessTokenUse        = "access"
 	securityProofTokenUse = "security_proof"
-	authTokenIssuer       = "new-api"
-	authTokenAudience     = "new-api-dashboard"
+	authTokenIssuer       = "tokenfunc"
+	authTokenAudience     = "tokenfunc-dashboard"
 )
 
 var (

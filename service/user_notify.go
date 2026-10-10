@@ -137,7 +137,7 @@ func sendBarkNotify(barkURL string, data dto.Notify) error {
 			Key:    system_setting.WorkerValidKey,
 			Method: http.MethodGet,
 			Headers: map[string]string{
-				"User-Agent": "OneAPI-Bark-Notify/1.0",
+				"User-Agent": "TokenFunc-Bark-Notify/1.0",
 			},
 		}
 
@@ -164,7 +164,7 @@ func sendBarkNotify(barkURL string, data dto.Notify) error {
 		}
 
 		// 设置User-Agent
-		req.Header.Set("User-Agent", "OneAPI-Bark-Notify/1.0")
+		req.Header.Set("User-Agent", "TokenFunc-Bark-Notify/1.0")
 
 		// 发送请求
 		client := GetSSRFProtectedHTTPClient()
@@ -229,7 +229,7 @@ func sendGotifyNotify(gotifyUrl string, gotifyToken string, priority int, data d
 			Method: http.MethodPost,
 			Headers: map[string]string{
 				"Content-Type": "application/json; charset=utf-8",
-				"User-Agent":   "OneAPI-Gotify-Notify/1.0",
+				"User-Agent":   "TokenFunc-Gotify-Notify/1.0",
 			},
 			Body: payloadBytes,
 		}
@@ -258,7 +258,7 @@ func sendGotifyNotify(gotifyUrl string, gotifyToken string, priority int, data d
 
 		// 设置请求头
 		req.Header.Set("Content-Type", "application/json; charset=utf-8")
-		req.Header.Set("User-Agent", "NewAPI-Gotify-Notify/1.0")
+		req.Header.Set("User-Agent", "TokenFunc-Gotify-Notify/1.0")
 
 		// 发送请求
 		client := GetSSRFProtectedHTTPClient()

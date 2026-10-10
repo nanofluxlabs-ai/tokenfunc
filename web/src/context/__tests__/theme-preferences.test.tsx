@@ -36,9 +36,9 @@ vi.mock('@/lib/api', () => ({
 
 // 用户仍可持久化的偏好：明暗、密度、内容宽度。预设/字体/圆角已改为跟随服务端。
 const savedPreferences = {
-  'newapi:theme:v1:mode': 'dark',
-  'newapi:theme:v1:scale': 'sm',
-  'newapi:theme:v1:content-layout': 'centered',
+  'tokenfunc:theme:v1:mode': 'dark',
+  'tokenfunc:theme:v1:scale': 'sm',
+  'tokenfunc:theme:v1:content-layout': 'centered',
 }
 
 function ThemeControls() {
@@ -120,8 +120,8 @@ describe('server-driven color preset', () => {
   })
 
   it('ignores a preset left in localStorage by older builds', async () => {
-    localStorage.setItem('newapi:theme:v1:preset', 'rose-garden')
-    localStorage.setItem('newapi:theme:v1:font', 'serif')
+    localStorage.setItem('tokenfunc:theme:v1:preset', 'rose-garden')
+    localStorage.setItem('tokenfunc:theme:v1:font', 'serif')
 
     render(<ThemeFixture />)
 

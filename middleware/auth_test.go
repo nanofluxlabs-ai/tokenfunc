@@ -51,8 +51,8 @@ func setupDashboardAuthMiddlewareTest(t *testing.T) {
 func issueExpiredDashboardAccessToken(t *testing.T, identity service.AuthIdentity) string {
 	t.Helper()
 	claims := jwt.MapClaims{
-		"iss":       "new-api",
-		"aud":       []string{"new-api-dashboard"},
+		"iss":       "tokenfunc",
+		"aud":       []string{"tokenfunc-dashboard"},
 		"sub":       fmt.Sprintf("%d", identity.UserID),
 		"token_use": "access",
 		"sid":       identity.SessionID,

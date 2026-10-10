@@ -208,7 +208,7 @@ func getLogFiles() ([]LogFileInfo, error) {
 			continue
 		}
 		name := entry.Name()
-		if !strings.HasPrefix(name, "oneapi-") || !strings.HasSuffix(name, ".log") {
+		if !strings.HasPrefix(name, "tokenfunc-") || !strings.HasSuffix(name, ".log") {
 			continue
 		}
 		info, err := entry.Info()

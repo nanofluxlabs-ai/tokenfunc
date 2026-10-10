@@ -94,6 +94,9 @@ api-build: ## 编译 API 到 .tmp/bin/tokenfunc（没有前端产物时用占位
 	@if [ ! -f $(WEB_DIR)/dist/index.html ]; then \
 		echo '<!doctype html><html><head><title>tokenfunc dev</title></head><body>use frontend dev server</body></html>' > $(WEB_DIR)/dist/index.html; \
 	fi
+	@if [ -d $(WEB_DIR)/dist/static ]; then \
+		echo "注意：web/dist 是 $$(date -r $(WEB_DIR)/dist/index.html '+%m-%d %H:%M') 的前端构建，:$(TF_API_PORT) 上看到的是这份旧页面；开发请访问 :$(TF_WEB_PORT)，要更新它执行 make build-web"; \
+	fi
 	@go build -o $(API_BIN) .
 
 api: infra api-build api-stop ## 后台启动 API（宿主机，连 dev schema / redis db 0）

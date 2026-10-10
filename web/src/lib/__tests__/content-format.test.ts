@@ -27,6 +27,12 @@ describe('resolveLocalizedDocument', () => {
     }
   )
 
+  it('falls back to en when the language is undefined', () => {
+    expect(resolveLocalizedDocument(JSON.stringify(DOCUMENT), undefined)).toBe(
+      DOCUMENT.en
+    )
+  })
+
   it('returns plain Markdown unchanged when the value is not JSON', () => {
     const markdown = '# Privacy Policy\n\nSingle language body'
     expect(resolveLocalizedDocument(markdown, 'zhCN')).toBe(markdown)

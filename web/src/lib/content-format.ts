@@ -34,7 +34,7 @@ export function isHttpUrl(value: string): boolean {
  */
 export function resolveLocalizedDocument(
   value: string,
-  language: string
+  language: string | undefined
 ): string {
   const trimmed = value.trim()
   if (!trimmed.startsWith('{')) return value
@@ -47,9 +47,10 @@ export function resolveLocalizedDocument(
   if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
     return value
   }
+  // i18n 尚未初始化时 language 可能为空，退到 en 而不是抛错
   const resolved = resolveLocalizedText(
     parsed as Record<string, string>,
-    language
+    language || 'en'
   )
   return resolved === '' ? value : resolved
 }

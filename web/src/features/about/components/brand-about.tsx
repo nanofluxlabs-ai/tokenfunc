@@ -39,7 +39,8 @@ export function BrandAbout() {
   const displayLogo = logo || DEFAULT_LOGO
 
   return (
-    <div className='mx-auto flex w-full max-w-[1200px] flex-col gap-6 px-4 py-10 md:px-8 md:py-14'>
+    // 顶部导航是 fixed 的（56px），不走 PublicLayout 的主容器时要自己留出头部高度再加间距
+    <div className='mx-auto flex w-full max-w-[1200px] flex-col gap-6 px-4 pt-24 pb-10 md:px-8 md:pt-28 md:pb-14'>
       <Panel className='relative'>
         <div
           className='tf-glow-horizon pointer-events-none absolute inset-0'

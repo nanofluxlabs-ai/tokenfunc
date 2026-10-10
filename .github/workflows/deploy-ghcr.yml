@@ -28,8 +28,10 @@ on:
         default: false
         type: boolean
 
+# Builds run per ref so a main build never queues a release; only the deploy
+# step is serialised (see the deploy job).
 concurrency:
-  group: deploy-ghcr
+  group: deploy-ghcr-${{ github.ref }}
   cancel-in-progress: false
 
 env:
@@ -92,6 +94,9 @@ jobs:
     name: Deploy to production
     needs: [build]
     if: ${{ needs.build.outputs.release == 'true' && !inputs.skip_deploy }}
+    concurrency:
+      group: deploy-production
+      cancel-in-progress: false
     runs-on: ubuntu-latest
     permissions:
       contents: read

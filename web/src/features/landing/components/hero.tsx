@@ -52,7 +52,7 @@ export function Hero(props: { registerEnabled: boolean }) {
 
           <h1 className='text-foreground m-0 mt-14 flex flex-wrap items-baseline justify-center gap-x-[0.28em] gap-y-[0.1em] text-[clamp(40px,6.8vw,96px)] leading-[1.1] font-bold tracking-[-0.045em] md:mt-16'>
             <span>TokenFunc,</span>
-            <span className='text-primary inline-grid text-left font-mono text-[0.9em] font-semibold tracking-[-0.02em] whitespace-nowrap'>
+            <span className='text-brand-ink inline-grid text-left font-mono text-[0.9em] font-semibold tracking-[-0.02em] whitespace-nowrap'>
               <span aria-hidden='true' className='invisible [grid-area:1/1]'>
                 {longest}
               </span>

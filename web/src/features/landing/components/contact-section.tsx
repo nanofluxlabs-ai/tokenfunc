@@ -196,7 +196,7 @@ export function ContactSection(props: {
           ) : (
             <div className='flex flex-col gap-4 py-6' role='status'>
               <span className='border-primary/40 bg-primary/10 flex size-10 items-center justify-center rounded-full border'>
-                <Check className='text-primary size-4.5' aria-hidden='true' />
+                <Check className='text-brand-ink size-4.5' aria-hidden='true' />
               </span>
               <span className='text-foreground text-2xl tracking-[-0.3px]'>
                 {t('Request received')}

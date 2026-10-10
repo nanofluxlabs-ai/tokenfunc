@@ -13,6 +13,8 @@
  */
 
 @theme inline {
+  /* 品牌绿用作"文字"时的颜色：暗色直接用品牌绿，亮色换成深绿保证对比度（#1ED760 在白底上不到 2:1） */
+  --color-brand-ink: var(--brand-ink);
   --font-brand:
     'Figtree Variable', 'Figtree', 'Noto Sans SC Variable', 'Noto Sans SC',
     'PingFang SC', -apple-system, system-ui, sans-serif;
@@ -23,6 +25,11 @@
 
 [data-theme-font='brand'] {
   --font-body: var(--font-brand);
+}
+
+/* 非品牌预设下退化为主色，保证 text-brand-ink 在任何预设都有值 */
+:root {
+  --brand-ink: var(--primary);
 }
 
 /* ── tokenfunc · light ────────────────────────────────────────────────── */
@@ -77,6 +84,8 @@
   --skeleton-highlight: #f6f6f6;
   --table-header: #f1f1f1;
   --table-header-hover: #e8e8e8;
+
+  --brand-ink: #117a3b;
 
   --radius: 0.5rem;
   --font-mono: var(--font-brand-mono);
@@ -134,6 +143,7 @@
   --skeleton-highlight: #333333;
   --table-header: #252525;
   --table-header-hover: #2a2a2a;
+  --brand-ink: #1ed760;
 }
 
 /* 品牌几何：按钮、输入框、徽标、选择器统一为胶囊；卡片/表格保持 8px（--radius）。 */

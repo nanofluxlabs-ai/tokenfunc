@@ -86,7 +86,7 @@ export function SelfCheckDemo() {
               <span
                 className={cn(
                   'font-mono text-xs whitespace-nowrap',
-                  passed && 'text-primary',
+                  passed && 'text-brand-ink',
                   running && 'text-foreground/90',
                   !passed && !running && 'text-muted-foreground/70'
                 )}
@@ -101,7 +101,7 @@ export function SelfCheckDemo() {
         <span
           className={cn(
             'font-mono text-[13px]',
-            done ? 'text-primary' : 'text-muted-foreground'
+            done ? 'text-brand-ink' : 'text-muted-foreground'
           )}
           aria-live='polite'
         >

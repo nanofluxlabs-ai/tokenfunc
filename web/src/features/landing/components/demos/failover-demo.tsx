@@ -16,7 +16,7 @@ type LogLine = {
 }
 
 const TONE_CLASS = {
-  ok: 'text-primary',
+  ok: 'text-brand-ink',
   warn: 'text-warning',
   error: 'text-destructive',
 } as const

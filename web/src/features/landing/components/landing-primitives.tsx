@@ -96,7 +96,6 @@ export function PillTabs<T extends string>(props: {
       className={props.className}
     >
       <TabsList
-        variant='line'
         aria-label={props['aria-label']}
         className='border-border h-auto flex-wrap gap-1 rounded-full border bg-transparent p-1'
       >
@@ -105,7 +104,10 @@ export function PillTabs<T extends string>(props: {
             key={item.value}
             value={item.value}
             className={cn(
-              'text-muted-foreground data-active:bg-foreground data-active:text-background hover:text-foreground h-auto flex-none rounded-full border-0 after:hidden',
+              // 选中态用前景色做底、背景色做字：明暗两套主题都能保证对比度
+              'text-muted-foreground hover:text-foreground h-auto flex-none rounded-full border-0 after:hidden',
+              'data-active:bg-foreground data-active:text-background data-active:shadow-none',
+              'dark:data-active:border-transparent dark:data-active:bg-foreground dark:data-active:text-background',
               size === 'sm' ? 'px-3 py-1 text-xs' : 'px-4 py-1.5 text-[13px]',
               props.mono && 'font-mono'
             )}

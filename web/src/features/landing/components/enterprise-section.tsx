@@ -25,7 +25,7 @@ const SERVICE_ICONS = {
 
 /** 财务对账表里状态列的着色 */
 function statusClass(value: string): string {
-  if (value === 'Settled') return 'text-primary'
+  if (value === 'Settled') return 'text-brand-ink'
   if (value === 'Awaiting invoice') return 'text-warning'
   return 'text-foreground/90'
 }

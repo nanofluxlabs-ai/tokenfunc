@@ -34,7 +34,7 @@ export function RetentionCard() {
       ))}
       <div className='bg-background text-muted-foreground px-5 py-3.5 font-mono text-xs leading-[18px]'>
         {t('Body bytes written to disk')}{' '}
-        <span className='text-primary'>0 B</span>
+        <span className='text-brand-ink'>0 B</span>
       </div>
     </Panel>
   )

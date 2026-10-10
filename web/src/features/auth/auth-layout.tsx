@@ -80,7 +80,10 @@ function BrandAside(props: { variant: AuthLayoutVariant }) {
           <span className='tf-rise' style={riseDelay(1)}>
             {isSignUp ? t('Enterprise-grade') : t('One endpoint')}
           </span>
-          <span className='tf-rise text-primary font-bold' style={riseDelay(2)}>
+          <span
+            className='tf-rise text-brand-ink font-bold'
+            style={riseDelay(2)}
+          >
             {isSignUp ? t('model gateway') : t('every major model')}
           </span>
         </h1>

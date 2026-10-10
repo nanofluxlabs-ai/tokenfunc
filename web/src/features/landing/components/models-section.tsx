@@ -115,7 +115,7 @@ export function ModelsSection() {
                     <td className='text-foreground px-5 py-4 text-right font-mono text-sm'>
                       {formatUsdPerMillion(row.inputUSD)}
                     </td>
-                    <td className='text-primary px-5 py-4 text-right font-mono text-sm'>
+                    <td className='text-brand-ink px-5 py-4 text-right font-mono text-sm'>
                       {formatUsdPerMillion(row.cacheUSD)}
                     </td>
                     <td className='text-foreground/90 px-5 py-4 text-right font-mono text-sm'>

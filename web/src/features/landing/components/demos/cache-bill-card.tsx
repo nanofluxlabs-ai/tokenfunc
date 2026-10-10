@@ -58,7 +58,7 @@ export function CacheBillCard() {
       </div>
       <span className='text-muted-foreground text-[13px]'>
         {t('Cache hits saved')}{' '}
-        <span className='text-primary font-mono'>
+        <span className='text-brand-ink font-mono'>
           {CACHE_BILL.savedPercent}
         </span>
         {t(', the struck-through price is the cost without cache.')}

@@ -7368,6 +7368,8 @@
     "2 models": "2 models",
     "1 model": "1 model",
     "3 models": "3 models",
-    "First-token latency": "First-token latency"
+    "First-token latency": "First-token latency",
+    "OFFICIAL · direct access to the Claude / GPT / Gemini / Grok vendor channels": "OFFICIAL · direct access to the Claude / GPT / Gemini / Grok vendor channels",
+    "Built for enterprises: official direct access to Anthropic, OpenAI, Google and xAI. Smart routing with automatic failover, 99.95% availability, dedicated deployment on request, secure and stable.": "Built for enterprises: official direct access to Anthropic, OpenAI, Google and xAI. Smart routing with automatic failover, 99.95% availability, dedicated deployment on request, secure and stable."
   }
 }

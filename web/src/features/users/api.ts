@@ -54,9 +54,10 @@ function securityProofConfig(proofToken?: string): AxiosRequestConfig {
 export async function getUsers(
   params: GetUsersParams = {}
 ): Promise<GetUsersResponse> {
-  const { p = 1, page_size = 10, sort_by, sort_order } = params
+  const { p = 1, page_size = 10, sort_by, sort_order, user_type } = params
   const res = await api.get('/api/user/', {
     params: {
+      user_type,
       p,
       page_size,
       sort_by,
@@ -81,9 +82,11 @@ export async function searchUsers(
     page_size = 10,
     sort_by,
     sort_order,
+    user_type,
   } = params
   const queryParams = new URLSearchParams()
   queryParams.set('keyword', keyword)
+  if (user_type) queryParams.set('user_type', user_type)
   queryParams.set('group', group)
   if (role) queryParams.set('role', role)
   if (status) queryParams.set('status', status)

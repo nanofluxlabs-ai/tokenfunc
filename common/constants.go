@@ -12,7 +12,13 @@ import (
 
 var StartTime = time.Now().Unix() // unit: second
 var Version = "v0.0.0"            // this hard coding will be replaced automatically when building, no need to manually change
-var SystemName = "New API"
+var SystemName = "tokenfunc"
+
+// ThemePreset 管理员选定的全站配色预设，经 /api/status 下发给前端，普通用户不可修改
+var ThemePreset = "tokenfunc"
+
+// SalesContactQRCodeImageURL 营销页"联系销售"弹窗展示的商务微信二维码图片地址
+var SalesContactQRCodeImageURL = ""
 var Footer = ""
 var Logo = ""
 var TopUpLink = ""
@@ -185,7 +191,7 @@ var GeminiSafetySetting string
 var CohereSafetySetting string
 
 const (
-	RequestIdKey         = "X-Oneapi-Request-Id"
+	RequestIdKey         = "X-TokenFunc-Request-Id"
 	UpstreamRequestIdKey = "X-Upstream-Request-Id"
 )
 

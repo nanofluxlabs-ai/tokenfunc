@@ -80,6 +80,8 @@ func InitOptionMap() {
 	common.OptionMap["Footer"] = common.Footer
 	common.OptionMap["SystemName"] = common.SystemName
 	common.OptionMap["Logo"] = common.Logo
+	common.OptionMap["ThemePreset"] = common.ThemePreset
+	common.OptionMap["SalesContactQRCodeImageURL"] = common.SalesContactQRCodeImageURL
 	common.OptionMap["ServerAddress"] = ""
 	common.OptionMap["TaskPublicAddress"] = system_setting.TaskPublicAddress
 	common.OptionMap["WorkerUrl"] = system_setting.WorkerUrl
@@ -591,6 +593,10 @@ func updateOptionMap(key string, value string) (err error) {
 		common.SystemName = value
 	case "Logo":
 		common.Logo = value
+	case "ThemePreset":
+		common.ThemePreset = value
+	case "SalesContactQRCodeImageURL":
+		common.SalesContactQRCodeImageURL = value
 	case "WeChatServerAddress":
 		common.WeChatServerAddress = value
 	case "WeChatServerToken":

@@ -88,7 +88,10 @@ export type UserSortBy =
 
 export type UserSortOrder = 'asc' | 'desc'
 
+export type UserListType = 'personal' | 'enterprise'
+
 export interface GetUsersParams {
+  user_type?: UserListType
   p?: number
   page_size?: number
   sort_by?: UserSortBy
@@ -107,6 +110,7 @@ export interface GetUsersResponse {
 }
 
 export interface SearchUsersParams {
+  user_type?: UserListType
   keyword?: string
   group?: string
   role?: string

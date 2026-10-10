@@ -1,0 +1,131 @@
+/*
+ * 营销页与登录/注册页的动效（tokenfunc 二开）。
+ * 全部动画都挂在 `motion-safe:` 下使用，prefers-reduced-motion 时不播放。
+ */
+
+@keyframes tf-blink {
+  50% {
+    opacity: 0;
+  }
+}
+
+@keyframes tf-aurora {
+  0% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  50% {
+    transform: translate3d(5%, 8%, 0) scale(1.12);
+  }
+  100% {
+    transform: translate3d(-4%, 3%, 0) scale(1.04);
+  }
+}
+
+@keyframes tf-rise {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+    filter: blur(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+    filter: blur(0);
+  }
+}
+
+@keyframes tf-sweep {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(400%);
+  }
+}
+
+@keyframes tf-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes tf-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--primary) 50%, transparent);
+  }
+  50% {
+    box-shadow: 0 0 0 6px transparent;
+  }
+}
+
+/* 页面滚动到视口时的淡入上浮 */
+.tf-reveal {
+  opacity: 0;
+  transform: translateY(24px);
+  transition:
+    opacity 700ms cubic-bezier(0.16, 1, 0.3, 1),
+    transform 700ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+.tf-reveal[data-revealed='true'] {
+  opacity: 1;
+  transform: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .tf-reveal {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+}
+
+/* 登录/注册左栏的绿色极光 */
+.tf-aurora {
+  position: absolute;
+  inset: -25%;
+  pointer-events: none;
+  background:
+    radial-gradient(
+      34% 30% at 28% 18%,
+      color-mix(in srgb, var(--primary) 20%, transparent),
+      transparent 70%
+    ),
+    radial-gradient(
+      30% 26% at 78% 62%,
+      color-mix(in srgb, var(--primary) 9%, transparent),
+      transparent 70%
+    );
+  filter: blur(24px);
+}
+@media (prefers-reduced-motion: no-preference) {
+  .tf-aurora {
+    animation: tf-aurora 20s ease-in-out infinite alternate;
+  }
+  .tf-rise {
+    opacity: 0;
+    animation: tf-rise 900ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    animation-delay: var(--tf-rise-delay, 120ms);
+  }
+  .tf-sweep {
+    animation: tf-sweep 4.8s cubic-bezier(0.45, 0, 0.2, 1) 1.2s infinite;
+  }
+  .tf-spin {
+    animation: tf-spin 24s linear infinite;
+  }
+  .tf-pulse {
+    animation: tf-pulse 2.4s ease-out infinite;
+  }
+  .tf-blink {
+    animation: tf-blink 1s steps(1) infinite;
+  }
+}
+
+/* 首屏/CTA 顶部的绿色晕光 */
+.tf-glow-horizon {
+  background: radial-gradient(
+    120% 60% at 50% 0%,
+    color-mix(in srgb, var(--primary) 16%, transparent) 0%,
+    color-mix(in srgb, var(--primary) 4%, transparent) 40%,
+    transparent 70%
+  );
+}

@@ -22,6 +22,7 @@ import { useTranslation } from 'react-i18next'
 
 import { resolveSidebarView } from '@/components/layout/lib/sidebar-view-registry'
 import type { NavGroup, ResolvedSidebarView } from '@/components/layout/types'
+import { useEnterpriseSelf } from '@/features/enterprise-console/hooks/use-enterprise-self'
 import { ROLE } from '@/lib/roles'
 import { useAuthStore } from '@/stores/auth-store'
 
@@ -50,19 +51,21 @@ export function useSidebarView(): ResolvedSidebarView {
   const userRole = useAuthStore((s) => s.auth.user?.role)
   const rootSidebarData = useSidebarData()
   const configFilteredRoot = useSidebarConfig(rootSidebarData.navGroups)
+  const isEnterpriseOwner = Boolean(useEnterpriseSelf().data)
 
   const rootNavGroups = useMemo<NavGroup[]>(() => {
     const role = userRole ?? ROLE.GUEST
     const isAdmin = role >= ROLE.ADMIN
     return configFilteredRoot
       .filter((group) => (group.id === 'admin' ? isAdmin : true))
+      .filter((group) => (group.id === 'enterprise' ? isEnterpriseOwner : true))
       .map((group) => {
         const items = group.items.filter(
           (item) => item.requiredRole === undefined || role >= item.requiredRole
         )
         return items.length === group.items.length ? group : { ...group, items }
       })
-  }, [configFilteredRoot, userRole])
+  }, [configFilteredRoot, userRole, isEnterpriseOwner])
 
   const view = resolveSidebarView(pathname)
 

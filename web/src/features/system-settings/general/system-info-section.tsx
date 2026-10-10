@@ -31,7 +31,16 @@ import {
   FormMessage,
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
+import { THEME_PRESETS } from '@/lib/theme-customization'
 
 import { FormDirtyIndicator } from '../components/form-dirty-indicator'
 import { FormNavigationGuard } from '../components/form-navigation-guard'
@@ -51,6 +60,8 @@ const _systemInfoSchema = z.object({
   ServerAddress: z.string().optional(),
   TaskPublicAddress: z.string().refine(isValidTaskPublicAddress),
   Logo: z.string().url().optional().or(z.literal('')),
+  ThemePreset: z.string(),
+  SalesContactQRCodeImageURL: z.string().url().optional().or(z.literal('')),
   Footer: z.string().optional(),
   About: z.string().optional(),
   HomePageContent: z.string().optional(),
@@ -83,6 +94,10 @@ export function SystemInfoSection({ defaultValues }: SystemInfoSectionProps) {
     ServerAddress: normalizeValue(defaultValues.ServerAddress),
     TaskPublicAddress: normalizeValue(defaultValues.TaskPublicAddress),
     Logo: normalizeValue(defaultValues.Logo),
+    ThemePreset: normalizeValue(defaultValues.ThemePreset) || 'tokenfunc',
+    SalesContactQRCodeImageURL: normalizeValue(
+      defaultValues.SalesContactQRCodeImageURL
+    ),
     Footer: normalizeValue(defaultValues.Footer),
     About: normalizeValue(defaultValues.About),
     HomePageContent: normalizeValue(defaultValues.HomePageContent),
@@ -107,6 +122,8 @@ export function SystemInfoSection({ defaultValues }: SystemInfoSectionProps) {
         ),
     }),
     Logo: z.string().url().optional().or(z.literal('')),
+    ThemePreset: z.string(),
+    SalesContactQRCodeImageURL: z.string().url().optional().or(z.literal('')),
     Footer: z.string().optional(),
     About: z.string().optional(),
     HomePageContent: z.string().optional(),
@@ -228,6 +245,67 @@ export function SystemInfoSection({ defaultValues }: SystemInfoSectionProps) {
                     </FormControl>
                     <FormDescription>
                       {t('URL to your logo image (optional)')}
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name='ThemePreset'
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>{t('Theme preset')}</FormLabel>
+                    <Select
+                      items={THEME_PRESETS.map((preset) => ({
+                        value: preset.value,
+                        label: t(`preset.${preset.value}`),
+                      }))}
+                      onValueChange={field.onChange}
+                      value={field.value}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent alignItemWithTrigger={false}>
+                        <SelectGroup>
+                          {THEME_PRESETS.map((preset) => (
+                            <SelectItem key={preset.value} value={preset.value}>
+                              {t(`preset.${preset.value}`)}
+                            </SelectItem>
+                          ))}
+                        </SelectGroup>
+                      </SelectContent>
+                    </Select>
+                    <FormDescription>
+                      {t(
+                        'Color preset applied to every user. Users can only switch between light and dark mode.'
+                      )}
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name='SalesContactQRCodeImageURL'
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>{t('Sales WeChat QR code URL')}</FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder={t('https://example.com/sales-wechat.png')}
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormDescription>
+                      {t(
+                        'Shown in the "Contact sales" dialog on the home page (optional)'
+                      )}
                     </FormDescription>
                     <FormMessage />
                   </FormItem>

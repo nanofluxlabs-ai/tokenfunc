@@ -16,7 +16,8 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import { cleanup, render, screen } from '@testing-library/react'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { cleanup, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
@@ -27,13 +28,17 @@ import {
 import { ThemeProvider, useTheme } from '@/context/theme-provider'
 import { initializeFrontendCache } from '@/lib/frontend-cache'
 
+const getStatusMock = vi.fn()
+
+vi.mock('@/lib/api', () => ({
+  getStatus: () => getStatusMock(),
+}))
+
+// 用户仍可持久化的偏好：明暗、密度、内容宽度。预设/字体/圆角已改为跟随服务端。
 const savedPreferences = {
-  'newapi:theme:v1:mode': 'dark',
-  'newapi:theme:v1:preset': 'rose-garden',
-  'newapi:theme:v1:font': 'serif',
-  'newapi:theme:v1:radius': 'lg',
-  'newapi:theme:v1:scale': 'sm',
-  'newapi:theme:v1:content-layout': 'centered',
+  'tokenfunc:theme:v1:mode': 'dark',
+  'tokenfunc:theme:v1:scale': 'sm',
+  'tokenfunc:theme:v1:content-layout': 'centered',
 }
 
 function ThemeControls() {
@@ -43,13 +48,11 @@ function ThemeControls() {
   return (
     <>
       <output aria-label='Theme mode'>{theme.theme}</output>
+      <output aria-label='Preset'>{customization.customization.preset}</output>
       <button
         type='button'
         onClick={() => {
           theme.setTheme('dark')
-          customization.setPreset('rose-garden')
-          customization.setFont('serif')
-          customization.setRadius('lg')
           customization.setScale('sm')
           customization.setContentLayout('centered')
         }}
@@ -70,17 +73,24 @@ function ThemeControls() {
 }
 
 function ThemeFixture() {
+  const queryClient = new QueryClient({
+    defaultOptions: { queries: { retry: false } },
+  })
   return (
-    <ThemeProvider>
-      <ThemeCustomizationProvider>
-        <ThemeControls />
-      </ThemeCustomizationProvider>
-    </ThemeProvider>
+    <QueryClientProvider client={queryClient}>
+      <ThemeProvider>
+        <ThemeCustomizationProvider>
+          <ThemeControls />
+        </ThemeCustomizationProvider>
+      </ThemeProvider>
+    </QueryClientProvider>
   )
 }
 
 beforeEach(() => {
   localStorage.clear()
+  getStatusMock.mockReset()
+  getStatusMock.mockResolvedValue({ theme: 'tokenfunc' })
 })
 
 afterEach(() => {
@@ -97,12 +107,69 @@ afterEach(() => {
   }
 })
 
+describe('server-driven color preset', () => {
+  it('applies the preset from /api/status and resolves the brand font', async () => {
+    render(<ThemeFixture />)
+
+    await waitFor(() =>
+      expect(document.body).toHaveAttribute('data-theme-preset', 'tokenfunc')
+    )
+    expect(screen.getByLabelText('Preset')).toHaveTextContent('tokenfunc')
+    expect(document.body).toHaveAttribute('data-theme-font', 'brand')
+    expect(document.body).not.toHaveAttribute('data-theme-radius')
+  })
+
+  it('ignores a preset left in localStorage by older builds', async () => {
+    localStorage.setItem('tokenfunc:theme:v1:preset', 'rose-garden')
+    localStorage.setItem('tokenfunc:theme:v1:font', 'serif')
+
+    render(<ThemeFixture />)
+
+    await waitFor(() =>
+      expect(document.body).toHaveAttribute('data-theme-preset', 'tokenfunc')
+    )
+    expect(document.body).toHaveAttribute('data-theme-font', 'brand')
+  })
+
+  it('uses the server-injected body attribute before status has loaded', () => {
+    document.body.setAttribute('data-theme-preset', 'tokenfunc')
+    getStatusMock.mockReturnValue(new Promise(() => {}))
+
+    render(<ThemeFixture />)
+
+    expect(screen.getByLabelText('Preset')).toHaveTextContent('tokenfunc')
+    expect(document.body).toHaveAttribute('data-theme-preset', 'tokenfunc')
+    expect(document.body).toHaveAttribute('data-theme-font', 'brand')
+  })
+
+  it('falls back to the default preset when the server sends an unknown theme', async () => {
+    getStatusMock.mockResolvedValue({ theme: 'no-such-preset' })
+
+    render(<ThemeFixture />)
+
+    await waitFor(() =>
+      expect(screen.getByLabelText('Preset')).toHaveTextContent('default')
+    )
+    expect(document.body).not.toHaveAttribute('data-theme-preset')
+    expect(document.body).toHaveAttribute('data-theme-font', 'sans')
+  })
+
+  it('switches presets when the admin changes the server theme', async () => {
+    getStatusMock.mockResolvedValue({ theme: 'anthropic' })
+
+    render(<ThemeFixture />)
+
+    await waitFor(() =>
+      expect(document.body).toHaveAttribute('data-theme-preset', 'anthropic')
+    )
+    expect(document.body).toHaveAttribute('data-theme-font', 'serif')
+  })
+})
+
 describe('theme preference persistence', () => {
   it('starts with defaults when only shared legacy theme cookies exist', () => {
     document.cookie = 'theme_preset=ocean-breeze; path=/'
     document.cookie = 'vite-ui-theme=dark; path=/'
-    document.cookie = 'theme_font=serif; path=/'
-    document.cookie = 'theme_radius=xl; path=/'
     document.cookie = 'theme_scale=lg; path=/'
     document.cookie = 'theme_content_layout=centered; path=/'
 
@@ -110,14 +177,11 @@ describe('theme preference persistence', () => {
 
     expect(screen.getByLabelText('Theme mode')).toHaveTextContent('system')
     expect(document.documentElement).toHaveClass('light')
-    expect(document.body).not.toHaveAttribute('data-theme-preset')
-    expect(document.body).toHaveAttribute('data-theme-font', 'sans')
-    expect(document.body).not.toHaveAttribute('data-theme-radius')
     expect(document.body).not.toHaveAttribute('data-theme-scale')
     expect(document.body).toHaveAttribute('data-theme-content-layout', 'full')
   })
 
-  it('restores all customized preferences after remounting without writing cookies', async () => {
+  it('restores customized layout preferences after remounting without writing cookies', async () => {
     const user = userEvent.setup()
     const first = render(<ThemeFixture />)
 
@@ -127,9 +191,6 @@ describe('theme preference persistence', () => {
 
     expect(screen.getByLabelText('Theme mode')).toHaveTextContent('dark')
     expect(document.documentElement).toHaveClass('dark')
-    expect(document.body).toHaveAttribute('data-theme-preset', 'rose-garden')
-    expect(document.body).toHaveAttribute('data-theme-font', 'serif')
-    expect(document.body).toHaveAttribute('data-theme-radius', 'lg')
     expect(document.body).toHaveAttribute('data-theme-scale', 'sm')
     expect(document.body).toHaveAttribute(
       'data-theme-content-layout',
@@ -156,9 +217,6 @@ describe('theme preference persistence', () => {
 
     expect(screen.getByLabelText('Theme mode')).toHaveTextContent('system')
     expect(document.documentElement).toHaveClass('light')
-    expect(document.body).not.toHaveAttribute('data-theme-preset')
-    expect(document.body).toHaveAttribute('data-theme-font', 'sans')
-    expect(document.body).not.toHaveAttribute('data-theme-radius')
     expect(document.body).not.toHaveAttribute('data-theme-scale')
     expect(document.body).toHaveAttribute('data-theme-content-layout', 'full')
     for (const key of Object.keys(savedPreferences)) {
@@ -178,9 +236,6 @@ describe('theme preference persistence', () => {
       render(<ThemeFixture />)
 
       expect(screen.getByLabelText('Theme mode')).toHaveTextContent('system')
-      expect(document.body).not.toHaveAttribute('data-theme-preset')
-      expect(document.body).toHaveAttribute('data-theme-font', 'sans')
-      expect(document.body).not.toHaveAttribute('data-theme-radius')
       expect(document.body).not.toHaveAttribute('data-theme-scale')
       expect(document.body).toHaveAttribute('data-theme-content-layout', 'full')
     }
@@ -194,7 +249,7 @@ describe('theme preference persistence', () => {
     render(<ThemeFixture />)
 
     expect(screen.getByLabelText('Theme mode')).toHaveTextContent('system')
-    expect(document.body).not.toHaveAttribute('data-theme-preset')
+    expect(document.body).not.toHaveAttribute('data-theme-scale')
   })
 
   it('still applies and resets preferences when storage writes fail', async () => {
@@ -210,12 +265,12 @@ describe('theme preference persistence', () => {
     await user.click(screen.getByRole('button', { name: 'Customize' }))
 
     expect(screen.getByLabelText('Theme mode')).toHaveTextContent('dark')
-    expect(document.body).toHaveAttribute('data-theme-preset', 'rose-garden')
+    expect(document.body).toHaveAttribute('data-theme-scale', 'sm')
 
     await user.click(screen.getByRole('button', { name: 'Reset' }))
 
     expect(screen.getByLabelText('Theme mode')).toHaveTextContent('system')
-    expect(document.body).not.toHaveAttribute('data-theme-preset')
+    expect(document.body).not.toHaveAttribute('data-theme-scale')
   })
 
   it('preserves saved theme preferences during frontend cache initialization', () => {
@@ -229,7 +284,7 @@ describe('theme preference persistence', () => {
     render(<ThemeFixture />)
 
     expect(screen.getByLabelText('Theme mode')).toHaveTextContent('dark')
-    expect(document.body).toHaveAttribute('data-theme-preset', 'rose-garden')
+    expect(document.body).toHaveAttribute('data-theme-scale', 'sm')
     for (const [key, value] of Object.entries(savedPreferences)) {
       expect(localStorage.getItem(key)).toBe(value)
     }

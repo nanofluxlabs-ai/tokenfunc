@@ -43,5 +43,6 @@ func TestGetStatusAdvertisesDefaultDashboard(t *testing.T) {
 	}
 	require.NoError(t, common.Unmarshal(response.Body.Bytes(), &payload))
 	assert.True(t, payload.Success)
-	assert.Equal(t, "default", payload.Data["theme"])
+	// 品牌默认预设由 common.ThemePreset 决定（tokenfunc 二开改为 tokenfunc），状态接口必须原样下发
+	assert.Equal(t, common.ThemePreset, payload.Data["theme"])
 }

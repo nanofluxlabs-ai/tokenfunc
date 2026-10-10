@@ -141,6 +141,9 @@ export interface SystemStatus {
   version?: string
   system_name?: string
   logo?: string
+  theme?: string
+  server_address?: string
+  sales_qrcode?: string
   github_oauth?: boolean
   github_client_id?: string
   discord_oauth?: boolean

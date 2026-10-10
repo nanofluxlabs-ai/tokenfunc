@@ -337,6 +337,8 @@ type RecordConsumeLogParams struct {
 }
 
 func RecordConsumeLog(c *gin.Context, userId int, params RecordConsumeLogParams) {
+	// 企业用量聚合不依赖消费日志开关（TokenFunc 二开）
+	RecordEnterpriseUsageAsync(c, userId, params)
 	if !common.LogConsumeEnabled {
 		return
 	}

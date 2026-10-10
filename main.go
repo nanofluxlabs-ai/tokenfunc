@@ -132,6 +132,9 @@ func main() {
 	// Codex credential auto-refresh check every 10 minutes, refresh when expires within 1 day
 	service.StartCodexCredentialAutoRefreshTask()
 
+	// 企业授信账期滚动（TokenFunc 二开）
+	service.StartEnterpriseCreditTask()
+
 	// Subscription quota reset task (daily/weekly/monthly/custom)
 	service.StartSubscriptionQuotaResetTask()
 
@@ -259,7 +262,7 @@ func InjectUmamiAnalytics() {
 		analyticsInjectBuilder.WriteString(umamiSiteID)
 		analyticsInjectBuilder.WriteString("\"></script>")
 	}
-	analyticsInjectBuilder.WriteString("<!--Umami QuantumNous-->\n")
+	analyticsInjectBuilder.WriteString("<!--Umami tokenfunc-->\n")
 	analyticsInject := []byte(analyticsInjectBuilder.String())
 	placeholder := []byte("<!--umami-->\n")
 	indexPage = bytes.ReplaceAll(indexPage, placeholder, analyticsInject)
@@ -282,7 +285,7 @@ func InjectGoogleAnalytics() {
 		analyticsInjectBuilder.WriteString("');")
 		analyticsInjectBuilder.WriteString("</script>")
 	}
-	analyticsInjectBuilder.WriteString("<!--Google Analytics QuantumNous-->\n")
+	analyticsInjectBuilder.WriteString("<!--Google Analytics tokenfunc-->\n")
 	analyticsInject := []byte(analyticsInjectBuilder.String())
 	placeholder := []byte("<!--Google Analytics-->\n")
 	indexPage = bytes.ReplaceAll(indexPage, placeholder, analyticsInject)

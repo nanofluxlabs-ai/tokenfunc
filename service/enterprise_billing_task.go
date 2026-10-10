@@ -1,0 +1,102 @@
+package service
+
+import (
+	"context"
+	"fmt"
+	"strings"
+	"sync"
+	"time"
+
+	"github.com/QuantumNous/new-api/common"
+	"github.com/QuantumNous/new-api/logger"
+	"github.com/QuantumNous/new-api/model"
+	"github.com/QuantumNous/new-api/setting/system_setting"
+)
+
+var (
+	enterpriseDailyTaskMu      sync.Mutex
+	enterpriseDailyTaskLastDay string
+)
+
+// runEnterpriseBillingOnce 出账 + 每日任务（催款、预付对账单）。由授信分钟任务在持有锁时调用。
+func runEnterpriseBillingOnce(ctx context.Context, now int64) {
+	periods, err := model.FindClosingPeriodsReadyToBill(now)
+	if err != nil {
+		logger.LogWarn(ctx, "enterprise billing: list closing periods failed: "+err.Error())
+		return
+	}
+	for _, period := range periods {
+		bill, err := model.IssueCreditBill(period.Id)
+		if err != nil {
+			logger.LogWarn(ctx, fmt.Sprintf("enterprise billing: issue bill for period %d failed: %v", period.Id, err))
+			continue
+		}
+		if bill == nil {
+			logger.LogInfo(ctx, fmt.Sprintf("enterprise billing: period %d closed without usage", period.Id))
+			continue
+		}
+		logger.LogInfo(ctx, fmt.Sprintf("enterprise billing: issued %s amount=%s for enterprise %d", bill.BillNo, bill.TotalUSD.String(), bill.EnterpriseId))
+		sendEnterpriseBillEmail(ctx, bill, false)
+	}
+
+	today := common.GetTimestamp() / 86400
+	enterpriseDailyTaskMu.Lock()
+	dayKey := fmt.Sprintf("%d", today)
+	alreadyRan := enterpriseDailyTaskLastDay == dayKey
+	enterpriseDailyTaskLastDay = dayKey
+	enterpriseDailyTaskMu.Unlock()
+	if alreadyRan {
+		return
+	}
+	// 每日：逾期催款
+	bills, err := model.FindBillsDueForReminder(now)
+	if err != nil {
+		logger.LogWarn(ctx, "enterprise billing: list reminders failed: "+err.Error())
+	}
+	for _, bill := range bills {
+		if sendEnterpriseBillEmail(ctx, bill, true) {
+			if err := model.MarkBillReminded(bill.Id, now); err != nil {
+				logger.LogWarn(ctx, fmt.Sprintf("enterprise billing: mark reminded %s failed: %v", bill.BillNo, err))
+			}
+		}
+	}
+	// 每日：预付企业的上月对账单（幂等，仅在当月第一次运行时新建）
+	if created, err := model.GenerateMonthlyStatements(now); err != nil {
+		logger.LogWarn(ctx, "enterprise billing: generate statements failed: "+err.Error())
+	} else if created > 0 {
+		logger.LogInfo(ctx, fmt.Sprintf("enterprise billing: generated %d monthly statements", created))
+	}
+}
+
+// sendEnterpriseBillEmail 给企业的账单邮箱/联系人邮箱发账单或催款邮件；没有配置 SMTP 或邮箱时跳过
+func sendEnterpriseBillEmail(ctx context.Context, bill *model.EnterpriseBill, reminder bool) bool {
+	if common.SMTPServer == "" {
+		return false
+	}
+	enterprise, err := model.GetEnterpriseById(bill.EnterpriseId)
+	if err != nil {
+		return false
+	}
+	receiver := strings.TrimSpace(enterprise.BillingProfile.BillingEmail)
+	if receiver == "" {
+		receiver = strings.TrimSpace(enterprise.ContactEmail)
+	}
+	if receiver == "" {
+		return false
+	}
+	link := strings.TrimRight(system_setting.ServerAddress, "/") + fmt.Sprintf("/enterprise/bills/%d", bill.Id)
+	subject := fmt.Sprintf("[%s] Bill %s is ready", common.SystemName, bill.BillNo)
+	headline := "Your bill is ready"
+	if reminder {
+		subject = fmt.Sprintf("[%s] Payment reminder for bill %s", common.SystemName, bill.BillNo)
+		headline = "Payment reminder"
+	}
+	content := fmt.Sprintf(`<p>%s</p><p>Bill <b>%s</b> for %s<br/>Amount: <b>%s %s</b><br/>Outstanding: %s %s<br/>Due: %s</p><p><a href="%s">%s</a></p>`,
+		headline, bill.BillNo, enterprise.Name, bill.TotalUSD.StringFixed(2), bill.Currency,
+		bill.Outstanding().StringFixed(2), bill.Currency, time.Unix(bill.DueAt, 0).In(time.FixedZone("CST", 8*3600)).Format("2006-01-02"), link, link)
+	if err := common.SendEmail(subject, receiver, content); err != nil {
+		logger.LogWarn(ctx, fmt.Sprintf("enterprise billing: send email for %s failed: %v", bill.BillNo, err))
+		return false
+	}
+	return true
+}

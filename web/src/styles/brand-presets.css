@@ -1,0 +1,165 @@
+/*
+ * tokenfunc 品牌预设（二开文件，不属于上游）。
+ *
+ * 色值来自 Claude Design 的 tokenfunc Design System（Spotify 绿色方案）：
+ *   画布 #121212 / 侧栏 #000 / 卡片 #1F1F1F / 表头 #252525
+ *   品牌绿 #1ED760（浅色 #1DB954），仅用于主按钮、激活态与"运行中"
+ *   状态色 amber #FFA42B / blue #539DF5 / red #F3727F（浅色用更深的同系色）
+ *   字体 Figtree + Noto Sans SC，代码/密钥 Geist Mono
+ *
+ * 预设通过 <body data-theme-preset="tokenfunc"> 激活（由服务端注入或 provider 写入），
+ * 暗色跟随 <html class="dark">。该预设在 theme-presets.css 的"语义表面桥接"里已退出，
+ * 因此下面的中性灰表面不会被主色染色。
+ */
+
+@theme inline {
+  /* 品牌绿用作"文字"时的颜色：暗色直接用品牌绿，亮色换成深绿保证对比度（#1ED760 在白底上不到 2:1） */
+  --color-brand-ink: var(--brand-ink);
+  --font-brand:
+    'Figtree Variable', 'Figtree', 'Noto Sans SC Variable', 'Noto Sans SC',
+    'PingFang SC', -apple-system, system-ui, sans-serif;
+  --font-brand-mono:
+    'Geist Mono Variable', 'Geist Mono', 'JetBrains Mono', ui-monospace,
+    SFMono-Regular, Menlo, monospace;
+}
+
+[data-theme-font='brand'] {
+  --font-body: var(--font-brand);
+}
+
+/* 非品牌预设下退化为主色，保证 text-brand-ink 在任何预设都有值 */
+:root {
+  --brand-ink: var(--primary);
+}
+
+/* ── tokenfunc · light ────────────────────────────────────────────────── */
+[data-theme-preset='tokenfunc'] {
+  --background: #ffffff;
+  --foreground: #121212;
+  --card: #f6f6f6;
+  --card-foreground: #121212;
+  --popover: #ffffff;
+  --popover-foreground: #121212;
+
+  --primary: #1ed760;
+  --primary-foreground: #000000;
+  --secondary: #f1f1f1;
+  --secondary-foreground: #121212;
+  --muted: #f6f6f6;
+  --muted-foreground: #6a6a6a;
+  --accent: #efefef;
+  --accent-foreground: #121212;
+
+  --destructive: #c8283c;
+  --destructive-foreground: #ffffff;
+  --success: #117a3b;
+  --success-foreground: #ffffff;
+  --warning: #a35f00;
+  --warning-foreground: #ffffff;
+  --info: #2363c4;
+  --info-foreground: #ffffff;
+  --neutral: #6a6a6a;
+  --neutral-foreground: #ffffff;
+
+  --border: #e8e8e8;
+  --input: #cccccc;
+  --ring: #121212;
+
+  --chart-1: #1db954;
+  --chart-2: #121212;
+  --chart-3: #878787;
+  --chart-4: #2363c4;
+  --chart-5: #a35f00;
+
+  --sidebar: #f6f6f6;
+  --sidebar-foreground: #2b2b2b;
+  --sidebar-primary: #1db954;
+  --sidebar-primary-foreground: #000000;
+  --sidebar-accent: #e8e8e8;
+  --sidebar-accent-foreground: #121212;
+  --sidebar-border: #e8e8e8;
+  --sidebar-ring: #121212;
+
+  --skeleton-base: #ededed;
+  --skeleton-highlight: #f6f6f6;
+  --table-header: #f1f1f1;
+  --table-header-hover: #e8e8e8;
+
+  --brand-ink: #117a3b;
+
+  --radius: 0.5rem;
+  --font-mono: var(--font-brand-mono);
+}
+
+/* ── tokenfunc · dark（品牌默认） ─────────────────────────────────────── */
+.dark [data-theme-preset='tokenfunc'] {
+  --background: #121212;
+  --foreground: #ffffff;
+  --card: #1f1f1f;
+  --card-foreground: #ffffff;
+  --popover: #1f1f1f;
+  --popover-foreground: #ffffff;
+
+  --primary: #1ed760;
+  --primary-foreground: #000000;
+  --secondary: #2a2a2a;
+  --secondary-foreground: #ffffff;
+  --muted: #252525;
+  --muted-foreground: #b3b3b3;
+  --accent: #2a2a2a;
+  --accent-foreground: #ffffff;
+
+  --destructive: #f3727f;
+  --destructive-foreground: #121212;
+  --success: #1ed760;
+  --success-foreground: #000000;
+  --warning: #ffa42b;
+  --warning-foreground: #121212;
+  --info: #539df5;
+  --info-foreground: #121212;
+  --neutral: #b3b3b3;
+  --neutral-foreground: #121212;
+
+  --border: #2a2a2a;
+  --input: #4d4d4d;
+  --ring: #ffffff;
+
+  --chart-1: #1ed760;
+  --chart-2: #ffffff;
+  --chart-3: #b3b3b3;
+  --chart-4: #539df5;
+  --chart-5: #ffa42b;
+
+  --sidebar: #000000;
+  --sidebar-foreground: #e6e6e6;
+  --sidebar-primary: #1ed760;
+  --sidebar-primary-foreground: #000000;
+  --sidebar-accent: #1a1a1a;
+  --sidebar-accent-foreground: #ffffff;
+  --sidebar-border: #2a2a2a;
+  --sidebar-ring: #ffffff;
+
+  --skeleton-base: #252525;
+  --skeleton-highlight: #333333;
+  --table-header: #252525;
+  --table-header-hover: #2a2a2a;
+  --brand-ink: #1ed760;
+}
+
+/* 品牌几何：按钮、输入框、徽标、选择器统一为胶囊；卡片/表格保持 8px（--radius）。 */
+[data-theme-preset='tokenfunc']
+  :is(
+    [data-slot='button'],
+    [data-slot='input'],
+    [data-slot='badge'],
+    [data-slot='select-trigger'],
+    [data-slot='tabs-list'],
+    [data-slot='tabs-trigger']
+  ) {
+  border-radius: 9999px;
+}
+
+/* 焦点环：设计规范为 2px 实线 + 2px 偏移，不用柔和的半透明环。 */
+[data-theme-preset='tokenfunc'] :focus-visible {
+  outline-offset: 2px;
+}

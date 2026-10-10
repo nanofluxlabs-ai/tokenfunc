@@ -19,6 +19,15 @@ For commercial licensing, please contact support@quantumnous.com
 import {
   Activity,
   Box,
+  BarChart3,
+  Building2,
+  FolderKanban,
+  Gauge,
+  Receipt,
+  ReceiptText,
+  FileSignature,
+  Inbox,
+  KeyRound,
   ClipboardList,
   CreditCard,
   FileText,
@@ -108,6 +117,43 @@ export function useSidebarData(): SidebarData {
         ],
       },
       {
+        // 企业控制台：仅企业主账号可见（见 use-sidebar-view）
+        id: 'enterprise',
+        title: t('Enterprise'),
+        items: [
+          {
+            title: t('Enterprise Overview'),
+            url: '/enterprise/overview',
+            icon: Gauge,
+          },
+          {
+            title: t('Organization'),
+            url: '/enterprise/organization',
+            icon: Building2,
+          },
+          {
+            title: t('Projects'),
+            url: '/enterprise/projects',
+            icon: FolderKanban,
+          },
+          {
+            title: t('Employee API Keys'),
+            url: '/enterprise/keys',
+            icon: KeyRound,
+          },
+          {
+            title: t('Usage Report'),
+            url: '/enterprise/usage',
+            icon: BarChart3,
+          },
+          {
+            title: t('Bills'),
+            url: '/enterprise/bills',
+            icon: Receipt,
+          },
+        ],
+      },
+      {
         id: 'personal',
         title: t('Personal'),
         items: [
@@ -146,6 +192,21 @@ export function useSidebarData(): SidebarData {
             title: t('Users'),
             url: '/users',
             icon: Users,
+          },
+          {
+            title: t('Enterprise Bills'),
+            url: '/enterprise-billing',
+            icon: ReceiptText,
+          },
+          {
+            title: t('Quotations'),
+            url: '/quotes',
+            icon: FileSignature,
+          },
+          {
+            title: t('Trial Requests'),
+            url: '/enterprise-leads',
+            icon: Inbox,
           },
           {
             title: t('Redemption Codes'),

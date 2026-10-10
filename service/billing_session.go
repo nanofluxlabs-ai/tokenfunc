@@ -50,6 +50,13 @@ func (s *BillingSession) Settle(actualQuota int) error {
 	}
 	delta := actualQuota - s.preConsumedQuota
 	if delta == 0 {
+		// 授信等资金源需要在无差额时释放在途计数
+		if finisher, ok := s.funding.(interface{ Finish() error }); ok && !s.fundingSettled {
+			if err := finisher.Finish(); err != nil {
+				return err
+			}
+			s.fundingSettled = true
+		}
 		s.settled = true
 		return nil
 	}
@@ -145,6 +152,10 @@ func (s *BillingSession) needsRefundLocked() bool {
 	if sub, ok := s.funding.(*SubscriptionFunding); ok && sub.preConsumed > 0 {
 		return true
 	}
+	// 授信预扣成功后持有在途计数，即使金额为 0 也要退还
+	if credit, ok := s.funding.(*CreditFunding); ok && credit.reserved {
+		return true
+	}
 	return false
 }
 
@@ -226,6 +237,12 @@ func (s *BillingSession) preConsume(c *gin.Context, quota int) *types.NewAPIErro
 			s.tokenConsumed = 0
 		}
 		// TODO: model 层应定义哨兵错误（如 ErrNoActiveSubscription），用 errors.Is 替代字符串匹配
+		if errors.Is(err, ErrInsufficientCreditQuota) {
+			return types.NewErrorWithStatusCode(
+				fmt.Errorf("企业本期授信额度已用完，请联系管理员提高额度"),
+				types.ErrorCodeInsufficientUserQuota, http.StatusForbidden,
+				types.ErrOptionWithSkipRetry(), types.ErrOptionWithNoRecordErrorLog())
+		}
 		if errors.Is(err, ErrInsufficientWalletQuota) {
 			userQuota, quotaErr := model.GetUserQuota(s.relayInfo.UserId, false)
 			if quotaErr != nil {
@@ -274,6 +291,8 @@ func (s *BillingSession) reserveFunding(delta int, requireAvailableQuota bool) e
 		}
 		funding.consumed += delta
 		return nil
+	case *CreditFunding:
+		return funding.reserveExtra(delta, requireAvailableQuota)
 	case *SubscriptionFunding:
 		if err := model.PostConsumeUserSubscriptionDelta(funding.subscriptionId, int64(delta)); err != nil {
 			return types.NewErrorWithStatusCode(
@@ -302,6 +321,8 @@ func (s *BillingSession) rollbackFundingReserve(delta int) {
 		if err := model.PostConsumeUserSubscriptionDelta(funding.subscriptionId, -int64(delta)); err != nil {
 			common.SysLog("error rolling back subscription funding reserve: " + err.Error())
 		}
+	case *CreditFunding:
+		funding.rollbackExtra(delta)
 	}
 }
 
@@ -382,6 +403,13 @@ func NewBillingSession(c *gin.Context, relayInfo *relaycommon.RelayInfo, preCons
 	}
 
 	pref := common.NormalizeBillingPreference(relayInfo.UserSetting.BillingPreference)
+
+	// 企业账号：停用直接拒绝；授信走授信资金源；预付企业强制走钱包（不参与订阅）
+	if session, handled, apiErr := enterpriseBillingGate(c, relayInfo, preConsumedQuota); handled || apiErr != nil {
+		return session, apiErr
+	} else if info, _ := model.GetEnterpriseBillingInfo(relayInfo.UserId); info != nil {
+		pref = "wallet_only"
+	}
 
 	// 钱包路径需要先检查用户额度
 	tryWallet := func() (*BillingSession, *types.NewAPIError) {

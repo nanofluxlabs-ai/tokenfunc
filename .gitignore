@@ -14,8 +14,7 @@ logs
 web/dist
 web/node_modules
 .env
-one-api
-new-api
+/tokenfunc
 /__debug_bin*
 .DS_Store
 tiktoken_cache
@@ -44,3 +43,6 @@ relaykit/relayconvert/chat_responses_live_local_test.go
 service/openaicompat/chat_responses_live_local_test.go
 go.work
 go.work.sum
+
+# 本地临时文件
+.tmp/

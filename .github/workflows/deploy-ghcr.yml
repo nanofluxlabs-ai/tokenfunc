@@ -2,6 +2,8 @@ name: Build & Deploy (GHCR)
 
 # Builds the image from source, pushes it to GHCR under this repository's
 # namespace, then deploys it to the production host over SSH.
+# The host keeps the repo's compose.yml and a production .env in /opt/tokenfunc;
+# TF_API_IMAGE selects the freshly pushed tag.
 #
 # Required repository secrets:
 #   DEPLOY_HOST         production host address
@@ -101,20 +103,20 @@ jobs:
         run: |
           ssh -i ~/.ssh/deploy_key \
             "${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}" \
-            "cd /opt/tokenfun && IMAGE_TAG='${{ needs.build.outputs.version }}' docker compose pull new-api && IMAGE_TAG='${{ needs.build.outputs.version }}' docker compose up -d && docker image prune -f"
+            "cd /opt/tokenfunc && export TF_API_IMAGE='${{ env.IMAGE }}:${{ needs.build.outputs.version }}' && docker compose --profile app pull api && docker compose --profile app up -d --wait && docker image prune -f"
 
       - name: Wait for healthy status
         run: |
           ssh -i ~/.ssh/deploy_key \
             "${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}" \
             'for i in $(seq 1 30); do
-               status=$(docker inspect -f "{{.State.Health.Status}}" new-api 2>/dev/null || echo missing)
+               status=$(docker inspect -f "{{.State.Health.Status}}" tokenfunc-api 2>/dev/null || echo missing)
                echo "attempt $i: $status"
                [ "$status" = "healthy" ] && exit 0
                sleep 10
              done
              echo "service did not become healthy"
-             docker logs --tail 80 new-api
+             docker logs --tail 80 tokenfunc-api
              exit 1'
 
       - name: Summary

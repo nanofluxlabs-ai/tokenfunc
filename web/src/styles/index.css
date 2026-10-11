@@ -36,6 +36,7 @@ For commercial licensing, please contact support@quantumnous.com
 @import './theme-presets.css';
 @import './brand-presets.css';
 @import './landing.css';
+@import './quote-preview.css';
 
 @layer base {
   :root {

@@ -106,8 +106,8 @@ api: infra api-build api-stop ## 后台启动 API（宿主机，连 dev schema /
 		nohup $(API_BIN) --port $(TF_API_PORT) --log-dir $(API_LOG_DIR) > $(API_LOG_DIR)/api.out 2>&1 & \
 		echo $$! > $(API_PID)
 	@for i in $$(seq 1 60); do \
+		if ! kill -0 $$(cat $(API_PID)) 2>/dev/null; then echo "API 启动失败（端口被占用时 :$(TF_API_PORT) 可能是别的进程在应答），见 $(API_LOG_DIR)/api.out"; tail -n 40 $(API_LOG_DIR)/api.out; exit 1; fi; \
 		if curl -fsS $(API_URL)/api/status >/dev/null 2>&1; then echo "API 已就绪: $(API_URL) (pid $$(cat $(API_PID)))"; exit 0; fi; \
-		if ! kill -0 $$(cat $(API_PID)) 2>/dev/null; then echo "API 启动失败，见 $(API_LOG_DIR)/api.out"; tail -n 40 $(API_LOG_DIR)/api.out; exit 1; fi; \
 		sleep 1; \
 	done; echo "等待 API 超时，见 $(API_LOG_DIR)/api.out"; exit 1
 

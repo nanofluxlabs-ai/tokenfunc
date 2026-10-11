@@ -44,7 +44,7 @@ func setupEnterprisePostgres(t *testing.T) {
 
 var enterpriseTestTables = []any{
 	&User{}, &Token{}, &Enterprise{}, &EnterpriseDepartment{}, &EnterpriseEmployee{}, &EnterpriseProject{}, &EnterpriseTokenAssignment{},
-	&EnterpriseCreditPeriod{}, &EnterpriseLedgerEntry{}, &EnterpriseUsageDaily{}, &EnterpriseBill{}, &EnterpriseQuote{}, &EnterpriseTrialLead{},
+	&EnterpriseCreditPeriod{}, &EnterpriseLedgerEntry{}, &EnterpriseUsageDaily{}, &EnterpriseBill{}, &EnterpriseTrialLead{},
 }
 
 func createEnterpriseTestUser(t *testing.T, username string, role int) *User {
@@ -638,45 +638,6 @@ func TestEnterpriseBillRemindersAndStatements(t *testing.T) {
 	var snapshot map[string]int64
 	require.NoError(t, common.Unmarshal(statements[0].UsageSnapshot, &snapshot))
 	assert.Equal(t, map[string]int64{"opening_quota": 820, "topup_quota": 300, "consumption_quota": 120, "adjustment_quota": 0, "closing_quota": 1000}, snapshot)
-}
-
-func TestEnterpriseQuoteSnapshotsDiscountedPrices(t *testing.T) {
-	setupEnterprisePostgres(t)
-	items := []EnterpriseQuoteItem{
-		{ModelName: "gpt-4o", VendorName: "OpenAI", Group: "default", InputUSD: 2.5, OutputUSD: 10, CacheUSD: 1.25},
-		{ModelName: "claude-sonnet-4", VendorName: "Anthropic", Group: "default", InputUSD: 3, OutputUSD: 15, DiscountPercent: 20},
-	}
-	quote, err := CreateEnterpriseQuote(&EnterpriseQuote{CustomerName: " Acme ", DiscountPercent: 10, CreatedBy: 1}, items)
-	require.NoError(t, err)
-	assert.Regexp(t, `^Q-\d{6}-\d{6}$`, quote.QuoteNo)
-	assert.Equal(t, "Acme", quote.CustomerName)
-	var stored []EnterpriseQuoteItem
-	require.NoError(t, common.Unmarshal(quote.Items, &stored))
-	require.Len(t, stored, 2)
-	assert.Equal(t, 10.0, stored[0].DiscountPercent, "global discount applied when the row has none")
-	assert.Equal(t, 2.25, stored[0].QuotedInputUSD)
-	assert.Equal(t, 9.0, stored[0].QuotedOutputUSD)
-	assert.Equal(t, 1.125, stored[0].QuotedCacheUSD)
-	assert.Equal(t, 20.0, stored[1].DiscountPercent, "row discount overrides the global one")
-	assert.Equal(t, 2.4, stored[1].QuotedInputUSD)
-	assert.Equal(t, 12.0, stored[1].QuotedOutputUSD)
-
-	_, err = CreateEnterpriseQuote(&EnterpriseQuote{CustomerName: "X"}, nil)
-	assert.ErrorIs(t, err, ErrEnterpriseQuoteInvalid)
-	_, err = CreateEnterpriseQuote(&EnterpriseQuote{CustomerName: "X", DiscountPercent: 120}, items[:1])
-	assert.ErrorIs(t, err, ErrEnterpriseQuoteInvalid)
-	_, err = CreateEnterpriseQuote(&EnterpriseQuote{CustomerName: "X"}, []EnterpriseQuoteItem{items[0], items[0]})
-	assert.ErrorIs(t, err, ErrEnterpriseQuoteInvalid)
-	_, err = CreateEnterpriseQuote(&EnterpriseQuote{CustomerName: "X", ValidUntil: common.GetTimestamp() - 10}, items[:1])
-	assert.ErrorIs(t, err, ErrEnterpriseQuoteInvalid)
-
-	list, total, err := ListEnterpriseQuotes("acme", 0, 10)
-	require.NoError(t, err)
-	assert.Equal(t, int64(1), total)
-	assert.Equal(t, quote.QuoteNo, list[0].QuoteNo)
-	fetched, err := GetEnterpriseQuote(quote.Id)
-	require.NoError(t, err)
-	assert.Equal(t, quote.QuoteNo, fetched.QuoteNo)
 }
 
 func TestEnterpriseTrialLeadLifecycle(t *testing.T) {

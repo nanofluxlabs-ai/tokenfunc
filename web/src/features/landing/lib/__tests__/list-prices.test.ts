@@ -2,11 +2,7 @@ import { describe, expect, test } from 'vitest'
 
 import type { PricingModel } from '@/features/pricing/types'
 
-import {
-  applyDiscount,
-  computeListPrices,
-  isQuotableModel,
-} from '../quote-pricing'
+import { computeListPrices } from '../list-prices'
 
 const base: PricingModel = {
   id: 1,
@@ -18,7 +14,7 @@ const base: PricingModel = {
   enable_groups: ['default'],
 }
 
-describe('quote pricing', () => {
+describe('landing list prices', () => {
   test('list prices follow ratio x 2 x group ratio per 1M tokens', () => {
     expect(computeListPrices(base, 1)).toEqual({
       input: 2.5,
@@ -36,21 +32,5 @@ describe('quote pricing', () => {
     expect(
       computeListPrices({ ...base, cache_ratio: null }, 1).cache
     ).toBeNull()
-  })
-
-  test('discount rounds to 4 decimals', () => {
-    expect(applyDiscount(2.5, 15)).toBe(2.125)
-    expect(applyDiscount(10, 0)).toBe(10)
-  })
-
-  test('only token-billed non-task models are quotable', () => {
-    expect(isQuotableModel(base)).toBe(true)
-    expect(isQuotableModel({ ...base, quota_type: 1 })).toBe(false)
-    expect(
-      isQuotableModel({
-        ...base,
-        billing_usage_schema: { seconds: { type: 'number', unit: 'second' } },
-      })
-    ).toBe(false)
   })
 })

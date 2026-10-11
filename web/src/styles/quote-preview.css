@@ -1,0 +1,123 @@
+/*
+ * 报价单预览（tokenfunc 二开）：统一按"纸张"视觉渲染（白底深字），与导出 PDF 一致，
+ * 暗色主题下同样可读。色值与 features/quotes/lib/quote-export.ts 的 QUOTE_PRINT_THEME 对齐。
+ */
+.tf-quote-preview {
+  --tfq-brand: #1ed760;
+  --tfq-ink: #117a3b;
+  --tfq-text: #121212;
+  --tfq-border: #e8e8e8;
+  background: #ffffff;
+  color: var(--tfq-text);
+  padding: 24px 28px;
+  border-radius: 8px;
+  border: 1px solid var(--tfq-border);
+  font-size: 13px;
+  line-height: 1.6;
+  overflow-x: auto;
+}
+.tf-quote-preview h1 {
+  color: var(--tfq-text);
+  font-size: 22px;
+  font-weight: 700;
+  border-bottom: 3px solid var(--tfq-brand);
+  padding-bottom: 8px;
+  margin: 0 0 12px;
+}
+.tf-quote-preview h2 {
+  color: var(--tfq-text);
+  font-size: 18px;
+  font-weight: 700;
+  border-left: 4px solid var(--tfq-brand);
+  padding-left: 10px;
+  margin: 18px 0 10px;
+}
+.tf-quote-preview h3 {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--tfq-ink);
+  margin: 12px 0 8px;
+}
+.tf-quote-preview p {
+  margin: 6px 0;
+}
+/* Markdown 组件把 table 设为 block（为横向滚动），改回 table 让表头撑满宽度，横向滚动交给外层容器 */
+.tf-quote-preview table {
+  display: table;
+  width: 100%;
+  border-collapse: collapse;
+  margin: 10px 0;
+  font-size: 12px;
+}
+.tf-quote-preview th {
+  background: var(--tfq-brand);
+  color: var(--tfq-text);
+  padding: 7px;
+  text-align: left;
+  font-weight: 600;
+  border: 1px solid var(--tfq-brand);
+}
+.tf-quote-preview td {
+  padding: 6px 7px;
+  border: 1px solid var(--tfq-border);
+  vertical-align: top;
+  word-break: break-word;
+  color: var(--tfq-text);
+  background: #ffffff;
+}
+.tf-quote-preview tr:nth-child(even) td {
+  background: #f3faf5;
+}
+.tf-quote-preview td strong {
+  color: var(--tfq-ink);
+}
+.tf-quote-preview blockquote {
+  background: #eafaf0;
+  color: var(--tfq-text);
+  border-left: 4px solid var(--tfq-brand);
+  padding: 8px 12px;
+  margin: 8px 0;
+  border-radius: 0 4px 4px 0;
+}
+.tf-quote-preview code {
+  background: #f1f1f1;
+  color: var(--tfq-ink);
+  padding: 1px 5px;
+  border-radius: 3px;
+  font-size: 12px;
+}
+.tf-quote-preview pre {
+  background: #121212;
+  color: #f6f6f6;
+  padding: 12px 14px;
+  border-radius: 6px;
+  font-size: 12px;
+  overflow-x: auto;
+  border-left: 3px solid var(--tfq-brand);
+}
+.tf-quote-preview pre code {
+  background: transparent;
+  color: inherit;
+  padding: 0;
+}
+.tf-quote-preview hr {
+  border: none;
+  border-top: 1px dashed var(--tfq-border);
+  margin: 16px 0;
+}
+.tf-quote-preview ul {
+  list-style: disc outside;
+  margin: 6px 0;
+  padding-left: 22px;
+}
+.tf-quote-preview ol {
+  list-style: decimal outside;
+  margin: 6px 0;
+  padding-left: 22px;
+}
+.tf-quote-preview li {
+  margin: 3px 0;
+}
+.tf-quote-preview li::marker {
+  color: var(--tfq-brand);
+}

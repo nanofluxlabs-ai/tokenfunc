@@ -23,15 +23,3 @@ export function computeListPrices(
     cache: hasCache ? round4(base * Number(cacheRatio)) : null,
   }
 }
-
-export function applyDiscount(price: number, discountPercent: number): number {
-  return round4(price * (1 - discountPercent / 100))
-}
-
-/** 报价单只支持按 token 计费、非任务类的模型 */
-export function isQuotableModel(model: PricingModel): boolean {
-  return (
-    model.quota_type === 0 &&
-    Object.keys(model.billing_usage_schema ?? {}).length === 0
-  )
-}

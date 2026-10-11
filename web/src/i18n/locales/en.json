@@ -7542,6 +7542,17 @@
     "Last 30 days": "Last 30 days",
     "Total amount (USD)": "Total amount (USD)",
     "Models involved": "Models involved",
-    "usage": "usage"
+    "usage": "usage",
+    "This period is still open: figures are live and keep changing until the bill is issued.": "This period is still open: figures are live and keep changing until the bill is issued.",
+    "Credit limit (USD)": "Credit limit (USD)",
+    "Usage rate": "Usage rate",
+    "{{count}} days": "{{count}} days",
+    "Period #{{no}}": "Period #{{no}}",
+    "In progress": "In progress",
+    "statement": "statement",
+    "Period range": "Period range",
+    "Used / Credit (USD)": "Used / Credit (USD)",
+    "Open credit periods": "Open credit periods",
+    "No open periods": "No open periods"
   }
 }

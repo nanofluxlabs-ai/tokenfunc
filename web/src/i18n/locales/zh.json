@@ -7542,6 +7542,17 @@
     "Last 30 days": "近 30 天",
     "Total amount (USD)": "消费总额 (USD)",
     "Models involved": "涉及模型数",
-    "usage": "消费明细"
+    "usage": "消费明细",
+    "This period is still open: figures are live and keep changing until the bill is issued.": "当前账期实时数据，消费金额持续更新中，出账后自动固化。",
+    "Credit limit (USD)": "授信额度 (USD)",
+    "Usage rate": "使用率",
+    "{{count}} days": "{{count}} 天",
+    "Period #{{no}}": "第 {{no}} 期",
+    "In progress": "进行中",
+    "statement": "对账单",
+    "Period range": "账期",
+    "Used / Credit (USD)": "消耗 / 授信 (USD)",
+    "Open credit periods": "进行中账期",
+    "No open periods": "没有进行中的账期"
   }
 }

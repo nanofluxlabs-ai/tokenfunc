@@ -4,7 +4,7 @@ import {
   useQueryClient,
 } from '@tanstack/react-query'
 import { Ban, HandCoins, Settings2 } from 'lucide-react'
-import { useState } from 'react'
+import { useState, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 
@@ -25,7 +25,10 @@ const PAGE_SIZE = 20
 type Filter = 'all' | 'unpaid' | 'overdue' | 'paid' | 'statement'
 
 /** 企业账单管理（列表 + 收款 / 作废 + 开票方设置）；在财务中心的「企业账单」tab 内渲染 */
-export function BillsAdminContent() {
+export function BillsAdminContent(props: {
+  /** 账单号的渲染（财务中心：链接到账单详情） */
+  renderBillNo?: (bill: Bill) => ReactNode
+}) {
   const { t } = useTranslation()
   const queryClient = useQueryClient()
   const [sellerOpen, setSellerOpen] = useState(false)
@@ -102,6 +105,7 @@ export function BillsAdminContent() {
         bills={data?.items ?? []}
         isLoading={isLoading}
         showEnterprise
+        renderBillNo={props.renderBillNo}
         renderActions={(bill) =>
           bill.bill_type === 'credit' &&
           (bill.status === 'unpaid' || bill.status === 'partially_paid') ? (

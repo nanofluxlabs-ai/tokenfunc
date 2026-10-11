@@ -4,9 +4,9 @@ import { useTranslation } from 'react-i18next'
 import { SectionPageLayout } from '@/components/layout'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { BillsAdminContent } from '@/features/enterprises'
 import { getCurrencyLabel } from '@/lib/currency'
 
+import { BillsPanel } from './components/bills/bills-panel'
 import { DayRangeControls } from './components/day-range-controls'
 import { ModelConsumptionPanel } from './components/model-consumption/model-consumption-panel'
 import { OrdersPanel } from './components/orders/orders-panel'
@@ -58,7 +58,7 @@ export function FinanceCenter() {
       panel = <ModelConsumptionPanel />
       break
     case 'enterprise-bills':
-      panel = <BillsAdminContent />
+      panel = <BillsPanel />
       break
   }
 

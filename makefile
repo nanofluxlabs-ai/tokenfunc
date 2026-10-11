@@ -140,8 +140,9 @@ test: ## Go 单元测试（根模块 + relaykit + tokenkit，不依赖数据库�
 	@echo "Testing tokenkit Go module..."
 	@cd tokenkit && GOWORK=off go test ./...
 
+# 多个包共用同一 test schema，并行 AutoMigrate 会抢建表（SQLSTATE 23505/42P01），固定 -p 1 串行
 test-db: infra ## 需要 PostgreSQL 的 Go 测试，跑在 test schema / redis db 1（PKG=./model/... 可缩小范围）
-	@TEST_POSTGRES_DSN='$(TEST_SQL_DSN)' REDIS_CONN_STRING='$(TEST_REDIS)' GOWORK=off go test $(PKG)
+	@TEST_POSTGRES_DSN='$(TEST_SQL_DSN)' REDIS_CONN_STRING='$(TEST_REDIS)' GOWORK=off go test -p 1 $(PKG)
 
 test-web: ## 前端 vitest
 	@cd $(WEB_DIR) && bun run test

@@ -51,7 +51,7 @@ make dev          # 自动生成 .env → 起 postgres/redis → 编译并后台
 | `make infra` / `make stop` / `make down` / `make reset` | 起库 / 停容器 / 删容器保留数据 / 连数据卷一起删（需确认） |
 | `make psql [SCHEMA=test]` / `make redis-cli [DB=1]` | 进入数据库命令行 |
 | `make test` | 不依赖数据库的 Go 测试，CI 调用 |
-| `make test-db [PKG=./model/...]` | 需要 PG 的 Go 测试，跑在 `test` schema |
+| `make test-db [PKG=./model/...]` | 需要 PG 的 Go 测试，跑在 `test` schema（固定 `-p 1` 串行，多包共用 schema） |
 | `make test-web` | 前端 vitest |
 | `make up-build` / `make up` / `make up-down` / `make up-logs` | 全栈 docker（从源码构建 / 用 `.env` 指定镜像 / 停 / 日志） |
 | `make reset-setup` | 清掉初始化向导状态，重新走 setup |

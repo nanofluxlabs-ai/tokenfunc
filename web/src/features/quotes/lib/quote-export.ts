@@ -66,7 +66,8 @@ export function buildQuoteStandaloneHtml(htmlBody: string): string {
   pre { background: ${c.preBackground} !important; color: ${c.preText} !important; padding: 12px 14px; border-radius: 6px; font-size: 9pt; overflow: visible; border-left: 3px solid ${c.brand}; page-break-inside: avoid; break-inside: avoid; white-space: pre-wrap; word-break: break-word; }
   pre code { background: transparent !important; color: inherit !important; padding: 0; }
   hr { border: none; border-top: 1px dashed ${c.border}; margin: 16px 0; }
-  ul, ol { margin: 6px 0 6px 20px; }
+  ul, ol { margin: 6px 0; padding-left: 1.6em; }
+  li { margin: 2px 0; }
   li::marker { color: ${c.brand}; }
   @media screen { body { max-width: 297mm; margin: 16px auto; box-shadow: 0 4px 20px rgba(0,0,0,0.08); } }
 </style>

@@ -68,6 +68,7 @@ import { Route as AuthenticatedWalletIndexRouteImport } from './routes/_authenti
 import { Route as PricingModelIdIndexRouteImport } from './routes/pricing/$modelId/index'
 import { Route as AuthenticatedEnterpriseBillsIndexRouteImport } from './routes/_authenticated/enterprise/bills.index'
 import { Route as AuthenticatedEnterpriseBillsIdRouteImport } from './routes/_authenticated/enterprise/bills.$id'
+import { Route as AuthenticatedFinanceUsersUserIdRouteImport } from './routes/_authenticated/finance/users.$userId'
 import { Route as AuthenticatedSystemSettingsAuthIndexRouteImport } from './routes/_authenticated/system-settings/auth/index'
 import { Route as AuthenticatedSystemSettingsAuthSectionRouteImport } from './routes/_authenticated/system-settings/auth/$section'
 import { Route as AuthenticatedSystemSettingsBillingIndexRouteImport } from './routes/_authenticated/system-settings/billing/index'
@@ -409,6 +410,12 @@ const AuthenticatedEnterpriseBillsIdRoute =
     path: '/enterprise/bills/$id',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedFinanceUsersUserIdRoute =
+  AuthenticatedFinanceUsersUserIdRouteImport.update({
+    id: '/finance/users/$userId',
+    path: '/finance/users/$userId',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedSystemSettingsAuthIndexRoute =
   AuthenticatedSystemSettingsAuthIndexRouteImport.update({
     id: '/auth/',
@@ -563,6 +570,7 @@ export interface FileRoutesByFullPath {
   '/wallet/': typeof AuthenticatedWalletIndexRoute
   '/pricing/$modelId/': typeof PricingModelIdIndexRoute
   '/enterprise/bills/$id': typeof AuthenticatedEnterpriseBillsIdRoute
+  '/finance/users/$userId': typeof AuthenticatedFinanceUsersUserIdRoute
   '/system-settings/auth/$section': typeof AuthenticatedSystemSettingsAuthSectionRoute
   '/system-settings/billing/$section': typeof AuthenticatedSystemSettingsBillingSectionRoute
   '/system-settings/content/$section': typeof AuthenticatedSystemSettingsContentSectionRoute
@@ -637,6 +645,7 @@ export interface FileRoutesByTo {
   '/wallet': typeof AuthenticatedWalletIndexRoute
   '/pricing/$modelId': typeof PricingModelIdIndexRoute
   '/enterprise/bills/$id': typeof AuthenticatedEnterpriseBillsIdRoute
+  '/finance/users/$userId': typeof AuthenticatedFinanceUsersUserIdRoute
   '/system-settings/auth/$section': typeof AuthenticatedSystemSettingsAuthSectionRoute
   '/system-settings/billing/$section': typeof AuthenticatedSystemSettingsBillingSectionRoute
   '/system-settings/content/$section': typeof AuthenticatedSystemSettingsContentSectionRoute
@@ -715,6 +724,7 @@ export interface FileRoutesById {
   '/_authenticated/wallet/': typeof AuthenticatedWalletIndexRoute
   '/pricing/$modelId/': typeof PricingModelIdIndexRoute
   '/_authenticated/enterprise/bills/$id': typeof AuthenticatedEnterpriseBillsIdRoute
+  '/_authenticated/finance/users/$userId': typeof AuthenticatedFinanceUsersUserIdRoute
   '/_authenticated/system-settings/auth/$section': typeof AuthenticatedSystemSettingsAuthSectionRoute
   '/_authenticated/system-settings/billing/$section': typeof AuthenticatedSystemSettingsBillingSectionRoute
   '/_authenticated/system-settings/content/$section': typeof AuthenticatedSystemSettingsContentSectionRoute
@@ -792,6 +802,7 @@ export interface FileRouteTypes {
     | '/wallet/'
     | '/pricing/$modelId/'
     | '/enterprise/bills/$id'
+    | '/finance/users/$userId'
     | '/system-settings/auth/$section'
     | '/system-settings/billing/$section'
     | '/system-settings/content/$section'
@@ -866,6 +877,7 @@ export interface FileRouteTypes {
     | '/wallet'
     | '/pricing/$modelId'
     | '/enterprise/bills/$id'
+    | '/finance/users/$userId'
     | '/system-settings/auth/$section'
     | '/system-settings/billing/$section'
     | '/system-settings/content/$section'
@@ -943,6 +955,7 @@ export interface FileRouteTypes {
     | '/_authenticated/wallet/'
     | '/pricing/$modelId/'
     | '/_authenticated/enterprise/bills/$id'
+    | '/_authenticated/finance/users/$userId'
     | '/_authenticated/system-settings/auth/$section'
     | '/_authenticated/system-settings/billing/$section'
     | '/_authenticated/system-settings/content/$section'
@@ -1396,6 +1409,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedEnterpriseBillsIdRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/finance/users/$userId': {
+      id: '/_authenticated/finance/users/$userId'
+      path: '/finance/users/$userId'
+      fullPath: '/finance/users/$userId'
+      preLoaderRoute: typeof AuthenticatedFinanceUsersUserIdRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/system-settings/auth/': {
       id: '/_authenticated/system-settings/auth/'
       path: '/auth'
@@ -1634,6 +1654,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedUsersIndexRoute: typeof AuthenticatedUsersIndexRoute
   AuthenticatedWalletIndexRoute: typeof AuthenticatedWalletIndexRoute
   AuthenticatedEnterpriseBillsIdRoute: typeof AuthenticatedEnterpriseBillsIdRoute
+  AuthenticatedFinanceUsersUserIdRoute: typeof AuthenticatedFinanceUsersUserIdRoute
   AuthenticatedEnterpriseBillsIndexRoute: typeof AuthenticatedEnterpriseBillsIndexRoute
 }
 
@@ -1676,6 +1697,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedUsersIndexRoute: AuthenticatedUsersIndexRoute,
   AuthenticatedWalletIndexRoute: AuthenticatedWalletIndexRoute,
   AuthenticatedEnterpriseBillsIdRoute: AuthenticatedEnterpriseBillsIdRoute,
+  AuthenticatedFinanceUsersUserIdRoute: AuthenticatedFinanceUsersUserIdRoute,
   AuthenticatedEnterpriseBillsIndexRoute:
     AuthenticatedEnterpriseBillsIndexRoute,
 }

@@ -1,7 +1,6 @@
 import { getRouteApi } from '@tanstack/react-router'
 import { useTranslation } from 'react-i18next'
 
-import { EmptyState } from '@/components/empty-state'
 import { SectionPageLayout } from '@/components/layout'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -9,8 +8,10 @@ import { BillsAdminContent } from '@/features/enterprises'
 import { getCurrencyLabel } from '@/lib/currency'
 
 import { DayRangeControls } from './components/day-range-controls'
+import { ModelConsumptionPanel } from './components/model-consumption/model-consumption-panel'
 import { OrdersPanel } from './components/orders/orders-panel'
 import { OverviewPanel } from './components/overview/overview-panel'
+import { UserConsumptionPanel } from './components/user-consumption/user-consumption-panel'
 import { useFinanceDateRange } from './hooks/use-finance-date-range'
 import { monthToDateRange } from './lib/date-presets'
 import {
@@ -42,7 +43,7 @@ export function FinanceCenter() {
   })
   const usesSharedRange = sectionUsesSharedRange(section)
 
-  let panel: React.ReactNode
+  let panel: React.ReactNode = null
   switch (section) {
     case 'overview':
       panel = <OverviewPanel range={sharedRange.applied} />
@@ -50,11 +51,15 @@ export function FinanceCenter() {
     case 'orders':
       panel = <OrdersPanel range={sharedRange.applied} />
       break
+    case 'user-consumption':
+      panel = <UserConsumptionPanel />
+      break
+    case 'model-consumption':
+      panel = <ModelConsumptionPanel />
+      break
     case 'enterprise-bills':
       panel = <BillsAdminContent />
       break
-    default:
-      panel = <EmptyState title={t('Coming soon')} />
   }
 
   return (

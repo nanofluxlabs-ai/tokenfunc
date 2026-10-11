@@ -48,4 +48,4 @@ export function EnterprisesPanel() {
 }
 
 export { EnterprisesProvider }
-export { EnterpriseBillsAdmin } from './components/bills-admin-page'
+export { BillsAdminContent } from './components/bills-admin-page'

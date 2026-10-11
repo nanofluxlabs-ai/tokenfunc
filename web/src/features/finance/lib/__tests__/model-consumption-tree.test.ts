@@ -64,12 +64,15 @@ describe('model consumption tree', () => {
     )
     expect(nodes).toHaveLength(1)
     const models = nodes[0].children ?? []
-    const solo = models.find((model) => model.name === 'solo')!
-    const multi = models.find((model) => model.name === 'multi')!
-    expect(solo.inlineChannel).toBe('only')
-    expect(solo.children).toBeUndefined()
-    expect(multi.childCount).toBe(2)
-    expect(multi.children?.map((channel) => channel.label)).toEqual(['a', '#2'])
+    const solo = models.find((model) => model.name === 'solo')
+    const multi = models.find((model) => model.name === 'multi')
+    expect(solo?.inlineChannel).toBe('only')
+    expect(solo?.children).toBeUndefined()
+    expect(multi?.childCount).toBe(2)
+    expect(multi?.children?.map((channel) => channel.label)).toEqual([
+      'a',
+      '#2',
+    ])
   })
 
   it('uses the overall total for group and model shares and the model total for channel shares', () => {

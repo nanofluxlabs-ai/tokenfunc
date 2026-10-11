@@ -7523,6 +7523,25 @@
     "Model combinations": "模型組合數",
     "Total requests": "總請求",
     "Too many rows; only the top {{count}} rows by cost are shown.": "資料列數過多，僅顯示按消費排序的前 {{count}} 列。",
-    "User consumption details": "使用者消耗詳情"
+    "User consumption details": "使用者消耗詳情",
+    "Cache writes (5m)": "快取寫入 (5m)",
+    "Cache writes (1h)": "快取寫入 (1h)",
+    "Cache hit price": "快取命中單價",
+    "Cache write (5m) price": "快取寫入(5m)單價",
+    "Cache write (1h) price": "快取寫入(1h)單價",
+    "Per call": "按次",
+    "Exclusive ratio": "專屬倍率",
+    "Group ratio": "分組倍率",
+    "Multiple ratio values in this period": "帳期內倍率有多個取值",
+    "{{count}} models · total ${{amount}}": "共 {{count}} 個模型 · 合計 ${{amount}}",
+    "Include detail rows": "匯出消費明細",
+    "Summary by token group": "按令牌分組彙總",
+    "Summary by day": "按天彙總",
+    "Usage detail": "消費明細",
+    "Last month": "上月",
+    "Last 30 days": "近 30 天",
+    "Total amount (USD)": "消費總額 (USD)",
+    "Models involved": "涉及模型數",
+    "usage": "消費明細"
   }
 }

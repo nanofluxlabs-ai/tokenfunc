@@ -7523,6 +7523,25 @@
     "Model combinations": "Model combinations",
     "Total requests": "Total requests",
     "Too many rows; only the top {{count}} rows by cost are shown.": "Too many rows; only the top {{count}} rows by cost are shown.",
-    "User consumption details": "User consumption details"
+    "User consumption details": "User consumption details",
+    "Cache writes (5m)": "Cache writes (5m)",
+    "Cache writes (1h)": "Cache writes (1h)",
+    "Cache hit price": "Cache hit price",
+    "Cache write (5m) price": "Cache write (5m) price",
+    "Cache write (1h) price": "Cache write (1h) price",
+    "Per call": "Per call",
+    "Exclusive ratio": "Exclusive ratio",
+    "Group ratio": "Group ratio",
+    "Multiple ratio values in this period": "Multiple ratio values in this period",
+    "{{count}} models · total ${{amount}}": "{{count}} models · total ${{amount}}",
+    "Include detail rows": "Include detail rows",
+    "Summary by token group": "Summary by token group",
+    "Summary by day": "Summary by day",
+    "Usage detail": "Usage detail",
+    "Last month": "Last month",
+    "Last 30 days": "Last 30 days",
+    "Total amount (USD)": "Total amount (USD)",
+    "Models involved": "Models involved",
+    "usage": "usage"
   }
 }

@@ -128,7 +128,7 @@ git fetch origin && git pull --ff-only origin main
 git fetch --tags                   # 本地 tag 可能落后，不拉会推错版本号
 git status --short                 # 非空 → AskUserQuestion 询问是否提交（不自动 commit）
 GOWORK=off go build ./...
-make test-db PKG='./model/ ./service/ ./middleware/ ./controller/ ./logger/' 2>&1 | grep -E "^(ok|FAIL|--- FAIL)"
+make test-db PKG='-count=1 ./model/ ./service/ ./middleware/ ./controller/ ./logger/' 2>&1 | grep -E "^(ok|FAIL|--- FAIL)"
 ```
 
 > `make test-db` 会自动起本地 docker 基础设施并注入 `TEST_POSTGRES_DSN`，企业模块（`ent_*`）的 PG 测试只在这里跑得到。`controller/` 必须覆盖——relay 链路里的 nil 指针一上线就是 100% 流量挂掉。
@@ -411,6 +411,7 @@ ssh tokenfunc "docker logs --since '<SINCE>' tokenfunc-api 2>&1 | grep -c '^\[GI
 | `gh run watch … \| tail` 把网络错误吞成成功 | 轮询 `gh run view --json status,conclusion`，以 conclusion 为准 |
 | `gh pr merge` / `gh api` 报 `Post … EOF` | 网络抖动，重试并用 `gh pr view --json state` 确认真实状态 |
 | 上游断言与二开默认值冲突（如 `/api/status.theme` 期望 `default`） | 属断言陈旧，改测试与二开行为对齐，不是停发理由 |
+| `make test-db` 首跑 model/service 企业用例报 `SQLSTATE 23505 pg_type_typname_nsp_index` / `42P01 relation "users" does not exist` | 多包并行在同一 test schema 抢 AutoMigrate；makefile 已固定 `-p 1` 串行，不要绕过 make 直接并行 `go test` |
 | `make test-db` 下 controller 的 `*DatabaseMatrix` 用例报 `SQLSTATE 3F000` | 这些用例用 DSN 新建临时库再连入，DSN 的 `search_path` 必须是 `test,public`（makefile 已固定），不要手写只带 `test` 的 DSN |
 | 生产 `/v1/models` 为空 | 还没配渠道，relay 冒烟标 ⏭️ 并说明，不算失败 |
 | 回滚时 `docker compose down` 或重启 postgres | prediroute 的库在同一实例里，只 `up -d --wait api`，其余不动 |

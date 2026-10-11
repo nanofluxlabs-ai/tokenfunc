@@ -385,13 +385,15 @@ func migrateDB() error {
 		&EnterpriseLedgerEntry{},
 		&EnterpriseUsageDaily{},
 		&EnterpriseBill{},
-		&EnterpriseQuote{},
 		&EnterpriseTrialLead{},
 	)
 	if err != nil {
 		return err
 	}
 	if err := InitializeUserAuthVersions(); err != nil {
+		return err
+	}
+	if err := dropLegacyEnterpriseQuoteTable(); err != nil {
 		return err
 	}
 	if err := EnsureLegacyAccessTokenRetireAt(common.GetTimestamp()); err != nil {
@@ -847,4 +849,14 @@ func PingDB() error {
 	lastPingTime = time.Now()
 	common.SysLog("Database pinged successfully")
 	return nil
+}
+
+// dropLegacyEnterpriseQuoteTable 报价单改为"配置 + 即时渲染"后不再持久化，
+// 删除早期版本（v2026.10.10.x）遗留的 ent_quotes 表；无数据价值，幂等。
+func dropLegacyEnterpriseQuoteTable() error {
+	if !DB.Migrator().HasTable("ent_quotes") {
+		return nil
+	}
+	common.SysLog("dropping legacy table ent_quotes")
+	return DB.Migrator().DropTable("ent_quotes")
 }

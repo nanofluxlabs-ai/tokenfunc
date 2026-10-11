@@ -2,7 +2,7 @@
 
 > 状态：v1.0 已实现（2026-10-09，E1–E6 与报价单均已合入 feat/enterprise 分支）；本文为设计基线，实现差异见「13. 实现备注」
 > 范围：企业账户、组织架构（部门/员工/项目）、预付与授信计费、账期出账、Invoice、对账统计、后台企业客户管理
-> 不在范围：报价单（见第 11 节简述，单独出设计）、主题/品牌（等设计系统）
+> 不在范围：主题/品牌（等设计系统）；报价单见第 11 节
 > 前提：只支持 PostgreSQL；部署 docker → 腾讯云 TKE（多副本）；已获 new-api 商业授权
 
 ---
@@ -386,10 +386,13 @@ E6  Invoice 模板（中/英）+ 我方信息配置 + 预付月度对账单
 
 ---
 
-## 11. 报价单（简述，另出设计）
-- 价格来源：系统现有模型定价（不另建价格表）× 客户折扣
-- 管理员选择：客户名、模型（仅 Claude / GPT / Gemini / xAI）、折扣（全局或按模型）、有效期、备注条款
-- 输出：前端 HTML 模板打印为 PDF，一次性生成，不做版本管理；可选保存生成记录（客户、时间、操作人）便于追溯
+## 11. 报价单（价目表生成器，2026-10-11 重做）
+- 定位：一次性生成对外的「模型与报价清单」给客户/代理商，**不持久化、不做历史**（早期 `ent_quotes` 版本已删除，启动迁移自动 drop 表）。
+- 数据：`setting/quote_setting`（option 表 `quote_setting.*` 五个 key：groups / models / capability / meta / image_pricing），管理员在「报价单 → 报价单配置」维护，保存即生效；代码内置默认值（Claude 满血 / Claude 反代 / GPT 三组、22 个模型）。
+- 价格：**手工维护的官方价（USD / 1M tokens）× 分组折扣 × 汇率**，与网关计费倍率无关（有意为之：可表达同一模型在不同渠道的不同官方价）。
+- 生成：`POST /api/admin/enterprise/quotes/render` {各分组折扣, 汇率, 有效天数, 生成日期} → Go 拼 Markdown（`service/quote_template.go`，章节骨架与长文案在代码）→ 前端预览 / 下载 .md / .html / 新标签页打印另存 PDF（A4 横向，tokenfunc 品牌色）。
+- 接口：`GET/PUT /api/admin/enterprise/quotes/config`（`?reset=1` 返回内置默认），作用域 `billing:read` / `billing:write`。
+- 测试：`service/quote_template_test.go` golden 基线（`-update-golden` 更新）。
 
 ---
 
@@ -406,6 +409,6 @@ E6  Invoice 模板（中/英）+ 我方信息配置 + 预付月度对账单
 - 企业控制台接口支持访问令牌作用域 `enterprise:read` / `enterprise:write`，管理员侧账单与报价使用 `billing:read` / `billing:write`。
 - 出账时机：closing 期在途计数归零立即出账，兜底 30 分钟；零消费账期直接结束不生成账单。
 - 用量聚合主键包含员工/部门/项目维度，归属变更只影响新行。
-- 报价单价格来源：`模型倍率 × 2 × 分组倍率`（USD / 1M tokens）；折后价服务端计算并快照。
+- 报价单（2026-10-11 重做）不再读系统定价，见第 11 节。
 - 员工批量导入为全成功或全失败；缺失部门自动建为顶级部门。
 - 本地测试需要 PG：`TEST_POSTGRES_DSN=postgres://...`，未设置时企业相关测试自动跳过。

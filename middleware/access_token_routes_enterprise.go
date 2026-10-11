@@ -23,9 +23,9 @@ func init() {
 		"POST /api/admin/enterprise/credit-periods/:id/issue":      accessTokenScopeRule("billing:write"),
 		"GET /api/admin/enterprise/settings/seller":                accessTokenScopeRule("billing:read"),
 		"PUT /api/admin/enterprise/settings/seller":                accessTokenScopeRule("billing:write"),
-		"GET /api/admin/enterprise/quotes":                         accessTokenScopeRule("billing:read"),
-		"POST /api/admin/enterprise/quotes":                        accessTokenScopeRule("billing:write"),
-		"GET /api/admin/enterprise/quotes/:id":                     accessTokenScopeRule("billing:read"),
+		"GET /api/admin/enterprise/quotes/config":                  accessTokenScopeRule("billing:read"),
+		"PUT /api/admin/enterprise/quotes/config":                  accessTokenScopeRule("billing:write"),
+		"POST /api/admin/enterprise/quotes/render":                 accessTokenScopeRule("billing:read"),
 		"GET /api/admin/enterprise/leads":                          accessTokenScopeRule("user:read"),
 		"PUT /api/admin/enterprise/leads/:id":                      accessTokenScopeRule("user:write"),
 		// 营销页匿名留资，无需作用域

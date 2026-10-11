@@ -1,7 +1,7 @@
 import type { PricingData, PricingModel } from '@/features/pricing/types'
-import { computeListPrices } from '@/features/quotes/lib/quote-pricing'
 
 import { LANDING_VENDORS } from '../content'
+import { computeListPrices } from './list-prices'
 
 export type LandingModelRow = {
   id: string

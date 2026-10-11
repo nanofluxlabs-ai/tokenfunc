@@ -31,9 +31,9 @@ func registerEnterpriseRoutes(apiRouter *gin.RouterGroup) {
 		adminRoute.POST("/credit-periods/:id/issue", controller.AdminIssueBillNow)
 		adminRoute.GET("/settings/seller", controller.AdminGetSellerProfile)
 		adminRoute.PUT("/settings/seller", controller.AdminUpdateSellerProfile)
-		adminRoute.GET("/quotes", controller.AdminListQuotes)
-		adminRoute.POST("/quotes", controller.AdminCreateQuote)
-		adminRoute.GET("/quotes/:id", controller.AdminGetQuote)
+		adminRoute.GET("/quotes/config", controller.AdminGetQuoteConfig)
+		adminRoute.PUT("/quotes/config", controller.AdminUpdateQuoteConfig)
+		adminRoute.POST("/quotes/render", controller.AdminRenderQuote)
 		adminRoute.GET("/leads", controller.AdminListEnterpriseTrialLeads)
 		adminRoute.PUT("/leads/:id", controller.AdminUpdateEnterpriseTrialLead)
 	}

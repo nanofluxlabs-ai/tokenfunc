@@ -22,7 +22,7 @@ import {
   Cancel01Icon,
   Tick02Icon,
 } from '@hugeicons/core-free-icons'
-import { HugeiconsIcon } from '@hugeicons/react'
+import { HugeiconsIcon, type HugeiconsIconProps } from '@hugeicons/react'
 import * as React from 'react'
 import { useTranslation } from 'react-i18next'
 
@@ -195,8 +195,12 @@ function ComboboxValue({ ...props }: ComboboxPrimitive.Value.Props) {
 function ComboboxTrigger({
   className,
   children,
+  icon = ArrowDown01Icon,
   ...props
-}: ComboboxPrimitive.Trigger.Props) {
+}: ComboboxPrimitive.Trigger.Props & {
+  /** 右侧指示图标；作为 Select 同款触发器使用时可换成上下箭头 */
+  icon?: HugeiconsIconProps['icon']
+}) {
   return (
     <ComboboxPrimitive.Trigger
       data-slot='combobox-trigger'
@@ -205,7 +209,7 @@ function ComboboxTrigger({
     >
       {children}
       <HugeiconsIcon
-        icon={ArrowDown01Icon}
+        icon={icon}
         strokeWidth={2}
         className='text-muted-foreground pointer-events-none size-4'
       />

@@ -105,7 +105,8 @@ export function ApiKeyGroupCombobox({
             data-auto-group-effect={isAutoSelected ? 'trigger' : undefined}
             disabled={disabled}
             className={cn(
-              'border-input bg-muted/40 hover:bg-muted/55 hover:text-foreground active:bg-background data-popup-open:border-ring data-popup-open:bg-background data-popup-open:ring-ring/20 relative h-auto min-h-14 w-full justify-between gap-2 rounded-lg px-3 py-2 text-start shadow-none transition-[background-color,border-color,box-shadow] duration-150 data-popup-open:ring-[3px] sm:min-h-20 sm:gap-3 sm:px-4 sm:py-3',
+              // 与同表单里的 Input / Select 保持 32px 标准高度，说明文字改为同行展示
+              'border-input bg-muted/40 hover:bg-muted/55 hover:text-foreground active:bg-background data-popup-open:border-ring data-popup-open:bg-background data-popup-open:ring-ring/20 relative h-8 w-full justify-between gap-2 rounded-lg px-2.5 py-0 text-start shadow-none transition-[background-color,border-color,box-shadow] duration-150 data-popup-open:ring-[3px]',
               isAutoSelected &&
                 cn(
                   AUTO_GROUP_FRAME_CLASS_NAME,
@@ -119,12 +120,12 @@ export function ApiKeyGroupCombobox({
           <AutoGroupFlowBorder shouldReduceMotion={shouldReduceMotion} />
         )}
         <span className='flex min-w-0 flex-1 items-center justify-between gap-2 sm:gap-3'>
-          <span className='min-w-0'>
-            <span className='block truncate font-medium'>
+          <span className='flex min-w-0 items-baseline gap-2'>
+            <span className='truncate font-medium'>
               {selectedOption?.label || placeholder || t('Select a group')}
             </span>
             {selectedOption?.desc && (
-              <span className='text-muted-foreground block truncate text-[11px] sm:text-xs'>
+              <span className='text-muted-foreground hidden truncate text-xs sm:inline'>
                 {selectedOption.desc}
               </span>
             )}

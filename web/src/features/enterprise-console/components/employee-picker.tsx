@@ -1,3 +1,4 @@
+import { UnfoldMoreIcon } from '@hugeicons/core-free-icons'
 import { useQuery } from '@tanstack/react-query'
 import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -9,10 +10,13 @@ import {
   ComboboxInput,
   ComboboxItem,
   ComboboxList,
-  useComboboxAnchor,
+  ComboboxTrigger,
+  ComboboxValue,
 } from '@/components/ui/combobox'
+import { selectTriggerClassName } from '@/components/ui/select'
 import { useDebounce } from '@/hooks/use-debounce'
 import { requireServerSuccess } from '@/lib/server-error-message'
+import { cn } from '@/lib/utils'
 
 import { listEmployees } from '../api'
 
@@ -34,7 +38,8 @@ type EmployeePickerProps = {
 }
 
 /**
- * 可搜索的员工选择器：按关键字从服务端搜索在职员工（最多 20 条），
+ * 可搜索的员工选择器：外观与项目 / 部门用的 Select 触发器一致，
+ * 搜索框放在弹层内，按关键字从服务端搜索在职员工（最多 20 条），
  * 避免一次性加载全部员工撞上分页上限。
  */
 export function EmployeePicker(props: EmployeePickerProps) {
@@ -42,7 +47,6 @@ export function EmployeePicker(props: EmployeePickerProps) {
   const [open, setOpen] = useState(false)
   const [search, setSearch] = useState('')
   const keyword = useDebounce(search.trim(), 300)
-  const anchor = useComboboxAnchor()
 
   const { data, isFetching } = useQuery({
     queryKey: ['enterprise', 'employees', 'picker', keyword],
@@ -89,20 +93,21 @@ export function EmployeePicker(props: EmployeePickerProps) {
 
   const selected =
     options.find((option) => option.value === props.value) ?? null
-  const displayedValue = selected?.label ?? props.selectedLabel ?? ''
+  // 弹层未打开时搜索结果可能为空，已选员工靠 selectedLabel 回显
+  const displayedLabel = selected?.label ?? props.selectedLabel ?? ''
 
   return (
     <Combobox
       items={options}
       value={selected}
       open={open}
-      inputValue={open ? search : displayedValue}
+      inputValue={search}
       onInputValueChange={(value, details) => {
         if (details.reason === 'input-change') setSearch(value)
       }}
-      onOpenChange={(nextOpen, details) => {
+      onOpenChange={(nextOpen) => {
         setOpen(nextOpen)
-        if (details.reason !== 'input-change') setSearch('')
+        if (!nextOpen) setSearch('')
       }}
       onValueChange={(option) => {
         if (option) props.onChange(option.value)
@@ -110,17 +115,25 @@ export function EmployeePicker(props: EmployeePickerProps) {
       // 搜索在服务端完成，这里不做二次过滤
       filter={() => true}
       isItemEqualToValue={(item, value) => item.value === value.value}
+      itemToStringLabel={(item) => item.label}
     >
-      <div ref={anchor} className='min-w-0'>
+      <ComboboxTrigger
+        id={props.id}
+        aria-label={props['aria-label']}
+        icon={UnfoldMoreIcon}
+        className={cn(selectTriggerClassName, 'w-full')}
+        data-size='default'
+      >
+        <ComboboxValue>
+          {() => <span className='truncate'>{displayedLabel}</span>}
+        </ComboboxValue>
+      </ComboboxTrigger>
+      <ComboboxContent>
         <ComboboxInput
-          id={props.id}
-          aria-label={props['aria-label']}
           placeholder={t('Search employees...')}
-          triggerAriaLabel={props['aria-label'] ?? t('Open')}
-          className='h-full min-h-8 w-full'
+          aria-label={t('Search employees...')}
+          showTrigger={false}
         />
-      </div>
-      <ComboboxContent anchor={anchor}>
         <ComboboxEmpty>
           {isFetching ? t('Loading...') : t('No results found')}
         </ComboboxEmpty>

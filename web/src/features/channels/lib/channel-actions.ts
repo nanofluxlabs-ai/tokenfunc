@@ -630,10 +630,11 @@ export async function handleFixAbilities(
  */
 export async function handleTestAllChannels(
   queryClient?: QueryClient,
-  onSuccess?: () => void
+  onStarted?: (taskId: string) => void
 ): Promise<void> {
   try {
     const response = await testAllChannels()
+    const taskId = response.data?.task_id
     if (response.success) {
       toast.success(
         i18next.t(
@@ -641,13 +642,21 @@ export async function handleTestAllChannels(
         )
       )
       queryClient?.invalidateQueries({ queryKey: channelsQueryKeys.lists() })
-      onSuccess?.()
-    } else {
-      handleServerError(
-        response,
-        i18next.t('Failed to start testing all channels')
-      )
+      if (taskId) {
+        onStarted?.(taskId)
+      }
+      return
     }
+    // 已有任务在跑：直接跟踪那个任务的进度，而不是报错
+    if (taskId) {
+      toast.info(i18next.t('A channel test task is already running.'))
+      onStarted?.(taskId)
+      return
+    }
+    handleServerError(
+      response,
+      i18next.t('Failed to start testing all channels')
+    )
   } catch (error) {
     handleServerError(error, i18next.t('Failed to test all channels'))
   }

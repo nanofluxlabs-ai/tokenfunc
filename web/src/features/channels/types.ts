@@ -34,6 +34,23 @@ export const channelInfoSchema = z.object({
 
 export type ChannelInfo = z.infer<typeof channelInfoSchema>
 
+/** 外部渠道健康态（TokenFunc 二开）：接口 / 推理两个维度，任一 failed 即暂停派发 */
+export const channelHealthStateSchema = z.object({
+  channel_id: z.number(),
+  api_health: z.enum(['unknown', 'ok', 'failed']).catch('unknown'),
+  inference_health: z.enum(['unknown', 'ok', 'failed']).catch('unknown'),
+  api_fail_count: z.number().default(0),
+  inference_fail_count: z.number().default(0),
+  last_api_probe_at: z.number().default(0),
+  last_inference_probe_at: z.number().default(0),
+  last_api_error: z.string().default(''),
+  last_inference_error: z.string().default(''),
+  updated_at: z.number().default(0),
+  dispatch_paused: z.boolean().default(false),
+})
+
+export type ChannelHealthState = z.infer<typeof channelHealthStateSchema>
+
 export const channelSchema = z.object({
   id: z.number(),
   type: z.number(),
@@ -71,6 +88,10 @@ export const channelSchema = z.object({
     multi_key_mode: 'random',
   }),
   settings: z.string().default('{}'), // other_settings JSON
+  // TokenFunc 二开：外部渠道标记、接口探测路径与健康态
+  is_external: z.boolean().nullish(),
+  fast_probe_url: z.string().nullish(),
+  health_state: channelHealthStateSchema.nullish(),
 })
 
 export type Channel = z.infer<typeof channelSchema>

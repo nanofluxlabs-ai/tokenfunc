@@ -482,6 +482,10 @@ export const FIELD_DESCRIPTIONS = {
   WEIGHT: 'Used for load balancing. Higher weight = more requests',
   TEST_MODEL: 'Model to use when testing channel connectivity',
   AUTO_BAN: 'Automatically disable channel on repeated failures',
+  IS_EXTERNAL:
+    'Third-party relay or other unstable upstream. External channels get their own API and inference probes and pause dispatch while unhealthy.',
+  FAST_PROBE_URL:
+    'GET path appended to the base URL for the API probe. Leave empty to use /v1/models.',
   STATUS_CODE_MAPPING: 'Map response status codes (JSON format)',
   TAG: 'Group channels by tag for batch operations',
   REMARK: 'Internal notes (not shown to users)',

@@ -7,8 +7,22 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// registerFinanceRoutes 注册财务中心路由（TokenFunc 二开，只读报表，管理员）
+// registerFinanceRoutes 注册财务路由（TokenFunc 二开，只读报表）：
+//   - /api/admin/finance 管理员财务中心
+//   - /api/user/finance  个人财务对账（本人消费账单 + 钱包流水）
 func registerFinanceRoutes(apiRouter *gin.RouterGroup) {
+	selfRoute := apiRouter.Group("/user/finance")
+	selfRoute.Use(middleware.DisableCache(), middleware.UserAuth())
+	{
+		selfRoute.GET("/usage/summary", controller.GetSelfFinanceUsageSummary)
+		selfRoute.GET("/usage/daily", controller.GetSelfFinanceUsageDaily)
+		selfRoute.GET("/usage/detail", controller.GetSelfFinanceUsageDetail)
+		selfRoute.GET("/usage/export", controller.GetSelfFinanceUsageExport)
+		selfRoute.GET("/topup/summary", controller.GetSelfFinanceTopupSummary)
+		selfRoute.GET("/topup/detail", controller.GetSelfFinanceTopupDetail)
+		selfRoute.GET("/topup/export", controller.GetSelfFinanceTopupExport)
+	}
+
 	financeRoute := apiRouter.Group("/admin/finance")
 	financeRoute.Use(middleware.AdminAuth())
 	{

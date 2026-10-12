@@ -9,8 +9,8 @@ export const dateParam = z
   .optional()
   .catch(undefined)
 
-const textParam = z.string().optional().catch(undefined)
-const pageParam = z.number().int().positive().optional().catch(undefined)
+export const textParam = z.string().optional().catch(undefined)
+export const pageParam = z.number().int().positive().optional().catch(undefined)
 
 /**
  * /finance/$section 的 search：各 tab 的键用前缀区分，切换 tab 不互相清理。

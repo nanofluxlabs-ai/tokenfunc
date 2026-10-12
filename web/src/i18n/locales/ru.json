@@ -7553,6 +7553,25 @@
     "Period range": "Period range",
     "Used / Credit (USD)": "Used / Credit (USD)",
     "Open credit periods": "Open credit periods",
-    "No open periods": "No open periods"
+    "No open periods": "No open periods",
+    "Reconciliation": "Reconciliation",
+    "Consumption and wallet entries within the period, exportable as statements.": "Consumption and wallet entries within the period, exportable as statements.",
+    "Consumption statement": "Consumption statement",
+    "Wallet statement": "Wallet statement",
+    "Entries": "Entries",
+    "Net amount (USD)": "Net amount (USD)",
+    "Sources": "Sources",
+    "Summary by source": "Summary by source",
+    "Wallet entries": "Wallet entries",
+    "All sources": "All sources",
+    "Online payment": "Online payment",
+    "Redemption code": "Redemption code",
+    "Enterprise offline top-up": "Enterprise offline top-up",
+    "Subscription paid by balance": "Subscription paid by balance",
+    "Admin adjustment": "Admin adjustment",
+    "No wallet entries in this period": "No wallet entries in this period",
+    "Your enterprise is billed by credit period; issued statements are available in Enterprise Bills.": "Your enterprise is billed by credit period; issued statements are available in Enterprise Bills.",
+    "Open Enterprise Bills": "Open Enterprise Bills",
+    "Wallet entries are the non-consumption movements of your wallet: online top-ups, redemption codes, enterprise offline top-ups, admin adjustments, refunds and subscriptions paid by balance. Subscriptions paid online do not change the wallet.": "Wallet entries are the non-consumption movements of your wallet: online top-ups, redemption codes, enterprise offline top-ups, admin adjustments, refunds and subscriptions paid by balance. Subscriptions paid online do not change the wallet."
   }
 }

@@ -47,7 +47,7 @@ func setupFinancePostgres(t *testing.T) {
 }
 
 var financeTestTables = []any{
-	&User{}, &Token{}, &Log{}, &TopUp{}, &SubscriptionPlan{}, &SubscriptionOrder{}, &UserSubscription{}, &Channel{},
+	&User{}, &Token{}, &Log{}, &TopUp{}, &SubscriptionPlan{}, &SubscriptionOrder{}, &UserSubscription{}, &Channel{}, &Redemption{},
 	&Enterprise{}, &EnterpriseDepartment{}, &EnterpriseEmployee{}, &EnterpriseProject{}, &EnterpriseTokenAssignment{},
 	&EnterpriseCreditPeriod{}, &EnterpriseLedgerEntry{}, &EnterpriseUsageDaily{}, &EnterpriseBill{},
 }
@@ -427,6 +427,107 @@ func TestFinanceBillContextAndList(t *testing.T) {
 	assert.Error(t, err)
 	_, err = GetFinanceBillContext(FinanceBillKindPeriod, 123456)
 	assert.ErrorIs(t, err, ErrEnterpriseResourceNotFound)
+}
+
+// 钱包流水：六类来源各一条，验证金额推导、符号、排序、汇总与来源筛选；他人与企业无关的数据不混入
+func TestFinanceTopupLedger(t *testing.T) {
+	setupFinancePostgres(t)
+	owner := createEnterpriseTestUser(t, "ledgerowner", common.RoleCommonUser)
+	other := createEnterpriseTestUser(t, "ledgerother", common.RoleCommonUser)
+	require.NoError(t, UpgradeUserToEnterprise(owner.Id, &Enterprise{Name: "Ledger Co"}))
+	enterprise, err := GetEnterpriseByUserId(owner.Id)
+	require.NoError(t, err)
+	plan := &SubscriptionPlan{Title: "Pro 月付", PriceAmount: 30, Currency: "USD", DurationUnit: SubscriptionDurationMonth, DurationValue: 1, TotalAmount: 1_500_000}
+	require.NoError(t, DB.Create(plan).Error)
+	base := financeTestAt(9, 0)
+
+	// 1. 在线充值（易支付 10 美元）+ 他人的充值 + 订阅镜像行
+	topups := []TopUp{
+		{UserId: owner.Id, Amount: 10, Money: 73, TradeNo: "LEDGER-EPAY", PaymentMethod: "alipay", PaymentProvider: PaymentProviderEpay, Status: common.TopUpStatusSuccess, CreateTime: base, CompleteTime: base + 10},
+		{UserId: other.Id, Amount: 99, Money: 99, TradeNo: "LEDGER-OTHER", PaymentMethod: PaymentMethodStripe, PaymentProvider: PaymentProviderStripe, Status: common.TopUpStatusSuccess, CreateTime: base, CompleteTime: base + 11},
+		{UserId: owner.Id, Amount: 0, Money: 30, TradeNo: "LEDGER-SUBMIRROR", PaymentMethod: PaymentMethodStripe, Status: common.TopUpStatusSuccess, CreateTime: base, CompleteTime: base + 12},
+		{UserId: owner.Id, Amount: 5, Money: 5, TradeNo: "LEDGER-PENDING", PaymentMethod: PaymentMethodStripe, PaymentProvider: PaymentProviderStripe, Status: common.TopUpStatusPending, CreateTime: base + 13},
+	}
+	for i := range topups {
+		require.NoError(t, DB.Create(&topups[i]).Error)
+	}
+	// 2. 在线支付的订阅（不动钱包）+ 余额购买订阅（扣钱包）
+	orders := []SubscriptionOrder{
+		{UserId: owner.Id, PlanId: plan.Id, Money: 30, TradeNo: "LEDGER-SUBMIRROR", PaymentMethod: PaymentMethodStripe, PaymentProvider: PaymentProviderStripe, Status: common.TopUpStatusSuccess, CreateTime: base, CompleteTime: base + 12},
+		{UserId: owner.Id, PlanId: plan.Id, Money: 30, TradeNo: "LEDGER-SUBBAL", PaymentMethod: PaymentMethodBalance, PaymentProvider: PaymentProviderBalance, Status: common.TopUpStatusSuccess, CreateTime: base, CompleteTime: base + 20, ProviderPayload: "charged_quota=15000000"},
+	}
+	for i := range orders {
+		require.NoError(t, DB.Create(&orders[i]).Error)
+	}
+	// 3. 兑换码（已兑换后被软删，仍应计入）
+	redemption := &Redemption{UserId: 1, Key: "ledgerkey00000000000000000000001", Status: 3, Name: "新客礼包", Quota: 250000, CreatedTime: base, RedeemedTime: base + 30, UsedUserId: owner.Id}
+	require.NoError(t, DB.Create(redemption).Error)
+	require.NoError(t, DB.Delete(redemption).Error)
+	// 4. 企业线下充值（预付模式）
+	_, err = RegisterEnterpriseTopup(enterprise.Id, 2_000_000, 1, "BANK-001", "首期款")
+	require.NoError(t, err)
+	require.NoError(t, DB.Model(&EnterpriseLedgerEntry{}).Where("enterprise_id = ?", enterprise.Id).Update("created_at", base+40).Error)
+	// 5. 管理员调额（扣减 300000）与一条没有 op 的普通充值日志（不应重复计入）
+	adjust, err := common.Marshal(AuditOther{Op: &AuditOperation{Action: "user.quota_subtract", Params: AuditFields{"from": 900000, "to": 600000, "quota": 300000}}})
+	require.NoError(t, err)
+	insertFinanceLog(t, Log{UserId: owner.Id, Type: LogTypeTopup, Content: "Subtracted quota", Other: string(adjust), CreatedAt: base + 50})
+	insertFinanceLog(t, Log{UserId: owner.Id, Type: LogTypeTopup, Content: "使用在线充值成功", Other: `{"admin_info":{"payment_method":"alipay"}}`, CreatedAt: base + 51})
+	// 6. 任务退款 + 一条 quota 为 0 的退款（忽略）
+	insertFinanceLog(t, Log{UserId: owner.Id, Type: LogTypeRefund, Quota: 1234, Other: `{"task_id":"task-9","reason":"任务失败"}`, CreatedAt: base + 60})
+	insertFinanceLog(t, Log{UserId: owner.Id, Type: LogTypeRefund, Quota: 0, CreatedAt: base + 61})
+	// 区间外
+	insertFinanceLog(t, Log{UserId: owner.Id, Type: LogTypeRefund, Quota: 99, CreatedAt: base + 86400*2})
+
+	r, err := ParseFinanceDayRange("2026-03-10", "2026-03-10")
+	require.NoError(t, err)
+	entries, err := ListFinanceTopupEntries(owner.Id, r)
+	require.NoError(t, err)
+	require.Len(t, entries, 6)
+	sources := make([]string, 0, len(entries))
+	for _, entry := range entries {
+		sources = append(sources, entry.Source)
+	}
+	assert.Equal(t, []string{FinanceTopupSourceRefund, FinanceTopupSourceAdminAdjust, FinanceTopupSourceEnterpriseTopup, FinanceTopupSourceRedemption, FinanceTopupSourceSubscriptionBalance, FinanceTopupSourceOnline}, sources, "时间倒序")
+	bySource := make(map[string]FinanceTopupEntry)
+	for _, entry := range entries {
+		bySource[entry.Source] = entry
+	}
+	online := bySource[FinanceTopupSourceOnline]
+	assert.Equal(t, int64(10*common.QuotaPerUnit), online.Quota)
+	assert.Equal(t, "10.000000", online.AmountUSD)
+	assert.Equal(t, "epay/alipay", online.PaymentMethod)
+	assert.Equal(t, "LEDGER-EPAY", online.RefNo)
+	assert.Equal(t, FinanceTopupTypeTopup, online.Type)
+	assert.Equal(t, int64(-15_000_000), bySource[FinanceTopupSourceSubscriptionBalance].Quota)
+	assert.Equal(t, "Pro 月付", bySource[FinanceTopupSourceSubscriptionBalance].Content)
+	assert.Equal(t, FinanceTopupTypeSubscription, bySource[FinanceTopupSourceSubscriptionBalance].Type)
+	assert.Equal(t, int64(250000), bySource[FinanceTopupSourceRedemption].Quota)
+	assert.Equal(t, "新客礼包", bySource[FinanceTopupSourceRedemption].RefNo)
+	assert.Equal(t, int64(2_000_000), bySource[FinanceTopupSourceEnterpriseTopup].Quota)
+	assert.Equal(t, "BANK-001", bySource[FinanceTopupSourceEnterpriseTopup].RefNo)
+	assert.Equal(t, "首期款", bySource[FinanceTopupSourceEnterpriseTopup].Content)
+	assert.Equal(t, int64(-300000), bySource[FinanceTopupSourceAdminAdjust].Quota)
+	assert.Equal(t, FinanceTopupTypeAdjust, bySource[FinanceTopupSourceAdminAdjust].Type)
+	assert.Equal(t, "subtract", bySource[FinanceTopupSourceAdminAdjust].RefNo)
+	assert.Equal(t, int64(1234), bySource[FinanceTopupSourceRefund].Quota)
+	assert.Equal(t, "task-9", bySource[FinanceTopupSourceRefund].RefNo)
+	assert.Equal(t, "任务失败", bySource[FinanceTopupSourceRefund].Content, "日志 content 为空时取 other.reason")
+
+	summary := SummarizeFinanceTopup(entries)
+	assert.Equal(t, int64(6), summary.TotalEntries)
+	expectedTotal := int64(10*common.QuotaPerUnit) - 15_000_000 + 250000 + 2_000_000 - 300000 + 1234
+	assert.Equal(t, expectedTotal, summary.TotalQuota)
+	assert.Equal(t, FinanceQuotaToUSD(expectedTotal), summary.TotalAmountUSD)
+	require.Len(t, summary.BySource, 6)
+	assert.Equal(t, FinanceTopupSourceOnline, summary.BySource[0].Source, "按金额倒序，在线充值最大")
+	assert.Equal(t, FinanceTopupSourceSubscriptionBalance, summary.BySource[5].Source)
+	assert.Equal(t, financePercentage(int64(10*common.QuotaPerUnit), expectedTotal), summary.BySource[0].Percentage)
+
+	otherEntries, err := ListFinanceTopupEntries(other.Id, r)
+	require.NoError(t, err)
+	require.Len(t, otherEntries, 1)
+	assert.Equal(t, int64(99*common.QuotaPerUnit), otherEntries[0].Quota)
+	assert.Equal(t, PaymentMethodStripe, otherEntries[0].PaymentMethod)
 }
 
 func TestFinanceRequiresPostgres(t *testing.T) {

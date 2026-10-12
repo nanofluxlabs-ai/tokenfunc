@@ -232,3 +232,86 @@ func WriteFinanceUsageCSV(w io.Writer, payload FinanceUsageCSVPayload) error {
 	detailHeader = append(detailHeader, "消费额度(USD)", "模型倍率", "分组倍率")
 	return financeWriteCSVBlock(w, "调用明细", detailHeader, detailRows, true)
 }
+
+// ---------------------------------------------------------------------------
+// 个人财务对账·充值账单 CSV：BOM + 注释头 + 流水明细 + 汇总(按来源)
+// ---------------------------------------------------------------------------
+
+// FinanceTopupCSVPayload 充值账单导出入参
+type FinanceTopupCSVPayload struct {
+	AccountLabel   string
+	EnterpriseName string
+	StartDay       string
+	EndDay         string
+	Summary        model.FinanceTopupSummary
+	Entries        []model.FinanceTopupEntry
+}
+
+var financeTopupTypeLabels = map[string]string{
+	model.FinanceTopupTypeTopup:        "充值",
+	model.FinanceTopupTypeAdjust:       "管理员调整",
+	model.FinanceTopupTypeRefund:       "退款",
+	model.FinanceTopupTypeSubscription: "订阅购买",
+}
+
+var financeTopupSourceLabels = map[string]string{
+	model.FinanceTopupSourceOnline:              "在线支付",
+	model.FinanceTopupSourceRedemption:          "兑换码",
+	model.FinanceTopupSourceEnterpriseTopup:     "企业线下充值",
+	model.FinanceTopupSourceSubscriptionBalance: "余额购买订阅",
+	model.FinanceTopupSourceAdminAdjust:         "管理员调整",
+	model.FinanceTopupSourceRefund:              "退款",
+}
+
+func financeCSVLabel(labels map[string]string, key string) string {
+	if label, ok := labels[key]; ok {
+		return label
+	}
+	return key
+}
+
+// WriteFinanceTopupCSV 流式写出充值账单 CSV
+func WriteFinanceTopupCSV(w io.Writer, payload FinanceTopupCSVPayload) error {
+	sanitize := func(value string) string { return strings.NewReplacer("\n", " ", "\r", " ").Replace(value) }
+	if _, err := io.WriteString(w, "\uFEFF"); err != nil {
+		return err
+	}
+	comments := []string{fmt.Sprintf("# 账号: %s", sanitize(payload.AccountLabel))}
+	if payload.EnterpriseName != "" {
+		comments = append(comments, fmt.Sprintf("# 企业: %s", sanitize(payload.EnterpriseName)))
+	}
+	comments = append(comments,
+		fmt.Sprintf("# 账期: %s ~ %s", payload.StartDay, payload.EndDay),
+		fmt.Sprintf("# 净入账: $%s (%d 笔)", payload.Summary.TotalAmountUSD, payload.Summary.TotalEntries),
+		"# 口径: 钱包的非消费流水，含在线充值、兑换码、企业线下充值、管理员调整(可为负)、退款、余额购买订阅(负数)；在线支付的订阅不动钱包，不在此列",
+		"#",
+	)
+	for _, line := range comments {
+		if _, err := io.WriteString(w, line+"\n"); err != nil {
+			return err
+		}
+	}
+	location, err := time.LoadLocation("Asia/Shanghai")
+	if err != nil {
+		location = time.FixedZone("CST", 8*3600)
+	}
+	detailRows := make([][]string, 0, len(payload.Entries))
+	for _, entry := range payload.Entries {
+		detailRows = append(detailRows, []string{
+			time.Unix(entry.CreatedAt, 0).In(location).Format("2006-01-02 15:04:05"),
+			financeCSVLabel(financeTopupTypeLabels, entry.Type), financeCSVLabel(financeTopupSourceLabels, entry.Source), entry.PaymentMethod,
+			entry.AmountUSD, entry.RefNo, entry.Content,
+		})
+	}
+	if err := financeWriteCSVBlock(w, "流水明细", []string{"时间(UTC+8)", "类型", "来源", "支付方式", "金额(USD)", "单号", "备注"}, detailRows, false); err != nil {
+		return err
+	}
+	sourceRows := make([][]string, 0, len(payload.Summary.BySource))
+	for _, row := range payload.Summary.BySource {
+		sourceRows = append(sourceRows, []string{
+			financeCSVLabel(financeTopupTypeLabels, row.Type), financeCSVLabel(financeTopupSourceLabels, row.Source), row.PaymentMethod,
+			strconv.FormatInt(row.Count, 10), row.AmountUSD, financeCSVPercent(row.Percentage),
+		})
+	}
+	return financeWriteCSVBlock(w, "汇总(按来源)", []string{"类型", "来源", "支付方式", "笔数", "金额(USD)", "占比(%)"}, sourceRows, true)
+}

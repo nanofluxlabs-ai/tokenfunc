@@ -51,6 +51,7 @@ type DataTableFeatureOptions<TData> = Pick<
   | 'manualSorting'
   | 'enableSorting'
   | 'enableColumnResizing'
+  | 'paginateExpandedRows'
 >
 
 type DataTableStateOptions = {
@@ -402,6 +403,7 @@ export function useDataTable<TData>(options: UseDataTableOptions<TData>) {
     manualPagination,
     manualSorting,
     enableColumnResizing: options.enableColumnResizing,
+    paginateExpandedRows: options.paginateExpandedRows,
     columnResizeMode: 'onChange',
     onSortingChange,
     onColumnVisibilityChange,

@@ -4,12 +4,11 @@ import {
   useQueryClient,
 } from '@tanstack/react-query'
 import { Ban, HandCoins, Settings2 } from 'lucide-react'
-import { useState } from 'react'
+import { useState, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 
 import { ConfirmDialog } from '@/components/confirm-dialog'
-import { SectionPageLayout } from '@/components/layout'
 import { Button } from '@/components/ui/button'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Textarea } from '@/components/ui/textarea'
@@ -25,9 +24,14 @@ import { SellerProfileDialog } from './seller-profile-dialog'
 const PAGE_SIZE = 20
 type Filter = 'all' | 'unpaid' | 'overdue' | 'paid' | 'statement'
 
-function BillsAdminContent(props: { onOpenSeller: () => void }) {
+/** 企业账单管理（列表 + 收款 / 作废 + 开票方设置）；在财务中心的「企业账单」tab 内渲染 */
+export function BillsAdminContent(props: {
+  /** 账单号的渲染（财务中心：链接到账单详情） */
+  renderBillNo?: (bill: Bill) => ReactNode
+}) {
   const { t } = useTranslation()
   const queryClient = useQueryClient()
+  const [sellerOpen, setSellerOpen] = useState(false)
   const [filter, setFilter] = useState<Filter>('unpaid')
   const [page, setPage] = useState(1)
   const [paying, setPaying] = useState<Bill | null>(null)
@@ -92,7 +96,7 @@ function BillsAdminContent(props: { onOpenSeller: () => void }) {
           </TabsList>
         </Tabs>
         <div className='flex-1' />
-        <Button variant='outline' size='sm' onClick={props.onOpenSeller}>
+        <Button variant='outline' size='sm' onClick={() => setSellerOpen(true)}>
           <Settings2 className='h-4 w-4' />
           {t('Invoice issuer settings')}
         </Button>
@@ -101,6 +105,7 @@ function BillsAdminContent(props: { onOpenSeller: () => void }) {
         bills={data?.items ?? []}
         isLoading={isLoading}
         showEnterprise
+        renderBillNo={props.renderBillNo}
         renderActions={(bill) =>
           bill.bill_type === 'credit' &&
           (bill.status === 'unpaid' || bill.status === 'partially_paid') ? (
@@ -179,24 +184,7 @@ function BillsAdminContent(props: { onOpenSeller: () => void }) {
           aria-label={t('Reason (required)')}
         />
       </ConfirmDialog>
-    </div>
-  )
-}
-
-export function EnterpriseBillsAdmin() {
-  const { t } = useTranslation()
-  const [sellerOpen, setSellerOpen] = useState(false)
-  return (
-    <>
-      <SectionPageLayout>
-        <SectionPageLayout.Title>
-          {t('Enterprise Bills')}
-        </SectionPageLayout.Title>
-        <SectionPageLayout.Content>
-          <BillsAdminContent onOpenSeller={() => setSellerOpen(true)} />
-        </SectionPageLayout.Content>
-      </SectionPageLayout>
       <SellerProfileDialog open={sellerOpen} onOpenChange={setSellerOpen} />
-    </>
+    </div>
   )
 }

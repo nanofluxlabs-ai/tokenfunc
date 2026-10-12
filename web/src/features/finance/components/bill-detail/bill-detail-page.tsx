@@ -1,0 +1,208 @@
+import { useQuery } from '@tanstack/react-query'
+import { getRouteApi, Link } from '@tanstack/react-router'
+import { ArrowLeft } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
+
+import { EmptyState } from '@/components/empty-state'
+import { SectionPageLayout } from '@/components/layout'
+import { LoadingState } from '@/components/loading-state'
+import { StatusBadge } from '@/components/status-badge'
+import { Alert, AlertDescription } from '@/components/ui/alert'
+import { Button } from '@/components/ui/button'
+import {
+  BillStatusBadge,
+  InvoiceButton,
+} from '@/features/enterprise-console/components/bills-table'
+import { CREDIT_PERIOD_STATUSES } from '@/features/enterprise-console/constants'
+import { toIntlLocale } from '@/i18n/languages'
+import {
+  formatNumber,
+  formatTimestampToDate,
+  quotaUnitsToDollars,
+} from '@/lib/format'
+import { requireServerSuccess } from '@/lib/server-error-message'
+
+import { getFinanceBill } from '../../api'
+import { FINANCE_QUERY_KEY } from '../../constants'
+import { useUsageSummary } from '../../hooks/use-usage-breakdown-queries'
+import {
+  creditUsagePercent,
+  parseBillRef,
+  periodDays,
+} from '../../lib/bill-ref'
+import { buildUsageCsvFilename } from '../../lib/csv'
+import type { FinanceBillContext } from '../../types'
+import { MetricCard } from '../metric-card'
+import { ExportCsvControl } from '../usage-breakdown/export-csv-control'
+import { UsageBreakdownSection } from '../usage-breakdown/usage-breakdown-section'
+
+const route = getRouteApi('/_authenticated/finance/bills/$billId')
+
+function day(timestamp: number): string {
+  return formatTimestampToDate(timestamp).slice(0, 10)
+}
+
+/** 账单详情正文：头部提示 + 汇总卡 + 三块明细。导出供页面与测试复用 */
+export function BillDetailContent(props: { context: FinanceBillContext }) {
+  const { t, i18n } = useTranslation()
+  const locale = toIntlLocale(i18n.resolvedLanguage || i18n.language)
+  const context = props.context
+  const summary = context.summary
+  const isOpenPeriod = context.kind === 'period'
+  const usageParams = {
+    user_id: summary.user_id,
+    ts_start: context.usage_ts_start,
+    ts_end: context.usage_ts_end,
+  }
+  const usage = useUsageSummary(usageParams)
+  const usagePercent = creditUsagePercent(
+    summary.used_quota,
+    summary.limit_quota
+  )
+  const days = periodDays(summary.period_start, summary.period_end)
+  const cycleLabel =
+    context.enterprise?.credit_cycle_type === 'natural_month'
+      ? `${t('Calendar month')} · ${t('{{count}} days', { count: days })}`
+      : t('{{count}} days', { count: days })
+  const limitUsd = quotaUnitsToDollars(summary.limit_quota)
+
+  return (
+    <div className='flex flex-col gap-4'>
+      {isOpenPeriod && (
+        <Alert className='border-warning/40 bg-warning/10'>
+          <AlertDescription>
+            {t(
+              'This period is still open: figures are live and keep changing until the bill is issued.'
+            )}
+          </AlertDescription>
+        </Alert>
+      )}
+      <div className='grid gap-3 sm:grid-cols-2 xl:grid-cols-5'>
+        <MetricCard
+          label={t('Total amount (USD)')}
+          value={`$${Number.parseFloat(summary.total_usd).toFixed(4)}`}
+        />
+        {summary.limit_quota > 0 && (
+          <MetricCard
+            label={t('Credit limit (USD)')}
+            value={`$${limitUsd.toFixed(2)}`}
+          />
+        )}
+        {usagePercent != null && (
+          <MetricCard
+            label={t('Usage rate')}
+            value={`${usagePercent.toFixed(2)}%`}
+          />
+        )}
+        <MetricCard
+          label={t('Period')}
+          value={
+            <span className='text-lg'>
+              {day(summary.period_start)} ~ {day(summary.period_end - 1)}
+            </span>
+          }
+          hint={cycleLabel}
+        />
+        <MetricCard
+          label={t('Requests')}
+          value={formatNumber(usage.data?.total_calls ?? 0, locale)}
+          loading={usage.isLoading}
+        />
+      </div>
+      <UsageBreakdownSection {...usageParams} />
+    </div>
+  )
+}
+
+export function BillDetailPage() {
+  const { t } = useTranslation()
+  const params = route.useParams()
+  const ref = parseBillRef(params.billId)
+  const { data, isLoading, isError } = useQuery({
+    queryKey: [FINANCE_QUERY_KEY, 'bill', ref?.kind, ref?.id],
+    queryFn: async () =>
+      ref
+        ? (requireServerSuccess(await getFinanceBill(ref.kind, ref.id)).data ??
+          null)
+        : null,
+    enabled: ref !== null,
+    meta: { errorToast: false },
+  })
+  const summary = data?.summary
+  const title = summary
+    ? summary.bill_no || t('Period #{{no}}', { no: summary.period_no })
+    : t('Bill')
+
+  let content = <LoadingState />
+  if (!ref || (!isLoading && (isError || !data))) {
+    content = <EmptyState title={t('Bill not found')} />
+  } else if (data) {
+    content = <BillDetailContent context={data} />
+  }
+
+  let statusBadge: React.ReactNode = null
+  if (data?.bill) {
+    statusBadge = <BillStatusBadge bill={data.bill} />
+  } else if (data?.period) {
+    const config = CREDIT_PERIOD_STATUSES[data.period.status]
+    statusBadge = (
+      <StatusBadge
+        label={
+          data.period.status === 'open'
+            ? t('In progress')
+            : t(config?.labelKey ?? data.period.status)
+        }
+        variant={config?.variant ?? 'info'}
+        copyable={false}
+      />
+    )
+  }
+
+  return (
+    <SectionPageLayout stackActionsOnMobile>
+      <SectionPageLayout.Title>
+        <span className='inline-flex flex-wrap items-center gap-2'>
+          <span className='font-mono'>{title}</span>
+          {summary && (
+            <span className='text-muted-foreground text-sm font-normal'>
+              {summary.enterprise_name}
+            </span>
+          )}
+          {statusBadge}
+        </span>
+      </SectionPageLayout.Title>
+      <SectionPageLayout.Actions>
+        <div className='flex flex-wrap items-center gap-2'>
+          {data?.bill && <InvoiceButton bill={data.bill} size='sm' />}
+          {data && summary && (
+            <ExportCsvControl
+              user_id={summary.user_id}
+              ts_start={data.usage_ts_start}
+              ts_end={data.usage_ts_end}
+              filename={buildUsageCsvFilename(
+                summary.enterprise_name,
+                day(summary.period_start),
+                day(summary.period_end - 1),
+                t('statement')
+              )}
+            />
+          )}
+          <Button
+            variant='outline'
+            size='sm'
+            render={
+              <Link
+                to='/finance/$section'
+                params={{ section: 'enterprise-bills' }}
+              />
+            }
+          >
+            <ArrowLeft className='h-4 w-4' />
+            {t('Back to bills')}
+          </Button>
+        </div>
+      </SectionPageLayout.Actions>
+      <SectionPageLayout.Content>{content}</SectionPageLayout.Content>
+    </SectionPageLayout>
+  )
+}

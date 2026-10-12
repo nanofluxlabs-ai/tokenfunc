@@ -194,9 +194,16 @@ export function useSidebarData(): SidebarData {
             icon: Users,
           },
           {
-            title: t('Enterprise Bills'),
-            url: '/enterprise-billing',
+            title: t('Finance Center'),
+            url: '/finance/overview',
             icon: ReceiptText,
+            activeUrls: [
+              '/finance/overview',
+              '/finance/orders',
+              '/finance/user-consumption',
+              '/finance/model-consumption',
+              '/finance/enterprise-bills',
+            ],
           },
           {
             title: t('Quotations'),

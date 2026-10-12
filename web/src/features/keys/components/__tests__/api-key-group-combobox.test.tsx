@@ -222,3 +222,18 @@ describe('API key group combobox Auto effect', () => {
     setReducedMotion(false)
   })
 })
+
+describe('API key group combobox layout', () => {
+  test('renders the trigger at the standard 32px control height with the description inline', () => {
+    setReducedMotion(false)
+    render(<Harness initialValue='default' />)
+
+    const trigger = getTrigger()
+    expect(trigger).toHaveClass('h-8')
+    expect(trigger).not.toHaveClass('h-auto', 'min-h-14', 'sm:min-h-20')
+
+    const description = within(trigger).getByText('User group')
+    expect(description).not.toHaveClass('block')
+    expect(description).toHaveClass('truncate')
+  })
+})

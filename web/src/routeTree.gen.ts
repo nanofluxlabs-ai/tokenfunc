@@ -46,6 +46,8 @@ import { Route as AuthenticatedEnterpriseOverviewRouteImport } from './routes/_a
 import { Route as AuthenticatedEnterpriseProjectsRouteImport } from './routes/_authenticated/enterprise/projects'
 import { Route as AuthenticatedEnterpriseUsageRouteImport } from './routes/_authenticated/enterprise/usage'
 import { Route as AuthenticatedErrorsErrorRouteImport } from './routes/_authenticated/errors/$error'
+import { Route as AuthenticatedFinanceIndexRouteImport } from './routes/_authenticated/finance/index'
+import { Route as AuthenticatedFinanceSectionRouteImport } from './routes/_authenticated/finance/$section'
 import { Route as AuthenticatedKeysIndexRouteImport } from './routes/_authenticated/keys/index'
 import { Route as AuthenticatedModelsIndexRouteImport } from './routes/_authenticated/models/index'
 import { Route as AuthenticatedModelsSectionRouteImport } from './routes/_authenticated/models/$section'
@@ -66,6 +68,8 @@ import { Route as AuthenticatedWalletIndexRouteImport } from './routes/_authenti
 import { Route as PricingModelIdIndexRouteImport } from './routes/pricing/$modelId/index'
 import { Route as AuthenticatedEnterpriseBillsIndexRouteImport } from './routes/_authenticated/enterprise/bills.index'
 import { Route as AuthenticatedEnterpriseBillsIdRouteImport } from './routes/_authenticated/enterprise/bills.$id'
+import { Route as AuthenticatedFinanceBillsBillIdRouteImport } from './routes/_authenticated/finance/bills.$billId'
+import { Route as AuthenticatedFinanceUsersUserIdRouteImport } from './routes/_authenticated/finance/users.$userId'
 import { Route as AuthenticatedSystemSettingsAuthIndexRouteImport } from './routes/_authenticated/system-settings/auth/index'
 import { Route as AuthenticatedSystemSettingsAuthSectionRouteImport } from './routes/_authenticated/system-settings/auth/$section'
 import { Route as AuthenticatedSystemSettingsBillingIndexRouteImport } from './routes/_authenticated/system-settings/billing/index'
@@ -278,6 +282,18 @@ const AuthenticatedErrorsErrorRoute =
     path: '/errors/$error',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedFinanceIndexRoute =
+  AuthenticatedFinanceIndexRouteImport.update({
+    id: '/finance/',
+    path: '/finance/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedFinanceSectionRoute =
+  AuthenticatedFinanceSectionRouteImport.update({
+    id: '/finance/$section',
+    path: '/finance/$section',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedKeysIndexRoute = AuthenticatedKeysIndexRouteImport.update({
   id: '/keys/',
   path: '/keys/',
@@ -393,6 +409,18 @@ const AuthenticatedEnterpriseBillsIdRoute =
   AuthenticatedEnterpriseBillsIdRouteImport.update({
     id: '/enterprise/bills/$id',
     path: '/enterprise/bills/$id',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedFinanceBillsBillIdRoute =
+  AuthenticatedFinanceBillsBillIdRouteImport.update({
+    id: '/finance/bills/$billId',
+    path: '/finance/bills/$billId',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedFinanceUsersUserIdRoute =
+  AuthenticatedFinanceUsersUserIdRouteImport.update({
+    id: '/finance/users/$userId',
+    path: '/finance/users/$userId',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
 const AuthenticatedSystemSettingsAuthIndexRoute =
@@ -524,6 +552,7 @@ export interface FileRoutesByFullPath {
   '/enterprise/projects': typeof AuthenticatedEnterpriseProjectsRoute
   '/enterprise/usage': typeof AuthenticatedEnterpriseUsageRoute
   '/errors/$error': typeof AuthenticatedErrorsErrorRoute
+  '/finance/$section': typeof AuthenticatedFinanceSectionRoute
   '/models/$section': typeof AuthenticatedModelsSectionRoute
   '/usage-logs/$section': typeof AuthenticatedUsageLogsSectionRoute
   '/usage-logs/audit': typeof AuthenticatedUsageLogsAuditRoute
@@ -531,6 +560,7 @@ export interface FileRoutesByFullPath {
   '/dashboard/': typeof AuthenticatedDashboardIndexRoute
   '/enterprise-billing/': typeof AuthenticatedEnterpriseBillingIndexRoute
   '/enterprise-leads/': typeof AuthenticatedEnterpriseLeadsIndexRoute
+  '/finance/': typeof AuthenticatedFinanceIndexRoute
   '/keys/': typeof AuthenticatedKeysIndexRoute
   '/models/': typeof AuthenticatedModelsIndexRoute
   '/playground/': typeof AuthenticatedPlaygroundIndexRoute
@@ -547,6 +577,8 @@ export interface FileRoutesByFullPath {
   '/wallet/': typeof AuthenticatedWalletIndexRoute
   '/pricing/$modelId/': typeof PricingModelIdIndexRoute
   '/enterprise/bills/$id': typeof AuthenticatedEnterpriseBillsIdRoute
+  '/finance/bills/$billId': typeof AuthenticatedFinanceBillsBillIdRoute
+  '/finance/users/$userId': typeof AuthenticatedFinanceUsersUserIdRoute
   '/system-settings/auth/$section': typeof AuthenticatedSystemSettingsAuthSectionRoute
   '/system-settings/billing/$section': typeof AuthenticatedSystemSettingsBillingSectionRoute
   '/system-settings/content/$section': typeof AuthenticatedSystemSettingsContentSectionRoute
@@ -596,6 +628,7 @@ export interface FileRoutesByTo {
   '/enterprise/projects': typeof AuthenticatedEnterpriseProjectsRoute
   '/enterprise/usage': typeof AuthenticatedEnterpriseUsageRoute
   '/errors/$error': typeof AuthenticatedErrorsErrorRoute
+  '/finance/$section': typeof AuthenticatedFinanceSectionRoute
   '/models/$section': typeof AuthenticatedModelsSectionRoute
   '/usage-logs/$section': typeof AuthenticatedUsageLogsSectionRoute
   '/usage-logs/audit': typeof AuthenticatedUsageLogsAuditRoute
@@ -603,6 +636,7 @@ export interface FileRoutesByTo {
   '/dashboard': typeof AuthenticatedDashboardIndexRoute
   '/enterprise-billing': typeof AuthenticatedEnterpriseBillingIndexRoute
   '/enterprise-leads': typeof AuthenticatedEnterpriseLeadsIndexRoute
+  '/finance': typeof AuthenticatedFinanceIndexRoute
   '/keys': typeof AuthenticatedKeysIndexRoute
   '/models': typeof AuthenticatedModelsIndexRoute
   '/playground': typeof AuthenticatedPlaygroundIndexRoute
@@ -619,6 +653,8 @@ export interface FileRoutesByTo {
   '/wallet': typeof AuthenticatedWalletIndexRoute
   '/pricing/$modelId': typeof PricingModelIdIndexRoute
   '/enterprise/bills/$id': typeof AuthenticatedEnterpriseBillsIdRoute
+  '/finance/bills/$billId': typeof AuthenticatedFinanceBillsBillIdRoute
+  '/finance/users/$userId': typeof AuthenticatedFinanceUsersUserIdRoute
   '/system-settings/auth/$section': typeof AuthenticatedSystemSettingsAuthSectionRoute
   '/system-settings/billing/$section': typeof AuthenticatedSystemSettingsBillingSectionRoute
   '/system-settings/content/$section': typeof AuthenticatedSystemSettingsContentSectionRoute
@@ -672,6 +708,7 @@ export interface FileRoutesById {
   '/_authenticated/enterprise/projects': typeof AuthenticatedEnterpriseProjectsRoute
   '/_authenticated/enterprise/usage': typeof AuthenticatedEnterpriseUsageRoute
   '/_authenticated/errors/$error': typeof AuthenticatedErrorsErrorRoute
+  '/_authenticated/finance/$section': typeof AuthenticatedFinanceSectionRoute
   '/_authenticated/models/$section': typeof AuthenticatedModelsSectionRoute
   '/_authenticated/usage-logs/$section': typeof AuthenticatedUsageLogsSectionRoute
   '/_authenticated/usage-logs/audit': typeof AuthenticatedUsageLogsAuditRoute
@@ -679,6 +716,7 @@ export interface FileRoutesById {
   '/_authenticated/dashboard/': typeof AuthenticatedDashboardIndexRoute
   '/_authenticated/enterprise-billing/': typeof AuthenticatedEnterpriseBillingIndexRoute
   '/_authenticated/enterprise-leads/': typeof AuthenticatedEnterpriseLeadsIndexRoute
+  '/_authenticated/finance/': typeof AuthenticatedFinanceIndexRoute
   '/_authenticated/keys/': typeof AuthenticatedKeysIndexRoute
   '/_authenticated/models/': typeof AuthenticatedModelsIndexRoute
   '/_authenticated/playground/': typeof AuthenticatedPlaygroundIndexRoute
@@ -695,6 +733,8 @@ export interface FileRoutesById {
   '/_authenticated/wallet/': typeof AuthenticatedWalletIndexRoute
   '/pricing/$modelId/': typeof PricingModelIdIndexRoute
   '/_authenticated/enterprise/bills/$id': typeof AuthenticatedEnterpriseBillsIdRoute
+  '/_authenticated/finance/bills/$billId': typeof AuthenticatedFinanceBillsBillIdRoute
+  '/_authenticated/finance/users/$userId': typeof AuthenticatedFinanceUsersUserIdRoute
   '/_authenticated/system-settings/auth/$section': typeof AuthenticatedSystemSettingsAuthSectionRoute
   '/_authenticated/system-settings/billing/$section': typeof AuthenticatedSystemSettingsBillingSectionRoute
   '/_authenticated/system-settings/content/$section': typeof AuthenticatedSystemSettingsContentSectionRoute
@@ -747,6 +787,7 @@ export interface FileRouteTypes {
     | '/enterprise/projects'
     | '/enterprise/usage'
     | '/errors/$error'
+    | '/finance/$section'
     | '/models/$section'
     | '/usage-logs/$section'
     | '/usage-logs/audit'
@@ -754,6 +795,7 @@ export interface FileRouteTypes {
     | '/dashboard/'
     | '/enterprise-billing/'
     | '/enterprise-leads/'
+    | '/finance/'
     | '/keys/'
     | '/models/'
     | '/playground/'
@@ -770,6 +812,8 @@ export interface FileRouteTypes {
     | '/wallet/'
     | '/pricing/$modelId/'
     | '/enterprise/bills/$id'
+    | '/finance/bills/$billId'
+    | '/finance/users/$userId'
     | '/system-settings/auth/$section'
     | '/system-settings/billing/$section'
     | '/system-settings/content/$section'
@@ -819,6 +863,7 @@ export interface FileRouteTypes {
     | '/enterprise/projects'
     | '/enterprise/usage'
     | '/errors/$error'
+    | '/finance/$section'
     | '/models/$section'
     | '/usage-logs/$section'
     | '/usage-logs/audit'
@@ -826,6 +871,7 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/enterprise-billing'
     | '/enterprise-leads'
+    | '/finance'
     | '/keys'
     | '/models'
     | '/playground'
@@ -842,6 +888,8 @@ export interface FileRouteTypes {
     | '/wallet'
     | '/pricing/$modelId'
     | '/enterprise/bills/$id'
+    | '/finance/bills/$billId'
+    | '/finance/users/$userId'
     | '/system-settings/auth/$section'
     | '/system-settings/billing/$section'
     | '/system-settings/content/$section'
@@ -894,6 +942,7 @@ export interface FileRouteTypes {
     | '/_authenticated/enterprise/projects'
     | '/_authenticated/enterprise/usage'
     | '/_authenticated/errors/$error'
+    | '/_authenticated/finance/$section'
     | '/_authenticated/models/$section'
     | '/_authenticated/usage-logs/$section'
     | '/_authenticated/usage-logs/audit'
@@ -901,6 +950,7 @@ export interface FileRouteTypes {
     | '/_authenticated/dashboard/'
     | '/_authenticated/enterprise-billing/'
     | '/_authenticated/enterprise-leads/'
+    | '/_authenticated/finance/'
     | '/_authenticated/keys/'
     | '/_authenticated/models/'
     | '/_authenticated/playground/'
@@ -917,6 +967,8 @@ export interface FileRouteTypes {
     | '/_authenticated/wallet/'
     | '/pricing/$modelId/'
     | '/_authenticated/enterprise/bills/$id'
+    | '/_authenticated/finance/bills/$billId'
+    | '/_authenticated/finance/users/$userId'
     | '/_authenticated/system-settings/auth/$section'
     | '/_authenticated/system-settings/billing/$section'
     | '/_authenticated/system-settings/content/$section'
@@ -1216,6 +1268,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedErrorsErrorRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/finance/': {
+      id: '/_authenticated/finance/'
+      path: '/finance'
+      fullPath: '/finance/'
+      preLoaderRoute: typeof AuthenticatedFinanceIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/finance/$section': {
+      id: '/_authenticated/finance/$section'
+      path: '/finance/$section'
+      fullPath: '/finance/$section'
+      preLoaderRoute: typeof AuthenticatedFinanceSectionRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/keys/': {
       id: '/_authenticated/keys/'
       path: '/keys'
@@ -1354,6 +1420,20 @@ declare module '@tanstack/react-router' {
       path: '/enterprise/bills/$id'
       fullPath: '/enterprise/bills/$id'
       preLoaderRoute: typeof AuthenticatedEnterpriseBillsIdRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/finance/bills/$billId': {
+      id: '/_authenticated/finance/bills/$billId'
+      path: '/finance/bills/$billId'
+      fullPath: '/finance/bills/$billId'
+      preLoaderRoute: typeof AuthenticatedFinanceBillsBillIdRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/finance/users/$userId': {
+      id: '/_authenticated/finance/users/$userId'
+      path: '/finance/users/$userId'
+      fullPath: '/finance/users/$userId'
+      preLoaderRoute: typeof AuthenticatedFinanceUsersUserIdRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/system-settings/auth/': {
@@ -1571,6 +1651,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedEnterpriseProjectsRoute: typeof AuthenticatedEnterpriseProjectsRoute
   AuthenticatedEnterpriseUsageRoute: typeof AuthenticatedEnterpriseUsageRoute
   AuthenticatedErrorsErrorRoute: typeof AuthenticatedErrorsErrorRoute
+  AuthenticatedFinanceSectionRoute: typeof AuthenticatedFinanceSectionRoute
   AuthenticatedModelsSectionRoute: typeof AuthenticatedModelsSectionRoute
   AuthenticatedUsageLogsSectionRoute: typeof AuthenticatedUsageLogsSectionRoute
   AuthenticatedUsageLogsAuditRoute: typeof AuthenticatedUsageLogsAuditRoute
@@ -1578,6 +1659,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedDashboardIndexRoute: typeof AuthenticatedDashboardIndexRoute
   AuthenticatedEnterpriseBillingIndexRoute: typeof AuthenticatedEnterpriseBillingIndexRoute
   AuthenticatedEnterpriseLeadsIndexRoute: typeof AuthenticatedEnterpriseLeadsIndexRoute
+  AuthenticatedFinanceIndexRoute: typeof AuthenticatedFinanceIndexRoute
   AuthenticatedKeysIndexRoute: typeof AuthenticatedKeysIndexRoute
   AuthenticatedModelsIndexRoute: typeof AuthenticatedModelsIndexRoute
   AuthenticatedPlaygroundIndexRoute: typeof AuthenticatedPlaygroundIndexRoute
@@ -1592,6 +1674,8 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedUsersIndexRoute: typeof AuthenticatedUsersIndexRoute
   AuthenticatedWalletIndexRoute: typeof AuthenticatedWalletIndexRoute
   AuthenticatedEnterpriseBillsIdRoute: typeof AuthenticatedEnterpriseBillsIdRoute
+  AuthenticatedFinanceBillsBillIdRoute: typeof AuthenticatedFinanceBillsBillIdRoute
+  AuthenticatedFinanceUsersUserIdRoute: typeof AuthenticatedFinanceUsersUserIdRoute
   AuthenticatedEnterpriseBillsIndexRoute: typeof AuthenticatedEnterpriseBillsIndexRoute
 }
 
@@ -1608,6 +1692,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedEnterpriseProjectsRoute: AuthenticatedEnterpriseProjectsRoute,
   AuthenticatedEnterpriseUsageRoute: AuthenticatedEnterpriseUsageRoute,
   AuthenticatedErrorsErrorRoute: AuthenticatedErrorsErrorRoute,
+  AuthenticatedFinanceSectionRoute: AuthenticatedFinanceSectionRoute,
   AuthenticatedModelsSectionRoute: AuthenticatedModelsSectionRoute,
   AuthenticatedUsageLogsSectionRoute: AuthenticatedUsageLogsSectionRoute,
   AuthenticatedUsageLogsAuditRoute: AuthenticatedUsageLogsAuditRoute,
@@ -1617,6 +1702,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
     AuthenticatedEnterpriseBillingIndexRoute,
   AuthenticatedEnterpriseLeadsIndexRoute:
     AuthenticatedEnterpriseLeadsIndexRoute,
+  AuthenticatedFinanceIndexRoute: AuthenticatedFinanceIndexRoute,
   AuthenticatedKeysIndexRoute: AuthenticatedKeysIndexRoute,
   AuthenticatedModelsIndexRoute: AuthenticatedModelsIndexRoute,
   AuthenticatedPlaygroundIndexRoute: AuthenticatedPlaygroundIndexRoute,
@@ -1632,6 +1718,8 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedUsersIndexRoute: AuthenticatedUsersIndexRoute,
   AuthenticatedWalletIndexRoute: AuthenticatedWalletIndexRoute,
   AuthenticatedEnterpriseBillsIdRoute: AuthenticatedEnterpriseBillsIdRoute,
+  AuthenticatedFinanceBillsBillIdRoute: AuthenticatedFinanceBillsBillIdRoute,
+  AuthenticatedFinanceUsersUserIdRoute: AuthenticatedFinanceUsersUserIdRoute,
   AuthenticatedEnterpriseBillsIndexRoute:
     AuthenticatedEnterpriseBillsIndexRoute,
 }

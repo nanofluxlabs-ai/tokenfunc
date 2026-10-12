@@ -59,6 +59,8 @@ func registerChannelRoutes(apiRouter *gin.RouterGroup) {
 	channelRoute.POST("/usage_stats/backfill", middleware.RootAuth(), controller.BackfillChannelUsage)
 	channelRoute.POST("/usage_stats/dim_backfill", middleware.RootAuth(), controller.StartChannelDimUsageBackfill)
 	channelRoute.GET("/usage_stats/dim_backfill", middleware.RootAuth(), controller.GetChannelDimUsageBackfillStatus)
+	// 外部渠道健康事件（TokenFunc 二开）
+	handlePermissionRoute(channelRoute, http.MethodGet, "/:id/health/events", authz.ChannelRead, controller.GetChannelHealthEvents)
 }
 
 var channelPermissionRoutes = []permissionRoute{

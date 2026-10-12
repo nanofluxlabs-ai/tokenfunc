@@ -22,6 +22,9 @@ func RegisterScheduledSystemTasks() {
 	service.RegisterSystemTaskHandler(modelUpdateHandler{})
 	service.RegisterSystemTaskHandler(midjourneyPollHandler{})
 	service.RegisterSystemTaskHandler(asyncTaskPollHandler{})
+	// TokenFunc 二开：外部渠道接口 / 推理探测
+	service.RegisterSystemTaskHandler(externalFastProbeHandler{})
+	service.RegisterSystemTaskHandler(externalSlowProbeHandler{})
 }
 
 // channelTestHandler runs the scheduled "test all channels" job. Enablement and

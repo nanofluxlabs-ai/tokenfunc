@@ -2258,6 +2258,50 @@ export function ChannelMutateDrawer({
           </FormItem>
         )}
       />
+
+      <FormField
+        control={form.control}
+        name='is_external'
+        render={({ field }) => (
+          <FormItem className='flex items-center justify-between'>
+            <div className='space-y-0.5'>
+              <FormLabel>{t('External Channel')}</FormLabel>
+              <FormDescription>
+                {t(FIELD_DESCRIPTIONS.IS_EXTERNAL)}
+              </FormDescription>
+            </div>
+            <FormControl>
+              <Switch
+                checked={field.value === true}
+                onCheckedChange={(checked) => field.onChange(checked)}
+              />
+            </FormControl>
+          </FormItem>
+        )}
+      />
+
+      {form.watch('is_external') && (
+        <FormField
+          control={form.control}
+          name='fast_probe_url'
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>{t('API Probe Path')}</FormLabel>
+              <FormControl>
+                <Input
+                  placeholder='/v1/models'
+                  disabled={sensitiveLocked}
+                  {...field}
+                />
+              </FormControl>
+              <FormDescription>
+                {t(FIELD_DESCRIPTIONS.FAST_PROBE_URL)}
+              </FormDescription>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+      )}
     </div>
   )
 

@@ -73,6 +73,16 @@ func ProcessChannelError(c *gin.Context, channelError types.ChannelError, err *t
 		})
 	}
 
+	// TokenFunc 二开：外部渠道 5xx 计入推理维度的连续失败（与慢探同阈值），不改 status
+	if err.StatusCode >= 500 && err.StatusCode <= 599 {
+		if channel, cacheErr := model.CacheGetChannel(channelError.ChannelId); cacheErr == nil && channel.GetIsExternal() {
+			statusCode, reason := err.StatusCode, err.MaskSensitiveErrorWithStatusCode()
+			gopool.Go(func() {
+				RecordExternalChannelRelayFailure(channel, statusCode, reason)
+			})
+		}
+	}
+
 	if constant.ErrorLogEnabled && types.IsRecordErrorLog(err) {
 		userId := c.GetInt("id")
 		tokenName := c.GetString("token_name")

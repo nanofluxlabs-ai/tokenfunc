@@ -1,6 +1,7 @@
 package model
 
 import (
+	"os"
 	"testing"
 
 	"github.com/QuantumNous/new-api/common"
@@ -9,6 +10,8 @@ import (
 	kitdto "github.com/QuantumNous/new-api/relaykit/dto"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"gorm.io/driver/postgres"
+	"gorm.io/gorm"
 )
 
 func TestFilterCandidateIDs(t *testing.T) {
@@ -215,4 +218,63 @@ func TestChannelSatisfiesFilters(t *testing.T) {
 	}})
 	assert.False(t, ok)
 	assert.Equal(t, dto.FilterRequestPath, kind)
+}
+
+// TokenFunc 二开：外部渠道暂停派发后，DB 分发路径（GetChannel）直接查健康态表跳过它；只支持 PostgreSQL
+func TestGetChannelSkipsDispatchPausedExternalChannel(t *testing.T) {
+	dsn := os.Getenv("TEST_POSTGRES_DSN")
+	if dsn == "" {
+		t.Skip("TEST_POSTGRES_DSN is not configured")
+	}
+	db, err := gorm.Open(postgres.New(postgres.Config{DSN: dsn, PreferSimpleProtocol: true}), &gorm.Config{})
+	require.NoError(t, err)
+	sqlDB, err := db.DB()
+	require.NoError(t, err)
+	tables := []any{&Channel{}, &Ability{}, &ChannelHealthState{}, &ChannelHealthEvent{}}
+	previousDB, previousLogDB := DB, LOG_DB
+	previousMain, previousLog := common.MainDatabaseType(), common.LogDatabaseType()
+	previousMemoryCache := common.MemoryCacheEnabled
+	DB, LOG_DB = db, db
+	common.SetDatabaseTypes(common.DatabaseTypePostgreSQL, common.DatabaseTypePostgreSQL)
+	common.MemoryCacheEnabled = false
+	initCol()
+	t.Cleanup(func() {
+		require.NoError(t, db.Migrator().DropTable(tables...))
+		require.NoError(t, sqlDB.Close())
+		DB, LOG_DB = previousDB, previousLogDB
+		common.SetDatabaseTypes(previousMain, previousLog)
+		common.MemoryCacheEnabled = previousMemoryCache
+		initCol()
+	})
+	require.NoError(t, db.Migrator().DropTable(tables...))
+	require.NoError(t, db.AutoMigrate(tables...))
+
+	external := true
+	paused := &Channel{Id: 5, Type: constant.ChannelTypeOpenAI, Key: "sk-a", Status: common.ChannelStatusEnabled, Name: "paused", Models: "gpt-4o-mini", Group: "default", IsExternal: &external}
+	healthy := &Channel{Id: 6, Type: constant.ChannelTypeOpenAI, Key: "sk-b", Status: common.ChannelStatusEnabled, Name: "healthy", Models: "gpt-4o-mini", Group: "default", IsExternal: &external}
+	require.NoError(t, paused.Insert())
+	require.NoError(t, healthy.Insert())
+	state := NewChannelHealthState(paused.Id)
+	state.ApiHealth = ChannelHealthFailed
+	require.NoError(t, SaveChannelHealthState(state))
+
+	for range 10 {
+		selected, err := GetChannel("default", "gpt-4o-mini", 0, nil)
+		require.NoError(t, err)
+		require.NotNil(t, selected)
+		assert.Equal(t, healthy.Id, selected.Id)
+	}
+
+	// 非外部渠道即使有 failed 行也不受影响
+	plain := false
+	paused.IsExternal = &plain
+	require.NoError(t, DB.Model(&Channel{}).Where("id = ?", paused.Id).Update("is_external", false).Error)
+	seen := map[int]bool{}
+	for range 40 {
+		selected, err := GetChannel("default", "gpt-4o-mini", 0, nil)
+		require.NoError(t, err)
+		require.NotNil(t, selected)
+		seen[selected.Id] = true
+	}
+	assert.True(t, seen[paused.Id], "取消外部标记后应重新参与分发")
 }

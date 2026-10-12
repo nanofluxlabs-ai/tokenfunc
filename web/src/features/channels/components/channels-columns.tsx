@@ -32,6 +32,7 @@ import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 
 import { ConfirmDialog } from '@/components/confirm-dialog'
+import { CopyButton } from '@/components/copy-button'
 import { BadgeListCell } from '@/components/data-table'
 import { GroupBadge } from '@/components/group-badge'
 import { ProviderBadge } from '@/components/provider-badge'
@@ -83,8 +84,10 @@ import {
   isTagAggregateRow,
   type TagRow,
 } from '../lib'
+import { isDispatchPaused, pausedHealthDimensions } from '../lib/channel-health'
 import { parseUpstreamUpdateMeta } from '../lib/upstream-update-utils'
 import type { Channel } from '../types'
+import { ChannelHealthBadges } from './channel-health-badges'
 import { ChannelRowActionsLayoutContext } from './channel-row-actions-context'
 import { TaskPluginChannelBadge } from './channel-type-badge'
 import { useChannels } from './channels-provider'
@@ -768,6 +771,7 @@ export function useChannelsColumns(
                   )}
                   <UpstreamUpdateTags channel={channel} />
                 </div>
+                <ChannelHealthBadges channel={channel} />
                 {channel.remark && (
                   <TooltipProvider delay={200}>
                     <Tooltip>
@@ -779,7 +783,24 @@ export function useChannelsColumns(
                         {truncateText(channel.remark, 40)}
                       </TooltipTrigger>
                       <TooltipContent side='bottom' className='max-w-xs'>
-                        {channel.remark}
+                        <div className='space-y-1 text-xs'>
+                          <div className='flex items-start gap-1'>
+                            <span className='flex-1 wrap-anywhere'>
+                              {channel.remark}
+                            </span>
+                            <CopyButton
+                              value={channel.remark}
+                              size='sm'
+                              className='size-6 shrink-0'
+                            />
+                          </div>
+                          {channel.created_time > 0 && (
+                            <div className='text-muted-foreground'>
+                              {t('Created:')}{' '}
+                              {formatTimestampToDate(channel.created_time)}
+                            </div>
+                          )}
+                        </div>
                       </TooltipContent>
                     </Tooltip>
                   </TooltipProvider>
@@ -989,6 +1010,51 @@ export function useChannelsColumns(
             isMultiKey && keySize > 0
               ? `${t(config.label)} (${enabledCount}/${keySize})`
               : t(config.label)
+
+          // TokenFunc 二开：外部渠道健康探测失败 → 已启用但暂停派发（不改 status）
+          if (status === 1 && isDispatchPaused(channel)) {
+            const state = channel.health_state
+            const dimensions = pausedHealthDimensions(state)
+            return (
+              <TooltipProvider delay={100}>
+                <Tooltip>
+                  <TooltipTrigger render={<span />}>
+                    <StatusBadge
+                      label={`${label} · ${t('Dispatch paused')}`}
+                      variant='warning'
+                      size='sm'
+                      copyable={false}
+                    />
+                  </TooltipTrigger>
+                  <TooltipContent side='top' className='max-w-xs'>
+                    <div className='space-y-1 text-xs'>
+                      <div>
+                        {t(
+                          'The channel stays enabled but is skipped by dispatch until its probes recover.'
+                        )}
+                      </div>
+                      {dimensions.includes('api') && (
+                        <div className='wrap-anywhere'>
+                          {t('API probe failed')}
+                          {state?.last_api_error
+                            ? `: ${state.last_api_error}`
+                            : ''}
+                        </div>
+                      )}
+                      {dimensions.includes('inference') && (
+                        <div className='wrap-anywhere'>
+                          {t('Inference probe failed')}
+                          {state?.last_inference_error
+                            ? `: ${state.last_inference_error}`
+                            : ''}
+                        </div>
+                      )}
+                    </div>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            )
+          }
 
           // Auto-disabled: show reason and time tooltip
           if (status === 3) {

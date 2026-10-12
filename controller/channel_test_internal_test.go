@@ -493,3 +493,54 @@ func TestTestAllChannelsRejectsExistingActiveTask(t *testing.T) {
 	require.Contains(t, recorder.Body.String(), existing.TaskID)
 	require.Contains(t, recorder.Body.String(), "已有通道测试任务正在运行或等待中")
 }
+
+// ---- 外部渠道接口探测（TokenFunc 二开）----
+
+func newProbeTestChannel(baseURL string, probePath string) *model.Channel {
+	external := true
+	channel := &model.Channel{Id: 1, Type: constant.ChannelTypeOpenAI, Key: "sk-probe", BaseURL: &baseURL, IsExternal: &external}
+	if probePath != "" {
+		channel.FastProbeURL = &probePath
+	}
+	return channel
+}
+
+func TestProbeChannelEndpointTreatsOnly2xxAsSuccess(t *testing.T) {
+	var gotPath, gotAuth string
+	status := int32(http.StatusOK)
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		gotPath = r.URL.Path
+		gotAuth = r.Header.Get("Authorization")
+		w.WriteHeader(int(atomic.LoadInt32(&status)))
+		_, _ = w.Write([]byte(`{"data":[]}`))
+	}))
+	t.Cleanup(server.Close)
+
+	ok, detail := probeChannelEndpoint(context.Background(), newProbeTestChannel(server.URL+"/", ""))
+	assert.True(t, ok)
+	assert.Equal(t, "HTTP 200", detail)
+	assert.Equal(t, "/v1/models", gotPath, "未配置探测路径时回落到 /v1/models，且不会出现双斜杠")
+	assert.Equal(t, "Bearer sk-probe", gotAuth)
+
+	ok, _ = probeChannelEndpoint(context.Background(), newProbeTestChannel(server.URL, "health"))
+	assert.True(t, ok)
+	assert.Equal(t, "/health", gotPath)
+
+	atomic.StoreInt32(&status, http.StatusNotFound)
+	ok, detail = probeChannelEndpoint(context.Background(), newProbeTestChannel(server.URL, ""))
+	assert.False(t, ok, "4xx 同样视为接口不可用")
+	assert.Equal(t, "HTTP 404", detail)
+
+	atomic.StoreInt32(&status, http.StatusBadGateway)
+	ok, detail = probeChannelEndpoint(context.Background(), newProbeTestChannel(server.URL, ""))
+	assert.False(t, ok)
+	assert.Equal(t, "HTTP 502", detail)
+}
+
+func TestProbeChannelEndpointReportsNetworkFailure(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {}))
+	server.Close()
+	ok, detail := probeChannelEndpoint(context.Background(), newProbeTestChannel(server.URL, ""))
+	assert.False(t, ok)
+	assert.NotEmpty(t, detail)
+}

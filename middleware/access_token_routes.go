@@ -206,6 +206,10 @@ var accessTokenRouteRules = map[string]accessTokenRouteRule{
 
 	// router/channel-router.go: the key route is RootAuth, not Casbin-guarded.
 	"POST /api/channel/:id/key": accessTokenScopeRule(service.AccessTokenScopeOf(authz.ChannelSecretView)),
+	// router/channel-router.go: TokenFunc 渠道消耗回填，RootAuth，按运维操作归 ops 作用域
+	"POST /api/channel/usage_stats/backfill":     accessTokenScopeRule("ops:write"),
+	"POST /api/channel/usage_stats/dim_backfill": accessTokenScopeRule("ops:write"),
+	"GET /api/channel/usage_stats/dim_backfill":  accessTokenScopeRule("ops:read"),
 
 	// router/authz-router.go
 	"GET /api/authz/catalog": accessTokenScopeRule("user:read"),

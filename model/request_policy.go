@@ -6,6 +6,7 @@ import (
 	"maps"
 	"math"
 	"regexp"
+	"slices"
 	"strconv"
 	"strings"
 	"sync"
@@ -72,7 +73,8 @@ func IsRequestPolicyOption(key string) bool {
 	case "CheckSensitiveEnabled", "CheckSensitiveOnPromptEnabled", "SensitiveWords", "AutomaticEnableChannelEnabled", "ChannelDisableThreshold", "monitor_setting.auto_test_channel_enabled", "monitor_setting.auto_test_channel_minutes", "monitor_setting.channel_test_concurrency", "monitor_setting.channel_test_mode", "RetryTimes", "AutomaticRetryStatusCodes", "AutomaticDisableChannelEnabled", "AutomaticDisableStatusCodes", "AutomaticDisableKeywords":
 		return true
 	}
-	return false
+	// TokenFunc 二开：外部渠道探测配置也归请求策略管
+	return slices.Contains(operation_setting.ExternalProbeOptionKeys, key)
 }
 
 func CurrentRequestPolicy() *RequestPolicySnapshot {
@@ -170,6 +172,9 @@ func BuildRequestPolicy(options map[string]string) (*RequestPolicySnapshot, erro
 	case "scheduled_all", "auto_ban_only", "passive_recovery":
 	default:
 		return nil, fmt.Errorf("invalid channel test mode")
+	}
+	if err := operation_setting.ValidateExternalProbeOptions(raw); err != nil {
+		return nil, err
 	}
 
 	if snapshot.Affinity.MaxEntries < 0 || snapshot.Affinity.DefaultTTLSeconds < 0 {

@@ -21,6 +21,9 @@ const (
 	SystemTaskTypeModelUpdate    = "model_update"
 	SystemTaskTypeMidjourneyPoll = "midjourney_poll"
 	SystemTaskTypeAsyncTaskPoll  = "async_task_poll"
+	// TokenFunc 二开：外部渠道接口探测（GET）与推理探测
+	SystemTaskTypeExternalFastProbe = "external_fast_probe"
+	SystemTaskTypeExternalSlowProbe = "external_slow_probe"
 )
 
 var ErrSystemTaskLockLost = errors.New("system task lock lost")

@@ -198,6 +198,8 @@ func Relay(c *gin.Context, relayFormat types.RelayFormat) {
 		if newAPIError == nil {
 			service.MarkRequestPolicySuccess(c, relayInfo.StreamStatus)
 			relayInfo.LastError = nil
+			// TokenFunc 二开：外部渠道一次成功即恢复推理维度
+			service.RecordExternalChannelRelaySuccess(channel)
 			return
 		}
 

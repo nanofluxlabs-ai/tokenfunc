@@ -616,8 +616,36 @@ export async function deleteOllamaModel(params: {
 export async function testAllChannels(): Promise<{
   success: boolean
   message?: string
+  data?: { task_id?: string; status?: string }
 }> {
-  const res = await api.get('/api/channel/test', channelActionConfig())
+  // 409 = 已有同类任务在跑，响应体里带 task_id，前端同样接管进度展示
+  const res = await api.get('/api/channel/test', {
+    ...channelActionConfig(),
+    validateStatus: (status) => status < 500,
+  })
+  return res.data
+}
+
+/** 系统任务进度（TokenFunc 二开：全量测试进度横幅用），需要 Root */
+export type SystemTaskProgressResponse = {
+  success: boolean
+  message?: string
+  data?: {
+    task_id: string
+    type: string
+    status: 'pending' | 'running' | 'succeeded' | 'failed'
+    state?: { total?: number; processed?: number; progress?: number } | null
+    error?: string
+  }
+}
+
+export async function getSystemTaskProgress(
+  taskId: string
+): Promise<SystemTaskProgressResponse> {
+  const res = await api.get(`/api/system-task/${taskId}`, {
+    ...channelActionConfig(),
+    disableDuplicate: true,
+  })
   return res.data
 }
 

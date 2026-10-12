@@ -78,6 +78,7 @@ export function ChannelsPrimaryButtons() {
     batchMode,
     setBatchMode,
     upstream,
+    setTestTaskId,
   } = useChannels()
   const queryClient = useQueryClient()
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
@@ -209,7 +210,7 @@ export function ChannelsPrimaryButtons() {
 
             <DropdownMenuItem
               onClick={() => {
-                handleTestAllChannels(queryClient)
+                handleTestAllChannels(queryClient, setTestTaskId)
               }}
             >
               {t('Test All Channels')}

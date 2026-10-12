@@ -68,12 +68,44 @@ describe('channel health layout', () => {
     expect(within(options).queryByRole('switch')).not.toBeInTheDocument()
   })
 
+  it('nests interval and thresholds under each external probe switch', () => {
+    show()
+    for (const [groupName, labels] of [
+      [
+        'API probe options',
+        [
+          'API probe interval (seconds)',
+          'API failures before pausing',
+          'API successes before resuming',
+        ],
+      ],
+      [
+        'Inference probe options',
+        [
+          'Inference probe interval (seconds)',
+          'Inference failures before pausing',
+          'Inference successes before resuming',
+        ],
+      ],
+    ] as const) {
+      const options = screen.getByRole('group', { name: groupName })
+      for (const label of labels) {
+        expect(
+          within(options).getByRole('spinbutton', { name: label })
+        ).toBeVisible()
+      }
+      expect(within(options).queryByRole('switch')).not.toBeInTheDocument()
+    }
+  })
+
   it('marks every switch row as full width so it never shares a grid row with an input', () => {
     show()
     for (const name of [
       'Scheduled channel tests',
       'Re-enable on success',
       'Disable on failure',
+      'API probes',
+      'Inference probes',
     ]) {
       expect(formItemOf(screen.getByRole('switch', { name }))).toHaveAttribute(
         'data-settings-form-span',

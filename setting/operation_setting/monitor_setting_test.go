@@ -89,3 +89,49 @@ func TestValidateChannelTestConcurrency(t *testing.T) {
 	assert.Error(t, ValidateChannelTestConcurrency("33"))
 	assert.Error(t, ValidateChannelTestConcurrency("1.5"))
 }
+
+func TestValidateExternalProbeOptionsEnforcesMinimums(t *testing.T) {
+	valid := map[string]string{
+		"monitor_setting.external_channel_fast_probe_enabled":           "true",
+		"monitor_setting.external_channel_fast_probe_seconds":           "5",
+		"monitor_setting.external_channel_fast_probe_fail_threshold":    "1",
+		"monitor_setting.external_channel_fast_probe_recover_threshold": "1",
+		"monitor_setting.external_channel_slow_probe_enabled":           "false",
+		"monitor_setting.external_channel_slow_probe_seconds":           "30",
+		"monitor_setting.external_channel_slow_probe_fail_threshold":    "2",
+		"monitor_setting.external_channel_slow_probe_recover_threshold": "1",
+	}
+	require.NoError(t, ValidateExternalProbeOptions(valid))
+
+	for key, bad := range map[string]string{
+		"monitor_setting.external_channel_fast_probe_seconds":        "4",
+		"monitor_setting.external_channel_slow_probe_seconds":        "29",
+		"monitor_setting.external_channel_fast_probe_fail_threshold": "0",
+		"monitor_setting.external_channel_slow_probe_enabled":        "yes",
+		"monitor_setting.external_channel_slow_probe_fail_threshold": "abc",
+	} {
+		raw := make(map[string]string, len(valid))
+		for k, v := range valid {
+			raw[k] = v
+		}
+		raw[key] = bad
+		assert.Error(t, ValidateExternalProbeOptions(raw), key)
+	}
+}
+
+func TestGetMonitorSettingNormalizesExternalProbeValues(t *testing.T) {
+	orig := monitorSetting
+	t.Cleanup(func() { monitorSetting = orig })
+	monitorSetting = MonitorSetting{
+		ExternalChannelFastProbeSeconds:       1,
+		ExternalChannelSlowProbeSeconds:       0,
+		ExternalChannelFastProbeFailThreshold: 0,
+	}
+
+	setting := GetMonitorSetting()
+
+	assert.Equal(t, MinExternalChannelFastProbeSeconds, setting.ExternalChannelFastProbeSeconds)
+	assert.Equal(t, MinExternalChannelSlowProbeSeconds, setting.ExternalChannelSlowProbeSeconds)
+	assert.Equal(t, 1, setting.ExternalChannelFastProbeFailThreshold)
+	assert.Equal(t, 1, setting.ExternalChannelSlowProbeRecoverThreshold)
+}

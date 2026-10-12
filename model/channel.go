@@ -55,6 +55,12 @@ type Channel struct {
 
 	OtherSettings string `json:"settings" gorm:"column:settings"` // 其他设置，存储azure版本等不需要检索的信息，详见dto.ChannelOtherSettings
 
+	// TokenFunc 二开：外部渠道（第三方中转站等不稳定上游）标记与接口探测路径。
+	// 健康态（接口/推理可用性、计数）放独立表 channel_health_states，列表接口装配到 HealthState。
+	IsExternal   *bool               `json:"is_external" gorm:"index"`
+	FastProbeURL *string             `json:"fast_probe_url" gorm:"column:fast_probe_url"`
+	HealthState  *ChannelHealthState `json:"health_state,omitempty" gorm:"-"`
+
 	// cache info
 	Keys []string `json:"-" gorm:"-"`
 }
@@ -349,6 +355,33 @@ func (channel *Channel) GetAutoBan() bool {
 	return *channel.AutoBan == 1
 }
 
+// GetIsExternal 外部渠道标记，nil 视为 false
+func (channel *Channel) GetIsExternal() bool {
+	return channel.IsExternal != nil && *channel.IsExternal
+}
+
+// DefaultChannelFastProbePath 接口探测默认路径：绝大多数 OpenAI 兼容中转站都提供模型列表接口
+const DefaultChannelFastProbePath = "/v1/models"
+
+// GetFastProbeURL 接口探测的 GET 路径（拼在 BaseURL 后面），未配置时回落到 /v1/models
+func (channel *Channel) GetFastProbeURL() string {
+	if channel.FastProbeURL == nil {
+		return DefaultChannelFastProbePath
+	}
+	path := strings.TrimSpace(*channel.FastProbeURL)
+	if path == "" {
+		return DefaultChannelFastProbePath
+	}
+	return path
+}
+
+// GetExternalChannels 读出全部外部渠道（含 key，探测要用）
+func GetExternalChannels() ([]*Channel, error) {
+	var channels []*Channel
+	err := DB.Where("is_external = ?", true).Order("id").Find(&channels).Error
+	return channels, err
+}
+
 func (channel *Channel) Save() error {
 	return DB.Save(channel).Error
 }
@@ -463,12 +496,14 @@ func BatchInsertChannels(channels []Channel) error {
 		}
 	}()
 
-	for _, chunk := range lo.Chunk(channels, 50) {
+	for chunkIndex, chunk := range lo.Chunk(channels, 50) {
 		if err := tx.Create(&chunk).Error; err != nil {
 			tx.Rollback()
 			return err
 		}
-		for _, channel_ := range chunk {
+		for i, channel_ := range chunk {
+			// lo.Chunk 复制了切片，把生成的主键写回调用方的切片（TokenFunc：新建后检查要用 id）
+			channels[chunkIndex*50+i].Id = channel_.Id
 			if err := channel_.AddAbilities(tx); err != nil {
 				tx.Rollback()
 				return err

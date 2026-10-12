@@ -66,6 +66,9 @@ type ChannelsContextType = {
   sensitiveVisible: boolean
   setSensitiveVisible: (visible: boolean) => void
   upstream: UpstreamUpdateState
+  /** 正在跟踪进度的「测试所有渠道」系统任务 id（TokenFunc 二开） */
+  testTaskId: string | null
+  setTestTaskId: (taskId: string | null) => void
 }
 
 // ============================================================================
@@ -92,6 +95,7 @@ export function ChannelsProvider({ children }: { children: React.ReactNode }) {
   })
   const [batchMode, setBatchMode] = useState(false)
   const [sensitiveVisible, setSensitiveVisible] = useState(true)
+  const [testTaskId, setTestTaskId] = useState<string | null>(null)
 
   const queryClient = useQueryClient()
   const refreshChannels = useCallback(async () => {
@@ -119,6 +123,8 @@ export function ChannelsProvider({ children }: { children: React.ReactNode }) {
       sensitiveVisible,
       setSensitiveVisible,
       upstream,
+      testTaskId,
+      setTestTaskId,
     }),
     [
       open,
@@ -129,6 +135,7 @@ export function ChannelsProvider({ children }: { children: React.ReactNode }) {
       batchMode,
       sensitiveVisible,
       upstream,
+      testTaskId,
     ]
   )
 

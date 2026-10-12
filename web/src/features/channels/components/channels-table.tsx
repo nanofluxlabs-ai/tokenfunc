@@ -62,13 +62,14 @@ import {
 } from '../lib'
 import type { Channel, ChannelSortBy } from '../types'
 import { ChannelCard } from './channel-card'
-import { ChannelTypeLogo } from './channel-type-badge'
+import { ChannelTypeTabs } from './channel-type-tabs'
 import { useChannelsColumns } from './channels-columns'
 import { useChannels } from './channels-provider'
 import { DataTableBulkActions } from './data-table-bulk-actions'
 
 const route = getRouteApi('/_authenticated/channels/')
-const CHANNELS_COLUMN_VISIBILITY_STORAGE_KEY = 'channels:column-visibility'
+// v2：标签列改为默认显示，换 key 让旧的持久化可见性失效一次
+const CHANNELS_COLUMN_VISIBILITY_STORAGE_KEY = 'channels:column-visibility:v2'
 const CHANNELS_COLUMN_SIZING_STORAGE_KEY = 'channels:column-sizing'
 const CHANNELS_VIEW_MODE_STORAGE_KEY = 'channels:view-mode'
 const CHANNELS_STATUS_FILTER_STORAGE_KEY = 'channel-status-filter'
@@ -320,7 +321,6 @@ export function ChannelsTable() {
     sorting,
     initialColumnVisibility: {
       models: false,
-      tag: false,
     },
     columnVisibilityStorageKey: CHANNELS_COLUMN_VISIBILITY_STORAGE_KEY,
     columnSizingStorageKey: isMobile
@@ -352,56 +352,48 @@ export function ChannelsTable() {
     }
   }, [batchMode, table])
 
-  // Prepare filter options from existing channel types only.
-  const typeFilterOptions = useMemo(() => {
+  // 顶部按供应商分 tab（TokenFunc 二开）：type_counts 不受当前类型筛选影响，适合做 tab 计数；
+  // 当前选中的类型即使计数为 0 也保留，避免切换筛选后 tab 消失
+  const typeTabs = useMemo(() => {
     const counts = typeCounts || {}
-    const typeIds = Object.entries(counts)
-      .map(([type, count]) => ({
-        type: Number(type),
-        count: Number(count) || 0,
-      }))
-      .filter((item) => item.type > 0 && item.count > 0)
-      .sort((a, b) => {
-        const labelA = t(getChannelTypeLabel(a.type))
-        const labelB = t(getChannelTypeLabel(b.type))
-        return labelA.localeCompare(labelB)
-      })
-
-    const selectedType = typeFilter.find((value) => value !== 'all')
-    if (selectedType) {
-      const selectedTypeId = Number(selectedType)
-      const alreadyIncluded = typeIds.some(
-        (item) => item.type === selectedTypeId
+    const selectedType = Number(typeFilter.find((value) => value !== 'all'))
+    const availableTypes = Object.entries(counts)
+      .map(([type, count]) => ({ type: Number(type), count: Number(count) }))
+      .filter(
+        (item) =>
+          item.type > 0 && (item.count > 0 || item.type === selectedType)
       )
-      if (selectedTypeId > 0 && !alreadyIncluded) {
-        typeIds.push({
-          type: selectedTypeId,
-          count: Number(counts[selectedType]) || 0,
-        })
-      }
+      .sort((a, b) =>
+        t(getChannelTypeLabel(a.type)).localeCompare(
+          t(getChannelTypeLabel(b.type))
+        )
+      )
+      .map((item) => item.type)
+    if (selectedType > 0 && !availableTypes.includes(selectedType)) {
+      availableTypes.push(selectedType)
     }
-
-    const totalTypes = Object.values(counts).reduce(
-      (sum, count) => sum + (Number(count) || 0),
-      0
-    )
-
-    return [
-      {
-        label: 'All Types',
-        value: 'all',
-        count: totalTypes,
-      },
-      ...typeIds.map((item) => {
-        return {
-          label: getChannelTypeLabel(item.type),
-          value: String(item.type),
-          count: item.count,
-          iconNode: <ChannelTypeLogo type={item.type} size={16} />,
-        }
-      }),
-    ]
+    const tabCounts: Record<string, number> = {
+      all: Object.values(counts).reduce(
+        (sum, count) => sum + (Number(count) || 0),
+        0
+      ),
+    }
+    for (const [type, count] of Object.entries(counts)) {
+      tabCounts[type] = Number(count) || 0
+    }
+    return { availableTypes, tabCounts }
   }, [t, typeCounts, typeFilter])
+
+  const selectedTypeTab = typeFilter.find((value) => value !== 'all') ?? ''
+  const onTypeTabChange = (value: string) => {
+    handleColumnFiltersChange((previous) => {
+      const rest = previous.filter((filter) => filter.id !== 'type')
+      return value ? [...rest, { id: 'type', value: [value] }] : rest
+    })
+    if (pagination.pageIndex > 0) {
+      onPaginationChange({ ...pagination, pageIndex: 0 })
+    }
+  }
 
   const groupFilterOptions = [
     { label: t('All Groups'), value: 'all' },
@@ -412,110 +404,112 @@ export function ChannelsTable() {
   ]
 
   return (
-    <DataTablePage
-      table={table}
-      columns={columns}
-      isLoading={isLoading}
-      isFetching={isFetching}
-      emptyTitle={t('No Channels Found')}
-      emptyDescription={t(
-        'No channels available. Create your first channel to get started.'
-      )}
-      skeletonKeyPrefix='channel-skeleton'
-      enableCardView
-      viewModeStorageKey={CHANNELS_VIEW_MODE_STORAGE_KEY}
-      renderCard={(row, { isSelected }) => (
-        <ChannelCard row={row} isSelected={isSelected} />
-      )}
-      cardGridClassName='grid grid-cols-1 gap-3 sm:gap-4 lg:grid-cols-3'
-      applyHeaderSize
-      toolbarProps={{
-        collapsibleOnMobile: true,
-        searchPlaceholder: t('Filter by name, ID, or key...'),
-        searchDebounceMs: 500,
-        onReset: () => {
-          resetModelFilterInput()
-        },
-        additionalSearch: (
-          <Input
-            placeholder={t('Filter by model...')}
-            value={modelFilterInput}
-            onChange={onModelFilterInputChange}
-            onCompositionStart={onModelFilterCompositionStart}
-            onCompositionEnd={onModelFilterCompositionEnd}
-            className='w-full sm:w-[150px] lg:w-[180px]'
-          />
-        ),
-        filters: [
-          {
-            columnId: 'status',
-            title: t('Status'),
-            options: [...CHANNEL_STATUS_OPTIONS],
-            singleSelect: true,
+    <div className='flex h-full min-h-0 flex-col gap-2.5 sm:gap-3'>
+      <ChannelTypeTabs
+        value={selectedTypeTab}
+        onValueChange={onTypeTabChange}
+        availableTypes={typeTabs.availableTypes}
+        typeCounts={typeTabs.tabCounts}
+      />
+      <DataTablePage
+        table={table}
+        columns={columns}
+        isLoading={isLoading}
+        isFetching={isFetching}
+        emptyTitle={t('No Channels Found')}
+        emptyDescription={t(
+          'No channels available. Create your first channel to get started.'
+        )}
+        skeletonKeyPrefix='channel-skeleton'
+        enableCardView
+        viewModeStorageKey={CHANNELS_VIEW_MODE_STORAGE_KEY}
+        renderCard={(row, { isSelected }) => (
+          <ChannelCard row={row} isSelected={isSelected} />
+        )}
+        cardGridClassName='grid grid-cols-1 gap-3 sm:gap-4 lg:grid-cols-3'
+        applyHeaderSize
+        toolbarProps={{
+          collapsibleOnMobile: true,
+          searchPlaceholder: t('Filter by name, ID, or key...'),
+          searchDebounceMs: 500,
+          onReset: () => {
+            resetModelFilterInput()
           },
-          {
-            columnId: 'type',
-            title: t('Type'),
-            options: typeFilterOptions,
-            singleSelect: true,
-          },
-          {
-            columnId: 'group',
-            title: t('Group'),
-            options: groupFilterOptions,
-            singleSelect: true,
-          },
-        ],
-        preActions: (
-          <>
-            <Tooltip>
-              <TooltipTrigger
-                render={
-                  <Button
-                    variant='ghost'
-                    size='icon'
-                    onClick={() => setSensitiveVisible(!sensitiveVisible)}
-                    aria-label={sensitiveVisible ? t('Hide') : t('Show')}
-                    className='text-muted-foreground hover:text-foreground size-8'
-                  />
-                }
-              >
-                {sensitiveVisible ? <Eye /> : <EyeOff />}
-              </TooltipTrigger>
-              <TooltipContent>
-                {sensitiveVisible ? t('Hide') : t('Show')}
-              </TooltipContent>
-            </Tooltip>
-            <Tooltip>
-              <TooltipTrigger
-                render={
-                  <Button
-                    variant='ghost'
-                    size='icon'
-                    onClick={() => void refetch()}
-                    aria-label={t('Refresh')}
-                    aria-busy={isFetching}
-                    className='text-muted-foreground hover:text-foreground size-8'
-                  />
-                }
-              >
-                <RefreshCw className={cn(isFetching && 'animate-spin')} />
-              </TooltipTrigger>
-              <TooltipContent>{t('Refresh')}</TooltipContent>
-            </Tooltip>
-          </>
-        ),
-      }}
-      getRowClassName={(row, { isMobile }) => {
-        if (!isDisabledChannelRow(row.original)) {
-          return undefined
-        }
-        if (isMobile) {
-          return DISABLED_ROW_MOBILE
-        }
-        return DISABLED_ROW_DESKTOP
-      }}
-      bulkActions={batchMode ? <DataTableBulkActions table={table} /> : null}
-    />
+          additionalSearch: (
+            <Input
+              placeholder={t('Filter by model...')}
+              value={modelFilterInput}
+              onChange={onModelFilterInputChange}
+              onCompositionStart={onModelFilterCompositionStart}
+              onCompositionEnd={onModelFilterCompositionEnd}
+              className='w-full sm:w-[150px] lg:w-[180px]'
+            />
+          ),
+          filters: [
+            {
+              columnId: 'status',
+              title: t('Status'),
+              options: [...CHANNEL_STATUS_OPTIONS],
+              singleSelect: true,
+            },
+            {
+              columnId: 'group',
+              title: t('Group'),
+              options: groupFilterOptions,
+              singleSelect: true,
+            },
+          ],
+          preActions: (
+            <>
+              <Tooltip>
+                <TooltipTrigger
+                  render={
+                    <Button
+                      variant='ghost'
+                      size='icon'
+                      onClick={() => setSensitiveVisible(!sensitiveVisible)}
+                      aria-label={sensitiveVisible ? t('Hide') : t('Show')}
+                      className='text-muted-foreground hover:text-foreground size-8'
+                    />
+                  }
+                >
+                  {sensitiveVisible ? <Eye /> : <EyeOff />}
+                </TooltipTrigger>
+                <TooltipContent>
+                  {sensitiveVisible ? t('Hide') : t('Show')}
+                </TooltipContent>
+              </Tooltip>
+              <Tooltip>
+                <TooltipTrigger
+                  render={
+                    <Button
+                      variant='ghost'
+                      size='icon'
+                      onClick={() => void refetch()}
+                      aria-label={t('Refresh')}
+                      aria-busy={isFetching}
+                      className='text-muted-foreground hover:text-foreground size-8'
+                    />
+                  }
+                >
+                  <RefreshCw className={cn(isFetching && 'animate-spin')} />
+                </TooltipTrigger>
+                <TooltipContent>{t('Refresh')}</TooltipContent>
+              </Tooltip>
+            </>
+          ),
+        }}
+        getRowClassName={(row, { isMobile }) => {
+          if (!isDisabledChannelRow(row.original)) {
+            return undefined
+          }
+          if (isMobile) {
+            return DISABLED_ROW_MOBILE
+          }
+          return DISABLED_ROW_DESKTOP
+        }}
+        bulkActions={batchMode ? <DataTableBulkActions table={table} /> : null}
+      />
+    </div>
   )
 }

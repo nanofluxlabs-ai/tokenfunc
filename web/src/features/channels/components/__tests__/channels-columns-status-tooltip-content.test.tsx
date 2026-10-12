@@ -75,3 +75,70 @@ test('keeps the long string inside the status tooltip is wrapped when show', asy
     'wrap-anywhere'
   )
 })
+
+test('shows an enabled external channel with failed probes as dispatch paused and names the failed dimension', async () => {
+  const channelItem = channelSchema.parse({
+    id: 2,
+    type: 1,
+    key: 'test-key',
+    name: 'External-Relay',
+    status: 1,
+    created_time: 1,
+    test_time: 0,
+    response_time: 0,
+    balance_updated_time: 0,
+    is_external: true,
+    health_state: {
+      channel_id: 2,
+      api_health: 'ok',
+      inference_health: 'failed',
+      last_inference_error: 'HTTP 502: bad gateway',
+    },
+  })
+  const queryClient = new QueryClient()
+  const user = userEvent.setup()
+
+  render(
+    <QueryClientProvider client={queryClient}>
+      <ChannelsProvider>
+        <ExampleAutoDisabledStatusCell channel={channelItem} />
+      </ChannelsProvider>
+    </QueryClientProvider>
+  )
+
+  const badge = screen.getByText('Enabled · Dispatch paused')
+  await user.hover(badge)
+
+  expect(
+    await screen.findByText('Inference probe failed: HTTP 502: bad gateway')
+  ).toBeInTheDocument()
+  expect(screen.queryByText(/API probe failed/)).toBeNull()
+})
+
+test('keeps a plain enabled badge for a non-external channel even when a failed health state is attached', () => {
+  const channelItem = channelSchema.parse({
+    id: 3,
+    type: 1,
+    key: 'test-key',
+    name: 'Official',
+    status: 1,
+    created_time: 1,
+    test_time: 0,
+    response_time: 0,
+    balance_updated_time: 0,
+    is_external: false,
+    health_state: { channel_id: 3, api_health: 'failed' },
+  })
+  const queryClient = new QueryClient()
+
+  render(
+    <QueryClientProvider client={queryClient}>
+      <ChannelsProvider>
+        <ExampleAutoDisabledStatusCell channel={channelItem} />
+      </ChannelsProvider>
+    </QueryClientProvider>
+  )
+
+  expect(screen.getByText('Enabled')).toBeInTheDocument()
+  expect(screen.queryByText(/Dispatch paused/)).toBeNull()
+})

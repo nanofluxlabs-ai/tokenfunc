@@ -900,6 +900,10 @@ func TestChannel(c *gin.Context) {
 		})
 		return
 	}
+	// TokenFunc 二开：外部渠道手动测试成功直接恢复推理维度
+	if channel.GetIsExternal() {
+		go service.RecordChannelManualTestSuccess(channel)
+	}
 	c.JSON(http.StatusOK, gin.H{
 		"success": true,
 		"message": "",
@@ -1110,8 +1114,13 @@ func runChannelTestTask(ctx context.Context, mode string, notify bool, report fu
 
 func selectChannelsForAutomaticTest(channels []*model.Channel, mode string) []*model.Channel {
 	selected := make([]*model.Channel, 0, len(channels))
+	// TokenFunc 二开：慢探开启时外部渠道由慢探接管，定时全量测试不再重复打它们
+	skipExternal := operation_setting.GetMonitorSetting().ExternalChannelSlowProbeEnabled
 	for _, channel := range channels {
 		if channel.Status == common.ChannelStatusManuallyDisabled {
+			continue
+		}
+		if skipExternal && channel.GetIsExternal() {
 			continue
 		}
 		if mode == operation_setting.ChannelTestModeAutoBanOnly && !channel.GetAutoBan() {

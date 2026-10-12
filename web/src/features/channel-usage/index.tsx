@@ -18,6 +18,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
+import { ChannelTypeTabs } from '@/features/channels/components/channel-type-tabs'
 import { DayRangeControls } from '@/features/finance/components/day-range-controls'
 import { useFinanceDateRange } from '@/features/finance/hooks/use-finance-date-range'
 import { useTableUrlState } from '@/hooks/use-table-url-state'
@@ -25,7 +26,6 @@ import { requireServerSuccess } from '@/lib/server-error-message'
 
 import { getChannelUsageStats } from './api'
 import { BillingDatePresets } from './components/billing-date-presets'
-import { ChannelTypeTabs } from './components/channel-type-tabs'
 import { ChannelUsageTable } from './components/channel-usage-table'
 import { UsageSummaryCards } from './components/usage-summary-cards'
 import {
@@ -81,11 +81,15 @@ export function ChannelUsagePage() {
     [search.expand]
   )
 
-  // 输入框改动不立即写 URL，点「查询」才生效
+  // 输入框改动不立即写 URL，点「查询」才生效；URL 变化时在渲染期同步草稿（避免 effect 里 setState 的级联渲染）
   const [draftKeyword, setDraftKeyword] = useState(keyword)
   const [draftStatus, setDraftStatus] = useState(status)
-  useEffect(() => setDraftKeyword(keyword), [keyword])
-  useEffect(() => setDraftStatus(status), [status])
+  const [syncedSearch, setSyncedSearch] = useState({ keyword, status })
+  if (syncedSearch.keyword !== keyword || syncedSearch.status !== status) {
+    setSyncedSearch({ keyword, status })
+    setDraftKeyword(keyword)
+    setDraftStatus(status)
+  }
 
   const { pagination, onPaginationChange, ensurePageInRange } =
     useTableUrlState({

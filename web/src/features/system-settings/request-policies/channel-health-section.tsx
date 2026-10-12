@@ -75,6 +75,15 @@ const channelTestModes = [
 ] as const
 type ChannelTestMode = (typeof channelTestModes)[number]
 const MAX_CHANNEL_TEST_CONCURRENCY = 32
+// 与后端 operation_setting 的下限一致
+const MIN_FAST_PROBE_SECONDS = 5
+const MIN_SLOW_PROBE_SECONDS = 30
+
+const positiveInt = (t: (key: string) => string) =>
+  z.coerce
+    .number()
+    .int(t('Enter a positive integer'))
+    .min(1, t('Enter a positive integer'))
 
 const createChannelHealthSchema = (
   t: (key: string, options?: Record<string, unknown>) => string
@@ -101,6 +110,30 @@ const createChannelHealthSchema = (
             t('Channel test concurrency must be between 1 and 32')
           ),
         channel_test_mode: z.enum(channelTestModes),
+        external_channel_fast_probe_enabled: z.boolean(),
+        external_channel_fast_probe_seconds: z.coerce
+          .number()
+          .int(t('Enter a positive integer'))
+          .min(
+            MIN_FAST_PROBE_SECONDS,
+            t('Interval must be at least {{seconds}} seconds', {
+              seconds: MIN_FAST_PROBE_SECONDS,
+            })
+          ),
+        external_channel_fast_probe_fail_threshold: positiveInt(t),
+        external_channel_fast_probe_recover_threshold: positiveInt(t),
+        external_channel_slow_probe_enabled: z.boolean(),
+        external_channel_slow_probe_seconds: z.coerce
+          .number()
+          .int(t('Enter a positive integer'))
+          .min(
+            MIN_SLOW_PROBE_SECONDS,
+            t('Interval must be at least {{seconds}} seconds', {
+              seconds: MIN_SLOW_PROBE_SECONDS,
+            })
+          ),
+        external_channel_slow_probe_fail_threshold: positiveInt(t),
+        external_channel_slow_probe_recover_threshold: positiveInt(t),
       }),
     })
     .superRefine((values, ctx) => {
@@ -140,6 +173,58 @@ type NormalizedChannelHealthValues = {
   'monitor_setting.auto_test_channel_minutes': number
   'monitor_setting.channel_test_concurrency': number
   'monitor_setting.channel_test_mode': ChannelTestMode
+  'monitor_setting.external_channel_fast_probe_enabled': boolean
+  'monitor_setting.external_channel_fast_probe_seconds': number
+  'monitor_setting.external_channel_fast_probe_fail_threshold': number
+  'monitor_setting.external_channel_fast_probe_recover_threshold': number
+  'monitor_setting.external_channel_slow_probe_enabled': boolean
+  'monitor_setting.external_channel_slow_probe_seconds': number
+  'monitor_setting.external_channel_slow_probe_fail_threshold': number
+  'monitor_setting.external_channel_slow_probe_recover_threshold': number
+}
+
+/** 外部渠道探测的 8 个 monitor_setting 子键：表单嵌套字段名与 option key 后缀相同 */
+const externalProbeFields = [
+  'external_channel_fast_probe_enabled',
+  'external_channel_fast_probe_seconds',
+  'external_channel_fast_probe_fail_threshold',
+  'external_channel_fast_probe_recover_threshold',
+  'external_channel_slow_probe_enabled',
+  'external_channel_slow_probe_seconds',
+  'external_channel_slow_probe_fail_threshold',
+  'external_channel_slow_probe_recover_threshold',
+] as const
+type ExternalProbeField = (typeof externalProbeFields)[number]
+type ExternalProbeValues = {
+  [K in ExternalProbeField]: K extends `${string}_enabled` ? boolean : number
+}
+
+function pickExternalProbeDefaults(
+  defaults: ChannelHealthSectionProps['defaultValues']
+): ExternalProbeValues {
+  return Object.fromEntries(
+    externalProbeFields.map((field) => [
+      field,
+      defaults[`monitor_setting.${field}`],
+    ])
+  ) as ExternalProbeValues
+}
+
+function flattenExternalProbeValues(
+  values: ExternalProbeValues
+): Pick<
+  NormalizedChannelHealthValues,
+  `monitor_setting.${ExternalProbeField}`
+> {
+  return Object.fromEntries(
+    externalProbeFields.map((field) => [
+      `monitor_setting.${field}`,
+      values[field],
+    ])
+  ) as Pick<
+    NormalizedChannelHealthValues,
+    `monitor_setting.${ExternalProbeField}`
+  >
 }
 
 function normalizeChannelTestMode(value?: string): ChannelTestMode {
@@ -169,6 +254,7 @@ const buildFormDefaults = (
     channel_test_mode: normalizeChannelTestMode(
       defaults['monitor_setting.channel_test_mode']
     ),
+    ...pickExternalProbeDefaults(defaults),
   },
 })
 
@@ -193,6 +279,7 @@ const normalizeDefaults = (
   'monitor_setting.channel_test_mode': normalizeChannelTestMode(
     defaults['monitor_setting.channel_test_mode']
   ),
+  ...flattenExternalProbeValues(pickExternalProbeDefaults(defaults)),
 })
 
 const normalizeFormValues = (
@@ -214,6 +301,7 @@ const normalizeFormValues = (
   'monitor_setting.channel_test_concurrency':
     values.monitor_setting.channel_test_concurrency,
   'monitor_setting.channel_test_mode': values.monitor_setting.channel_test_mode,
+  ...flattenExternalProbeValues(values.monitor_setting),
 })
 
 export function ChannelHealthSection({
@@ -483,6 +571,202 @@ export function ChannelHealthSection({
                   </SettingsSwitchItem>
                 )}
               />
+            </SettingsFormGrid>
+          </div>
+
+          <Separator />
+
+          <div className='flex min-w-0 flex-col gap-4'>
+            <h4 className='text-sm font-medium'>
+              {t('External channel probes')}
+            </h4>
+            <p className='text-muted-foreground text-sm'>
+              {t(
+                'Only channels marked as external are probed. A failed probe pauses dispatch to that channel without changing its status; it resumes automatically after enough successes.'
+              )}
+            </p>
+            <SettingsFormGrid>
+              <SettingsControlGroup>
+                <FormField
+                  control={form.control}
+                  name='monitor_setting.external_channel_fast_probe_enabled'
+                  render={({ field }) => (
+                    <SettingsSwitchItem>
+                      <SettingsSwitchContent>
+                        <FormLabel>{t('API probes')}</FormLabel>
+                        <FormDescription>
+                          {t(
+                            'Send a lightweight GET to the probe path and treat any non-2xx or network error as a failure'
+                          )}
+                        </FormDescription>
+                      </SettingsSwitchContent>
+                      <FormControl>
+                        <Switch
+                          checked={field.value}
+                          onCheckedChange={field.onChange}
+                        />
+                      </FormControl>
+                    </SettingsSwitchItem>
+                  )}
+                />
+                <SettingsControlChildren
+                  role='group'
+                  aria-label={t('API probe options')}
+                  className='grid gap-x-5 gap-y-4 lg:grid-cols-3'
+                >
+                  <FormField
+                    control={form.control}
+                    name='monitor_setting.external_channel_fast_probe_seconds'
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>
+                          {t('API probe interval (seconds)')}
+                        </FormLabel>
+                        <FormControl>
+                          <Input
+                            type='number'
+                            min={MIN_FAST_PROBE_SECONDS}
+                            step={1}
+                            {...safeNumberFieldProps(field)}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name='monitor_setting.external_channel_fast_probe_fail_threshold'
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>
+                          {t('API failures before pausing')}
+                        </FormLabel>
+                        <FormControl>
+                          <Input
+                            type='number'
+                            min={1}
+                            step={1}
+                            {...safeNumberFieldProps(field)}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name='monitor_setting.external_channel_fast_probe_recover_threshold'
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>
+                          {t('API successes before resuming')}
+                        </FormLabel>
+                        <FormControl>
+                          <Input
+                            type='number'
+                            min={1}
+                            step={1}
+                            {...safeNumberFieldProps(field)}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </SettingsControlChildren>
+              </SettingsControlGroup>
+
+              <SettingsControlGroup>
+                <FormField
+                  control={form.control}
+                  name='monitor_setting.external_channel_slow_probe_enabled'
+                  render={({ field }) => (
+                    <SettingsSwitchItem>
+                      <SettingsSwitchContent>
+                        <FormLabel>{t('Inference probes')}</FormLabel>
+                        <FormDescription>
+                          {t(
+                            'Send a real test request through the channel. Upstream 5xx responses during normal traffic count toward the same threshold, and one successful request resumes dispatch. External channels are skipped by scheduled channel tests while this is on.'
+                          )}
+                        </FormDescription>
+                      </SettingsSwitchContent>
+                      <FormControl>
+                        <Switch
+                          checked={field.value}
+                          onCheckedChange={field.onChange}
+                        />
+                      </FormControl>
+                    </SettingsSwitchItem>
+                  )}
+                />
+                <SettingsControlChildren
+                  role='group'
+                  aria-label={t('Inference probe options')}
+                  className='grid gap-x-5 gap-y-4 lg:grid-cols-3'
+                >
+                  <FormField
+                    control={form.control}
+                    name='monitor_setting.external_channel_slow_probe_seconds'
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>
+                          {t('Inference probe interval (seconds)')}
+                        </FormLabel>
+                        <FormControl>
+                          <Input
+                            type='number'
+                            min={MIN_SLOW_PROBE_SECONDS}
+                            step={1}
+                            {...safeNumberFieldProps(field)}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name='monitor_setting.external_channel_slow_probe_fail_threshold'
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>
+                          {t('Inference failures before pausing')}
+                        </FormLabel>
+                        <FormControl>
+                          <Input
+                            type='number'
+                            min={1}
+                            step={1}
+                            {...safeNumberFieldProps(field)}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name='monitor_setting.external_channel_slow_probe_recover_threshold'
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>
+                          {t('Inference successes before resuming')}
+                        </FormLabel>
+                        <FormControl>
+                          <Input
+                            type='number'
+                            min={1}
+                            step={1}
+                            {...safeNumberFieldProps(field)}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </SettingsControlChildren>
+              </SettingsControlGroup>
             </SettingsFormGrid>
           </div>
 

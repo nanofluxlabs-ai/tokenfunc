@@ -193,11 +193,8 @@ func financePeriod(r model.FinanceRange) gin.H {
 	return gin.H{"start": model.FinanceDay(r.Start), "end": model.FinanceDay(r.EndExcl - 1), "ts_start": r.Start, "ts_end": r.EndExcl - 1}
 }
 
-func AdminGetFinanceUsageSummary(c *gin.Context) {
-	userId, ok := financeUserIdQuery(c)
-	if !ok {
-		return
-	}
+// financeUsageSummary 等四个函数是管理员（指定 user_id）与个人（本人）两套路由的共同主体
+func financeUsageSummary(c *gin.Context, userId int) {
 	r, ok := financeUsageRange(c, model.FinanceMaxRangeDays)
 	if !ok {
 		return
@@ -213,11 +210,7 @@ func AdminGetFinanceUsageSummary(c *gin.Context) {
 	})
 }
 
-func AdminGetFinanceUsageDaily(c *gin.Context) {
-	userId, ok := financeUserIdQuery(c)
-	if !ok {
-		return
-	}
+func financeUsageDaily(c *gin.Context, userId int) {
 	r, ok := financeUsageRange(c, model.FinanceMaxRangeDays)
 	if !ok {
 		return
@@ -232,11 +225,7 @@ func AdminGetFinanceUsageDaily(c *gin.Context) {
 	})
 }
 
-func AdminListFinanceUsageDetail(c *gin.Context) {
-	userId, ok := financeUserIdQuery(c)
-	if !ok {
-		return
-	}
+func financeUsageDetail(c *gin.Context, userId int) {
 	r, ok := financeUsageRange(c, 0)
 	if !ok {
 		return
@@ -252,12 +241,29 @@ func AdminListFinanceUsageDetail(c *gin.Context) {
 	common.ApiSuccess(c, pageInfo)
 }
 
-// AdminExportFinanceUsage 导出 CSV；include_detail 缺省视为 true
-func AdminExportFinanceUsage(c *gin.Context) {
-	userId, ok := financeUserIdQuery(c)
-	if !ok {
-		return
+// financeExportSubject 导出文件注释头里的账号标识与企业名
+func financeExportSubject(userId int) (accountLabel string, enterpriseName string) {
+	var user model.User
+	if err := model.DB.Unscoped().Select("id, username, email").Where("id = ?", userId).First(&user).Error; err == nil {
+		accountLabel = user.Username
+		if user.Email != "" {
+			accountLabel = user.Username + " <" + user.Email + ">"
+		}
 	}
+	if enterprise, err := model.GetEnterpriseByUserId(userId); err == nil && enterprise != nil {
+		enterpriseName = enterprise.Name
+	}
+	return accountLabel, enterpriseName
+}
+
+func financeCSVHeaders(c *gin.Context, filename string) {
+	c.Header("Content-Disposition", fmt.Sprintf(`attachment; filename="%s"`, filename))
+	c.Header("Content-Type", "text/csv; charset=utf-8")
+	c.Status(http.StatusOK)
+}
+
+// financeUsageExport 导出 CSV；include_detail 缺省视为 true
+func financeUsageExport(c *gin.Context, userId int) {
 	r, ok := financeUsageRange(c, model.FinanceMaxRangeDays)
 	if !ok {
 		return
@@ -282,21 +288,109 @@ func AdminExportFinanceUsage(c *gin.Context) {
 			return
 		}
 	}
-	var user model.User
-	if err := model.DB.Unscoped().Select("id, username, email").Where("id = ?", userId).First(&user).Error; err == nil {
-		payload.AccountLabel = user.Username
-		if user.Email != "" {
-			payload.AccountLabel = user.Username + " <" + user.Email + ">"
-		}
-	}
-	if enterprise, err := model.GetEnterpriseByUserId(userId); err == nil && enterprise != nil {
-		payload.EnterpriseName = enterprise.Name
-	}
-	c.Header("Content-Disposition", fmt.Sprintf(`attachment; filename="usage-%d_%s_%s.csv"`, userId, payload.StartDay, payload.EndDay))
-	c.Header("Content-Type", "text/csv; charset=utf-8")
-	c.Status(http.StatusOK)
+	payload.AccountLabel, payload.EnterpriseName = financeExportSubject(userId)
+	financeCSVHeaders(c, fmt.Sprintf("usage-%d_%s_%s.csv", userId, payload.StartDay, payload.EndDay))
 	if err := service.WriteFinanceUsageCSV(c.Writer, payload); err != nil {
 		common.SysError("finance usage export failed: " + err.Error())
+	}
+}
+
+func AdminGetFinanceUsageSummary(c *gin.Context) {
+	if userId, ok := financeUserIdQuery(c); ok {
+		financeUsageSummary(c, userId)
+	}
+}
+
+func AdminGetFinanceUsageDaily(c *gin.Context) {
+	if userId, ok := financeUserIdQuery(c); ok {
+		financeUsageDaily(c, userId)
+	}
+}
+
+func AdminListFinanceUsageDetail(c *gin.Context) {
+	if userId, ok := financeUserIdQuery(c); ok {
+		financeUsageDetail(c, userId)
+	}
+}
+
+func AdminExportFinanceUsage(c *gin.Context) {
+	if userId, ok := financeUserIdQuery(c); ok {
+		financeUsageExport(c, userId)
+	}
+}
+
+// ---------------------------------------------------------------------------
+// 个人财务对账：本人消费账单 + 钱包流水
+// ---------------------------------------------------------------------------
+
+func GetSelfFinanceUsageSummary(c *gin.Context) { financeUsageSummary(c, c.GetInt("id")) }
+func GetSelfFinanceUsageDaily(c *gin.Context)   { financeUsageDaily(c, c.GetInt("id")) }
+func GetSelfFinanceUsageDetail(c *gin.Context)  { financeUsageDetail(c, c.GetInt("id")) }
+func GetSelfFinanceUsageExport(c *gin.Context)  { financeUsageExport(c, c.GetInt("id")) }
+
+func GetSelfFinanceTopupSummary(c *gin.Context) {
+	r, ok := financeUsageRange(c, model.FinanceMaxRangeDays)
+	if !ok {
+		return
+	}
+	entries, err := model.ListFinanceTopupEntries(c.GetInt("id"), r)
+	if err != nil {
+		financeApiError(c, err)
+		return
+	}
+	summary := model.SummarizeFinanceTopup(entries)
+	common.ApiSuccess(c, gin.H{
+		"period": financePeriod(r), "total_entries": summary.TotalEntries, "total_quota": summary.TotalQuota,
+		"total_amount_usd": summary.TotalAmountUSD, "by_source": summary.BySource,
+	})
+}
+
+// GetSelfFinanceTopupDetail 流水明细；source 非空时只看该来源；流水在内存里分页
+func GetSelfFinanceTopupDetail(c *gin.Context) {
+	r, ok := financeUsageRange(c, model.FinanceMaxRangeDays)
+	if !ok {
+		return
+	}
+	entries, err := model.ListFinanceTopupEntries(c.GetInt("id"), r)
+	if err != nil {
+		financeApiError(c, err)
+		return
+	}
+	if source := c.Query("source"); source != "" && source != "all" {
+		filtered := entries[:0]
+		for _, entry := range entries {
+			if entry.Source == source {
+				filtered = append(filtered, entry)
+			}
+		}
+		entries = filtered
+	}
+	pageInfo := common.GetPageQuery(c)
+	start := min(pageInfo.GetStartIdx(), len(entries))
+	end := min(start+pageInfo.GetPageSize(), len(entries))
+	pageInfo.SetTotal(len(entries))
+	pageInfo.SetItems(entries[start:end])
+	common.ApiSuccess(c, pageInfo)
+}
+
+func GetSelfFinanceTopupExport(c *gin.Context) {
+	r, ok := financeUsageRange(c, model.FinanceMaxRangeDays)
+	if !ok {
+		return
+	}
+	userId := c.GetInt("id")
+	entries, err := model.ListFinanceTopupEntries(userId, r)
+	if err != nil {
+		financeApiError(c, err)
+		return
+	}
+	payload := service.FinanceTopupCSVPayload{
+		StartDay: model.FinanceDay(r.Start), EndDay: model.FinanceDay(r.EndExcl - 1), Summary: model.SummarizeFinanceTopup(entries), Entries: entries,
+	}
+	payload.AccountLabel, payload.EnterpriseName = financeExportSubject(userId)
+	financeCSVHeaders(c, fmt.Sprintf("topup-%d_%s_%s.csv", userId, payload.StartDay, payload.EndDay))
+	if err := service.WriteFinanceTopupCSV(c.Writer, payload); err != nil {
+		common.SysError("finance topup export failed: " + err.Error())
 	}
 }
 

@@ -220,15 +220,15 @@ export function PublicHeader(props: PublicHeaderProps) {
                 to={homeUrl}
                 className='group flex min-w-0 items-center gap-2.5'
               >
-                <div className='flex size-7 shrink-0 items-center justify-center transition-all duration-300 group-hover:scale-105'>
+                <div className='flex size-8 shrink-0 items-center justify-center transition-all duration-300 group-hover:scale-105'>
                   {logoContent}
                 </div>
                 <span
-                  className='max-w-48 truncate text-sm font-semibold tracking-tight'
+                  className='max-w-48 truncate text-lg font-semibold tracking-tight'
                   title={displaySiteName}
                 >
                   {loading ? (
-                    <Skeleton className='h-4 w-16' />
+                    <Skeleton className='h-5 w-20' />
                   ) : (
                     displaySiteName
                   )}

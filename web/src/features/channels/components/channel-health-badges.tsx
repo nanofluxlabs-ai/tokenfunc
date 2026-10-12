@@ -17,7 +17,8 @@ import type { Channel } from '../types'
 
 /** 小号浅底圆角标签：比表格正文小一号，不抢渠道名称的视觉 */
 const HEALTH_BADGE_CLASS =
-  'h-[18px] rounded-md bg-current/10 px-1.5 text-[11px] font-medium'
+  // 表格对 td 内所有元素强制 font-size: inherit，这里要用 ! 才能压到 12px
+  'h-4 rounded-md bg-current/10 px-1 text-xs! leading-none font-medium'
 
 type HealthDimensionBadgeProps = {
   label: string

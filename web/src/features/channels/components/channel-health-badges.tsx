@@ -15,6 +15,10 @@ import {
 } from '../lib/channel-health'
 import type { Channel } from '../types'
 
+/** 小号浅底圆角标签：比表格正文小一号，不抢渠道名称的视觉 */
+const HEALTH_BADGE_CLASS =
+  'h-[18px] rounded-md bg-current/10 px-1.5 text-[11px] font-medium'
+
 type HealthDimensionBadgeProps = {
   label: string
   health: ChannelHealthValue
@@ -40,6 +44,7 @@ function HealthDimensionBadge(props: HealthDimensionBadgeProps) {
             variant={failed ? 'danger' : 'success'}
             size='sm'
             copyable={false}
+            className={HEALTH_BADGE_CLASS}
             aria-label={
               failed
                 ? t('{{dimension}} unavailable', { dimension: props.label })
@@ -93,6 +98,7 @@ export function ChannelHealthBadges(props: { channel: Channel }) {
               variant='orange'
               size='sm'
               copyable={false}
+              className={HEALTH_BADGE_CLASS}
             />
           </TooltipTrigger>
           <TooltipContent side='top' className='max-w-xs'>

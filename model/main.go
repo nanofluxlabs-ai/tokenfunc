@@ -389,6 +389,8 @@ func migrateDB() error {
 		&ChannelHourlyUsage{},
 		&ChannelDailyDimUsage{},
 		&ChannelUsageTotal{},
+		&ChannelHealthState{},
+		&ChannelHealthEvent{},
 	)
 	if err != nil {
 		return err

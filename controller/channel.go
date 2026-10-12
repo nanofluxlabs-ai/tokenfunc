@@ -179,6 +179,30 @@ func GetChannelOps(c *gin.Context) {
 	})
 }
 
+// GetChannelHealthEvents 外部渠道最近的健康事件（TokenFunc 二开）
+func GetChannelHealthEvents(c *gin.Context) {
+	id, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		common.ApiError(c, err)
+		return
+	}
+	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "20"))
+	state, err := model.GetChannelHealthState(id)
+	if err != nil {
+		common.ApiError(c, err)
+		return
+	}
+	events, err := model.GetChannelHealthEvents(id, limit)
+	if err != nil {
+		common.ApiError(c, err)
+		return
+	}
+	common.ApiSuccess(c, gin.H{
+		"state":  state,
+		"events": events,
+	})
+}
+
 func GetChannelDefaultBaseURLs(c *gin.Context) {
 	baseURLs := make(map[int]string)
 	for channelType, baseURL := range constant.ChannelBaseURLs {
@@ -259,6 +283,9 @@ func GetAllChannels(c *gin.Context) {
 
 	for _, datum := range channelData {
 		clearChannelInfo(datum)
+	}
+	if err := model.AttachChannelHealthStates(channelData); err != nil {
+		common.SysError("failed to attach channel health states: " + err.Error())
 	}
 
 	countQuery := buildChannelListQuery(groupFilter, statusFilter, -1)
@@ -466,6 +493,9 @@ func SearchChannels(c *gin.Context) {
 
 	for _, datum := range pagedData {
 		clearChannelInfo(datum)
+	}
+	if err := model.AttachChannelHealthStates(pagedData); err != nil {
+		common.SysError("failed to attach channel health states: " + err.Error())
 	}
 
 	c.JSON(http.StatusOK, gin.H{
@@ -853,6 +883,14 @@ func AddChannel(c *gin.Context) {
 		common.ApiError(c, err)
 		return
 	}
+	// TokenFunc 二开：新建后异步测一次，渠道列表立刻有响应时间与健康态
+	createdIds := make([]int, 0, len(channels))
+	for _, created := range channels {
+		if created.Id > 0 {
+			createdIds = append(createdIds, created.Id)
+		}
+	}
+	go runPostCreateChannelChecks(createdIds)
 	createAudit := map[string]any{
 		"name":  addChannelRequest.Channel.Name,
 		"type":  addChannelRequest.Channel.Type,

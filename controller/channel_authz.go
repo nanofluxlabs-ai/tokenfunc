@@ -33,6 +33,10 @@ func channelHasSensitiveChanges(channel *PatchChannel, origin *model.Channel, re
 	if _, ok := requestData["key_mode"]; ok && channel.KeyMode != nil {
 		return true
 	}
+	// TokenFunc 二开：探测路径会带着渠道密钥发请求，允许绝对 URL，改它等同改 base_url
+	if _, ok := requestData["fast_probe_url"]; ok && !equalStringPtr(channel.FastProbeURL, origin.FastProbeURL) {
+		return true
+	}
 	// Fail closed: any field present in the request that is neither a known
 	// sensitive field (gated above) nor an explicitly classified non-sensitive
 	// field must be treated as sensitive. This keeps a newly added channel field
@@ -71,6 +75,7 @@ var channelSensitiveFields = map[string]struct{}{
 	"other":               {},
 	"settings":            {},
 	"key_mode":            {},
+	"fast_probe_url":      {},
 }
 
 // channelOperationalFields lists fields managed by operation endpoints instead
@@ -88,6 +93,7 @@ var channelReadOnlyFields = map[string]struct{}{
 	"balance":              {},
 	"balance_updated_time": {},
 	"used_quota":           {},
+	"health_state":         {},
 }
 
 func clearChannelReadOnlyFields(channel *PatchChannel, requestData map[string]any) {
@@ -133,4 +139,5 @@ var channelNonSensitiveFields = map[string]struct{}{
 	"remark":              {},
 	"channel_info":        {},
 	"multi_key_mode":      {},
+	"is_external":         {},
 }

@@ -25,6 +25,8 @@ var channel2advancedCustomConfig map[int]*kitdto.AdvancedCustomConfig
 var channelSyncLock sync.RWMutex
 
 func InitChannelCache() {
+	// 外部渠道暂停派发集合随渠道缓存一起刷新（多实例靠周期同步收敛）
+	ReloadChannelHealthStates()
 	if !common.MemoryCacheEnabled {
 		InvalidatePricingCache()
 		rebuildTaskAliasView()
@@ -130,11 +132,13 @@ func GetRandomSatisfiedChannel(
 
 	// First, try to find channels with the exact model name.
 	channels, _ := filterCandidateIDs(group2model2channels[group][model], model, filters)
+	channels = excludeDispatchPausedIDs(channels)
 
 	// If no channels found, try to find channels with the normalized model name.
 	if len(channels) == 0 {
 		normalizedModel := ratio_setting.RoutingMatchModelName(model)
 		channels, _ = filterCandidateIDs(group2model2channels[group][normalizedModel], model, filters)
+		channels = excludeDispatchPausedIDs(channels)
 	}
 
 	if len(channels) == 0 {

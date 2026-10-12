@@ -71,7 +71,18 @@ export function TopupTab(props: TopupTabProps) {
 
   return (
     <div className='flex flex-col gap-4'>
-      <div className='grid gap-3 sm:grid-cols-4'>
+      <div className='flex justify-end'>
+        <Button
+          variant='outline'
+          size='sm'
+          onClick={() => void handleExport()}
+          disabled={exporting}
+        >
+          <Download className='h-4 w-4' />
+          {exporting ? t('Exporting...') : t('Export CSV')}
+        </Button>
+      </div>
+      <div className='grid gap-3 sm:grid-cols-3'>
         <MetricCard
           label={t('Entries')}
           value={formatNumber(summary.data?.total_entries ?? 0, locale)}
@@ -87,17 +98,6 @@ export function TopupTab(props: TopupTabProps) {
           value={summary.data?.by_source.length ?? 0}
           loading={summary.isLoading}
         />
-        <div className='flex items-center justify-end'>
-          <Button
-            variant='outline'
-            size='sm'
-            onClick={() => void handleExport()}
-            disabled={exporting}
-          >
-            <Download className='h-4 w-4' />
-            {exporting ? t('Exporting...') : t('Export CSV')}
-          </Button>
-        </div>
       </div>
       <Alert className='bg-muted/40'>
         <AlertDescription>

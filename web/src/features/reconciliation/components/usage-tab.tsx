@@ -30,7 +30,18 @@ export function UsageTab(props: UsageTabProps) {
   const summary = useUsageSummary(usageParams)
   return (
     <div className='flex flex-col gap-4'>
-      <div className='grid gap-3 sm:grid-cols-4'>
+      <div className='flex justify-end'>
+        <ExportCsvControl
+          {...usageParams}
+          filename={buildUsageCsvFilename(
+            props.subject,
+            props.startDay,
+            props.endDay,
+            t('usage')
+          )}
+        />
+      </div>
+      <div className='grid gap-3 sm:grid-cols-3'>
         <MetricCard
           label={t('Requests')}
           value={formatNumber(summary.data?.total_calls ?? 0, locale)}
@@ -46,17 +57,6 @@ export function UsageTab(props: UsageTabProps) {
           value={countDistinctModels(summary.data?.by_group_model ?? [])}
           loading={summary.isLoading}
         />
-        <div className='flex items-center justify-end'>
-          <ExportCsvControl
-            {...usageParams}
-            filename={buildUsageCsvFilename(
-              props.subject,
-              props.startDay,
-              props.endDay,
-              t('usage')
-            )}
-          />
-        </div>
       </div>
       <UsageBreakdownSection {...usageParams} />
     </div>

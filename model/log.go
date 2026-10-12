@@ -339,6 +339,8 @@ type RecordConsumeLogParams struct {
 func RecordConsumeLog(c *gin.Context, userId int, params RecordConsumeLogParams) {
 	// 企业用量聚合不依赖消费日志开关（TokenFunc 二开）
 	RecordEnterpriseUsageAsync(c, userId, params)
+	// 渠道消耗统计：小时桶 + 累计 + (日, 用户, 模型) 明细，与日志开关解耦（TokenFunc 二开）
+	recordChannelUsage(params.ChannelId, userId, params.ModelName, params.Quota, params.PromptTokens, params.CompletionTokens, params.Other)
 	if !common.LogConsumeEnabled {
 		return
 	}
@@ -415,6 +417,10 @@ type RecordTaskBillingLogParams struct {
 }
 
 func RecordTaskBillingLog(params RecordTaskBillingLogParams) {
+	// 渠道消耗统计：异步任务计费也要计入（TokenFunc 二开）
+	if params.LogType == LogTypeConsume {
+		recordChannelUsage(params.ChannelId, params.UserId, params.ModelName, params.Quota, 0, 0, params.Other)
+	}
 	if params.LogType == LogTypeConsume && !common.LogConsumeEnabled {
 		return
 	}

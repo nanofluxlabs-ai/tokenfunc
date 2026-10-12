@@ -185,9 +185,19 @@ export function useSidebarData(): SidebarData {
         title: t('Admin'),
         items: [
           {
-            title: t('Channels'),
-            url: '/channels',
+            // 渠道管理（TokenFunc 二开）：渠道列表 + 渠道消耗
+            title: t('Channel Management'),
             icon: Radio,
+            items: [
+              {
+                title: t('Channels'),
+                url: '/channels',
+              },
+              {
+                title: t('Channel Usage'),
+                url: '/channels/usage',
+              },
+            ],
           },
           {
             title: t('Models'),

@@ -135,6 +135,11 @@ func main() {
 	// 企业授信账期滚动（TokenFunc 二开）
 	service.StartEnterpriseCreditTask()
 
+	// 渠道消耗统计：批量 flush 循环 + 首次启动从 logs 回填历史（TokenFunc 二开）
+	common.LoadChannelUsageSetting()
+	go model.UpdateChannelUsageStats(context.Background())
+	service.StartChannelUsageBackfillIfNeeded()
+
 	// Subscription quota reset task (daily/weekly/monthly/custom)
 	service.StartSubscriptionQuotaResetTask()
 
@@ -245,6 +250,8 @@ func main() {
 	if common.DataExportEnabled {
 		model.SaveQuotaDataCache()
 	}
+	// 渠道消耗统计的内存增量落库（TokenFunc 二开）
+	model.FlushChannelUsage()
 	common.SysLog("server exited")
 }
 

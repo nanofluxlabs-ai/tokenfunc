@@ -7635,6 +7635,21 @@
     "{{dimension}} available": "{{dimension}}可用",
     "{{dimension}} unavailable": "{{dimension}}不可用",
     "Third-party relay or other unstable upstream. External channels get their own API and inference probes and pause dispatch while unhealthy.": "第三方中转站等不稳定上游。外部渠道有独立的接口与推理探测，不健康时暂停派发。",
-    "GET path appended to the base URL for the API probe. Leave empty to use /v1/models.": "接口探测的 GET 路径，拼在 Base URL 后面；留空使用 /v1/models。"
+    "GET path appended to the base URL for the API probe. Leave empty to use /v1/models.": "接口探测的 GET 路径，拼在 Base URL 后面；留空使用 /v1/models。",
+    "Interval must be at least {{seconds}} seconds": "间隔不能少于 {{seconds}} 秒",
+    "External channel probes": "外部渠道探测",
+    "Only channels marked as external are probed. A failed probe pauses dispatch to that channel without changing its status; it resumes automatically after enough successes.": "只探测标记为外部的渠道。探测失败会暂停向该渠道派发但不改变其状态，连续成功达到阈值后自动恢复。",
+    "API probes": "接口探测",
+    "Send a lightweight GET to the probe path and treat any non-2xx or network error as a failure": "向探测路径发送轻量 GET 请求，非 2xx 或网络错误都算失败",
+    "API probe options": "接口探测选项",
+    "API probe interval (seconds)": "接口探测间隔（秒）",
+    "API failures before pausing": "接口连续失败多少次后暂停",
+    "API successes before resuming": "接口连续成功多少次后恢复",
+    "Inference probes": "推理探测",
+    "Send a real test request through the channel. Upstream 5xx responses during normal traffic count toward the same threshold, and one successful request resumes dispatch. External channels are skipped by scheduled channel tests while this is on.": "通过渠道发送真实测试请求。正常流量中的上游 5xx 也计入同一阈值，一次成功请求即恢复派发。开启后定时渠道测试会跳过外部渠道。",
+    "Inference probe options": "推理探测选项",
+    "Inference probe interval (seconds)": "推理探测间隔（秒）",
+    "Inference failures before pausing": "推理连续失败多少次后暂停",
+    "Inference successes before resuming": "推理连续成功多少次后恢复"
   }
 }

@@ -212,6 +212,20 @@ describe('request policy settings', () => {
       'monitor_setting.channel_test_concurrency',
       4,
     ],
+    [
+      'health',
+      'API probe interval (seconds)',
+      '45',
+      'monitor_setting.external_channel_fast_probe_seconds',
+      45,
+    ],
+    [
+      'health',
+      'Inference failures before pausing',
+      '3',
+      'monitor_setting.external_channel_slow_probe_fail_threshold',
+      3,
+    ],
   ])(
     'saving a changed %s field writes only that original option key',
     async (section, label, input, key, value) => {

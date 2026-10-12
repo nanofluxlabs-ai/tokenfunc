@@ -7635,6 +7635,21 @@
     "{{dimension}} available": "{{dimension}} khả dụng",
     "{{dimension}} unavailable": "{{dimension}} không khả dụng",
     "Third-party relay or other unstable upstream. External channels get their own API and inference probes and pause dispatch while unhealthy.": "Trạm trung chuyển bên thứ ba hoặc upstream không ổn định. Kênh bên ngoài có thăm dò API và suy luận riêng, tạm dừng phân phối khi không khỏe.",
-    "GET path appended to the base URL for the API probe. Leave empty to use /v1/models.": "Đường dẫn GET nối sau Base URL để thăm dò API. Để trống sẽ dùng /v1/models."
+    "GET path appended to the base URL for the API probe. Leave empty to use /v1/models.": "Đường dẫn GET nối sau Base URL để thăm dò API. Để trống sẽ dùng /v1/models.",
+    "Interval must be at least {{seconds}} seconds": "Khoảng cách phải ít nhất {{seconds}} giây",
+    "External channel probes": "Thăm dò kênh bên ngoài",
+    "Only channels marked as external are probed. A failed probe pauses dispatch to that channel without changing its status; it resumes automatically after enough successes.": "Chỉ thăm dò các kênh được đánh dấu bên ngoài. Thăm dò thất bại sẽ tạm dừng phân phối tới kênh đó mà không đổi trạng thái; tự động tiếp tục sau đủ số lần thành công.",
+    "API probes": "Thăm dò API",
+    "Send a lightweight GET to the probe path and treat any non-2xx or network error as a failure": "Gửi GET nhẹ tới đường dẫn thăm dò; mọi phản hồi không phải 2xx hoặc lỗi mạng đều tính là thất bại",
+    "API probe options": "Tùy chọn thăm dò API",
+    "API probe interval (seconds)": "Khoảng cách thăm dò API (giây)",
+    "API failures before pausing": "Số lần API thất bại trước khi tạm dừng",
+    "API successes before resuming": "Số lần API thành công trước khi tiếp tục",
+    "Inference probes": "Thăm dò suy luận",
+    "Send a real test request through the channel. Upstream 5xx responses during normal traffic count toward the same threshold, and one successful request resumes dispatch. External channels are skipped by scheduled channel tests while this is on.": "Gửi yêu cầu kiểm tra thật qua kênh. Phản hồi 5xx từ upstream trong lưu lượng bình thường cũng tính vào cùng ngưỡng, và một yêu cầu thành công sẽ tiếp tục phân phối. Khi bật, kiểm tra kênh định kỳ sẽ bỏ qua kênh bên ngoài.",
+    "Inference probe options": "Tùy chọn thăm dò suy luận",
+    "Inference probe interval (seconds)": "Khoảng cách thăm dò suy luận (giây)",
+    "Inference failures before pausing": "Số lần suy luận thất bại trước khi tạm dừng",
+    "Inference successes before resuming": "Số lần suy luận thành công trước khi tiếp tục"
   }
 }

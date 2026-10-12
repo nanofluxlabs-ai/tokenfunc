@@ -7635,6 +7635,21 @@
     "{{dimension}} available": "{{dimension}} доступно",
     "{{dimension}} unavailable": "{{dimension}} недоступно",
     "Third-party relay or other unstable upstream. External channels get their own API and inference probes and pause dispatch while unhealthy.": "Сторонний ретранслятор или другой нестабильный апстрим. Внешние каналы имеют отдельные проверки API и инференса и приостанавливают раздачу при сбоях.",
-    "GET path appended to the base URL for the API probe. Leave empty to use /v1/models.": "GET-путь, добавляемый к базовому URL для проверки API. Оставьте пустым для /v1/models."
+    "GET path appended to the base URL for the API probe. Leave empty to use /v1/models.": "GET-путь, добавляемый к базовому URL для проверки API. Оставьте пустым для /v1/models.",
+    "Interval must be at least {{seconds}} seconds": "Интервал должен быть не менее {{seconds}} секунд",
+    "External channel probes": "Проверки внешних каналов",
+    "Only channels marked as external are probed. A failed probe pauses dispatch to that channel without changing its status; it resumes automatically after enough successes.": "Проверяются только каналы, помеченные как внешние. Неудачная проверка приостанавливает раздачу на канал без изменения его статуса; после достаточного числа успехов раздача возобновляется автоматически.",
+    "API probes": "Проверки API",
+    "Send a lightweight GET to the probe path and treat any non-2xx or network error as a failure": "Отправляет лёгкий GET на путь проверки; любой ответ не 2xx или сетевая ошибка считается сбоем",
+    "API probe options": "Параметры проверки API",
+    "API probe interval (seconds)": "Интервал проверки API (сек.)",
+    "API failures before pausing": "Сбоев API до приостановки",
+    "API successes before resuming": "Успехов API до возобновления",
+    "Inference probes": "Проверки инференса",
+    "Send a real test request through the channel. Upstream 5xx responses during normal traffic count toward the same threshold, and one successful request resumes dispatch. External channels are skipped by scheduled channel tests while this is on.": "Отправляет реальный тестовый запрос через канал. Ответы 5xx от апстрима в обычном трафике учитываются в том же пороге, а один успешный запрос возобновляет раздачу. Пока это включено, плановые проверки каналов пропускают внешние каналы.",
+    "Inference probe options": "Параметры проверки инференса",
+    "Inference probe interval (seconds)": "Интервал проверки инференса (сек.)",
+    "Inference failures before pausing": "Сбоев инференса до приостановки",
+    "Inference successes before resuming": "Успехов инференса до возобновления"
   }
 }

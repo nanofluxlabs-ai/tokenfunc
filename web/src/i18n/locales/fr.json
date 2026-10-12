@@ -7635,6 +7635,21 @@
     "{{dimension}} available": "{{dimension}} disponible",
     "{{dimension}} unavailable": "{{dimension}} indisponible",
     "Third-party relay or other unstable upstream. External channels get their own API and inference probes and pause dispatch while unhealthy.": "Relais tiers ou autre amont instable. Les canaux externes ont leurs propres sondes API et inférence et suspendent la distribution en cas de problème.",
-    "GET path appended to the base URL for the API probe. Leave empty to use /v1/models.": "Chemin GET ajouté à l'URL de base pour la sonde API. Laisser vide pour utiliser /v1/models."
+    "GET path appended to the base URL for the API probe. Leave empty to use /v1/models.": "Chemin GET ajouté à l'URL de base pour la sonde API. Laisser vide pour utiliser /v1/models.",
+    "Interval must be at least {{seconds}} seconds": "L'intervalle doit être d'au moins {{seconds}} secondes",
+    "External channel probes": "Sondes des canaux externes",
+    "Only channels marked as external are probed. A failed probe pauses dispatch to that channel without changing its status; it resumes automatically after enough successes.": "Seuls les canaux marqués comme externes sont sondés. Une sonde en échec suspend la distribution vers ce canal sans changer son statut ; elle reprend automatiquement après suffisamment de succès.",
+    "API probes": "Sondes API",
+    "Send a lightweight GET to the probe path and treat any non-2xx or network error as a failure": "Envoie un GET léger au chemin de sonde ; toute réponse non 2xx ou erreur réseau compte comme un échec",
+    "API probe options": "Options de sonde API",
+    "API probe interval (seconds)": "Intervalle de sonde API (secondes)",
+    "API failures before pausing": "Échecs API avant la pause",
+    "API successes before resuming": "Succès API avant la reprise",
+    "Inference probes": "Sondes d'inférence",
+    "Send a real test request through the channel. Upstream 5xx responses during normal traffic count toward the same threshold, and one successful request resumes dispatch. External channels are skipped by scheduled channel tests while this is on.": "Envoie une vraie requête de test via le canal. Les 5xx amont du trafic normal comptent pour le même seuil, et une requête réussie reprend la distribution. Les canaux externes sont ignorés par les tests planifiés tant que ceci est actif.",
+    "Inference probe options": "Options de sonde d'inférence",
+    "Inference probe interval (seconds)": "Intervalle de sonde d'inférence (secondes)",
+    "Inference failures before pausing": "Échecs d'inférence avant la pause",
+    "Inference successes before resuming": "Succès d'inférence avant la reprise"
   }
 }

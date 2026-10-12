@@ -36,6 +36,15 @@ export type HealthSettings = {
     | 'scheduled_all'
     | 'auto_ban_only'
     | 'passive_recovery'
+  // TokenFunc 二开：外部渠道接口 / 推理探测
+  'monitor_setting.external_channel_fast_probe_enabled': boolean
+  'monitor_setting.external_channel_fast_probe_seconds': number
+  'monitor_setting.external_channel_fast_probe_fail_threshold': number
+  'monitor_setting.external_channel_fast_probe_recover_threshold': number
+  'monitor_setting.external_channel_slow_probe_enabled': boolean
+  'monitor_setting.external_channel_slow_probe_seconds': number
+  'monitor_setting.external_channel_slow_probe_fail_threshold': number
+  'monitor_setting.external_channel_slow_probe_recover_threshold': number
 }
 export type FilteringSettings = Pick<
   SecuritySettings,
@@ -59,6 +68,14 @@ export const defaultRequestPolicySettings: RequestPolicySettings = {
   'monitor_setting.auto_test_channel_minutes': 10,
   'monitor_setting.channel_test_concurrency': 1,
   'monitor_setting.channel_test_mode': 'scheduled_all',
+  'monitor_setting.external_channel_fast_probe_enabled': false,
+  'monitor_setting.external_channel_fast_probe_seconds': 30,
+  'monitor_setting.external_channel_fast_probe_fail_threshold': 3,
+  'monitor_setting.external_channel_fast_probe_recover_threshold': 2,
+  'monitor_setting.external_channel_slow_probe_enabled': false,
+  'monitor_setting.external_channel_slow_probe_seconds': 300,
+  'monitor_setting.external_channel_slow_probe_fail_threshold': 2,
+  'monitor_setting.external_channel_slow_probe_recover_threshold': 1,
   'channel_affinity_setting.enabled': false,
   'channel_affinity_setting.session_mode': '',
   'channel_affinity_setting.switch_on_success': true,

@@ -18,19 +18,14 @@ import {
   type DatePresetId,
 } from '../../lib/date-presets'
 import { countDistinctModels } from '../../lib/usage-breakdown'
+import type { UsageRangeParams } from '../../types'
+import { DatePresetButtons } from '../date-preset-buttons'
 import { DayRangeControls } from '../day-range-controls'
 import { MetricCard } from '../metric-card'
 import { ExportCsvControl } from '../usage-breakdown/export-csv-control'
 import { UsageBreakdownSection } from '../usage-breakdown/usage-breakdown-section'
 
 const route = getRouteApi('/_authenticated/finance/users/$userId')
-
-const PRESETS: { id: DatePresetId; labelKey: string }[] = [
-  { id: 'today', labelKey: 'Today' },
-  { id: 'month', labelKey: 'Current month' },
-  { id: 'lastMonth', labelKey: 'Last month' },
-  { id: 'last30', labelKey: 'Last 30 days' },
-]
 
 export function UserConsumptionDetailPage() {
   const { t, i18n } = useTranslation()
@@ -51,7 +46,11 @@ export function UserConsumptionDetailPage() {
     () => dayRangeToTimestamps(range.applied),
     [range.applied]
   )
-  const usageParams = { user_id: userId, ...timestamps }
+  const usageParams: UsageRangeParams = {
+    scope: 'admin',
+    user_id: userId,
+    ...timestamps,
+  }
   const summary = useUsageSummary(usageParams)
   const title = search.username || `#${params.userId}`
 
@@ -85,16 +84,10 @@ export function UserConsumptionDetailPage() {
       </SectionPageLayout.Title>
       <SectionPageLayout.Actions>
         <div className='flex flex-wrap items-center gap-2'>
-          {PRESETS.map((preset) => (
-            <Button
-              key={preset.id}
-              variant='outline'
-              size='sm'
-              onClick={() => applyPreset(preset.id)}
-            >
-              {t(preset.labelKey)}
-            </Button>
-          ))}
+          <DatePresetButtons
+            presets={['today', 'month', 'lastMonth', 'last30']}
+            onSelect={applyPreset}
+          />
           <DayRangeControls
             draft={range.draft}
             onDraftChange={range.setDraft}

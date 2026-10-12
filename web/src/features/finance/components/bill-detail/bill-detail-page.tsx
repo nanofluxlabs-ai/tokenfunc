@@ -31,7 +31,7 @@ import {
   periodDays,
 } from '../../lib/bill-ref'
 import { buildUsageCsvFilename } from '../../lib/csv'
-import type { FinanceBillContext } from '../../types'
+import type { FinanceBillContext, UsageRangeParams } from '../../types'
 import { MetricCard } from '../metric-card'
 import { ExportCsvControl } from '../usage-breakdown/export-csv-control'
 import { UsageBreakdownSection } from '../usage-breakdown/usage-breakdown-section'
@@ -49,7 +49,8 @@ export function BillDetailContent(props: { context: FinanceBillContext }) {
   const context = props.context
   const summary = context.summary
   const isOpenPeriod = context.kind === 'period'
-  const usageParams = {
+  const usageParams: UsageRangeParams = {
+    scope: 'admin',
     user_id: summary.user_id,
     ts_start: context.usage_ts_start,
     ts_end: context.usage_ts_end,
@@ -176,6 +177,7 @@ export function BillDetailPage() {
           {data?.bill && <InvoiceButton bill={data.bill} size='sm' />}
           {data && summary && (
             <ExportCsvControl
+              scope='admin'
               user_id={summary.user_id}
               ts_start={data.usage_ts_start}
               ts_end={data.usage_ts_end}

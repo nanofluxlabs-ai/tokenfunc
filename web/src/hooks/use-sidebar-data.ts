@@ -18,31 +18,26 @@ For commercial licensing, please contact support@quantumnous.com
 */
 import {
   Activity,
-  Box,
   BarChart3,
+  Briefcase,
   Building2,
   FolderKanban,
   Gauge,
   Receipt,
   ReceiptText,
-  FileSignature,
-  Inbox,
   KeyRound,
   ClipboardList,
-  CreditCard,
   FileText,
   FlaskConical,
   Key,
   LayoutDashboard,
   ListTodo,
   MessageSquare,
-  PlugZap,
   Radio,
   Scale,
   ServerCog,
   Settings,
   ShieldCheck,
-  Ticket,
   User,
   Users,
   Wallet,
@@ -181,11 +176,12 @@ export function useSidebarData(): SidebarData {
         ],
       },
       {
+        // 管理员菜单（TokenFunc 二开）按「供给 → 客户 → 经营 → 运维」分组，一级项控制在 6 个
         id: 'admin',
         title: t('Admin'),
         items: [
           {
-            // 渠道管理（TokenFunc 二开）：渠道列表 + 渠道消耗
+            // 供给侧：渠道、渠道消耗、模型（模型元数据 / 定价本质是供给配置）
             title: t('Channel Management'),
             icon: Radio,
             items: [
@@ -197,19 +193,38 @@ export function useSidebarData(): SidebarData {
                 title: t('Channel Usage'),
                 url: '/channels/usage',
               },
+              {
+                title: t('Models'),
+                url: '/models/metadata',
+                activeUrls: [
+                  '/models/metadata',
+                  '/models/vendors',
+                  '/models/deployments',
+                ],
+              },
             ],
           },
           {
-            title: t('Models'),
-            url: '/models/metadata',
-            icon: Box,
-          },
-          {
-            title: t('Users'),
-            url: '/users',
+            // 客户侧：用户、订阅、兑换码
+            title: t('Customers'),
             icon: Users,
+            items: [
+              {
+                title: t('Users'),
+                url: '/users',
+              },
+              {
+                title: t('Subscriptions'),
+                url: '/subscriptions',
+              },
+              {
+                title: t('Redemption Codes'),
+                url: '/redemption-codes',
+              },
+            ],
           },
           {
+            // 经营侧：财务中心页内已有多个 tab，保持单项
             title: t('Finance Center'),
             url: '/finance/overview',
             icon: ReceiptText,
@@ -222,38 +237,38 @@ export function useSidebarData(): SidebarData {
             ],
           },
           {
-            title: t('Quotations'),
-            url: '/quotes',
-            icon: FileSignature,
+            // 商务：报价单与试用申请（销售线索，转化后才成为用户）
+            title: t('Business Tools'),
+            icon: Briefcase,
+            items: [
+              {
+                title: t('Quotations'),
+                url: '/quotes',
+              },
+              {
+                title: t('Trial Requests'),
+                url: '/enterprise-leads',
+              },
+            ],
           },
           {
-            title: t('Trial Requests'),
-            url: '/enterprise-leads',
-            icon: Inbox,
-          },
-          {
-            title: t('Redemption Codes'),
-            url: '/redemption-codes',
-            icon: Ticket,
-          },
-          {
-            title: t('Subscriptions'),
-            url: '/subscriptions',
-            icon: CreditCard,
-          },
-          {
-            title: t('System Info'),
-            url: '/system-info',
+            // 运维：两个子项都只对 Root 开放，角色限制放在分组上
+            title: t('Operations Center'),
             icon: ServerCog,
             requiredRole: ROLE.SUPER_ADMIN,
+            items: [
+              {
+                title: t('System Info'),
+                url: '/system-info',
+              },
+              {
+                title: t('Task Plugins'),
+                url: '/task-plugins',
+              },
+            ],
           },
           {
-            title: t('Task Plugins'),
-            url: '/task-plugins',
-            icon: PlugZap,
-            requiredRole: ROLE.SUPER_ADMIN,
-          },
-          {
+            // 系统设置自带二级导航，保持单项
             title: t('System Settings'),
             url: '/system-settings/site',
             activeUrls: ['/system-settings'],

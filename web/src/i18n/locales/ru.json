@@ -7650,6 +7650,9 @@
     "Inference probe options": "Параметры проверки инференса",
     "Inference probe interval (seconds)": "Интервал проверки инференса (сек.)",
     "Inference failures before pausing": "Сбоев инференса до приостановки",
-    "Inference successes before resuming": "Успехов инференса до возобновления"
+    "Inference successes before resuming": "Успехов инференса до возобновления",
+    "Customers": "Клиенты",
+    "Business Tools": "Бизнес-инструменты",
+    "Operations Center": "Центр эксплуатации"
   }
 }

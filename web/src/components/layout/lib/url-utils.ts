@@ -70,10 +70,15 @@ export function checkIsActive(
     const collapsibleItem = item as NavCollapsible
     const items = collapsibleItem.items
 
-    // Check if any sub-item matches
+    // Check if any sub-item matches（子项自己声明的 activeUrls 同样算命中，否则父级不会自动展开）
     if (
       items.some((i) => {
         if (!i?.url) return false
+        if (
+          i.activeUrls?.some((url) => urlToString(url) === hrefWithoutQuery)
+        ) {
+          return true
+        }
         const subItemUrl = urlToString(i.url)
         if (!subItemUrl) return false
         if (href === subItemUrl) return true
@@ -87,8 +92,9 @@ export function checkIsActive(
         }
         return false
       })
-    )
+    ) {
       return true
+    }
   }
 
   // For regular link items, check the item's URL

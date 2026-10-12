@@ -7650,6 +7650,9 @@
     "Inference probe options": "推論プローブのオプション",
     "Inference probe interval (seconds)": "推論プローブ間隔（秒）",
     "Inference failures before pausing": "停止までの推論連続失敗回数",
-    "Inference successes before resuming": "再開までの推論連続成功回数"
+    "Inference successes before resuming": "再開までの推論連続成功回数",
+    "Customers": "顧客管理",
+    "Business Tools": "ビジネスツール",
+    "Operations Center": "運用センター"
   }
 }

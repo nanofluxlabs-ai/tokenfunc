@@ -7650,6 +7650,9 @@
     "Inference probe options": "推理探測選項",
     "Inference probe interval (seconds)": "推理探測間隔（秒）",
     "Inference failures before pausing": "推理連續失敗多少次後暫停",
-    "Inference successes before resuming": "推理連續成功多少次後恢復"
+    "Inference successes before resuming": "推理連續成功多少次後恢復",
+    "Customers": "客戶管理",
+    "Business Tools": "商務工具",
+    "Operations Center": "運維中心"
   }
 }

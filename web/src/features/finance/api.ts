@@ -22,7 +22,21 @@ import type {
 
 const FINANCE_BASE = '/api/admin/finance'
 
-export const FINANCE_USAGE_EXPORT_URL = `${FINANCE_BASE}/usage/export`
+/** 个人财务对账：本人消费账单与钱包流水 */
+export const SELF_FINANCE_BASE = '/api/user/finance'
+
+/** 用量接口按主体选路径与参数：admin 走财务中心并带 user_id，self 走个人对账 */
+function usageRequest(params: UsageRangeParams, path: string) {
+  const query: Record<string, number> = {
+    ts_start: params.ts_start,
+    ts_end: params.ts_end,
+  }
+  if (params.scope === 'admin') {
+    query.user_id = params.user_id
+    return { url: `${FINANCE_BASE}${path}`, query }
+  }
+  return { url: `${SELF_FINANCE_BASE}${path}`, query }
+}
 
 export async function getFinanceOverview(params: {
   start_date: string
@@ -61,21 +75,26 @@ export async function listModelConsumptions(
 export async function getUsageSummary(
   params: UsageRangeParams
 ): Promise<ApiResponse<UsageSummary>> {
-  const res = await api.get(`${FINANCE_BASE}/usage/summary`, { params })
+  const request = usageRequest(params, '/usage/summary')
+  const res = await api.get(request.url, { params: request.query })
   return res.data
 }
 
 export async function getUsageDaily(
   params: UsageRangeParams
 ): Promise<ApiResponse<UsageDaily>> {
-  const res = await api.get(`${FINANCE_BASE}/usage/daily`, { params })
+  const request = usageRequest(params, '/usage/daily')
+  const res = await api.get(request.url, { params: request.query })
   return res.data
 }
 
 export async function listUsageDetail(
   params: UsageRangeParams & { p: number; page_size: number }
 ): Promise<ApiResponse<PagedData<UsageDetailRow>>> {
-  const res = await api.get(`${FINANCE_BASE}/usage/detail`, { params })
+  const request = usageRequest(params, '/usage/detail')
+  const res = await api.get(request.url, {
+    params: { ...request.query, p: params.p, page_size: params.page_size },
+  })
   return res.data
 }
 
@@ -83,8 +102,9 @@ export async function listUsageDetail(
 export async function downloadUsageExport(
   params: UsageRangeParams & { include_detail: boolean }
 ): Promise<Blob> {
-  const res = await api.get(FINANCE_USAGE_EXPORT_URL, {
-    params,
+  const request = usageRequest(params, '/usage/export')
+  const res = await api.get(request.url, {
+    params: { ...request.query, include_detail: params.include_detail },
     responseType: 'blob',
   })
   return res.data

@@ -38,6 +38,7 @@ import {
   MessageSquare,
   PlugZap,
   Radio,
+  Scale,
   ServerCog,
   Settings,
   ShieldCheck,
@@ -161,6 +162,11 @@ export function useSidebarData(): SidebarData {
             title: t('Wallet'),
             url: '/wallet',
             icon: Wallet,
+          },
+          {
+            title: t('Reconciliation'),
+            url: '/reconciliation',
+            icon: Scale,
           },
           {
             title: t('Profile'),

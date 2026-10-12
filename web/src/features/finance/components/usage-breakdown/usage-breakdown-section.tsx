@@ -1,27 +1,14 @@
-import type { ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
-
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 
 import {
   useUsageDaily,
   useUsageSummary,
 } from '../../hooks/use-usage-breakdown-queries'
 import type { UsageRangeParams, UsageSummary } from '../../types'
+import { SectionBlock as Block } from '../section-block'
 import { DailySummaryTable } from './daily-summary-table'
 import { TokenGroupSummaryTable } from './token-group-summary-table'
 import { UsageDetailTable } from './usage-detail-table'
-
-function Block(props: { title: string; children: ReactNode }) {
-  return (
-    <Card className='gap-0 py-0'>
-      <CardHeader className='border-b px-4 py-3'>
-        <CardTitle className='text-base'>{props.title}</CardTitle>
-      </CardHeader>
-      <CardContent className='p-0'>{props.children}</CardContent>
-    </Card>
-  )
-}
 
 type UsageBreakdownSectionProps = UsageRangeParams & {
   /** 汇总加载完成后回调（详情页用它算汇总卡） */
@@ -51,7 +38,9 @@ export function UsageBreakdownSection(props: UsageBreakdownSectionProps) {
       <Block title={t('Usage detail')}>
         <div className='p-2'>
           <UsageDetailTable
-            user_id={props.user_id}
+            {...(props.scope === 'admin'
+              ? { scope: 'admin', user_id: props.user_id }
+              : { scope: 'self' })}
             ts_start={props.ts_start}
             ts_end={props.ts_end}
           />

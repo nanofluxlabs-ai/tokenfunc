@@ -180,8 +180,10 @@ export interface ListModelConsumptionsParams {
 // 用量明细（用户消耗详情 / 账单详情共用）
 // ---------------------------------------------------------------------------
 
-export interface UsageRangeParams {
-  user_id: number
+/** 用量接口的主体：管理员指定 user_id，个人财务对账只看本人 */
+export type UsageScope = { scope: 'admin'; user_id: number } | { scope: 'self' }
+
+export type UsageRangeParams = UsageScope & {
   ts_start: number
   ts_end: number
 }

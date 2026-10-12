@@ -7553,6 +7553,25 @@
     "Period range": "账期",
     "Used / Credit (USD)": "消耗 / 授信 (USD)",
     "Open credit periods": "进行中账期",
-    "No open periods": "没有进行中的账期"
+    "No open periods": "没有进行中的账期",
+    "Reconciliation": "财务对账",
+    "Consumption and wallet entries within the period, exportable as statements.": "账期内消耗与充值流水，可导出对账单",
+    "Consumption statement": "消费账单",
+    "Wallet statement": "充值账单",
+    "Entries": "笔数",
+    "Net amount (USD)": "净入账 (USD)",
+    "Sources": "来源数",
+    "Summary by source": "按来源汇总",
+    "Wallet entries": "充值明细",
+    "All sources": "全部来源",
+    "Online payment": "在线支付",
+    "Redemption code": "兑换码",
+    "Enterprise offline top-up": "企业线下充值",
+    "Subscription paid by balance": "余额购买订阅",
+    "Admin adjustment": "管理员调整",
+    "No wallet entries in this period": "该账期内没有充值流水",
+    "Your enterprise is billed by credit period; issued statements are available in Enterprise Bills.": "你的企业按账期结算，已出账单请到「企业账单」查看。",
+    "Open Enterprise Bills": "前往企业账单",
+    "Wallet entries are the non-consumption movements of your wallet: online top-ups, redemption codes, enterprise offline top-ups, admin adjustments, refunds and subscriptions paid by balance. Subscriptions paid online do not change the wallet.": "充值账单是钱包的非消费流水：在线充值、兑换码、企业线下充值、管理员调整、退款与余额购买订阅；在线支付的订阅不动钱包，不在此列。"
   }
 }

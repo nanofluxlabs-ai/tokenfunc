@@ -9,8 +9,9 @@ import { Label } from '@/components/ui/label'
 import { handleServerError } from '@/lib/handle-server-error'
 
 import { downloadUsageExport } from '../../api'
+import { usageScopeReady } from '../../hooks/use-usage-breakdown-queries'
 import { readBlobError, saveBlob } from '../../lib/csv'
-import type { UsageRangeParams } from '../../types'
+import type { UsageRangeParams, UsageScope } from '../../types'
 
 type ExportCsvControlProps = UsageRangeParams & {
   filename: string
@@ -27,8 +28,12 @@ export function ExportCsvControl(props: ExportCsvControlProps) {
   const handleExport = async () => {
     setExporting(true)
     try {
+      const scope: UsageScope =
+        props.scope === 'admin'
+          ? { scope: 'admin', user_id: props.user_id }
+          : { scope: 'self' }
       const blob = await downloadUsageExport({
-        user_id: props.user_id,
+        ...scope,
         ts_start: props.ts_start,
         ts_end: props.ts_end,
         include_detail: includeDetail,
@@ -63,7 +68,7 @@ export function ExportCsvControl(props: ExportCsvControlProps) {
         variant='outline'
         size='sm'
         onClick={() => void handleExport()}
-        disabled={props.disabled || exporting || props.user_id <= 0}
+        disabled={props.disabled || exporting || !usageScopeReady(props)}
       >
         <Download className='h-4 w-4' />
         {exporting ? t('Exporting...') : t('Export CSV')}

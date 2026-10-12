@@ -84,6 +84,7 @@ import { handleServerError } from '@/lib/handle-server-error'
 import { updateChannel } from '../../api'
 import {
   channelsQueryKeys,
+  channelTestRequiresStream,
   formatResponseTime,
   handleTestChannel,
 } from '../../lib'
@@ -318,12 +319,14 @@ function ChannelTestDialogContent({
   const { t } = useTranslation()
   const queryClient = useQueryClient()
   const currentChannelId = currentRow.id
+  // 上游只接受流式的渠道类型（如 Codex）默认开启流式，用户仍可手动关闭
+  const defaultStreamTest = channelTestRequiresStream(currentRow.type)
   const batchStopRequestedRef = useRef(false)
   const batchProgressToastIdRef = useRef<ReturnType<
     typeof toast.loading
   > | null>(null)
   const [endpointType, setEndpointType] = useState('auto')
-  const [isStreamTest, setIsStreamTest] = useState(false)
+  const [isStreamTest, setIsStreamTest] = useState(defaultStreamTest)
   const [searchTerm, setSearchTerm] = useState('')
   const [testResults, setTestResults] = useState<Record<string, TestResult>>({})
   const [rowSelection, setRowSelection] = useState<RowSelectionState>({})
@@ -390,7 +393,7 @@ function ChannelTestDialogContent({
   const resetState = useCallback(() => {
     batchStopRequestedRef.current = true
     setEndpointType('auto')
-    setIsStreamTest(false)
+    setIsStreamTest(defaultStreamTest)
     setSearchTerm('')
     setTestResults({})
     setRowSelection({})
@@ -403,7 +406,7 @@ function ChannelTestDialogContent({
     setIsDeletingFailed(false)
     setFailureDetails(null)
     setPagination({ pageIndex: 0, pageSize: 30 })
-  }, [])
+  }, [defaultStreamTest])
 
   const streamDisabled = STREAM_INCOMPATIBLE_ENDPOINTS.has(endpointType)
   const effectiveStreamTest = !streamDisabled && isStreamTest

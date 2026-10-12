@@ -496,12 +496,14 @@ func BatchInsertChannels(channels []Channel) error {
 		}
 	}()
 
-	for _, chunk := range lo.Chunk(channels, 50) {
+	for chunkIndex, chunk := range lo.Chunk(channels, 50) {
 		if err := tx.Create(&chunk).Error; err != nil {
 			tx.Rollback()
 			return err
 		}
-		for _, channel_ := range chunk {
+		for i, channel_ := range chunk {
+			// lo.Chunk 复制了切片，把生成的主键写回调用方的切片（TokenFunc：新建后检查要用 id）
+			channels[chunkIndex*50+i].Id = channel_.Id
 			if err := channel_.AddAbilities(tx); err != nil {
 				tx.Rollback()
 				return err

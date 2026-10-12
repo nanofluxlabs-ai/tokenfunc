@@ -43,7 +43,7 @@ allowed-tools:
 
 - **不自动 `git commit`**：预检发现未提交改动，用 `AskUserQuestion` 问用户是否提交及 commit message；tag / push / 部署属发版核心，用户调用即视为授权。
 - 生产只有一套（tokenfunc.com），没有 staging，所以 **P1 必须弹窗二次确认**。
-- 生产机对 prediroute 共用 PostgreSQL 实例（见 `docs/tokenfunc/development.md` 第 6 节）：本流程只动 `tokenfunc-api` 容器，**禁止** `docker compose down`、重启 `tokenfunc-postgres`、改 `compose.override.yml`。
+- 本流程只动 `tokenfunc-api` 容器，**禁止** `docker compose down`、重启 `tokenfunc-postgres`（数据卷挂在它身上，重启等于全站中断）、改 `compose.override.yml`。
 - 平时对生产机是只读约束；本流程内的 `docker compose up`（回滚）与 `.env` 里 `TF_API_IMAGE` 一行的修改被授权，不扩展到其他场景。
 
 ## 🚨 致命红线（高于所有 Phase）
@@ -91,7 +91,7 @@ P3 部署验证或 P4 冒烟中出现以下任一情况，**立即回滚止血**
 | 构建/部署 workflow | `.github/workflows/deploy-ghcr.yml`（名 `Build & Deploy (GHCR)`）：推 `v*` tag → 构建并部署；推 main → 只构建 `main-<date>-<sha>` 镜像 |
 | 镜像 | `ghcr.io/nanofluxlabs-ai/tokenfunc:<tag>`（发版同时移动 `:latest`） |
 | 生产机 | `ssh tokenfunc`（用户 ubuntu），目录 `/opt/tokenfunc`，文件 `compose.yml` + `.env` + `compose.override.yml`（后者不在仓库） |
-| 容器 | `tokenfunc-api`（profile `app`）、`tokenfunc-postgres`（与 prediroute 共用）、`tokenfunc-redis` |
+| 容器 | `tokenfunc-api`（profile `app`）、`tokenfunc-postgres`、`tokenfunc-redis` |
 | 当前镜像 | `ssh tokenfunc "docker inspect -f '{{.Config.Image}}' tokenfunc-api"`，与 `.env` 里 `TF_API_IMAGE` 一致（部署流程会改写） |
 | 健康 URL | `https://tokenfunc.com/api/status`（`success:true`，`data.version` 即镜像 tag） |
 | 容器访问日志 | `docker logs tokenfunc-api` 的 `[GIN]` 行：`\| 状态码 \| 耗时 \| 客户端 IP \| 方法 路径`；panic 行含 `new_api_panic` |
@@ -179,15 +179,15 @@ git push origin <tag>              # 触发 Build & Deploy (GHCR)：build → de
 
 ```bash
 sleep 20
-RUN_ID=$(gh run list --workflow deploy-ghcr.yml --branch <tag> --limit 1 --json databaseId --jq '.[0].databaseId')
+RUN_ID=$(gh run list -R nanofluxlabs-ai/tokenfunc --workflow deploy-ghcr.yml --branch <tag> --limit 1 --json databaseId --jq '.[0].databaseId')
 # 每 60s 查一次，直到 status=completed；以 conclusion 为准
-gh run view $RUN_ID --json status,conclusion,jobs \
+gh run view -R nanofluxlabs-ai/tokenfunc $RUN_ID --json status,conclusion,jobs \
   --jq '"\(.status) \(.conclusion) | " + ([.jobs[] | "\(.name)=\(.status)/\(.conclusion)"] | join(", "))'
 ```
 
 > 查询偶发 `Post ... EOF`（网络抖动）：重试即可，不要当失败。`gh pr merge` 也会这样，合并后要用 `gh pr view --json state` 确认。
 
-- `Build & push image` 失败 → 停止，报告构建日志（`gh run view $RUN_ID --log-failed`），不部署。
+- `Build & push image` 失败 → 停止，报告构建日志（`gh run view -R nanofluxlabs-ai/tokenfunc $RUN_ID --log-failed`），不部署。
 - `Deploy to production` 失败（`up --wait` 超时 / 容器不健康）→ 直接进入 P3 判断是否要回滚：此时旧容器可能已被替换。
 
 构建约 5-6 分钟，部署约 1 分钟。**完成后**输出进度面板（P1-P2 ✅，P3 🔄）。
@@ -203,13 +203,13 @@ gh run view $RUN_ID --json status,conclusion,jobs \
 curl -fsS https://tokenfunc.com/api/status | jq -r '"\(.success) \(.data.version)"'
 
 # 2. 容器状态与镜像、.env 已固化
-ssh tokenfunc "cd /opt/tokenfunc && docker ps --format '{{.Names}}\t{{.Image}}\t{{.Status}}' | grep -E 'tokenfunc|prediroute'; grep '^TF_API_IMAGE=' .env"
+ssh tokenfunc "cd /opt/tokenfunc && docker ps --format '{{.Names}}\t{{.Image}}\t{{.Status}}' | grep tokenfunc; grep '^TF_API_IMAGE=' .env"
 
 # 3. 启动日志巡检：迁移完成、Redis 启用、无 panic
 ssh tokenfunc "docker logs --since 5m tokenfunc-api 2>&1 | grep -E 'PostgreSQL|migration|Redis|new_api_panic|runtime error|nil pointer' | head"
 ```
 
-- `data.version == tag`、`tokenfunc-api` healthy、prediroute 两个容器 healthy、无 panic → 继续 P4。
+- `data.version == tag`、`tokenfunc-api` / `tokenfunc-postgres` / `tokenfunc-redis` 全部 healthy、无 panic → 继续 P4。
 - panic / 反复 Restarting / 健康检查失败 → **立即执行 P5 回滚命令 → 复测 → 进入 P5**。
 - 零星业务错误（401、模型不存在、额度不足）属正常波动，继续。
 
@@ -301,7 +301,7 @@ ssh tokenfunc "docker logs --since 2m tokenfunc-api 2>&1 | grep -ciE 'new_api_pa
 
 ```bash
 ssh tokenfunc "docker logs --since 30m tokenfunc-api 2>&1 | grep -B2 -A40 -E 'new_api_panic|runtime error' | head -120"
-gh run view <RUN_ID> --log 2>/dev/null | tail -80          # 部署日志里有 previous image
+gh run view -R nanofluxlabs-ai/tokenfunc <RUN_ID> --log 2>/dev/null | tail -80          # 部署日志里有 previous image
 docker pull ghcr.io/nanofluxlabs-ai/tokenfunc:<tag>        # 本地复现：TF_API_IMAGE=<镜像> make up
 ```
 
@@ -408,15 +408,16 @@ ssh tokenfunc "docker logs --since '<SINCE>' tokenfunc-api 2>&1 | grep -c '^\[GI
 | 本地 tag 过时，版本号推算错 | P1 先 `git fetch --tags` |
 | 工作区不干净或本地 commit 未 push 就打 tag | P2 强制检查；未 push 先 push main，tag 必须等于 origin/main HEAD |
 | 推 main 以为会部署 | 推 main 只构建 `main-*` 镜像；**只有 `v*` tag 才部署**。合并 PR 后仍需本 skill 打 tag |
+| `gh` 不带 `-R` 解析到上游 `QuantumNous/new-api`（本地有 upstream remote），报 `workflow deploy-ghcr.yml not found` | 所有 `gh run` / `gh pr` 命令加 `-R nanofluxlabs-ai/tokenfunc` |
 | `gh run watch … \| tail` 把网络错误吞成成功 | 轮询 `gh run view --json status,conclusion`，以 conclusion 为准 |
 | `gh pr merge` / `gh api` 报 `Post … EOF` | 网络抖动，重试并用 `gh pr view --json state` 确认真实状态 |
 | 上游断言与二开默认值冲突（如 `/api/status.theme` 期望 `default`） | 属断言陈旧，改测试与二开行为对齐，不是停发理由 |
 | `make test-db` 首跑 model/service 企业用例报 `SQLSTATE 23505 pg_type_typname_nsp_index` / `42P01 relation "users" does not exist` | 多包并行在同一 test schema 抢 AutoMigrate；makefile 已固定 `-p 1` 串行，不要绕过 make 直接并行 `go test` |
 | `make test-db` 下 controller 的 `*DatabaseMatrix` 用例报 `SQLSTATE 3F000` | 这些用例用 DSN 新建临时库再连入，DSN 的 `search_path` 必须是 `test,public`（makefile 已固定），不要手写只带 `test` 的 DSN |
 | 生产 `/v1/models` 为空 | 还没配渠道，relay 冒烟标 ⏭️ 并说明，不算失败 |
-| 回滚时 `docker compose down` 或重启 postgres | prediroute 的库在同一实例里，只 `up -d --wait api`，其余不动 |
+| 回滚时 `docker compose down` 或重启 postgres | 只 `up -d --wait api`，postgres / redis 不动，避免把全站打断 |
 | 回滚只改容器不改 `.env` | 下次任何人 `docker compose up` 又会拉回坏版本；回滚必须同时 `sed` 改 `TF_API_IMAGE` |
-| 用 nginx access.log 做监控 | 该日志混着 prediroute 流量；用 `docker logs tokenfunc-api` 的 `[GIN]` 行 |
+| 用 nginx access.log 做监控 | 用 `docker logs tokenfunc-api` 的 `[GIN]` 行，字段固定（状态码 / 耗时 / IP / 路径），不必解析 nginx 格式 |
 | 监控用滑动时间窗 | 固定 `--since <部署时刻>` 累计查，先看访问总数非 0 再下"0 错误"结论 |
 | P6 每轮 `noop:true` | 一律 `noop:false`，否则状态行被终端折叠 |
 | P3 完成只贴面板 | 先输出醒目的"✅ 部署已完成，服务健康"结论句，再贴面板 |

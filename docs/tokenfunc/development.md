@@ -98,5 +98,5 @@ make dev          # 自动生成 .env → 起 postgres/redis → 编译并后台
 1. 生产机 `/opt/tokenfunc` 放仓库的 `compose.yml` 与一份生产 `.env`：改掉 `TF_PG_PASSWORD`、`TF_REDIS_PASSWORD`、`TF_SESSION_SECRET`，设置 `TF_API_IMAGE=ghcr.io/<owner>/<repo>:<tag>`，HTTPS 下打开 `TF_SESSION_COOKIE_SECURE=true` 并填写 `TF_SESSION_COOKIE_TRUSTED_URL`。
 2. `make up`（等价于 `docker compose --profile app up -d --wait`）。
 3. 发版：在 Claude Code 里运行 `/release-standalone`（技能在 `.claude/skills/release-standalone/`）：预检 → 打 tag → `deploy-ghcr.yml` 构建镜像、推 GHCR、SSH 到生产机改写 `.env` 的 `TF_API_IMAGE` 并 `up -d --wait` → 冒烟 → 监控 → 报告写到 `docs/tokenfunc/releases/`。回滚 = 把 `TF_API_IMAGE` 改回上一 tag 再 `up -d --wait api`。
-4. 生产机上与仓库无关的差异（接管旧数据卷、把 `postgres` 别名挂到别的项目网络上、钉旧版本镜像）写在同目录的 `compose.override.yml`，compose 会自动叠加，仓库里不放这个文件。当前生产机就是这样复用了老的 `tokenfun_pg_data` 卷并把实例共享给 prediroute。
+4. 生产机上与仓库无关的差异（接管旧数据卷、把 `postgres` 别名挂到别的项目网络上、钉旧版本镜像）写在同目录的 `compose.override.yml`，compose 会自动叠加，仓库里不放这个文件。当前生产机就是这样复用了老的 `tokenfun_pg_data` 卷。
 5. 迁移到腾讯云 TKE 后，PG / Redis 改用 PaaS：`.env` 里改连接变量，`compose.override.yml` 里去掉 `postgres` / `redis` 服务即可。

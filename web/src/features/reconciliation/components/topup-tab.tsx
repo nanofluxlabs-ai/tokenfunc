@@ -1,87 +1,26 @@
-import { Download } from 'lucide-react'
-import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { toast } from 'sonner'
 
 import { Alert, AlertDescription } from '@/components/ui/alert'
-import { Button } from '@/components/ui/button'
 import { MetricCard } from '@/features/finance/components/metric-card'
 import { SectionBlock } from '@/features/finance/components/section-block'
-import {
-  buildUsageCsvFilename,
-  readBlobError,
-  saveBlob,
-} from '@/features/finance/lib/csv'
 import { toIntlLocale } from '@/i18n/languages'
 import { formatNumber } from '@/lib/format'
-import { handleServerError } from '@/lib/handle-server-error'
 
-import { downloadTopupExport } from '../api'
 import { useTopupSummary } from '../hooks/use-topup-queries'
 import { formatSignedUsd } from '../lib/topup-display'
 import { TopupDetailTable } from './topup-detail-table'
 import { TopupSourceTable } from './topup-source-table'
 
-type TopupTabProps = {
-  ts_start: number
-  ts_end: number
-  /** CSV 文件名里的主体与账期 */
-  subject: string
-  startDay: string
-  endDay: string
-}
+type TopupTabProps = { ts_start: number; ts_end: number }
 
-/** 充值账单：汇总卡 + 导出 + 按来源汇总 + 充值明细 */
+/** 充值账单：汇总卡 + 口径说明 + 按来源汇总 + 充值明细；导出按钮在页面 tab 行 */
 export function TopupTab(props: TopupTabProps) {
   const { t, i18n } = useTranslation()
   const locale = toIntlLocale(i18n.resolvedLanguage || i18n.language)
-  const summary = useTopupSummary({
-    ts_start: props.ts_start,
-    ts_end: props.ts_end,
-  })
-  const [exporting, setExporting] = useState(false)
-
-  const handleExport = async () => {
-    setExporting(true)
-    try {
-      const blob = await downloadTopupExport({
-        ts_start: props.ts_start,
-        ts_end: props.ts_end,
-      })
-      const message = await readBlobError(blob)
-      if (message) {
-        toast.error(message)
-        return
-      }
-      saveBlob(
-        blob,
-        buildUsageCsvFilename(
-          props.subject,
-          props.startDay,
-          props.endDay,
-          t('Wallet statement')
-        )
-      )
-    } catch (error) {
-      handleServerError(error)
-    } finally {
-      setExporting(false)
-    }
-  }
+  const summary = useTopupSummary(props)
 
   return (
     <div className='flex flex-col gap-4'>
-      <div className='flex justify-end'>
-        <Button
-          variant='outline'
-          size='sm'
-          onClick={() => void handleExport()}
-          disabled={exporting}
-        >
-          <Download className='h-4 w-4' />
-          {exporting ? t('Exporting...') : t('Export CSV')}
-        </Button>
-      </div>
       <div className='grid gap-3 sm:grid-cols-3'>
         <MetricCard
           label={t('Entries')}

@@ -7,15 +7,19 @@ import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useEnterpriseSelf } from '@/features/enterprise-console/hooks/use-enterprise-self'
 import { DatePresetButtons } from '@/features/finance/components/date-preset-buttons'
 import { DayRangeControls } from '@/features/finance/components/day-range-controls'
+import { ExportCsvControl } from '@/features/finance/components/usage-breakdown/export-csv-control'
 import { useFinanceDateRange } from '@/features/finance/hooks/use-finance-date-range'
+import { buildUsageCsvFilename } from '@/features/finance/lib/csv'
 import {
   dayRangeToTimestamps,
   presetRange,
   type DatePresetId,
 } from '@/features/finance/lib/date-presets'
+import type { UsageRangeParams } from '@/features/finance/types'
 import { useAuthStore } from '@/stores/auth-store'
 
 import { CreditNotice } from './components/credit-notice'
+import { TopupExportButton } from './components/topup-export-button'
 import { TopupTab } from './components/topup-tab'
 import { UsageTab } from './components/usage-tab'
 import { RECONCILIATION_TAB_TITLE_KEYS, RECONCILIATION_TABS } from './constants'
@@ -54,12 +58,26 @@ export function ReconciliationPage() {
       }),
     })
   }
-  const tabProps = {
-    ...timestamps,
-    subject: username,
-    startDay: range.applied.start,
-    endDay: range.applied.end,
-  }
+  const usageParams: UsageRangeParams = { scope: 'self', ...timestamps }
+  const exportControl =
+    tab === 'usage' ? (
+      <ExportCsvControl
+        {...usageParams}
+        filename={buildUsageCsvFilename(
+          username,
+          range.applied.start,
+          range.applied.end,
+          t('usage')
+        )}
+      />
+    ) : (
+      <TopupExportButton
+        {...timestamps}
+        subject={username}
+        startDay={range.applied.start}
+        endDay={range.applied.end}
+      />
+    )
 
   return (
     <SectionPageLayout stackActionsOnMobile>
@@ -86,31 +104,34 @@ export function ReconciliationPage() {
             )}
           </p>
           <CreditNotice billingMode={enterprise.data?.billing_mode} />
-          <Tabs
-            value={tab}
-            onValueChange={(value) =>
-              void navigate({
-                search: (previous) => ({
-                  ...previous,
-                  tab: value as ReconciliationTab,
-                  page: undefined,
-                  source: undefined,
-                }),
-              })
-            }
-          >
-            <TabsList variant='line'>
-              {RECONCILIATION_TABS.map((id) => (
-                <TabsTrigger key={id} value={id}>
-                  {t(RECONCILIATION_TAB_TITLE_KEYS[id])}
-                </TabsTrigger>
-              ))}
-            </TabsList>
-          </Tabs>
+          <div className='flex flex-wrap items-center justify-between gap-2'>
+            <Tabs
+              value={tab}
+              onValueChange={(value) =>
+                void navigate({
+                  search: (previous) => ({
+                    ...previous,
+                    tab: value as ReconciliationTab,
+                    page: undefined,
+                    source: undefined,
+                  }),
+                })
+              }
+            >
+              <TabsList variant='line'>
+                {RECONCILIATION_TABS.map((id) => (
+                  <TabsTrigger key={id} value={id}>
+                    {t(RECONCILIATION_TAB_TITLE_KEYS[id])}
+                  </TabsTrigger>
+                ))}
+              </TabsList>
+            </Tabs>
+            {exportControl}
+          </div>
           {tab === 'usage' ? (
-            <UsageTab {...tabProps} />
+            <UsageTab usageParams={usageParams} />
           ) : (
-            <TopupTab {...tabProps} />
+            <TopupTab {...timestamps} />
           )}
         </div>
       </SectionPageLayout.Content>

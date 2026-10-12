@@ -52,6 +52,13 @@ func registerChannelRoutes(apiRouter *gin.RouterGroup) {
 	for _, route := range channelPermissionRoutes {
 		handlePermissionRoute(channelRoute, route.method, route.path, route.permission, route.handler)
 	}
+
+	// 渠道消耗统计（TokenFunc 二开）：读走渠道读权限，回填只允许 Root
+	handlePermissionRoute(channelRoute, http.MethodGet, "/usage_stats", authz.ChannelRead, controller.GetChannelUsageStats)
+	handlePermissionRoute(channelRoute, http.MethodGet, "/usage_stats/breakdown", authz.ChannelRead, controller.GetChannelUsageBreakdown)
+	channelRoute.POST("/usage_stats/backfill", middleware.RootAuth(), controller.BackfillChannelUsage)
+	channelRoute.POST("/usage_stats/dim_backfill", middleware.RootAuth(), controller.StartChannelDimUsageBackfill)
+	channelRoute.GET("/usage_stats/dim_backfill", middleware.RootAuth(), controller.GetChannelDimUsageBackfillStatus)
 }
 
 var channelPermissionRoutes = []permissionRoute{

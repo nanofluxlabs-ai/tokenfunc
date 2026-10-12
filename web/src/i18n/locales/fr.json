@@ -7650,6 +7650,9 @@
     "Inference probe options": "Options de sonde d'inférence",
     "Inference probe interval (seconds)": "Intervalle de sonde d'inférence (secondes)",
     "Inference failures before pausing": "Échecs d'inférence avant la pause",
-    "Inference successes before resuming": "Succès d'inférence avant la reprise"
+    "Inference successes before resuming": "Succès d'inférence avant la reprise",
+    "Customers": "Clients",
+    "Business Tools": "Outils commerciaux",
+    "Operations Center": "Centre d'exploitation"
   }
 }

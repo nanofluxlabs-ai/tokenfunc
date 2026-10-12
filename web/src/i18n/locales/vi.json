@@ -7650,6 +7650,9 @@
     "Inference probe options": "Tùy chọn thăm dò suy luận",
     "Inference probe interval (seconds)": "Khoảng cách thăm dò suy luận (giây)",
     "Inference failures before pausing": "Số lần suy luận thất bại trước khi tạm dừng",
-    "Inference successes before resuming": "Số lần suy luận thành công trước khi tiếp tục"
+    "Inference successes before resuming": "Số lần suy luận thành công trước khi tiếp tục",
+    "Customers": "Khách hàng",
+    "Business Tools": "Công cụ kinh doanh",
+    "Operations Center": "Trung tâm vận hành"
   }
 }

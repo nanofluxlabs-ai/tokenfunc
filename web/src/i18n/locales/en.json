@@ -7650,6 +7650,9 @@
     "Inference probe options": "Inference probe options",
     "Inference probe interval (seconds)": "Inference probe interval (seconds)",
     "Inference failures before pausing": "Inference failures before pausing",
-    "Inference successes before resuming": "Inference successes before resuming"
+    "Inference successes before resuming": "Inference successes before resuming",
+    "Customers": "Customers",
+    "Business Tools": "Business Tools",
+    "Operations Center": "Operations Center"
   }
 }

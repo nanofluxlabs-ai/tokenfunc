@@ -81,6 +81,12 @@ func getTokenAttribution(tokenId int) (tokenAttribution, error) {
 	return value, nil
 }
 
+// IsEnterpriseEmployeeToken 该 key 是否已分配给员工；企业主自建且未分配或仅归属项目的 key 返回 false
+func IsEnterpriseEmployeeToken(tokenId int) (bool, error) {
+	attribution, err := getTokenAttribution(tokenId)
+	return attribution.EmployeeId != 0, err
+}
+
 // InvalidateTokenAttribution 归属或员工部门变更后调用，让后续请求立刻按新归属统计
 func InvalidateTokenAttribution(tokenId int) {
 	tokenAttributionCache.Delete(tokenId)

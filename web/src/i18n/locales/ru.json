@@ -7743,7 +7743,6 @@
     "Model object fields": "Поля объекта модели",
     "Most agent and chat tools work with this endpoint out of the box — see the client guides under Third-party tool integration.": "Большинство инструментов агентов и чатов работают с этим эндпоинтом из коробки — см. руководства по клиентам в разделе «Интеграция сторонних инструментов».",
     "Need the Anthropic wire format instead? Use": "Нужен проводной формат Anthropic? Используйте",
-    "No available upstream channel for the model right now. Try again later or another model.": "Для модели сейчас нет доступного вышестоящего канала. Повторите позже или возьмите другую модель.",
     "Nucleus sampling: only tokens within the top_p probability mass are considered.": "Ядерное сэмплирование: рассматриваются только токены в пределах вероятностной массы top_p.",
     "OpenAI Responses endpoint used by Codex and other agent tools.": "Эндпоинт OpenAI Responses, который используют Codex и другие агентские инструменты.",
     "OpenAI-compatible clients": "Клиенты, совместимые с OpenAI",
@@ -7818,7 +7817,6 @@
     "TypeScript": "TypeScript",
     "Unexpected upstream or gateway failure. Safe to retry with backoff.": "Неожиданный сбой вышестоящего канала или шлюза. Можно безопасно повторять с задержкой.",
     "Unix timestamp (seconds) when the model record was created.": "Unix-время (секунды) создания записи модели.",
-    "Unknown model or path. Verify the model ID against the models endpoint.": "Неизвестная модель или путь. Сверьте ID модели с эндпоинтом models.",
     "Unlike OpenAI-format endpoints, max_tokens is required here, and the recommended authentication headers are x-api-key plus anthropic-version.": "В отличие от эндпоинтов формата OpenAI, здесь max_tokens обязателен, а рекомендуемые заголовки аутентификации — x-api-key и anthropic-version.",
     "Upper bound for the number of output tokens generated.": "Верхняя граница числа сгенерированных выходных токенов.",
     "Upper bound for the number of tokens generated in the completion.": "Верхняя граница числа токенов, генерируемых в завершении.",
@@ -7861,6 +7859,8 @@
     "— the env_key variable is not exported in the shell where codex runs, or the key value is wrong.": "— переменная env_key не экспортирована в shell, где запущен codex, либо значение ключа неверно.",
     "— the key is wrong or exhausted. Check the key value and its quota on the keys page.": "— ключ неверен или исчерпан. Проверьте его значение и квоту на странице ключей.",
     "— the key may not include the model you selected. Compare /model entries with the models endpoint or Model Square.": "— ключ может не включать выбранную модель. Сверьте записи /model с эндпоинтом models или Model Square.",
-    "— verify the apiKey value and that the model id in the models array exists on this site (compare with the models endpoint).": "— проверьте значение apiKey и что id модели из массива models существует на этом сайте (сверьте с эндпоинтом models)."
+    "— verify the apiKey value and that the model id in the models array exists on this site (compare with the models endpoint).": "— проверьте значение apiKey и что id модели из массива models существует на этом сайте (сверьте с эндпоинтом models).",
+    "Unknown request path. Check the endpoint URL against the API reference.": "Неизвестный путь запроса. Сверьте адрес эндпоинта со справочником API.",
+    "No available channel for the model — it may be unknown, disabled, or out of capacity. Try another model or contact the administrator.": "Нет доступного канала для модели — она может быть неизвестна, отключена или перегружена. Попробуйте другую модель или обратитесь к администратору."
   }
 }

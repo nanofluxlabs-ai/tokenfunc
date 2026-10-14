@@ -7743,7 +7743,6 @@
     "Model object fields": "Champs de l'objet modèle",
     "Most agent and chat tools work with this endpoint out of the box — see the client guides under Third-party tool integration.": "La plupart des outils d'agent et de chat fonctionnent avec cet endpoint sans configuration — consultez les guides clients dans « Intégration d'outils tiers ».",
     "Need the Anthropic wire format instead? Use": "Vous préférez le format de transmission Anthropic ? Utilisez",
-    "No available upstream channel for the model right now. Try again later or another model.": "Aucun canal amont disponible pour ce modèle pour le moment. Réessayez plus tard ou changez de modèle.",
     "Nucleus sampling: only tokens within the top_p probability mass are considered.": "Échantillonnage par noyau : seuls les jetons dans la masse de probabilité top_p sont pris en compte.",
     "OpenAI Responses endpoint used by Codex and other agent tools.": "Endpoint OpenAI Responses utilisé par Codex et d'autres outils d'agent.",
     "OpenAI-compatible clients": "Clients compatibles OpenAI",
@@ -7818,7 +7817,6 @@
     "TypeScript": "TypeScript",
     "Unexpected upstream or gateway failure. Safe to retry with backoff.": "Défaillance amont ou passerelle inattendue. Réessai avec temporisation sans risque.",
     "Unix timestamp (seconds) when the model record was created.": "Horodatage Unix (secondes) de la création de l'enregistrement du modèle.",
-    "Unknown model or path. Verify the model ID against the models endpoint.": "Modèle ou chemin inconnu. Vérifiez l'ID du modèle auprès de l'endpoint models.",
     "Unlike OpenAI-format endpoints, max_tokens is required here, and the recommended authentication headers are x-api-key plus anthropic-version.": "Contrairement aux endpoints au format OpenAI, max_tokens est obligatoire ici, et les en-têtes d'authentification recommandés sont x-api-key et anthropic-version.",
     "Upper bound for the number of output tokens generated.": "Limite haute du nombre de jetons de sortie générés.",
     "Upper bound for the number of tokens generated in the completion.": "Limite haute du nombre de jetons générés dans la complétion.",
@@ -7861,6 +7859,8 @@
     "— the env_key variable is not exported in the shell where codex runs, or the key value is wrong.": "— la variable env_key n'est pas exportée dans le shell où codex s'exécute, ou la valeur de la clé est erronée.",
     "— the key is wrong or exhausted. Check the key value and its quota on the keys page.": "— la clé est erronée ou épuisée. Vérifiez sa valeur et son quota sur la page des clés.",
     "— the key may not include the model you selected. Compare /model entries with the models endpoint or Model Square.": "— la clé n'inclut peut-être pas le modèle sélectionné. Comparez les entrées de /model avec l'endpoint models ou Model Square.",
-    "— verify the apiKey value and that the model id in the models array exists on this site (compare with the models endpoint).": "— vérifiez la valeur de apiKey et que l'id de modèle du tableau models existe sur ce site (comparez avec l'endpoint models)."
+    "— verify the apiKey value and that the model id in the models array exists on this site (compare with the models endpoint).": "— vérifiez la valeur de apiKey et que l'id de modèle du tableau models existe sur ce site (comparez avec l'endpoint models).",
+    "Unknown request path. Check the endpoint URL against the API reference.": "Chemin de requête inconnu. Vérifiez l'URL de l'endpoint par rapport à la référence API.",
+    "No available channel for the model — it may be unknown, disabled, or out of capacity. Try another model or contact the administrator.": "Aucun canal disponible pour ce modèle — inconnu, désactivé ou à capacité épuisée. Essayez un autre modèle ou contactez l'administrateur."
   }
 }

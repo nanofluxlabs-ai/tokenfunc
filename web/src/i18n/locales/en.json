@@ -7743,7 +7743,6 @@
     "Model object fields": "Model object fields",
     "Most agent and chat tools work with this endpoint out of the box — see the client guides under Third-party tool integration.": "Most agent and chat tools work with this endpoint out of the box — see the client guides under Third-party tool integration.",
     "Need the Anthropic wire format instead? Use": "Need the Anthropic wire format instead? Use",
-    "No available upstream channel for the model right now. Try again later or another model.": "No available upstream channel for the model right now. Try again later or another model.",
     "Nucleus sampling: only tokens within the top_p probability mass are considered.": "Nucleus sampling: only tokens within the top_p probability mass are considered.",
     "OpenAI Responses endpoint used by Codex and other agent tools.": "OpenAI Responses endpoint used by Codex and other agent tools.",
     "OpenAI-compatible clients": "OpenAI-compatible clients",
@@ -7818,7 +7817,6 @@
     "TypeScript": "TypeScript",
     "Unexpected upstream or gateway failure. Safe to retry with backoff.": "Unexpected upstream or gateway failure. Safe to retry with backoff.",
     "Unix timestamp (seconds) when the model record was created.": "Unix timestamp (seconds) when the model record was created.",
-    "Unknown model or path. Verify the model ID against the models endpoint.": "Unknown model or path. Verify the model ID against the models endpoint.",
     "Unlike OpenAI-format endpoints, max_tokens is required here, and the recommended authentication headers are x-api-key plus anthropic-version.": "Unlike OpenAI-format endpoints, max_tokens is required here, and the recommended authentication headers are x-api-key plus anthropic-version.",
     "Upper bound for the number of output tokens generated.": "Upper bound for the number of output tokens generated.",
     "Upper bound for the number of tokens generated in the completion.": "Upper bound for the number of tokens generated in the completion.",
@@ -7861,6 +7859,8 @@
     "— the env_key variable is not exported in the shell where codex runs, or the key value is wrong.": "— the env_key variable is not exported in the shell where codex runs, or the key value is wrong.",
     "— the key is wrong or exhausted. Check the key value and its quota on the keys page.": "— the key is wrong or exhausted. Check the key value and its quota on the keys page.",
     "— the key may not include the model you selected. Compare /model entries with the models endpoint or Model Square.": "— the key may not include the model you selected. Compare /model entries with the models endpoint or Model Square.",
-    "— verify the apiKey value and that the model id in the models array exists on this site (compare with the models endpoint).": "— verify the apiKey value and that the model id in the models array exists on this site (compare with the models endpoint)."
+    "— verify the apiKey value and that the model id in the models array exists on this site (compare with the models endpoint).": "— verify the apiKey value and that the model id in the models array exists on this site (compare with the models endpoint).",
+    "Unknown request path. Check the endpoint URL against the API reference.": "Unknown request path. Check the endpoint URL against the API reference.",
+    "No available channel for the model — it may be unknown, disabled, or out of capacity. Try another model or contact the administrator.": "No available channel for the model — it may be unknown, disabled, or out of capacity. Try another model or contact the administrator."
   }
 }

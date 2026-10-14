@@ -7743,7 +7743,6 @@
     "Model object fields": "模型对象字段",
     "Most agent and chat tools work with this endpoint out of the box — see the client guides under Third-party tool integration.": "大多数智能体和聊天工具开箱即用地支持此端点 —— 客户端指南见“三方工具接入”。",
     "Need the Anthropic wire format instead? Use": "需要 Anthropic 传输格式？请使用",
-    "No available upstream channel for the model right now. Try again later or another model.": "该模型当前没有可用的上游渠道。请稍后重试或更换模型。",
     "Nucleus sampling: only tokens within the top_p probability mass are considered.": "核采样：仅考虑累积概率在 top_p 以内的词元。",
     "OpenAI Responses endpoint used by Codex and other agent tools.": "Codex 等智能体工具使用的 OpenAI Responses 端点。",
     "OpenAI-compatible clients": "OpenAI 兼容客户端",
@@ -7818,7 +7817,6 @@
     "TypeScript": "TypeScript",
     "Unexpected upstream or gateway failure. Safe to retry with backoff.": "意外的上游或网关故障。可安全退避重试。",
     "Unix timestamp (seconds) when the model record was created.": "模型记录创建时的 Unix 时间戳（秒）。",
-    "Unknown model or path. Verify the model ID against the models endpoint.": "未知的模型或路径。请对照模型端点核对模型 ID。",
     "Unlike OpenAI-format endpoints, max_tokens is required here, and the recommended authentication headers are x-api-key plus anthropic-version.": "与 OpenAI 格式端点不同，此处 max_tokens 为必填，推荐的认证请求头为 x-api-key 加 anthropic-version。",
     "Upper bound for the number of output tokens generated.": "生成输出词元数量的上限。",
     "Upper bound for the number of tokens generated in the completion.": "补全生成词元数量的上限。",
@@ -7861,6 +7859,8 @@
     "— the env_key variable is not exported in the shell where codex runs, or the key value is wrong.": "—— 运行 codex 的 shell 中未导出 env_key 指定的变量，或密钥值有误。",
     "— the key is wrong or exhausted. Check the key value and its quota on the keys page.": "—— 密钥有误或已耗尽。请在密钥页核对密钥值与配额。",
     "— the key may not include the model you selected. Compare /model entries with the models endpoint or Model Square.": "—— 密钥可能未包含所选模型。请将 /model 列表与模型端点或模型广场对照。",
-    "— verify the apiKey value and that the model id in the models array exists on this site (compare with the models endpoint).": "—— 核对 apiKey 的值，并确认 models 数组中的模型 id 在本站存在（可与模型端点对照）。"
+    "— verify the apiKey value and that the model id in the models array exists on this site (compare with the models endpoint).": "—— 核对 apiKey 的值，并确认 models 数组中的模型 id 在本站存在（可与模型端点对照）。",
+    "Unknown request path. Check the endpoint URL against the API reference.": "请求路径不存在。请对照 API 参考文档检查端点地址。",
+    "No available channel for the model — it may be unknown, disabled, or out of capacity. Try another model or contact the administrator.": "模型暂无可用渠道——可能未配置、已禁用或容量耗尽。请更换模型或联系管理员。"
   }
 }

@@ -28,13 +28,13 @@ import { DocSection } from '../components/doc-section'
 const STATUS_ROWS = [
   {
     status: 400,
-    type: 'invalid_request_error',
+    type: 'new_api_error',
     descriptionKey:
       'Malformed request: bad JSON, missing required fields, or invalid parameter values.',
   },
   {
     status: 401,
-    type: 'invalid_request_error',
+    type: 'new_api_error',
     descriptionKey:
       'Missing, invalid, or exhausted API key. Check the key and its remaining quota.',
   },
@@ -48,7 +48,7 @@ const STATUS_ROWS = [
     status: 404,
     type: 'invalid_request_error',
     descriptionKey:
-      'Unknown model or path. Verify the model ID against the models endpoint.',
+      'Unknown request path. Check the endpoint URL against the API reference.',
   },
   {
     status: 429,
@@ -66,7 +66,7 @@ const STATUS_ROWS = [
     status: 503,
     type: 'new_api_error',
     descriptionKey:
-      'No available upstream channel for the model right now. Try again later or another model.',
+      'No available channel for the model — it may be unknown, disabled, or out of capacity. Try another model or contact the administrator.',
   },
 ]
 
@@ -86,9 +86,10 @@ export default function ApiErrorsPage() {
           code={JSON.stringify(
             {
               error: {
-                message: 'Incorrect API key provided or key has expired.',
+                message:
+                  'No available channel for model nonexistent-model under group default',
                 type: 'new_api_error',
-                code: 'invalid_api_key',
+                code: 'model_not_found',
               },
             },
             null,

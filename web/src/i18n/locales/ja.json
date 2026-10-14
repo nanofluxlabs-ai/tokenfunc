@@ -7743,7 +7743,6 @@
     "Model object fields": "モデルオブジェクトのフィールド",
     "Most agent and chat tools work with this endpoint out of the box — see the client guides under Third-party tool integration.": "大半のエージェント・チャットツールはこのエンドポイントをそのまま使えます。クライアントガイドは「サードパーティツール連携」を参照してください。",
     "Need the Anthropic wire format instead? Use": "Anthropic のワイヤー形式が必要ですか？使うのは",
-    "No available upstream channel for the model right now. Try again later or another model.": "現在このモデルに利用可能な上流チャネルがありません。後でもう一度試すか、別のモデルを使ってください。",
     "Nucleus sampling: only tokens within the top_p probability mass are considered.": "核サンプリング：top_p の確率質内のトークンのみが考慮されます。",
     "OpenAI Responses endpoint used by Codex and other agent tools.": "Codex などのエージェントツールが利用する OpenAI Responses エンドポイント。",
     "OpenAI-compatible clients": "OpenAI 互換クライアント",
@@ -7818,7 +7817,6 @@
     "TypeScript": "TypeScript",
     "Unexpected upstream or gateway failure. Safe to retry with backoff.": "上流またはゲートウェイの予期しない障害です。バックオフ付きの再試行が安全にできます。",
     "Unix timestamp (seconds) when the model record was created.": "モデルレコードが作成された Unix タイムスタンプ（秒）。",
-    "Unknown model or path. Verify the model ID against the models endpoint.": "不明なモデルまたはパスです。モデル ID を models エンドポイントと照合してください。",
     "Unlike OpenAI-format endpoints, max_tokens is required here, and the recommended authentication headers are x-api-key plus anthropic-version.": "OpenAI 形式のエンドポイントと異なり、ここでは max_tokens が必須で、推奨される認証ヘッダーは x-api-key と anthropic-version です。",
     "Upper bound for the number of output tokens generated.": "生成される出力トークン数の上限。",
     "Upper bound for the number of tokens generated in the completion.": "補完で生成されるトークン数の上限。",
@@ -7861,6 +7859,8 @@
     "— the env_key variable is not exported in the shell where codex runs, or the key value is wrong.": "—— codex を実行するシェルで env_key の変数がエクスポートされていないか、キーの値が間違っています。",
     "— the key is wrong or exhausted. Check the key value and its quota on the keys page.": "—— キーが間違っているか、使い切られています。キーページで値とクォータを確認してください。",
     "— the key may not include the model you selected. Compare /model entries with the models endpoint or Model Square.": "—— キーに選択したモデルが含まれていない可能性があります。/model の項目を models エンドポイントやモデル広場と照合してください。",
-    "— verify the apiKey value and that the model id in the models array exists on this site (compare with the models endpoint).": "—— apiKey の値と、models 配列のモデル id がこのサイトに存在することを確認してください（models エンドポイントと照合）。"
+    "— verify the apiKey value and that the model id in the models array exists on this site (compare with the models endpoint).": "—— apiKey の値と、models 配列のモデル id がこのサイトに存在することを確認してください（models エンドポイントと照合）。",
+    "Unknown request path. Check the endpoint URL against the API reference.": "リクエストパスが存在しません。API リファレンスと照らし合わせてエンドポイント URL を確認してください。",
+    "No available channel for the model — it may be unknown, disabled, or out of capacity. Try another model or contact the administrator.": "モデルに利用可能なチャンネルがありません——未設定、無効化、または容量不足の可能性があります。別のモデルを試すか管理者に連絡してください。"
   }
 }

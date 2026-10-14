@@ -7743,7 +7743,6 @@
     "Model object fields": "Các trường của đối tượng mô hình",
     "Most agent and chat tools work with this endpoint out of the box — see the client guides under Third-party tool integration.": "Hầu hết công cụ agent và chat dùng được endpoint này ngay — xem các hướng dẫn client trong mục Tích hợp công cụ bên thứ ba.",
     "Need the Anthropic wire format instead? Use": "Cần định dạng truyền Anthropic? Hãy dùng",
-    "No available upstream channel for the model right now. Try again later or another model.": "Hiện không có kênh thượng nguồn khả dụng cho mô hình. Thử lại sau hoặc đổi mô hình khác.",
     "Nucleus sampling: only tokens within the top_p probability mass are considered.": "Lấy mẫu nucleus: chỉ các token nằm trong khối xác suất top_p mới được xét.",
     "OpenAI Responses endpoint used by Codex and other agent tools.": "Endpoint OpenAI Responses được Codex và các công cụ agent khác sử dụng.",
     "OpenAI-compatible clients": "Client tương thích OpenAI",
@@ -7818,7 +7817,6 @@
     "TypeScript": "TypeScript",
     "Unexpected upstream or gateway failure. Safe to retry with backoff.": "Lỗi bất thường của thượng nguồn hoặc gateway. Có thể thử lại an toàn với backoff.",
     "Unix timestamp (seconds) when the model record was created.": "Dấu thời gian Unix (giây) khi bản ghi mô hình được tạo.",
-    "Unknown model or path. Verify the model ID against the models endpoint.": "Mô hình hoặc đường dẫn không rõ. Đối chiếu ID mô hình với endpoint models.",
     "Unlike OpenAI-format endpoints, max_tokens is required here, and the recommended authentication headers are x-api-key plus anthropic-version.": "Khác các endpoint định dạng OpenAI, ở đây max_tokens là bắt buộc, và header xác thực được khuyến nghị là x-api-key kèm anthropic-version.",
     "Upper bound for the number of output tokens generated.": "Giới hạn trên của số token đầu ra được sinh ra.",
     "Upper bound for the number of tokens generated in the completion.": "Giới hạn trên của số token được sinh trong phần hoàn tất.",
@@ -7861,6 +7859,8 @@
     "— the env_key variable is not exported in the shell where codex runs, or the key value is wrong.": "— biến env_key chưa được export trong shell chạy codex, hoặc giá trị khóa bị sai.",
     "— the key is wrong or exhausted. Check the key value and its quota on the keys page.": "— khóa sai hoặc đã cạn. Kiểm tra giá trị khóa và hạn mức tại trang khóa.",
     "— the key may not include the model you selected. Compare /model entries with the models endpoint or Model Square.": "— khóa có thể không chứa mô hình bạn đã chọn. Đối chiếu các mục /model với endpoint models hoặc Model Square.",
-    "— verify the apiKey value and that the model id in the models array exists on this site (compare with the models endpoint).": "— kiểm tra giá trị apiKey và đảm bảo id mô hình trong mảng models tồn tại trên trang này (đối chiếu với endpoint models)."
+    "— verify the apiKey value and that the model id in the models array exists on this site (compare with the models endpoint).": "— kiểm tra giá trị apiKey và đảm bảo id mô hình trong mảng models tồn tại trên trang này (đối chiếu với endpoint models).",
+    "Unknown request path. Check the endpoint URL against the API reference.": "Đường dẫn yêu cầu không tồn tại. Đối chiếu URL endpoint với tài liệu tham chiếu API.",
+    "No available channel for the model — it may be unknown, disabled, or out of capacity. Try another model or contact the administrator.": "Không có kênh khả dụng cho mô hình — có thể chưa cấu hình, bị vô hiệu hóa hoặc hết dung lượng. Hãy thử mô hình khác hoặc liên hệ quản trị viên."
   }
 }

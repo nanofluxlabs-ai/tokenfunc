@@ -160,7 +160,8 @@ export function buildChatCompletionsSample(
           ')',
           '',
           'for chunk in stream:',
-          '    print(chunk.choices[0].delta.content or "", end="")',
+          '    if chunk.choices:',
+          '        print(chunk.choices[0].delta.content or "", end="")',
         ].join('\n')
       : [
           'import os',

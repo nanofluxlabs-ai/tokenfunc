@@ -7650,6 +7650,7 @@
     "Customers": "客户管理",
     "Business Tools": "商务工具",
     "Operations Center": "运维中心",
-    "Cycle Days": "账期天数"
+    "Cycle Days": "账期天数",
+    "View usage logs of {{username}}": "查看 {{username}} 的使用日志"
   }
 }

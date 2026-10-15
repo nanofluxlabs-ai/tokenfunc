@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next'
 import { CopyButton } from '@/components/copy-button'
 import { StatusBadge } from '@/components/status-badge'
 import { TableId } from '@/components/table-id'
+import { UsageLogsUserLink } from '@/components/usage-logs-user-link'
 import { formatQuotaWithCurrency } from '@/lib/currency'
 import { formatTimestampToDate } from '@/lib/format'
 
@@ -57,7 +58,10 @@ export function useEnterprisesColumns(): ColumnDef<EnterpriseListItem>[] {
       accessorKey: 'username',
       header: t('Owner Account'),
       cell: ({ row }) => (
-        <span className='truncate'>{row.original.username}</span>
+        <UsageLogsUserLink
+          username={row.original.username}
+          className='block truncate'
+        />
       ),
       size: 140,
     },

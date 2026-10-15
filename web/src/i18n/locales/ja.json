@@ -7650,6 +7650,7 @@
     "Customers": "顧客管理",
     "Business Tools": "ビジネスツール",
     "Operations Center": "運用センター",
-    "Cycle Days": "サイクル日数"
+    "Cycle Days": "サイクル日数",
+    "View usage logs of {{username}}": "{{username}} の使用ログを表示"
   }
 }

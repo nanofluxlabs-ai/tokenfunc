@@ -1,4 +1,10 @@
 import {
+  RouterProvider,
+  createMemoryHistory,
+  createRootRoute,
+  createRouter,
+} from '@tanstack/react-router'
+import {
   flexRender,
   getCoreRowModel,
   useReactTable,
@@ -162,6 +168,26 @@ test('prepaid enterprise keeps wallet balance and leaves credit columns empty', 
 
   render(<ColumnCell item={item} columnId='used_quota' />)
   expect(screen.getByText(formatQuotaWithCurrency(900_000))).toBeInTheDocument()
+})
+
+test('owner account column links to the usage logs filtered by the owner username', async () => {
+  const rootRoute = createRootRoute({
+    component: () => <ColumnCell item={creditItem} columnId='username' />,
+  })
+  const router = createRouter({
+    routeTree: rootRoute,
+    history: createMemoryHistory({ initialEntries: ['/'] }),
+  })
+  render(<RouterProvider router={router} />)
+  await router.load()
+
+  const link = await screen.findByRole('link', {
+    name: 'View usage logs of acme',
+  })
+  expect(link).toHaveAttribute(
+    'href',
+    '/usage-logs/common?username=acme&page=1'
+  )
 })
 
 test('email column shows the owner email with a copy button', () => {

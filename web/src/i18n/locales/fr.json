@@ -7650,6 +7650,7 @@
     "Customers": "Clients",
     "Business Tools": "Outils commerciaux",
     "Operations Center": "Centre d'exploitation",
-    "Cycle Days": "Jours du cycle"
+    "Cycle Days": "Jours du cycle",
+    "View usage logs of {{username}}": "Voir les journaux d'utilisation de {{username}}"
   }
 }

@@ -7650,6 +7650,7 @@
     "Customers": "Клиенты",
     "Business Tools": "Бизнес-инструменты",
     "Operations Center": "Центр эксплуатации",
-    "Cycle Days": "Дней в цикле"
+    "Cycle Days": "Дней в цикле",
+    "View usage logs of {{username}}": "Журнал использования {{username}}"
   }
 }

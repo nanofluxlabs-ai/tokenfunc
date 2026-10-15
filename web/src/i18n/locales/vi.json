@@ -7650,6 +7650,7 @@
     "Customers": "Khách hàng",
     "Business Tools": "Công cụ kinh doanh",
     "Operations Center": "Trung tâm vận hành",
-    "Cycle Days": "Số ngày chu kỳ"
+    "Cycle Days": "Số ngày chu kỳ",
+    "View usage logs of {{username}}": "Xem nhật ký sử dụng của {{username}}"
   }
 }

@@ -161,8 +161,11 @@ func TestEnterpriseUserTypeFilterAndList(t *testing.T) {
 	}
 	assert.Equal(t, int64(5000), byName["Globex"].PeriodLimitQuota)
 	assert.Equal(t, int64(1200), byName["Globex"].PeriodUsedQuota)
+	assert.Equal(t, period.StartAt, byName["Globex"].PeriodStartAt)
+	assert.Equal(t, period.EndAt, byName["Globex"].PeriodEndAt)
 	assert.Equal(t, int64(0), byName["Initech"].PeriodLimitQuota)
 	assert.Equal(t, int64(0), byName["Initech"].PeriodUsedQuota)
+	assert.Equal(t, int64(0), byName["Initech"].PeriodEndAt)
 }
 
 func TestEnterpriseDepartmentTree(t *testing.T) {

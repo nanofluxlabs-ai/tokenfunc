@@ -113,6 +113,8 @@ type EnterpriseListItem struct {
 	UserStatus       int    `json:"user_status"`
 	PeriodLimitQuota int64  `json:"period_limit_quota"`
 	PeriodUsedQuota  int64  `json:"period_used_quota"`
+	PeriodStartAt    int64  `json:"period_start_at"`
+	PeriodEndAt      int64  `json:"period_end_at"`
 }
 
 // Normalize 校验并补齐默认值，创建和更新前都要调用
@@ -209,7 +211,8 @@ func ListEnterprises(keyword string, billingMode string, startIdx int, num int) 
 	items := make([]*EnterpriseListItem, 0)
 	err := query.
 		Select("enterprises.*, users.username, users.display_name, users.email, users.quota, users.used_quota, users.status AS user_status, " +
-			"COALESCE(open_period.limit_quota, 0) AS period_limit_quota, COALESCE(open_period.used_quota, 0) AS period_used_quota").
+			"COALESCE(open_period.limit_quota, 0) AS period_limit_quota, COALESCE(open_period.used_quota, 0) AS period_used_quota, " +
+			"COALESCE(open_period.start_at, 0) AS period_start_at, COALESCE(open_period.end_at, 0) AS period_end_at").
 		Order("enterprises.id DESC").
 		Limit(num).Offset(startIdx).
 		Scan(&items).Error

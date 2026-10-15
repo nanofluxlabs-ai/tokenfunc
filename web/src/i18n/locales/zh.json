@@ -7649,6 +7649,7 @@
     "Inference successes before resuming": "推理连续成功多少次后恢复",
     "Customers": "客户管理",
     "Business Tools": "商务工具",
-    "Operations Center": "运维中心"
+    "Operations Center": "运维中心",
+    "Cycle Days": "账期天数"
   }
 }

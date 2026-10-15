@@ -11,13 +11,17 @@ import { formatQuotaWithCurrency } from '@/lib/currency'
 import type { EnterpriseListItem } from '../../types'
 import { useEnterprisesColumns } from '../enterprises-columns'
 
+// 取正午时刻避免测试机时区影响日期：2026-10-01 12:00Z 起，end_at 独占，减 1 秒落在 2026-10-31 12:00Z
+const PERIOD_START = 1790856000
+const PERIOD_END = 1793448001
+
 function makeItem(overrides: Partial<EnterpriseListItem>): EnterpriseListItem {
   return {
     id: 1,
     user_id: 2,
     name: 'Acme',
     contact_name: '',
-    contact_email: '',
+    contact_email: 'contact@acme.test',
     contact_phone: '',
     billing_mode: 'prepaid',
     credit_cycle_type: '',
@@ -39,15 +43,26 @@ function makeItem(overrides: Partial<EnterpriseListItem>): EnterpriseListItem {
     updated_at: 0,
     username: 'acme',
     display_name: 'acme',
-    email: '',
+    email: 'owner@acme.test',
     quota: 3_000_000,
     used_quota: 900_000,
     user_status: 1,
     period_limit_quota: 0,
     period_used_quota: 0,
+    period_start_at: 0,
+    period_end_at: 0,
     ...overrides,
   }
 }
+
+const creditItem = makeItem({
+  billing_mode: 'credit',
+  credit_cycle_type: 'natural_month',
+  period_limit_quota: 150_000_000,
+  period_used_quota: 10_000_000,
+  period_start_at: PERIOD_START,
+  period_end_at: PERIOD_END,
+})
 
 function ColumnCell(props: { item: EnterpriseListItem; columnId: string }) {
   const table = useReactTable({
@@ -62,23 +77,19 @@ function ColumnCell(props: { item: EnterpriseListItem; columnId: string }) {
   return cell ? flexRender(cell.column.columnDef.cell, cell.getContext()) : null
 }
 
-test('credit enterprise balance column shows remaining of the open period with its limit', () => {
-  const item = makeItem({
-    billing_mode: 'credit',
-    period_limit_quota: 150_000_000,
-    period_used_quota: 10_000_000,
-  })
-  render(<ColumnCell item={item} columnId='quota' />)
+test('credit enterprise credit limit column shows remaining / limit with a progress bar', () => {
+  render(<ColumnCell item={creditItem} columnId='credit_limit' />)
 
   expect(
-    screen.getByText(formatQuotaWithCurrency(140_000_000))
+    screen.getByText(
+      `${formatQuotaWithCurrency(140_000_000)} / ${formatQuotaWithCurrency(150_000_000)}`
+    )
   ).toBeInTheDocument()
-  expect(
-    screen.getByText(`Credit Limit ${formatQuotaWithCurrency(150_000_000)}`)
-  ).toBeInTheDocument()
-  expect(
-    screen.queryByText(formatQuotaWithCurrency(3_000_000))
-  ).not.toBeInTheDocument()
+  // 剩余 140 / 150 ≈ 93.33%
+  expect(screen.getByRole('progressbar')).toHaveAttribute(
+    'aria-valuenow',
+    String((140_000_000 / 150_000_000) * 100)
+  )
 })
 
 test('credit enterprise remaining is clamped to zero when period usage exceeds the limit', () => {
@@ -87,38 +98,85 @@ test('credit enterprise remaining is clamped to zero when period usage exceeds t
     period_limit_quota: 1_000_000,
     period_used_quota: 1_500_000,
   })
-  render(<ColumnCell item={item} columnId='quota' />)
+  render(<ColumnCell item={item} columnId='credit_limit' />)
 
-  expect(screen.getByText(formatQuotaWithCurrency(0))).toBeInTheDocument()
+  expect(
+    screen.getByText(
+      `${formatQuotaWithCurrency(0)} / ${formatQuotaWithCurrency(1_000_000)}`
+    )
+  ).toBeInTheDocument()
+  expect(screen.getByRole('progressbar')).toHaveAttribute('aria-valuenow', '0')
 })
 
-test('credit enterprise used column shows the open period usage instead of lifetime usage', () => {
+test('credit enterprise leaves balance and used columns empty because the credit limit column covers them', () => {
+  for (const columnId of ['quota', 'used_quota']) {
+    const { unmount } = render(
+      <ColumnCell item={creditItem} columnId={columnId} />
+    )
+    expect(screen.getByText('—')).toBeInTheDocument()
+    expect(
+      screen.queryByText(formatQuotaWithCurrency(3_000_000))
+    ).not.toBeInTheDocument()
+    expect(
+      screen.queryByText(formatQuotaWithCurrency(900_000))
+    ).not.toBeInTheDocument()
+    unmount()
+  }
+})
+
+test('credit enterprise shows the open period range and calendar month cycle', () => {
+  const { unmount } = render(
+    <ColumnCell item={creditItem} columnId='billing_cycle' />
+  )
+  expect(screen.getByText('2026-10-01 ~ 2026-10-31')).toBeInTheDocument()
+  unmount()
+
+  render(<ColumnCell item={creditItem} columnId='cycle_days' />)
+  expect(screen.getByText('Calendar month')).toBeInTheDocument()
+})
+
+test('fixed-day credit cycle shows the configured day count', () => {
   const item = makeItem({
     billing_mode: 'credit',
-    period_limit_quota: 150_000_000,
-    period_used_quota: 10_000_000,
+    credit_cycle_type: 'fixed_days',
+    credit_cycle_days: 45,
   })
-  render(<ColumnCell item={item} columnId='used_quota' />)
-
-  expect(
-    screen.getByText(formatQuotaWithCurrency(10_000_000))
-  ).toBeInTheDocument()
-  expect(screen.getByText('Current period')).toBeInTheDocument()
-  expect(
-    screen.queryByText(formatQuotaWithCurrency(900_000))
-  ).not.toBeInTheDocument()
+  render(<ColumnCell item={item} columnId='cycle_days' />)
+  expect(screen.getByText('45 days')).toBeInTheDocument()
 })
 
-test('prepaid enterprise keeps wallet balance and lifetime usage', () => {
+test('prepaid enterprise keeps wallet balance and leaves credit columns empty', () => {
   const item = makeItem({ billing_mode: 'prepaid' })
+  for (const columnId of ['credit_limit', 'billing_cycle', 'cycle_days']) {
+    const { unmount } = render(<ColumnCell item={item} columnId={columnId} />)
+    expect(screen.getByText('—')).toBeInTheDocument()
+    expect(screen.queryByRole('progressbar')).not.toBeInTheDocument()
+    unmount()
+  }
+
   const { unmount } = render(<ColumnCell item={item} columnId='quota' />)
   expect(
     screen.getByText(formatQuotaWithCurrency(3_000_000))
   ).toBeInTheDocument()
-  expect(screen.queryByText(/Credit Limit/)).not.toBeInTheDocument()
   unmount()
 
   render(<ColumnCell item={item} columnId='used_quota' />)
   expect(screen.getByText(formatQuotaWithCurrency(900_000))).toBeInTheDocument()
-  expect(screen.queryByText('Current period')).not.toBeInTheDocument()
+})
+
+test('email column shows the owner email with a copy button', () => {
+  render(<ColumnCell item={creditItem} columnId='email' />)
+  expect(screen.getByText('owner@acme.test')).toBeInTheDocument()
+  expect(
+    screen.getByRole('button', { name: 'Copy owner@acme.test' })
+  ).toBeInTheDocument()
+})
+
+test('email column falls back to the enterprise contact email when the owner has none', () => {
+  const item = makeItem({ email: '' })
+  render(<ColumnCell item={item} columnId='email' />)
+  expect(screen.getByText('contact@acme.test')).toBeInTheDocument()
+  expect(
+    screen.getByRole('button', { name: 'Copy contact@acme.test' })
+  ).toBeInTheDocument()
 })

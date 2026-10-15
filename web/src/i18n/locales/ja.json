@@ -7649,6 +7649,7 @@
     "Inference successes before resuming": "再開までの推論連続成功回数",
     "Customers": "顧客管理",
     "Business Tools": "ビジネスツール",
-    "Operations Center": "運用センター"
+    "Operations Center": "運用センター",
+    "Cycle Days": "サイクル日数"
   }
 }

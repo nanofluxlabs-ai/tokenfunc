@@ -43,6 +43,8 @@ export interface EnterpriseListItem extends Enterprise {
   user_status: number
   period_limit_quota: number
   period_used_quota: number
+  period_start_at: number
+  period_end_at: number
 }
 
 export interface EnterpriseProfilePayload {

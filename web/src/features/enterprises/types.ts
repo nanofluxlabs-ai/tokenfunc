@@ -33,7 +33,7 @@ export interface Enterprise {
   updated_at: number
 }
 
-// 管理员企业客户列表行：企业资料 + 主账号摘要
+// 管理员企业客户列表行：企业资料 + 主账号摘要 + 授信企业的当前账期额度（预付企业为 0）
 export interface EnterpriseListItem extends Enterprise {
   username: string
   display_name: string
@@ -41,6 +41,8 @@ export interface EnterpriseListItem extends Enterprise {
   quota: number
   used_quota: number
   user_status: number
+  period_limit_quota: number
+  period_used_quota: number
 }
 
 export interface EnterpriseProfilePayload {

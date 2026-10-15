@@ -79,22 +79,56 @@ export function useEnterprisesColumns(): ColumnDef<EnterpriseListItem>[] {
     {
       accessorKey: 'quota',
       header: t('Balance'),
-      cell: ({ row }) => (
-        <span className='font-mono text-sm'>
-          {formatQuotaWithCurrency(row.original.quota)}
-        </span>
-      ),
-      size: 140,
+      cell: ({ row }) => {
+        // 授信企业不走钱包：余额列显示当前账期剩余 / 额度，预付企业仍显示主账号钱包余额
+        if (row.original.billing_mode !== 'credit') {
+          return (
+            <span className='font-mono text-sm'>
+              {formatQuotaWithCurrency(row.original.quota)}
+            </span>
+          )
+        }
+        const remaining = Math.max(
+          row.original.period_limit_quota - row.original.period_used_quota,
+          0
+        )
+        return (
+          <div className='flex min-w-0 flex-col'>
+            <span className='font-mono text-sm'>
+              {formatQuotaWithCurrency(remaining)}
+            </span>
+            <span className='text-muted-foreground truncate text-xs'>
+              {t('Credit Limit')}{' '}
+              {formatQuotaWithCurrency(row.original.period_limit_quota)}
+            </span>
+          </div>
+        )
+      },
+      size: 160,
     },
     {
       accessorKey: 'used_quota',
       header: t('Used'),
       meta: { mobileHidden: true },
-      cell: ({ row }) => (
-        <span className='font-mono text-sm'>
-          {formatQuotaWithCurrency(row.original.used_quota)}
-        </span>
-      ),
+      cell: ({ row }) => {
+        if (row.original.billing_mode !== 'credit') {
+          return (
+            <span className='font-mono text-sm'>
+              {formatQuotaWithCurrency(row.original.used_quota)}
+            </span>
+          )
+        }
+        return (
+          <div className='flex min-w-0 flex-col'>
+            <span className='font-mono text-sm'>
+              {formatQuotaWithCurrency(row.original.period_used_quota)}
+            </span>
+            <span className='text-muted-foreground truncate text-xs'>
+              {t('Current period')}
+            </span>
+          </div>
+        )
+      },
       size: 140,
     },
     {

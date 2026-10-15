@@ -7861,6 +7861,8 @@
     "— the key may not include the model you selected. Compare /model entries with the models endpoint or Model Square.": "— khóa có thể không chứa mô hình bạn đã chọn. Đối chiếu các mục /model với endpoint models hoặc Model Square.",
     "— verify the apiKey value and that the model id in the models array exists on this site (compare with the models endpoint).": "— kiểm tra giá trị apiKey và đảm bảo id mô hình trong mảng models tồn tại trên trang này (đối chiếu với endpoint models).",
     "Unknown request path. Check the endpoint URL against the API reference.": "Đường dẫn yêu cầu không tồn tại. Đối chiếu URL endpoint với tài liệu tham chiếu API.",
-    "No available channel for the model — it may be unknown, disabled, or out of capacity. Try another model or contact the administrator.": "Không có kênh khả dụng cho mô hình — có thể chưa cấu hình, bị vô hiệu hóa hoặc hết dung lượng. Hãy thử mô hình khác hoặc liên hệ quản trị viên."
+    "No available channel for the model — it may be unknown, disabled, or out of capacity. Try another model or contact the administrator.": "Không có kênh khả dụng cho mô hình — có thể chưa cấu hình, bị vô hiệu hóa hoặc hết dung lượng. Hãy thử mô hình khác hoặc liên hệ quản trị viên.",
+    "Cycle Days": "Số ngày chu kỳ",
+    "View usage logs of {{username}}": "Xem nhật ký sử dụng của {{username}}"
   }
 }

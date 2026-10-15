@@ -7861,6 +7861,8 @@
     "— the key may not include the model you selected. Compare /model entries with the models endpoint or Model Square.": "—— キーに選択したモデルが含まれていない可能性があります。/model の項目を models エンドポイントやモデル広場と照合してください。",
     "— verify the apiKey value and that the model id in the models array exists on this site (compare with the models endpoint).": "—— apiKey の値と、models 配列のモデル id がこのサイトに存在することを確認してください（models エンドポイントと照合）。",
     "Unknown request path. Check the endpoint URL against the API reference.": "リクエストパスが存在しません。API リファレンスと照らし合わせてエンドポイント URL を確認してください。",
-    "No available channel for the model — it may be unknown, disabled, or out of capacity. Try another model or contact the administrator.": "モデルに利用可能なチャンネルがありません——未設定、無効化、または容量不足の可能性があります。別のモデルを試すか管理者に連絡してください。"
+    "No available channel for the model — it may be unknown, disabled, or out of capacity. Try another model or contact the administrator.": "モデルに利用可能なチャンネルがありません——未設定、無効化、または容量不足の可能性があります。別のモデルを試すか管理者に連絡してください。",
+    "Cycle Days": "サイクル日数",
+    "View usage logs of {{username}}": "{{username}} の使用ログを表示"
   }
 }

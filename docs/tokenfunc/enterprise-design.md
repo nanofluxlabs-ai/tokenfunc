@@ -337,6 +337,39 @@ GET/PUT /settings/invoice               我方 Invoice 信息
 - 普通用户列表：增加过滤 `NOT EXISTS (SELECT 1 FROM enterprises WHERE user_id = users.id)`
 - 前端用户管理页拆成两个页签：普通用户（上游页面）｜企业用户（新页面）
 
+### 7.4 授信额度查询（API key，2026-10-13）
+
+授信企业客户（如腾讯云）用自己的 API key（`Authorization: Bearer sk-...`）查询额度，不需要登录态或 PAT。路径沿用 one-api / new-api 生态惯例，带与不带 `/v1` 前缀均可。
+
+```
+GET /v1/dashboard/billing/subscription   OpenAI 兼容：hard/soft/system_hard_limit_usd = 当前账期额度，access_until = 账期结束时间
+GET /v1/dashboard/billing/usage          OpenAI 兼容：total_usage = 当前账期已用 × 100（忽略 start_date / end_date）
+GET /v1/dashboard/billing/credit         结构化授信信息（二开新增）
+GET /api/usage/token/                    令牌自身额度，上游原样
+```
+
+`credit` 响应：
+
+```json
+{
+  "object": "billing_credit",
+  "billing_mode": "credit", "credit_cycle_type": "natural_month", "period_no": 3,
+  "period_start": 1759276800, "period_end": 1761955200,
+  "limit_quota": 500000000, "used_quota": 12345, "available_quota": 499987655,
+  "limit": 1000, "used": 0.02469, "available": 999.97531,
+  "quota_display_type": "USD", "currency": "USD"
+}
+```
+
+- `*_quota` 为内部额度原值；`limit / used / available` 按站点「额度展示类型」换算（USD 除以 QuotaPerUnit，CNY 再乘汇率，TOKENS 为原值），`quota_display_type` 告知单位；`currency` 是开票币种，两者独立。
+- `available_quota = max(limit - used, 0)`：出账后到达的结算差额会无条件累加，已用可能超过额度。
+- 账期滚动空窗（上一期已 closing、下一期尚未创建）：`subscription` / `usage` 返回 0，`credit` 返回 404 `credit_period_not_found`。查询接口只读，不会像 relay 预扣那样顺带开期。
+- 权限：只允许主账号自建的 key（`ent_token_assignments.employee_id = 0`，无归属或仅归属项目）；分配给员工的 key 三条路由统一 403 `access_denied`。企业停用时 403 `insufficient_user_quota`，与 relay 入口一致。
+- 非企业用户与预付企业：`subscription` / `usage` 保持上游行为（受 `DisplayTokenStatEnabled` 影响），`credit` 返回 403 `enterprise_credit_not_enabled`。授信分支优先于 `DisplayTokenStatEnabled`。
+- 错误体为 OpenAI error 格式 `{"error": {"message", "type": "new_api_error", "code"}}`，使用真实 HTTP 状态码；上游两条接口原有的「200 + error」错误路径未改。
+- 已知坑（上游既有）：展示类型为 TOKENS 时 `*_usd` 字段的值是 tokens 数，`total_usage` 为 tokens × 100。
+- 缓存：企业计费模式判定走 15s 进程内缓存，limit / used 每次查 `ent_credit_periods` 实表；员工归属 30s 缓存，改归属时主动失效。
+
 ---
 
 ## 8. 前端（React 19 + TanStack，遵循 web/AGENTS.md，优先复用现有组件）

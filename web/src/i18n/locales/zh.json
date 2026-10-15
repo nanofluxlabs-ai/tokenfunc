@@ -7861,6 +7861,8 @@
     "— the key may not include the model you selected. Compare /model entries with the models endpoint or Model Square.": "—— 密钥可能未包含所选模型。请将 /model 列表与模型端点或模型广场对照。",
     "— verify the apiKey value and that the model id in the models array exists on this site (compare with the models endpoint).": "—— 核对 apiKey 的值，并确认 models 数组中的模型 id 在本站存在（可与模型端点对照）。",
     "Unknown request path. Check the endpoint URL against the API reference.": "请求路径不存在。请对照 API 参考文档检查端点地址。",
-    "No available channel for the model — it may be unknown, disabled, or out of capacity. Try another model or contact the administrator.": "模型暂无可用渠道——可能未配置、已禁用或容量耗尽。请更换模型或联系管理员。"
+    "No available channel for the model — it may be unknown, disabled, or out of capacity. Try another model or contact the administrator.": "模型暂无可用渠道——可能未配置、已禁用或容量耗尽。请更换模型或联系管理员。",
+    "Cycle Days": "账期天数",
+    "View usage logs of {{username}}": "查看 {{username}} 的使用日志"
   }
 }

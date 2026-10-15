@@ -7861,6 +7861,8 @@
     "— the key may not include the model you selected. Compare /model entries with the models endpoint or Model Square.": "— the key may not include the model you selected. Compare /model entries with the models endpoint or Model Square.",
     "— verify the apiKey value and that the model id in the models array exists on this site (compare with the models endpoint).": "— verify the apiKey value and that the model id in the models array exists on this site (compare with the models endpoint).",
     "Unknown request path. Check the endpoint URL against the API reference.": "Unknown request path. Check the endpoint URL against the API reference.",
-    "No available channel for the model — it may be unknown, disabled, or out of capacity. Try another model or contact the administrator.": "No available channel for the model — it may be unknown, disabled, or out of capacity. Try another model or contact the administrator."
+    "No available channel for the model — it may be unknown, disabled, or out of capacity. Try another model or contact the administrator.": "No available channel for the model — it may be unknown, disabled, or out of capacity. Try another model or contact the administrator.",
+    "Cycle Days": "Cycle Days",
+    "View usage logs of {{username}}": "View usage logs of {{username}}"
   }
 }

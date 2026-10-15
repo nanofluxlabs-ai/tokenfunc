@@ -7861,6 +7861,8 @@
     "— the key may not include the model you selected. Compare /model entries with the models endpoint or Model Square.": "— ключ может не включать выбранную модель. Сверьте записи /model с эндпоинтом models или Model Square.",
     "— verify the apiKey value and that the model id in the models array exists on this site (compare with the models endpoint).": "— проверьте значение apiKey и что id модели из массива models существует на этом сайте (сверьте с эндпоинтом models).",
     "Unknown request path. Check the endpoint URL against the API reference.": "Неизвестный путь запроса. Сверьте адрес эндпоинта со справочником API.",
-    "No available channel for the model — it may be unknown, disabled, or out of capacity. Try another model or contact the administrator.": "Нет доступного канала для модели — она может быть неизвестна, отключена или перегружена. Попробуйте другую модель или обратитесь к администратору."
+    "No available channel for the model — it may be unknown, disabled, or out of capacity. Try another model or contact the administrator.": "Нет доступного канала для модели — она может быть неизвестна, отключена или перегружена. Попробуйте другую модель или обратитесь к администратору.",
+    "Cycle Days": "Дней в цикле",
+    "View usage logs of {{username}}": "Журнал использования {{username}}"
   }
 }

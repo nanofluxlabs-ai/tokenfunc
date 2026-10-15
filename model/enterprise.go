@@ -102,15 +102,19 @@ type Enterprise struct {
 	UpdatedAt        int64                    `json:"updated_at" gorm:"not null"`
 }
 
-// EnterpriseListItem 管理员企业客户列表行：企业资料 + 主账号摘要
+// EnterpriseListItem 管理员企业客户列表行：企业资料 + 主账号摘要 + 授信企业的当前账期额度（预付企业为 0）
 type EnterpriseListItem struct {
 	Enterprise
-	Username    string `json:"username"`
-	DisplayName string `json:"display_name"`
-	Email       string `json:"email"`
-	Quota       int    `json:"quota"`
-	UsedQuota   int    `json:"used_quota"`
-	UserStatus  int    `json:"user_status"`
+	Username         string `json:"username"`
+	DisplayName      string `json:"display_name"`
+	Email            string `json:"email"`
+	Quota            int    `json:"quota"`
+	UsedQuota        int    `json:"used_quota"`
+	UserStatus       int    `json:"user_status"`
+	PeriodLimitQuota int64  `json:"period_limit_quota"`
+	PeriodUsedQuota  int64  `json:"period_used_quota"`
+	PeriodStartAt    int64  `json:"period_start_at"`
+	PeriodEndAt      int64  `json:"period_end_at"`
 }
 
 // Normalize 校验并补齐默认值，创建和更新前都要调用
@@ -181,8 +185,10 @@ func GetEnterpriseByUserId(userId int) (*Enterprise, error) {
 
 // ListEnterprises 管理员企业客户列表，keyword 匹配企业名、联系人、主账号用户名/邮箱，或精确匹配企业 ID
 func ListEnterprises(keyword string, billingMode string, startIdx int, num int) ([]*EnterpriseListItem, int64, error) {
+	// open 账期每个企业至多一行（部分唯一索引 uk_ent_period_open），左联不会放大行数
 	query := DB.Table("enterprises").
-		Joins("JOIN users ON users.id = enterprises.user_id")
+		Joins("JOIN users ON users.id = enterprises.user_id").
+		Joins("LEFT JOIN ent_credit_periods open_period ON open_period.enterprise_id = enterprises.id AND open_period.status = ?", EnterpriseCreditPeriodOpen)
 	keyword = strings.TrimSpace(keyword)
 	if keyword != "" {
 		like := "%" + keyword + "%"
@@ -204,7 +210,9 @@ func ListEnterprises(keyword string, billingMode string, startIdx int, num int) 
 	}
 	items := make([]*EnterpriseListItem, 0)
 	err := query.
-		Select("enterprises.*, users.username, users.display_name, users.email, users.quota, users.used_quota, users.status AS user_status").
+		Select("enterprises.*, users.username, users.display_name, users.email, users.quota, users.used_quota, users.status AS user_status, " +
+			"COALESCE(open_period.limit_quota, 0) AS period_limit_quota, COALESCE(open_period.used_quota, 0) AS period_used_quota, " +
+			"COALESCE(open_period.start_at, 0) AS period_start_at, COALESCE(open_period.end_at, 0) AS period_end_at").
 		Order("enterprises.id DESC").
 		Limit(num).Offset(startIdx).
 		Scan(&items).Error

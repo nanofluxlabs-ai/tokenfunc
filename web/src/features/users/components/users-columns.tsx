@@ -32,6 +32,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
+import { UsageLogsUserLink } from '@/components/usage-logs-user-link'
 import { getCurrencyDisplay } from '@/lib/currency'
 import { formatQuota } from '@/lib/format'
 import { useSystemConfigStore } from '@/stores/system-config-store'
@@ -104,7 +105,7 @@ export function useUsersColumns(): ColumnDef<User>[] {
             <div className='flex min-w-[160px] flex-col gap-1'>
               <div className='flex items-center gap-2'>
                 <LongText className='max-w-[140px] text-sm font-normal'>
-                  {username}
+                  <UsageLogsUserLink username={username} />
                 </LongText>
                 {remark && (
                   <Tooltip>

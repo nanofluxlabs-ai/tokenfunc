@@ -7861,6 +7861,8 @@
     "— the key may not include the model you selected. Compare /model entries with the models endpoint or Model Square.": "— la clé n'inclut peut-être pas le modèle sélectionné. Comparez les entrées de /model avec l'endpoint models ou Model Square.",
     "— verify the apiKey value and that the model id in the models array exists on this site (compare with the models endpoint).": "— vérifiez la valeur de apiKey et que l'id de modèle du tableau models existe sur ce site (comparez avec l'endpoint models).",
     "Unknown request path. Check the endpoint URL against the API reference.": "Chemin de requête inconnu. Vérifiez l'URL de l'endpoint par rapport à la référence API.",
-    "No available channel for the model — it may be unknown, disabled, or out of capacity. Try another model or contact the administrator.": "Aucun canal disponible pour ce modèle — inconnu, désactivé ou à capacité épuisée. Essayez un autre modèle ou contactez l'administrateur."
+    "No available channel for the model — it may be unknown, disabled, or out of capacity. Try another model or contact the administrator.": "Aucun canal disponible pour ce modèle — inconnu, désactivé ou à capacité épuisée. Essayez un autre modèle ou contactez l'administrateur.",
+    "Cycle Days": "Jours du cycle",
+    "View usage logs of {{username}}": "Voir les journaux d'utilisation de {{username}}"
   }
 }

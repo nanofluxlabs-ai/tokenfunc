@@ -139,6 +139,33 @@ func TestEnterpriseUserTypeFilterAndList(t *testing.T) {
 	_, total, err = ListEnterprises("", EnterpriseBillingModeCredit, 0, 20)
 	require.NoError(t, err)
 	assert.Equal(t, int64(0), total)
+
+	// 授信企业的列表行带当前账期额度/已用；预付企业两项为 0
+	ent, err := GetEnterpriseByUserId(entUser.Id)
+	require.NoError(t, err)
+	require.NoError(t, ConfigureEnterpriseCredit(ent.Id, EnterpriseCreditConfig{CycleType: EnterpriseCreditCycleNaturalMonth, LimitQuota: 5000}, 1))
+	period, err := GetOpenCreditPeriod(ent.Id)
+	require.NoError(t, err)
+	applied, err := AddCreditUsage(period.Id, 1200, 0, true)
+	require.NoError(t, err)
+	require.True(t, applied)
+	prepaidUser := createEnterpriseTestUser(t, "prepaid1", common.RoleCommonUser)
+	require.NoError(t, UpgradeUserToEnterprise(prepaidUser.Id, &Enterprise{Name: "Initech"}))
+
+	items, total, err := ListEnterprises("", "", 0, 20)
+	require.NoError(t, err)
+	require.Equal(t, int64(2), total)
+	byName := map[string]*EnterpriseListItem{}
+	for _, item := range items {
+		byName[item.Name] = item
+	}
+	assert.Equal(t, int64(5000), byName["Globex"].PeriodLimitQuota)
+	assert.Equal(t, int64(1200), byName["Globex"].PeriodUsedQuota)
+	assert.Equal(t, period.StartAt, byName["Globex"].PeriodStartAt)
+	assert.Equal(t, period.EndAt, byName["Globex"].PeriodEndAt)
+	assert.Equal(t, int64(0), byName["Initech"].PeriodLimitQuota)
+	assert.Equal(t, int64(0), byName["Initech"].PeriodUsedQuota)
+	assert.Equal(t, int64(0), byName["Initech"].PeriodEndAt)
 }
 
 func TestEnterpriseDepartmentTree(t *testing.T) {

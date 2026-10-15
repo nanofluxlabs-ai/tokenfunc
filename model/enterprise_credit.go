@@ -216,6 +216,37 @@ func GetOpenCreditPeriod(enterpriseId int) (*EnterpriseCreditPeriod, error) {
 	return &period, err
 }
 
+// EnterpriseCreditSnapshot 授信企业的只读额度快照：企业资料 + 当前 open 账期（账期滚动空窗时 Period 为 nil）
+type EnterpriseCreditSnapshot struct {
+	Enterprise *Enterprise
+	Period     *EnterpriseCreditPeriod
+}
+
+// GetEnterpriseCreditSnapshot 按主账号 user_id 读取授信额度快照，供 API key 查询接口使用。
+// 非企业用户返回 nil, nil；预付企业返回 ErrEnterpriseNotCredit。
+// 这里只读不滚期：查询接口不能像 EnsureOpenCreditPeriod 那样加锁写表，账期空窗由调用方按业务处理。
+func GetEnterpriseCreditSnapshot(userId int) (*EnterpriseCreditSnapshot, error) {
+	info, err := GetEnterpriseBillingInfo(userId)
+	if err != nil || info == nil {
+		return nil, err
+	}
+	if info.BillingMode != EnterpriseBillingModeCredit {
+		return nil, ErrEnterpriseNotCredit
+	}
+	enterprise, err := GetEnterpriseById(info.EnterpriseId)
+	if err != nil {
+		return nil, err
+	}
+	period, err := GetOpenCreditPeriod(enterprise.Id)
+	if errors.Is(err, ErrEnterpriseCreditNoOpenPeriod) {
+		return &EnterpriseCreditSnapshot{Enterprise: enterprise}, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	return &EnterpriseCreditSnapshot{Enterprise: enterprise, Period: period}, nil
+}
+
 func GetCreditPeriodById(id int64) (*EnterpriseCreditPeriod, error) {
 	var period EnterpriseCreditPeriod
 	err := DB.First(&period, "id = ?", id).Error

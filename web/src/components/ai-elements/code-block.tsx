@@ -57,6 +57,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
+import { copyToClipboard } from '@/lib/copy-to-clipboard'
 import { cn } from '@/lib/utils'
 
 type CodeBlockProps = HTMLAttributes<HTMLDivElement> & {
@@ -145,7 +146,10 @@ const codeMirrorTheme = EditorView.theme({
     lineHeight: '1.5rem',
     minHeight: 'var(--code-editor-min-height)',
     minWidth: 'max-content',
-    padding: '1rem 1rem 1rem 0',
+    // 0.75rem top puts the first line's center (0.75 + 0.75rem) level with
+    // the copy overlay button (top-2 + size-8/2 = 1.5rem); 1rem left keeps
+    // code off the block border when the line-number gutter is hidden.
+    padding: '0.75rem 1rem 1rem 1rem',
   },
   '.cm-editor': {
     background: 'transparent',
@@ -162,14 +166,17 @@ const codeMirrorTheme = EditorView.theme({
     fontSize: '13px',
     lineHeight: '1.5rem',
     // CodeMirror already accounts for the content's vertical padding.
-    padding: '0 1rem 0 0',
+    // 0.75rem left insets the numbers to match the content padding; the
+    // reduced right padding keeps the code column where it was before the
+    // content gained its own left padding.
+    padding: '0 0.25rem 0 0.75rem',
   },
   '.cm-gutters:empty': {
     display: 'none',
   },
   '.cm-lineNumbers .cm-gutterElement': {
     minWidth: '2.5rem',
-    padding: '0 1rem 0 0',
+    padding: '0 0.75rem 0 0',
     textAlign: 'right',
   },
   '.cm-line': {
@@ -330,7 +337,9 @@ function CodeMirrorCodeView({
   const initialValueRef = useRef(value)
   const onChangeRef = useRef(onChange)
   const onKeyDownRef = useRef(onKeyDown)
-  const editorMinHeight = `${Math.max(4, rows) * 1.5 + 2}rem`
+  // rows * line height + the content's vertical padding (0.75 + 1rem). The
+  // old 4-row floor reserved 8rem for one-line read-only snippets.
+  const editorMinHeight = `${Math.max(1, rows) * 1.5 + 1.75}rem`
   // onKeyDown is delivered through a ref so a new handler identity from the
   // parent (recreated on every keystroke-driven render) does not invalidate
   // the extensions and tear down the EditorView, which would reset the cursor
@@ -587,7 +596,7 @@ export const CodeBlock = ({
           }
           language={language}
           readOnly
-          rows={Math.min(Math.max(lineCount, 4), maxExpandedLines ?? lineCount)}
+          rows={Math.min(lineCount, maxExpandedLines ?? lineCount)}
           showLineNumbers={showLineNumbers}
           value={code}
         />
@@ -652,20 +661,19 @@ export const CodeBlockCopyButton = ({
   const [isCopied, setIsCopied] = useState(false)
   const { code } = useContext(CodeBlockContext)
 
-  const copyToClipboard = async () => {
-    if (typeof window === 'undefined' || !navigator?.clipboard?.writeText) {
-      onError?.(new Error('Clipboard API not available'))
+  // Route through the shared util: navigator.clipboard only exists in secure
+  // contexts (HTTPS / localhost), so plain-HTTP origins need the execCommand
+  // fallback to keep the copy button working.
+  const handleCopy = async () => {
+    const success = await copyToClipboard(code)
+    if (!success) {
+      onError?.(new Error('Copy failed'))
       return
     }
 
-    try {
-      await navigator.clipboard.writeText(code)
-      setIsCopied(true)
-      onCopy?.()
-      setTimeout(() => setIsCopied(false), timeout)
-    } catch (error) {
-      onError?.(error as Error)
-    }
+    setIsCopied(true)
+    onCopy?.()
+    setTimeout(() => setIsCopied(false), timeout)
   }
 
   const Icon = isCopied ? CheckIcon : CopyIcon
@@ -674,7 +682,7 @@ export const CodeBlockCopyButton = ({
     <Button
       aria-label={isCopied ? t('Copied!') : t('Copy code')}
       className={cn('size-8 shrink-0', className)}
-      onClick={copyToClipboard}
+      onClick={handleCopy}
       size='icon-sm'
       type='button'
       variant='ghost'

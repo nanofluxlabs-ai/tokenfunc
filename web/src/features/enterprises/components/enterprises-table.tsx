@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 import { getRouteApi } from '@tanstack/react-router'
-import { useMemo } from 'react'
+import { useEffect, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { DataTablePage, useDataTable } from '@/components/data-table'
@@ -10,6 +10,7 @@ import { createServerError } from '@/lib/server-error-message'
 
 import { listEnterprises } from '../api'
 import { ENTERPRISE_BILLING_MODES, ERROR_MESSAGES } from '../constants'
+import { resolveBillingColumnVisibility } from '../lib/column-visibility'
 import type { EnterpriseBillingMode } from '../types'
 import { useEnterprisesColumns } from './enterprises-columns'
 import { useEnterprises } from './enterprises-provider'
@@ -85,6 +86,14 @@ export function EnterprisesTable() {
     totalCount: data?.total || 0,
     ensurePageInRange,
   })
+
+  // 余额 / 已使用只对预付企业有意义，授信三列只对授信企业有意义：按当前页数据收起没用的列
+  const items = data?.items
+  useEffect(() => {
+    if (!items || items.length === 0) return
+    const visibility = resolveBillingColumnVisibility(items)
+    table.setColumnVisibility((previous) => ({ ...previous, ...visibility }))
+  }, [items, table])
 
   const billingModeOptions = useMemo(
     () =>

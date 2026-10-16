@@ -61,6 +61,8 @@ export interface FinanceOrder {
   plan_id: number
   create_time: number
   complete_time: number
+  /** 管理员手动充值登记的参考号 / 流水号 */
+  reference: string
 }
 
 export interface ListFinanceOrdersParams {

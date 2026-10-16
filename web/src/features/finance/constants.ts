@@ -32,6 +32,10 @@ export const PAYMENT_METHODS: Record<string, { labelKey: string }> = {
   waffo_pancake: { labelKey: 'Waffo Pancake' },
   balance: { labelKey: 'Balance' },
   epay: { labelKey: 'Epay' },
+  // 管理员手动充值：provider 为 admin，method 为实际收款方式
+  admin: { labelKey: 'Admin top-up' },
+  bank_transfer: { labelKey: 'Bank transfer' },
+  gift: { labelKey: 'Gift' },
 }
 
 export const ENTERPRISE_BILLING_MODE_TAGS: Record<

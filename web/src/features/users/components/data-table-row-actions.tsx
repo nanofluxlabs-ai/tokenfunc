@@ -28,6 +28,7 @@ import {
   ShieldAlert,
   Link2,
   CreditCard,
+  Wallet,
 } from 'lucide-react'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -61,6 +62,7 @@ import {
 import { getUserActionMessage } from '../lib'
 import type { User } from '../types'
 import { UserBindingDialog } from './dialogs/user-binding-dialog'
+import { UserTopupDialog } from './dialogs/user-topup-dialog'
 import { useUsers } from './users-provider'
 
 const MANAGE_ACTION_TITLES: Record<AdminUserManageAction, string> = {
@@ -68,6 +70,7 @@ const MANAGE_ACTION_TITLES: Record<AdminUserManageAction, string> = {
   enable: 'Verify to enable user',
   promote: 'Verify to promote user',
   demote: 'Verify to demote user',
+  topup: 'Verify to top up user',
 }
 
 interface DataTableRowActionsProps {
@@ -88,6 +91,7 @@ export function DataTableRowActions({ row }: DataTableRowActionsProps) {
   const [resetTwoFAOpen, setResetTwoFAOpen] = useState(false)
   const [bindingDialogOpen, setBindingDialogOpen] = useState(false)
   const [subscriptionsDialogOpen, setSubscriptionsDialogOpen] = useState(false)
+  const [topupDialogOpen, setTopupDialogOpen] = useState(false)
 
   const handleEdit = () => {
     setCurrentRow(user)
@@ -99,7 +103,9 @@ export function DataTableRowActions({ row }: DataTableRowActionsProps) {
     setOpen('delete')
   }
 
-  const handleManage = async (action: AdminUserManageAction) => {
+  const handleManage = async (
+    action: Exclude<AdminUserManageAction, 'topup'>
+  ) => {
     try {
       const proof = await requestVerification({
         scope: 'admin.user.manage',
@@ -275,6 +281,18 @@ export function DataTableRowActions({ row }: DataTableRowActionsProps) {
           </DropdownMenuShortcut>
         </DropdownMenuItem>
 
+        <DropdownMenuItem
+          onSelect={(event) => {
+            event.preventDefault()
+            setTopupDialogOpen(true)
+          }}
+        >
+          {t('Top-up')}
+          <DropdownMenuShortcut>
+            <Wallet size={16} />
+          </DropdownMenuShortcut>
+        </DropdownMenuItem>
+
         <DropdownMenuSeparator />
 
         <DropdownMenuItem
@@ -351,6 +369,13 @@ export function DataTableRowActions({ row }: DataTableRowActionsProps) {
       <UserSubscriptionsDialog
         open={subscriptionsDialogOpen}
         onOpenChange={setSubscriptionsDialogOpen}
+        user={{ id: user.id, username: user.username }}
+        onSuccess={triggerRefresh}
+      />
+
+      <UserTopupDialog
+        open={topupDialogOpen}
+        onOpenChange={setTopupDialogOpen}
         user={{ id: user.id, username: user.username }}
         onSuccess={triggerRefresh}
       />

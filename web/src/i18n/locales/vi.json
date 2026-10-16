@@ -7863,6 +7863,14 @@
     "Unknown request path. Check the endpoint URL against the API reference.": "Đường dẫn yêu cầu không tồn tại. Đối chiếu URL endpoint với tài liệu tham chiếu API.",
     "No available channel for the model — it may be unknown, disabled, or out of capacity. Try another model or contact the administrator.": "Không có kênh khả dụng cho mô hình — có thể chưa cấu hình, bị vô hiệu hóa hoặc hết dung lượng. Hãy thử mô hình khác hoặc liên hệ quản trị viên.",
     "Cycle Days": "Số ngày chu kỳ",
-    "View usage logs of {{username}}": "Xem nhật ký sử dụng của {{username}}"
+    "View usage logs of {{username}}": "Xem nhật ký sử dụng của {{username}}",
+    "Top up user": "Top up user",
+    "Record a manual top-up for {{username}}. The balance is credited immediately and a top-up record is kept.": "Record a manual top-up for {{username}}. The balance is credited immediately and a top-up record is kept.",
+    "Verify to top up user": "Verify to top up user",
+    "Failed to top up user": "Failed to top up user",
+    "Bank transfer": "Bank transfer",
+    "Gift": "Gift",
+    "Admin top-up": "Admin top-up",
+    "Manually topped up user {{username}} (ID: {{id}}) by ${{amount_usd}} via {{payment_method}}": "Manually topped up user {{username}} (ID: {{id}}) by ${{amount_usd}} via {{payment_method}}"
   }
 }

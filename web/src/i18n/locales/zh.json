@@ -7863,6 +7863,14 @@
     "Unknown request path. Check the endpoint URL against the API reference.": "请求路径不存在。请对照 API 参考文档检查端点地址。",
     "No available channel for the model — it may be unknown, disabled, or out of capacity. Try another model or contact the administrator.": "模型暂无可用渠道——可能未配置、已禁用或容量耗尽。请更换模型或联系管理员。",
     "Cycle Days": "账期天数",
-    "View usage logs of {{username}}": "查看 {{username}} 的使用日志"
+    "View usage logs of {{username}}": "查看 {{username}} 的使用日志",
+    "Top up user": "为用户充值",
+    "Record a manual top-up for {{username}}. The balance is credited immediately and a top-up record is kept.": "为 {{username}} 登记一笔手动充值。余额立即到账，并保留充值记录。",
+    "Verify to top up user": "验证身份后为用户充值",
+    "Failed to top up user": "充值失败",
+    "Bank transfer": "银行转账",
+    "Gift": "赠送",
+    "Admin top-up": "管理员充值",
+    "Manually topped up user {{username}} (ID: {{id}}) by ${{amount_usd}} via {{payment_method}}": "管理员为用户 {{username}}（ID: {{id}}）手动充值 ${{amount_usd}}，收款方式 {{payment_method}}"
   }
 }

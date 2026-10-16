@@ -18,7 +18,7 @@ For commercial licensing, please contact support@quantumnous.com
 */
 import { Shield, User, Users } from 'lucide-react'
 
-import type { User as UserType } from './types'
+import type { ManualTopupPaymentMethod, User as UserType } from './types'
 
 // ============================================================================
 // User Utilities
@@ -114,6 +114,20 @@ export const BINDING_FIELDS = [
   { key: 'email', label: 'Email' },
   { key: 'telegram_id', label: 'Telegram ID' },
 ] as const
+
+// ============================================================================
+// Manual top-up payment methods (labelKey: render with t())
+// ============================================================================
+
+export const MANUAL_TOPUP_METHODS: Record<
+  ManualTopupPaymentMethod,
+  { labelKey: string }
+> = {
+  bank_transfer: { labelKey: 'Bank transfer' },
+  alipay: { labelKey: 'Alipay' },
+  wxpay: { labelKey: 'WeChat Pay' },
+  gift: { labelKey: 'Gift' },
+}
 
 // ============================================================================
 // Error Messages (i18n keys: use t(ERROR_MESSAGES.xxx) when displaying)

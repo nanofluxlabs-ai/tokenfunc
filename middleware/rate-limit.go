@@ -194,6 +194,15 @@ func CriticalRateLimit() func(c *gin.Context) {
 	return defNext
 }
 
+// SessionRateLimit 只挂在 auth/refresh 与 auth/logout 上。它和 CriticalRateLimit
+// 分桶，这样管理员翻几页后台不会把自己的登录额度用光而被锁在登录页外。
+func SessionRateLimit() func(c *gin.Context) {
+	if common.SessionRateLimitEnable {
+		return rateLimitFactory(common.SessionRateLimitNum, common.SessionRateLimitDuration, "SE")
+	}
+	return defNext
+}
+
 func UserCriticalRateLimit(scope string) func(c *gin.Context) {
 	if !common.CriticalRateLimitEnable {
 		return defNext

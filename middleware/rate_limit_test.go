@@ -290,3 +290,36 @@ func TestGlobalWebRateLimitCountsFrontendFilesInStaticBucket(t *testing.T) {
 		assert.Equal(t, "1", webCount)
 	})
 }
+
+func TestSessionRateLimitUsesSeparateBucketFromCritical(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	redisServer, _ := useRateLimitMiniRedis(t)
+	prevCriticalEnable, prevCriticalNum, prevCriticalDuration := common.CriticalRateLimitEnable, common.CriticalRateLimitNum, common.CriticalRateLimitDuration
+	prevSessionEnable, prevSessionNum, prevSessionDuration := common.SessionRateLimitEnable, common.SessionRateLimitNum, common.SessionRateLimitDuration
+	t.Cleanup(func() {
+		common.CriticalRateLimitEnable, common.CriticalRateLimitNum, common.CriticalRateLimitDuration = prevCriticalEnable, prevCriticalNum, prevCriticalDuration
+		common.SessionRateLimitEnable, common.SessionRateLimitNum, common.SessionRateLimitDuration = prevSessionEnable, prevSessionNum, prevSessionDuration
+	})
+	common.CriticalRateLimitEnable, common.CriticalRateLimitNum, common.CriticalRateLimitDuration = true, 1, 60
+	common.SessionRateLimitEnable, common.SessionRateLimitNum, common.SessionRateLimitDuration = true, 2, 45
+
+	router := gin.New()
+	require.NoError(t, router.SetTrustedProxies(nil))
+	router.GET("/login", CriticalRateLimit(), func(c *gin.Context) { c.Status(http.StatusNoContent) })
+	router.GET("/refresh", SessionRateLimit(), func(c *gin.Context) { c.Status(http.StatusNoContent) })
+
+	remoteAddr := "192.0.2.30:12345"
+	// 登录桶打满后，同一 IP 的会话续期仍按自己的额度放行
+	assert.Equal(t, http.StatusNoContent, performRateLimitRequest(router, "/login", remoteAddr).Code)
+	assert.Equal(t, http.StatusTooManyRequests, performRateLimitRequest(router, "/login", remoteAddr).Code)
+	assert.Equal(t, http.StatusNoContent, performRateLimitRequest(router, "/refresh", remoteAddr).Code)
+	assert.Equal(t, http.StatusNoContent, performRateLimitRequest(router, "/refresh", remoteAddr).Code)
+	assert.Equal(t, http.StatusTooManyRequests, performRateLimitRequest(router, "/refresh", remoteAddr).Code)
+
+	sessionKey := redisIPRateLimitKey("SE", "192.0.2.30")
+	assert.True(t, redisServer.Exists(sessionKey))
+	assert.Equal(t, 45*time.Second, redisServer.TTL(sessionKey))
+	criticalCount, err := redisServer.Get(redisIPRateLimitKey("CT", "192.0.2.30"))
+	require.NoError(t, err)
+	assert.Equal(t, "2", criticalCount, "会话续期不得计入登录桶")
+}

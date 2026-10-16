@@ -7871,6 +7871,6 @@
     "Bank transfer": "Bank transfer",
     "Gift": "Gift",
     "Admin top-up": "Admin top-up",
-    "Manually topped up user {{username}} (ID: {{id}}) by ${{amount_usd}} via {{payment_method}}": "Manually topped up user {{username}} (ID: {{id}}) by ${{amount_usd}} via {{payment_method}}"
+    "Manually topped up user {{username}} (ID: {{id}}) by {{amount_usd}} USD via {{payment_method}}": "Manually topped up user {{username}} (ID: {{id}}) by {{amount_usd}} USD via {{payment_method}}"
   }
 }

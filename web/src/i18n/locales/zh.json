@@ -7871,6 +7871,6 @@
     "Bank transfer": "银行转账",
     "Gift": "赠送",
     "Admin top-up": "管理员充值",
-    "Manually topped up user {{username}} (ID: {{id}}) by ${{amount_usd}} via {{payment_method}}": "管理员为用户 {{username}}（ID: {{id}}）手动充值 ${{amount_usd}}，收款方式 {{payment_method}}"
+    "Manually topped up user {{username}} (ID: {{id}}) by {{amount_usd}} USD via {{payment_method}}": "管理员为用户 {{username}}（ID: {{id}}）手动充值 {{amount_usd}} 美元，收款方式 {{payment_method}}"
   }
 }

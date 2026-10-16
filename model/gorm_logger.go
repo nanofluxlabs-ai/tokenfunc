@@ -6,6 +6,7 @@ import (
 	"io"
 	"log"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/ClickHouse/clickhouse-go/v2/lib/proto"
@@ -23,9 +24,14 @@ const (
 )
 
 func newGormConfig(prepareStmt bool) *gorm.Config {
+	// json 模式走动态 writer：进统一 stderr / 日志文件，且滚动换 writer 后不会写到旧 fd
+	writer := io.Writer(os.Stdout)
+	if common.LogFormatJSON {
+		writer = common.ErrorLogWriter()
+	}
 	return &gorm.Config{
 		PrepareStmt: prepareStmt,
-		Logger:      newGormLogger(os.Stdout),
+		Logger:      newGormLogger(writer),
 	}
 }
 
@@ -37,19 +43,47 @@ func newGormLogger(w io.Writer) logger.Interface {
 	}
 	// 在 Writer 层脱敏而非包装 logger.Interface:后者会让 gorm 的 FileWithLineNum
 	// 把所有 SQL 日志的调用点归因到包装层自身,且需转发 ParamsFilter 类型断言。
-	return logger.New(&sanitizedLogWriter{delegate: log.New(w, "\r\n", log.LstdFlags)}, logger.Config{
+	var delegate gormPrinter = log.New(w, "\r\n", log.LstdFlags)
+	colorful := true
+	if common.LogFormatJSON {
+		delegate = gormJSONPrinter{writer: w}
+		colorful = false
+	}
+	return logger.New(&sanitizedLogWriter{delegate: delegate}, logger.Config{
 		SlowThreshold:             time.Duration(slowThresholdMs) * time.Millisecond,
 		LogLevel:                  logger.Warn,
 		IgnoreRecordNotFoundError: true,
 		ParameterizedQueries:      !common.DebugEnabled,
-		Colorful:                  true,
+		Colorful:                  colorful,
 	})
+}
+
+type gormPrinter interface {
+	Printf(format string, args ...any)
+}
+
+// gormJSONPrinter 把 gorm 的多行文本日志压成一条 component=gorm 的 JSON；
+// gorm 的 Error 路径把 error 作为参数传入，其余（慢 SQL）只传字符串，据此定级
+type gormJSONPrinter struct {
+	writer io.Writer
+}
+
+func (p gormJSONPrinter) Printf(format string, args ...any) {
+	level := "warn"
+	for _, arg := range args {
+		if _, ok := arg.(error); ok {
+			level = "error"
+			break
+		}
+	}
+	msg := strings.Join(strings.Fields(fmt.Sprintf(format, args...)), " ")
+	common.WriteJSONLog(p.writer, common.LogEntry{Level: level, Component: "gorm", Msg: msg})
 }
 
 // ParameterizedQueries 只过滤 SQL 字符串,驱动错误消息(如 MySQL 1062)同样会
 // 内联数据值,在这里收敛为错误码;DEBUG=true 保留原文。
 type sanitizedLogWriter struct {
-	delegate *log.Logger
+	delegate gormPrinter
 }
 
 func (s *sanitizedLogWriter) Printf(format string, args ...any) {

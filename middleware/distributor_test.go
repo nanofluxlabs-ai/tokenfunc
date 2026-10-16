@@ -14,6 +14,7 @@ import (
 	"github.com/QuantumNous/new-api/model"
 	"github.com/QuantumNous/new-api/pkg/jsplugin"
 	"github.com/QuantumNous/new-api/relaykit/dto"
+	"github.com/QuantumNous/new-api/relaykit/types"
 	"github.com/QuantumNous/new-api/setting/model_setting"
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
@@ -255,6 +256,54 @@ func TestDistributeHidesTaskPluginDetailsButLogsDiagnostics(t *testing.T) {
 			})
 		}
 	}
+}
+
+// JSON 模式下分发失败只打一条 distribute_failed 事件，带 no_available_channel 分类与分组 / 模型
+func TestAbortWithOpenAiMessageEmitsSingleDistributeFailedEvent(t *testing.T) {
+	previousFormat := common.LogFormatJSON
+	common.LogFormatJSON = true
+	t.Cleanup(func() { common.LogFormatJSON = previousFormat })
+	var out, errOut bytes.Buffer
+	common.LogWriterMu.Lock()
+	previousOut, previousErr := gin.DefaultWriter, gin.DefaultErrorWriter
+	gin.DefaultWriter, gin.DefaultErrorWriter = &out, &errOut
+	common.LogWriterMu.Unlock()
+	t.Cleanup(func() {
+		common.LogWriterMu.Lock()
+		gin.DefaultWriter, gin.DefaultErrorWriter = previousOut, previousErr
+		common.LogWriterMu.Unlock()
+	})
+
+	gin.SetMode(gin.TestMode)
+	recorder := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(recorder)
+	c.Request = httptest.NewRequest(http.MethodPost, "/v1/chat/completions", nil)
+	c.Set("id", 11)
+	c.Set("token_id", 22)
+	common.SetContextKey(c, constant.ContextKeyOriginalModel, "gpt-x")
+	common.SetContextKey(c, constant.ContextKeyUsingGroup, "vip")
+	c.Set(abortErrorClassKey, "no_available_channel")
+	abortWithOpenAiMessage(c, http.StatusServiceUnavailable, "no channel", types.ErrorCodeModelNotFound)
+
+	events := 0
+	for _, line := range strings.Split(strings.TrimSpace(out.String()+errOut.String()), "\n") {
+		if !strings.Contains(line, `"event":`) {
+			continue
+		}
+		events++
+		var entry map[string]any
+		require.NoError(t, common.Unmarshal([]byte(line), &entry), line)
+		assert.Equal(t, "distribute_failed", entry["event"])
+		assert.Equal(t, "no_available_channel", entry["error_class"])
+		assert.Equal(t, "model_not_found", entry["reason"])
+		assert.EqualValues(t, 503, entry["status_code"])
+		assert.EqualValues(t, 11, entry["user_id"])
+		assert.EqualValues(t, 22, entry["token_id"])
+		assert.Equal(t, "gpt-x", entry["model"])
+		assert.Equal(t, "vip", entry["group"])
+		assert.Equal(t, "/v1/chat/completions", entry["route"])
+	}
+	assert.Equal(t, 1, events, "exactly one distribute_failed event")
 }
 
 func TestNoAvailableChannelMessageWithoutPlugin(t *testing.T) {

@@ -11,6 +11,7 @@ import (
 	"github.com/QuantumNous/new-api/common"
 	"github.com/QuantumNous/new-api/common/limiter"
 	"github.com/QuantumNous/new-api/constant"
+	"github.com/QuantumNous/new-api/logger"
 	relaycommon "github.com/QuantumNous/new-api/relay/common"
 	"github.com/QuantumNous/new-api/setting"
 
@@ -93,6 +94,7 @@ func redisRateLimitHandler(duration int64, totalMaxCount, successMaxCount int) g
 			return
 		}
 		if !allowed {
+			logRateLimited(c, "success", duration, successMaxCount)
 			abortWithOpenAiMessage(c, http.StatusTooManyRequests, fmt.Sprintf("您已达到请求数限制：%d分钟内最多请求%d次", setting.ModelRequestRateLimitDurationMinutes, successMaxCount))
 			return
 		}
@@ -117,6 +119,7 @@ func redisRateLimitHandler(duration int64, totalMaxCount, successMaxCount int) g
 			}
 
 			if !allowed {
+				logRateLimited(c, "total", duration, totalMaxCount)
 				abortWithOpenAiMessage(c, http.StatusTooManyRequests, fmt.Sprintf("您已达到总请求数限制：%d分钟内最多请求%d次，包括失败次数，请检查您的请求是否正确", setting.ModelRequestRateLimitDurationMinutes, totalMaxCount))
 				return
 			}
@@ -132,6 +135,29 @@ func redisRateLimitHandler(duration int64, totalMaxCount, successMaxCount int) g
 	}
 }
 
+// logRateLimited 输出 429 限流结构化事件：哪个用户 / 模型 / 分组在哪个窗口（成功数 or 总数）上触顶
+func logRateLimited(c *gin.Context, scope string, durationSec int64, quota int) {
+	fields := map[string]any{
+		logger.FieldLimitDim:     logger.LimitDimUser,
+		logger.FieldLimitWindowS: durationSec,
+		logger.FieldLimitQuota:   quota,
+		"limit_scope":            scope,
+	}
+	if userId := c.GetInt("id"); userId > 0 {
+		fields[logger.FieldUserID] = userId
+	}
+	if model := common.GetContextKeyString(c, constant.ContextKeyOriginalModel); model != "" {
+		fields[logger.FieldModel] = model
+	}
+	if group := common.GetContextKeyString(c, constant.ContextKeyTokenGroup); group != "" {
+		fields[logger.FieldGroup] = group
+	}
+	if c.Request != nil && c.Request.URL != nil {
+		fields[logger.FieldRoute] = c.Request.URL.Path
+	}
+	logger.LogEvent(c, logger.EventRateLimited, fields)
+}
+
 // 内存限流处理器
 func memoryRateLimitHandler(duration int64, totalMaxCount, successMaxCount int) gin.HandlerFunc {
 	inMemoryRateLimiter.Init(time.Duration(setting.ModelRequestRateLimitDurationMinutes) * time.Minute)
@@ -143,6 +169,7 @@ func memoryRateLimitHandler(duration int64, totalMaxCount, successMaxCount int) 
 
 		// 1. 检查总请求数限制（当totalMaxCount为0时跳过）
 		if totalMaxCount > 0 && !inMemoryRateLimiter.Request(totalKey, totalMaxCount, duration) {
+			logRateLimited(c, "total", duration, totalMaxCount)
 			c.Status(http.StatusTooManyRequests)
 			c.Abort()
 			return
@@ -152,6 +179,7 @@ func memoryRateLimitHandler(duration int64, totalMaxCount, successMaxCount int) 
 		if successMaxCount > 0 {
 			reservation = inMemoryRateLimiter.Reserve(successKey, successMaxCount, duration)
 			if reservation == nil {
+				logRateLimited(c, "success", duration, successMaxCount)
 				c.AbortWithStatus(http.StatusTooManyRequests)
 				return
 			}

@@ -3,6 +3,7 @@ package model
 import (
 	"bytes"
 	"fmt"
+	"strings"
 	"testing"
 
 	"github.com/ClickHouse/clickhouse-go/v2/lib/proto"
@@ -105,4 +106,29 @@ func TestGormLoggerEndToEndSanitizedOutput(t *testing.T) {
 	debugOut := execQuery()
 	assert.Contains(t, debugOut, "secret-value")
 	assert.Contains(t, debugOut, "no such table")
+}
+
+// JSON 模式下 gorm 的多行彩色日志要收成一条 component=gorm 的单行 JSON，驱动错误仍脱敏
+func TestGormLoggerJSONModeSingleLine(t *testing.T) {
+	previousDebug, previousFormat := common.DebugEnabled, common.LogFormatJSON
+	t.Cleanup(func() { common.DebugEnabled, common.LogFormatJSON = previousDebug, previousFormat })
+	common.DebugEnabled = false
+	common.LogFormatJSON = true
+
+	var buf bytes.Buffer
+	db, err := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{Logger: newGormLogger(&buf)})
+	require.NoError(t, err)
+	db.Exec("SELECT * FROM missing_table WHERE k = ?", "secret-value")
+
+	out := strings.TrimSpace(buf.String())
+	assert.NotContains(t, out, "\n")
+	assert.NotContains(t, out, "\x1b[")
+	var entry map[string]any
+	require.NoError(t, common.Unmarshal([]byte(out), &entry), out)
+	assert.Equal(t, "gorm", entry["component"])
+	assert.Equal(t, "error", entry["level"])
+	msg, _ := entry["msg"].(string)
+	assert.Contains(t, msg, "sqlite error")
+	assert.Contains(t, msg, "k = ?")
+	assert.NotContains(t, msg, "secret-value")
 }

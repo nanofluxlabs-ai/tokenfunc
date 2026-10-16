@@ -120,23 +120,17 @@ test('token cell omits the cache line when neither cache quantity is present', (
   expect(cell).not.toHaveTextContent('Cache')
 })
 
-test('error logs show the HTTP status code column while consume logs leave it empty', () => {
-  renderCells(makeLog(5, { status_code: 403 }), ['status_code'])
-  expect(screen.getByTestId('cell-status_code')).toHaveTextContent('403')
-})
-
-test('consume logs leave the status code column empty even when a status is recorded', () => {
-  renderCells(makeLog(2, { status_code: 200 }), ['status_code'])
-  expect(screen.getByTestId('cell-status_code')).toBeEmptyDOMElement()
-})
-
-test('client source, error category and request path stay out of the table columns', () => {
+test('client and error facts stay out of the table columns and live in the details dialog', () => {
   let ids: string[] = []
-  renderCells(makeLog(2, { client_source: 'curl' }), [], (columnIds) => {
-    ids = columnIds
-  })
-  expect(ids).toContain('status_code')
+  renderCells(
+    makeLog(5, { client_source: 'curl', status_code: 500 }),
+    [],
+    (columnIds) => {
+      ids = columnIds
+    }
+  )
   expect(ids).not.toContain('client_source')
   expect(ids).not.toContain('error_category')
+  expect(ids).not.toContain('status_code')
   expect(ids).not.toContain('request_path')
 })

@@ -53,9 +53,8 @@ import { formatLogQuota, formatTimestampToDate } from '@/lib/format'
 import { cn } from '@/lib/utils'
 import { useSystemConfigStore } from '@/stores/system-config-store'
 
-import { LOG_TYPE_ALL_VALUE, LOG_TYPE_ENUM } from '../../constants'
+import { LOG_TYPE_ALL_VALUE } from '../../constants'
 import type { UsageLog } from '../../data/schema'
-import { getStatusCodeVariant } from '../../lib/error-category'
 import {
   formatModelName,
   decodeBillingExprB64,
@@ -826,28 +825,6 @@ export function useCommonLogsColumns(
               completionTokens={log.completion_tokens}
               frtMs={other?.frt}
               isStream={log.is_stream}
-            />
-          )
-        },
-      },
-
-      {
-        id: 'status_code',
-        header: t('Status Code'),
-        meta: { label: t('Status Code') },
-        cell: ({ row }) => {
-          const log = row.original
-          if (log.type !== LOG_TYPE_ENUM.ERROR) return null
-          const other = parseLogOther(log.other)
-          const statusCode = Number(other?.status_code ?? 0)
-          if (!Number.isFinite(statusCode) || statusCode <= 0) return null
-          return (
-            <StatusBadge
-              label={String(statusCode)}
-              variant={getStatusCodeVariant(statusCode)}
-              size='sm'
-              copyable={false}
-              className='font-mono tabular-nums'
             />
           )
         },

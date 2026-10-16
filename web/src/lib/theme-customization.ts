@@ -23,13 +23,14 @@ For commercial licensing, please contact support@quantumnous.com
  * provider without breaking React Fast Refresh boundaries.
  */
 
+import {
+  TOKENFUNC_PRESET_FONTS,
+  TOKENFUNC_THEME_PRESETS,
+  type TokenfuncThemeFont,
+} from './tokenfunc-theme'
+
 export const THEME_PRESETS = [
-  {
-    // tokenfunc 品牌预设：#121212 画布 + Spotify 式品牌绿 #1ED760，见 styles/brand-presets.css
-    value: 'tokenfunc',
-    name: 'tokenfunc',
-    swatches: ['oklch(0.17 0 0)', 'oklch(0.79 0.2 149)'],
-  },
+  ...TOKENFUNC_THEME_PRESETS,
   {
     value: 'default',
     name: 'Default',
@@ -86,6 +87,7 @@ export const THEME_PRESETS = [
 ] as const
 
 export type ThemePreset = (typeof THEME_PRESETS)[number]['value']
+export type ThemeRadius = 'default' | 'none' | 'sm' | 'md' | 'lg' | 'xl'
 export type ThemeScale = 'default' | 'sm' | 'lg' | 'xl'
 export type ContentLayout = 'full' | 'centered'
 
@@ -101,11 +103,8 @@ export type ContentLayout = 'full' | 'centered'
  * - `serif` — editorial serif (Lora + CJK fallbacks), the project's
  *   "soul" typography. Inherits across the whole UI; monospace contexts
  *   keep their own family via Tailwind preflight and `.font-mono`.
- * - `brand` — tokenfunc 品牌字体（Figtree + Noto Sans SC），仅由品牌预设选用。
- *
- * tokenfunc 二开：字体与圆角不再由用户选择，统一跟随管理员指定的预设。
  */
-export type ThemeFont = 'default' | 'sans' | 'serif' | 'brand'
+export type ThemeFont = 'default' | 'sans' | 'serif' | TokenfuncThemeFont
 
 /**
  * The resolved (non-`default`) font value applied to the DOM. The provider
@@ -117,12 +116,16 @@ export type ResolvedThemeFont = Exclude<ThemeFont, 'default'>
 
 export type ThemeCustomization = {
   preset: ThemePreset
+  font: ThemeFont
+  radius: ThemeRadius
   scale: ThemeScale
   contentLayout: ContentLayout
 }
 
 export const DEFAULT_THEME_CUSTOMIZATION: ThemeCustomization = {
   preset: 'default',
+  font: 'default',
+  radius: 'default',
   scale: 'default',
   contentLayout: 'full',
 }
@@ -130,6 +133,21 @@ export const DEFAULT_THEME_CUSTOMIZATION: ThemeCustomization = {
 export const THEME_PRESET_VALUES = new Set(
   THEME_PRESETS.map((p) => p.value)
 ) as ReadonlySet<ThemePreset>
+
+export const THEME_FONT_VALUES: ReadonlySet<ThemeFont> = new Set([
+  'default',
+  'sans',
+  'serif',
+])
+
+export const THEME_RADIUS_VALUES: ReadonlySet<ThemeRadius> = new Set([
+  'default',
+  'none',
+  'sm',
+  'md',
+  'lg',
+  'xl',
+])
 
 export const THEME_SCALE_VALUES: ReadonlySet<ThemeScale> = new Set([
   'default',
@@ -159,7 +177,7 @@ export const PRESET_DEFAULT_FONT: Partial<
 > = {
   default: 'sans',
   anthropic: 'serif',
-  tokenfunc: 'brand',
+  ...TOKENFUNC_PRESET_FONTS,
 }
 
 /**
@@ -176,18 +194,4 @@ export function resolveThemeFont(
     return PRESET_DEFAULT_FONT[preset] ?? 'sans'
   }
   return font
-}
-
-/**
- * 把服务端 /api/status 下发的 theme 字段收敛为已注册的预设；
- * 未知值回退到 default，这样后台误填或旧版本缺字段时页面仍可用。
- */
-export function normalizeServerPreset(value: unknown): ThemePreset {
-  if (
-    typeof value === 'string' &&
-    THEME_PRESET_VALUES.has(value as ThemePreset)
-  ) {
-    return value as ThemePreset
-  }
-  return DEFAULT_THEME_CUSTOMIZATION.preset
 }

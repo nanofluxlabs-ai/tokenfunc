@@ -18,6 +18,9 @@ For commercial licensing, please contact support@quantumnous.com
 */
 export const THEME_STORAGE_KEYS = {
   mode: 'tokenfunc:theme:v1:mode',
+  preset: 'tokenfunc:theme:v1:preset',
+  font: 'tokenfunc:theme:v1:font',
+  radius: 'tokenfunc:theme:v1:radius',
   scale: 'tokenfunc:theme:v1:scale',
   contentLayout: 'tokenfunc:theme:v1:content-layout',
 } as const

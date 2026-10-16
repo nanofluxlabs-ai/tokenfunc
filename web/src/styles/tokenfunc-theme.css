@@ -1,0 +1,10 @@
+/* tokenfunc 品牌主题入口：字体与二开样式表集中于此，上游 index.css 只 import 本文件。
+ * Figtree（Latin）+ Noto Sans SC（CJK，按 unicode-range 分包按需加载）+ Geist Mono（密钥/代码），
+ * 由 brand-presets.css 的 `brand` 字体轴与品牌预设引用。 */
+@import '@fontsource-variable/figtree';
+@import '@fontsource-variable/noto-sans-sc';
+@import '@fontsource-variable/geist-mono';
+
+@import './brand-presets.css';
+@import './landing.css';
+@import './quote-preview.css';

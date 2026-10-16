@@ -2,7 +2,6 @@
 // 二开条目在后展开，因此可以覆盖上游同名 key 的译文。
 // 新增 key 时七个语言文件必须同时写入（至少 en 与 zh），否则 i18n:sync 会把孤立 key 挪进 _extras。
 import type { resources as upstreamResources } from '../config'
-
 import en from '../locales/tokenfunc/en.json'
 import fr from '../locales/tokenfunc/fr.json'
 import ja from '../locales/tokenfunc/ja.json'

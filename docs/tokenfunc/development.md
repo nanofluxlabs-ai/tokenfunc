@@ -55,6 +55,9 @@ make dev          # 自动生成 .env → 起 postgres/redis → 编译并后台
 | `make test-web` | 前端 vitest |
 | `make up-build` / `make up` / `make up-down` / `make up-logs` | 全栈 docker（从源码构建 / 用 `.env` 指定镜像 / 停 / 日志） |
 | `make reset-setup` | 清掉初始化向导状态，重新走 setup |
+| `make upstream-status` | 当前已合入的上游 rc 基线、落后 commit 数、可合的 rc 列表 |
+| `make upstream-diff REF=v1.0.0-rc.N` | 生成同步评估清单到 `.tmp/upstream/<REF>.md`（冲突 / 高风险 / 二开热点重叠 / commit 表） |
+| `make upstream-merge REF=v1.0.0-rc.N [BASE=main]` | 建 `sync/upstream-<REF>` 分支并合并该 rc，有冲突即停，不 push |
 
 所有 `TF_*` 变量都可在 `.env` 或命令行覆盖，例如端口冲突时 `make dev TF_API_PORT=3100 TF_WEB_PORT=5174`。
 
@@ -75,7 +78,7 @@ make dev          # 自动生成 .env → 起 postgres/redis → 编译并后台
 ### 4.1 分支与提交
 - `main` 只接受 PR，CI（`.github/workflows/ci.yml`：`make test` + 前端 typecheck/test）必须通过；推到 `main` 只构建 `main-<date>-<sha>` 镜像，**发版用 `/release-standalone` 打 `vYYYY.MM.DD.N` tag**，tag 才触发部署。
 - 功能分支 `feat/<模块>`、修复分支 `fix/<问题>`；每个模块验证通过后立即 commit，提交信息用 Conventional Commits（`feat(landing): …`），正文中英文均可。
-- 与上游 new-api 同步时只处理冲突，不顺手重构上游代码。
+- 与上游 new-api 同步见 §4.6。
 
 ### 4.2 代码与测试
 - 后端遵守 `AGENTS.md`；二开代码（`enterprise_*`、`ent_*`、`features/enterprise*` 等）只支持 PostgreSQL。
@@ -98,6 +101,14 @@ make dev          # 自动生成 .env → 起 postgres/redis → 编译并后台
 ### 4.5 与 AI 助手协作
 - 助手每次会话先读 `AGENTS.md`、`CLAUDE.md`（含 `web/AGENTS.md`），再读本文的环境约定；需要库时只用 `make infra` / `make test-db`。
 - 让助手验证功能时给它 `make api` 之后的 `http://127.0.0.1:3000`，不要让它自建数据库实例。
+
+### 4.6 与上游 new-api 同步
+- **节奏**：每 2 周或累积 2 个上游 rc 合一次；**只合 rc tag（`v1.0.0-rc.N`），不合 `upstream/main` HEAD**。拖得越久冲突越大，"少同步"不等于"更稳"。
+- **例外通道**：安全修复、数据正确性 fix、生产踩到的 bug，单个 commit `git cherry-pick -x <sha>` 到 `fix/upstream-<sha>` 分支，走同样门禁，不等节奏。
+- **流程**（由 `/upstream-sync` 驱动）：`make upstream-status` 选 rc → `make upstream-diff REF=` 出评估清单，逐条标 接受 / 回退 / 需适配 → `make upstream-merge REF=` → **只解冲突不重构上游代码**，二开只支持 PG，不为上游补 SQLite/MySQL → 门禁 → PR，merge commit 固定 `merge(upstream): sync new-api <REF>` → 用户确认合并 → `/release-standalone` **独立发版**，发布报告注明"基于上游 <REF>"，不与二开功能混在同一版本。
+- **门禁**：CI（`make test` + 前端 typecheck/test）、本地 `make test-db`、迁移幂等（`make up-build` 启动两次，日志无重复 `ALTER`）、二开关键路径冒烟（企业 / 授信 / 报价 / 财务导出 / 手工充值）。
+- **减少冲突的结构约定**：二开内容放独立文件，上游文件只留一两行接线——翻译在 `web/src/i18n/locales/tokenfunc/` 与 `i18n/locales/tokenfunc.*.yaml`；品牌主题在 `web/src/lib/tokenfunc-theme.ts`、`web/src/lib/tokenfunc-site-theme.ts`、`web/src/styles/tokenfunc-theme.css`；二开全局变量在 `common/tokenfunc_constants.go`。新增二开翻译 key 必须同时写进 `tokenfunc/en.json` 与 `tokenfunc/zh.json`，否则 `bun run i18n:sync` 会把孤立 key 挪进 `_extras`。
+- 基线不另记文件：`make upstream-status` 用 `git describe` 从 merge-base 算出当前 rc。
 
 ## 5. 数据与重置
 

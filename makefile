@@ -49,7 +49,8 @@ PKG ?= $(ROOT_PACKAGES)
 
 .DEFAULT_GOAL := help
 .PHONY: help env infra db-schemas api-build api api-stop web dev stop down reset logs psql redis-cli \
-	build-web test test-db test-web up up-build up-down up-logs reset-setup
+	build-web test test-db test-web up up-build up-down up-logs reset-setup \
+	upstream-fetch upstream-status upstream-diff upstream-merge
 
 help: ## 列出所有目标
 	@grep -hE '^[a-zA-Z0-9_-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-14s\033[0m %s\n", $$1, $$2}'
@@ -148,6 +149,43 @@ test-db: infra ## 需要 PostgreSQL 的 Go 测试，跑在 test schema / redis d
 
 test-web: ## 前端 vitest
 	@cd $(WEB_DIR) && bun run test
+
+# ---------- 上游同步（QuantumNous/new-api） ----------
+# 只合上游 rc tag（v1.0.0-rc.N），不合 upstream/main HEAD；节奏、门禁与例外通道见 development.md §4.6，
+# 完整流程由 /upstream-sync skill 驱动。这些目标都不 push。
+
+TF_UPSTREAM_REMOTE   ?= upstream
+TF_UPSTREAM_TAG_GLOB ?= v1.0.0-rc.*
+UPSTREAM_BASE    = $$(git merge-base main $(TF_UPSTREAM_REMOTE)/main)
+UPSTREAM_DIFF_DIR := .tmp/upstream
+
+upstream-fetch: ## 拉取上游分支与 tag
+	@git fetch --tags --quiet $(TF_UPSTREAM_REMOTE)
+
+upstream-status: upstream-fetch ## 当前基线 rc、落后 commit 数、基线之后的上游 rc 列表
+	@base=$(UPSTREAM_BASE); \
+	baseline=$$(git describe --tags --match '$(TF_UPSTREAM_TAG_GLOB)' --abbrev=0 $$base 2>/dev/null || echo "(无 rc tag)"); \
+	echo "基线: $$baseline  (merge-base $$(git log -1 --format='%h %ad' --date=short $$base))"; \
+	echo "落后 $(TF_UPSTREAM_REMOTE)/main: $$(git rev-list --count main..$(TF_UPSTREAM_REMOTE)/main) commit"; \
+	echo "基线之后的 rc（tag  日期  相对基线 commit 数）:"; \
+	for t in $$(git tag --list '$(TF_UPSTREAM_TAG_GLOB)' --sort=creatordate); do \
+		if ! git merge-base --is-ancestor $$t $$base 2>/dev/null; then \
+			echo "  $$t  $$(git log -1 --format=%ad --date=short $$t)  +$$(git rev-list --count $$base..$$t)"; \
+		fi; \
+	done
+
+upstream-diff: upstream-fetch ## REF=v1.0.0-rc.N 生成评估清单到 .tmp/upstream/<REF>.md（冲突 / 高风险 / 热点重叠 / commit 表）
+	@test -n "$(REF)" || { echo "用法: make upstream-diff REF=v1.0.0-rc.N"; exit 1; }
+	@mkdir -p $(UPSTREAM_DIFF_DIR)
+	@TF_UPSTREAM_TAG_GLOB='$(TF_UPSTREAM_TAG_GLOB)' scripts/tokenfunc/upstream-diff.sh $(REF) main > $(UPSTREAM_DIFF_DIR)/$(REF).md
+	@echo "评估清单: $(UPSTREAM_DIFF_DIR)/$(REF).md"; sed -n '3,9p' $(UPSTREAM_DIFF_DIR)/$(REF).md
+
+upstream-merge: upstream-fetch ## REF=v1.0.0-rc.N 从 main（BASE= 可改）建 sync/upstream-<REF> 分支并合并（有冲突则停下，不 push）
+	@test -n "$(REF)" || { echo "用法: make upstream-merge REF=v1.0.0-rc.N [BASE=main]"; exit 1; }
+	@test -z "$$(git status --porcelain --untracked-files=no)" || { echo "工作区有未提交改动，先提交或 stash"; exit 1; }
+	@git switch -c sync/upstream-$(REF) $(or $(BASE),main)
+	@git merge --no-ff $(REF) -m "merge(upstream): sync new-api $(REF)" \
+		|| echo "有冲突：只解冲突不重构，解决后 git add 并 git commit（沿用上面的 merge 信息）"
 
 # ---------- 全栈 docker（生产形态） ----------
 

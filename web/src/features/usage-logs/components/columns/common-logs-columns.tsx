@@ -17,7 +17,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 For commercial licensing, please contact support@quantumnous.com
 */
 import type { ColumnDef } from '@tanstack/react-table'
-import { GitBranch, Sparkles, KeyRound } from 'lucide-react'
+import { GitBranch, Info, Sparkles, KeyRound } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
@@ -716,7 +716,31 @@ export function useCommonLogsColumns(
       },
       {
         accessorKey: 'prompt_tokens',
-        header: t('Tokens', { context: 'usage' }),
+        header: () => (
+          <span className='inline-flex items-center gap-1'>
+            {t('Tokens', { context: 'usage' })}
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger
+                  render={
+                    <Info
+                      className='text-muted-foreground size-3'
+                      aria-label={t('Token column help')}
+                    />
+                  }
+                />
+                <TooltipContent side='top' className='max-w-72'>
+                  <p className='text-xs'>
+                    {t(
+                      'Input / output tokens. Cache read and cache write tokens are listed below them and billed at their own rates; Anthropic models exclude cached tokens from the input count, OpenAI models include them.'
+                    )}
+                  </p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          </span>
+        ),
+        meta: { label: t('Tokens', { context: 'usage' }) },
         cell: ({ row }) => {
           const log = row.original
           if (!isDisplayableLogType(log.type)) return null
@@ -744,15 +768,18 @@ export function useCommonLogsColumns(
                 {completionTokens.toLocaleString()}
               </span>
               {(cacheReadTokens > 0 || cacheWriteTokens > 0) && (
-                <div className='flex items-center gap-1 text-[11px]'>
+                <div className='text-muted-foreground flex items-center gap-1 text-[11px] whitespace-nowrap tabular-nums'>
                   {cacheReadTokens > 0 && (
-                    <span className='text-muted-foreground/60'>
-                      {t('Cache')}↓ {cacheReadTokens.toLocaleString()}
+                    <span>
+                      {t('Cache Read')} {cacheReadTokens.toLocaleString()}
                     </span>
                   )}
+                  {cacheReadTokens > 0 && cacheWriteTokens > 0 && (
+                    <span aria-hidden='true'>·</span>
+                  )}
                   {cacheWriteTokens > 0 && (
-                    <span className='text-muted-foreground/60'>
-                      ↑ {cacheWriteTokens.toLocaleString()}
+                    <span>
+                      {t('Cache Write')} {cacheWriteTokens.toLocaleString()}
                     </span>
                   )}
                 </div>

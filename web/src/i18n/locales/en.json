@@ -7863,6 +7863,16 @@
     "Unknown request path. Check the endpoint URL against the API reference.": "Unknown request path. Check the endpoint URL against the API reference.",
     "No available channel for the model — it may be unknown, disabled, or out of capacity. Try another model or contact the administrator.": "No available channel for the model — it may be unknown, disabled, or out of capacity. Try another model or contact the administrator.",
     "Cycle Days": "Cycle Days",
-    "View usage logs of {{username}}": "View usage logs of {{username}}"
+    "View usage logs of {{username}}": "View usage logs of {{username}}",
+    "Token column help": "Token column help",
+    "Input / output tokens. Cache read and cache write tokens are listed below them and billed at their own rates; Anthropic models exclude cached tokens from the input count, OpenAI models include them.": "Input / output tokens. Cache read and cache write tokens are listed below them and billed at their own rates; Anthropic models exclude cached tokens from the input count, OpenAI models include them.",
+    "Error Category": "Error Category",
+    "Client Source": "Client Source",
+    "Client Platform": "Client Platform",
+    "Originator": "Originator",
+    "Request Rejected": "Request Rejected",
+    "Upstream Failed": "Upstream Failed",
+    "System Error": "System Error",
+    "Error Code": "Error Code"
   }
 }

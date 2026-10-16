@@ -67,7 +67,18 @@ import { formatLogQuota, formatTokens, formatUseTime } from '@/lib/format'
 import { cn } from '@/lib/utils'
 
 import { AuditDetailFields } from '../../audit/components/audit-detail-fields'
+import { LOG_TYPE_ENUM } from '../../constants'
 import type { UsageLog } from '../../data/schema'
+import {
+  getClientPlatformLabel,
+  getClientSourceLabel,
+} from '../../lib/client-source'
+import {
+  ERROR_CATEGORY_LABEL_KEYS,
+  getErrorCategoryVariant,
+  getStatusCodeVariant,
+  resolveErrorCategory,
+} from '../../lib/error-category'
 import {
   parseLogOther,
   getParamOverrideActionLabel,
@@ -613,6 +624,41 @@ export function DetailsDialog(props: DetailsDialogProps) {
     props.log.type !== 6 &&
     (other?.request_path || conversionChain.length > 0)
 
+  // 错误日志的分类 / 状态码 / 错误码 / 请求路径，由 service/relay_error.go 写入
+  const errorCategory =
+    props.log.type === LOG_TYPE_ENUM.ERROR ? resolveErrorCategory(other) : null
+  const errorStatusCode = Number(other?.status_code ?? 0)
+
+  // 发起调用的客户端特征（消耗 / 错误日志），由 service/log_client_source.go 写入
+  const clientPlatformLabel = getClientPlatformLabel(other?.client_platform, t)
+  const clientFields =
+    showTiming && other?.client_source
+      ? ([
+          {
+            label: t('Client Source'),
+            value: getClientSourceLabel(other.client_source, t),
+          },
+          clientPlatformLabel && {
+            label: t('Client Platform'),
+            value: clientPlatformLabel,
+          },
+          other.client_originator && {
+            label: t('Originator'),
+            value: other.client_originator,
+            mono: true,
+          },
+          other.client_user_agent && {
+            label: t('User Agent'),
+            value: other.client_user_agent,
+            mono: true,
+          },
+        ].filter(Boolean) as Array<{
+          label: string
+          value: string
+          mono?: boolean
+        }>)
+      : []
+
   const useChannel = other?.admin_info?.use_channel
   const channelChain =
     useChannel && useChannel.length > 0 ? useChannel.join(' → ') : undefined
@@ -748,6 +794,72 @@ export function DetailsDialog(props: DetailsDialogProps) {
             />
           )}
         </div>
+
+        {/* Calling client (consume / error logs) */}
+        {/* Relay error facts (type=5) */}
+        {errorCategory && (
+          <DetailSection
+            icon={<AlertTriangle className='size-3.5' aria-hidden='true' />}
+            label={t('Error')}
+            variant='danger'
+          >
+            <DetailRow
+              label={t('Error Category')}
+              value={
+                <StatusBadge
+                  label={t(ERROR_CATEGORY_LABEL_KEYS[errorCategory])}
+                  variant={getErrorCategoryVariant(errorCategory)}
+                  size='sm'
+                  copyable={false}
+                />
+              }
+            />
+            {errorStatusCode > 0 && (
+              <DetailRow
+                label={t('Status Code')}
+                value={
+                  <StatusBadge
+                    label={String(errorStatusCode)}
+                    variant={getStatusCodeVariant(errorStatusCode)}
+                    size='sm'
+                    copyable={false}
+                  />
+                }
+              />
+            )}
+            {other?.error_code && (
+              <DetailRow
+                label={t('Error Code')}
+                value={other.error_code}
+                mono
+              />
+            )}
+            {other?.request_path && (
+              <DetailRow
+                label={t('Request Path')}
+                value={other.request_path}
+                mono
+              />
+            )}
+          </DetailSection>
+        )}
+
+        {clientFields.length > 0 && (
+          <DetailSection
+            icon={<Monitor className='size-3.5' aria-hidden='true' />}
+            iconTone='info'
+            label={t('Client')}
+          >
+            {clientFields.map((field) => (
+              <DetailRow
+                key={field.label}
+                label={field.label}
+                value={field.value}
+                mono={field.mono}
+              />
+            ))}
+          </DetailSection>
+        )}
 
         {/* Request conversion (admin only, not for refund) */}
         {showConversion && (

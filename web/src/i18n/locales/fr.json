@@ -7863,6 +7863,16 @@
     "Unknown request path. Check the endpoint URL against the API reference.": "Chemin de requête inconnu. Vérifiez l'URL de l'endpoint par rapport à la référence API.",
     "No available channel for the model — it may be unknown, disabled, or out of capacity. Try another model or contact the administrator.": "Aucun canal disponible pour ce modèle — inconnu, désactivé ou à capacité épuisée. Essayez un autre modèle ou contactez l'administrateur.",
     "Cycle Days": "Jours du cycle",
-    "View usage logs of {{username}}": "Voir les journaux d'utilisation de {{username}}"
+    "View usage logs of {{username}}": "Voir les journaux d'utilisation de {{username}}",
+    "Token column help": "Aide de la colonne Tokens",
+    "Input / output tokens. Cache read and cache write tokens are listed below them and billed at their own rates; Anthropic models exclude cached tokens from the input count, OpenAI models include them.": "Tokens d’entrée / de sortie. Les tokens de lecture et d’écriture du cache sont listés en dessous et facturés à leur propre tarif ; les modèles Anthropic excluent les tokens en cache du décompte d’entrée, les modèles OpenAI les incluent.",
+    "Error Category": "Catégorie d’erreur",
+    "Client Source": "Source du client",
+    "Client Platform": "Plateforme du client",
+    "Originator": "Originator",
+    "Request Rejected": "Requête rejetée",
+    "Upstream Failed": "Échec amont",
+    "System Error": "Erreur système",
+    "Error Code": "Code d’erreur"
   }
 }

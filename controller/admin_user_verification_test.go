@@ -93,6 +93,17 @@ func TestAdminUserRiskOperationsRequireProofBeforeMutation(t *testing.T) {
 			},
 		},
 		{
+			name: "manual topup", method: http.MethodPost, path: "/api/user/topup/manual", handler: AdminManualTopUp,
+			body: func(target *model.User) string {
+				return fmt.Sprintf(`{"user_id":%d,"amount_usd":1,"payment_method":"gift"}`, target.Id)
+			},
+			unchanged: func(t *testing.T, target *model.User) {
+				stored, err := model.GetUserById(target.Id, false)
+				require.NoError(t, err)
+				assert.Equal(t, target.Quota, stored.Quota)
+			},
+		},
+		{
 			name: "password reset", method: http.MethodPut, path: "/api/user/", handler: UpdateUser,
 			body: func(target *model.User) string {
 				return fmt.Sprintf(`{"id":%d,"username":"managed-user","display_name":"Managed","password":"replacement-pass"}`, target.Id)

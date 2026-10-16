@@ -23,6 +23,8 @@ type TopUp struct {
 	CreateTime      int64   `json:"create_time"`
 	CompleteTime    int64   `json:"complete_time"`
 	Status          string  `json:"status"`
+	// TokenFunc 二开：管理员手动充值的参考号 / 流水号，便于对账
+	Reference string `json:"reference" gorm:"type:varchar(128);default:''"`
 }
 
 const (
@@ -31,6 +33,12 @@ const (
 	PaymentMethodWaffo        = "waffo"
 	PaymentMethodWaffoPancake = "waffo_pancake"
 	PaymentMethodBalance      = "balance"
+
+	// TokenFunc 二开：管理员手动充值的收款方式
+	PaymentMethodBankTransfer = "bank_transfer"
+	PaymentMethodAlipay       = "alipay"
+	PaymentMethodWxpay        = "wxpay"
+	PaymentMethodGift         = "gift"
 )
 
 const (
@@ -40,6 +48,8 @@ const (
 	PaymentProviderWaffo        = "waffo"
 	PaymentProviderWaffoPancake = "waffo_pancake"
 	PaymentProviderBalance      = "balance"
+	// TokenFunc 二开：管理员手动充值 / 补单
+	PaymentProviderAdmin = "admin"
 )
 
 var (
@@ -518,7 +528,7 @@ func ManualCompleteTopUp(tradeNo string, callerIp string) error {
 
 	// 事务外记录日志，避免阻塞
 	syncCreditUserQuotaCache(userId, quotaToAdd, "manual topup")
-	RecordTopupLog(userId, fmt.Sprintf("管理员补单成功，充值金额: %v，支付金额：%f", logger.FormatQuota(quotaToAdd), payMoney), callerIp, paymentMethod, "admin")
+	RecordTopupLog(userId, fmt.Sprintf("管理员补单成功，充值金额: %v，支付金额：%f", logger.FormatQuota(quotaToAdd), payMoney), callerIp, paymentMethod, PaymentProviderAdmin)
 	return nil
 }
 func RechargeCreem(referenceId string, customerEmail string, customerName string, callerIp string) (err error) {

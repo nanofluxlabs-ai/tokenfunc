@@ -13,7 +13,7 @@ import (
 
 // 订单视图：top_ups ∪ subscription_orders。不建统一订单表、不改上游写入点，查询时合并。
 // 在线支付订阅完成时上游会向 top_ups 写一条同 trade_no 的镜像行（Amount=0），这里用 NOT EXISTS 剔除。
-// 企业线下充值（ent_ledger.topup）、兑换码、管理员调额不是订单，不在此视图内。
+// 企业线下充值（ent_ledger.topup）、兑换码、管理员调额不是订单，不在此视图内；管理员手动充值写 top_ups（provider=admin），算订单。
 
 const (
 	FinanceOrderTypeWalletTopup  = "wallet_topup"
@@ -25,12 +25,12 @@ const (
 )
 
 const financeOrdersUnionSQL = `SELECT 'wallet_topup' AS order_type, t.id AS source_id, t.user_id, t.trade_no, t.payment_method, t.payment_provider, t.status,
-	t.amount, t.money, 0 AS plan_id, t.create_time, t.complete_time
+	t.amount, t.money, 0 AS plan_id, t.create_time, t.complete_time, t.reference
 FROM top_ups t
 WHERE NOT EXISTS (SELECT 1 FROM subscription_orders s WHERE s.trade_no = t.trade_no)
 UNION ALL
 SELECT 'subscription_purchase' AS order_type, s.id AS source_id, s.user_id, s.trade_no, s.payment_method, s.payment_provider, s.status,
-	0 AS amount, s.money, s.plan_id, s.create_time, s.complete_time
+	0 AS amount, s.money, s.plan_id, s.create_time, s.complete_time, '' AS reference
 FROM subscription_orders s`
 
 // financeOrderTimeSQL 订单归属时间：成功订单看完成时间，其余看创建时间
@@ -55,6 +55,7 @@ type FinanceOrderItem struct {
 	PlanId          int     `json:"plan_id"`
 	CreateTime      int64   `json:"create_time"`
 	CompleteTime    int64   `json:"complete_time"`
+	Reference       string  `json:"reference"`
 }
 
 type financeOrderScan struct {
@@ -70,6 +71,7 @@ type financeOrderScan struct {
 	PlanId          int
 	CreateTime      int64
 	CompleteTime    int64
+	Reference       string
 	Username        string
 	PlanTitle       string
 	PlanCurrency    string
@@ -95,7 +97,7 @@ func financeContainsPattern(keyword string) string {
 // financeOrderItem 币种 / 美元金额 / 权益额度按各支付渠道的写入语义推导（见 model/topup.go 各 Recharge*）：
 //   - 易支付：Amount 是美元数、Money 是人民币实付 → CNY，usd = Amount，quota = Amount × QuotaPerUnit
 //   - Stripe：Money 是美元 → quota = Money × QuotaPerUnit
-//   - Creem：Amount 即 quota，Money 是美元
+//   - Creem / 管理员手动充值（admin）：Amount 即 quota，Money 是美元
 //   - Waffo 系：Amount 是美元数，币种取 Waffo 配置
 //   - 订阅：币种看套餐，quota = 套餐总额度
 func financeOrderItem(scan financeOrderScan) FinanceOrderItem {
@@ -103,6 +105,7 @@ func financeOrderItem(scan financeOrderScan) FinanceOrderItem {
 		Id: fmt.Sprintf("%s:%d", scan.OrderType, scan.SourceId), OrderNo: scan.TradeNo, UserId: scan.UserId, Username: scan.Username,
 		OrderType: scan.OrderType, TradeNo: scan.TradeNo, PaymentMethod: scan.PaymentMethod, PaymentProvider: scan.PaymentProvider,
 		Status: scan.Status, Currency: financeCurrencyUSD, Amount: scan.Money, PlanId: scan.PlanId, CreateTime: scan.CreateTime, CompleteTime: scan.CompleteTime,
+		Reference: scan.Reference,
 	}
 	quotaPerUnit := common.QuotaPerUnit
 	if scan.OrderType == FinanceOrderTypeSubscription {
@@ -131,7 +134,7 @@ func financeOrderItem(scan financeOrderScan) FinanceOrderItem {
 	case PaymentProviderStripe:
 		item.USDAmount = scan.Money
 		item.CreditAmount = int64(scan.Money * quotaPerUnit)
-	case PaymentProviderCreem:
+	case PaymentProviderCreem, PaymentProviderAdmin:
 		item.USDAmount = scan.Money
 		item.CreditAmount = scan.Amount
 	case PaymentProviderWaffo, PaymentProviderWaffoPancake:
@@ -166,7 +169,7 @@ func ListFinanceOrders(filter FinanceOrderFilter, startIdx int, num int) ([]Fina
 	query := financeOrdersQuery().Where(financeOrderTimeSQL+" >= ? AND "+financeOrderTimeSQL+" < ?", filter.Range.Start, filter.Range.EndExcl)
 	if filter.Keyword != "" {
 		pattern := financeContainsPattern(filter.Keyword)
-		query = query.Where("(o.trade_no ILIKE ? ESCAPE '!' OR p.title ILIKE ? ESCAPE '!')", pattern, pattern)
+		query = query.Where("(o.trade_no ILIKE ? ESCAPE '!' OR o.reference ILIKE ? ESCAPE '!' OR p.title ILIKE ? ESCAPE '!')", pattern, pattern, pattern)
 	}
 	if filter.Username != "" {
 		query = query.Where("u.username ILIKE ? ESCAPE '!'", financeContainsPattern(filter.Username))

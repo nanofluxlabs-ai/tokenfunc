@@ -22,6 +22,7 @@ TF_DEV_REDIS_DB   ?= 0
 TF_TEST_REDIS_DB  ?= 1
 TF_API_PORT       ?= 3000
 TF_WEB_PORT       ?= 5173
+TF_LOG_FORMAT     ?= text   # 宿主机开发保持文本日志；容器默认 json
 TF_SESSION_SECRET ?= tokenfunc-dev-session-secret
 
 WEB_DIR     := ./web
@@ -103,6 +104,7 @@ api: infra api-build api-stop ## 后台启动 API（宿主机，连 dev schema /
 	@mkdir -p $(API_LOG_DIR)
 	@SQL_DSN='$(DEV_SQL_DSN)' REDIS_CONN_STRING='$(DEV_REDIS)' SESSION_SECRET='$(TF_SESSION_SECRET)' \
 		SESSION_COOKIE_SECURE=false ERROR_LOG_ENABLED=true BATCH_UPDATE_ENABLED=true NODE_NAME=tokenfunc-dev \
+		LOG_FORMAT=$(TF_LOG_FORMAT) \
 		nohup $(API_BIN) --port $(TF_API_PORT) --log-dir $(API_LOG_DIR) > $(API_LOG_DIR)/api.out 2>&1 & \
 		echo $$! > $(API_PID)
 	@for i in $$(seq 1 60); do \

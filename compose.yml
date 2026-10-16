@@ -84,6 +84,11 @@ services:
       ERROR_LOG_ENABLED: "true"
       BATCH_UPDATE_ENABLED: "true"
       TZ: ${TZ:-Asia/Shanghai}
+      # 系统日志：容器默认 NDJSON（CLS 按 JSON 提取），本地 make api 用 text；文件按大小/天数滚动
+      LOG_FORMAT: ${TF_LOG_FORMAT:-json}
+      LOG_MAX_SIZE_MB: ${TF_LOG_MAX_SIZE_MB:-64}
+      LOG_MAX_BACKUPS: ${TF_LOG_MAX_BACKUPS:-32}
+      LOG_RETENTION_DAYS: ${TF_LOG_RETENTION_DAYS:-7}
     depends_on:
       postgres:
         condition: service_healthy

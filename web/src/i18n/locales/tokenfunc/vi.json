@@ -1014,6 +1014,8 @@
     "Bank transfer": "Bank transfer",
     "Gift": "Gift",
     "Admin top-up": "Admin top-up",
-    "Manually topped up user {{username}} (ID: {{id}}) by {{amount_usd}} USD via {{payment_method}}": "Manually topped up user {{username}} (ID: {{id}}) by {{amount_usd}} USD via {{payment_method}}"
+    "Manually topped up user {{username}} (ID: {{id}}) by {{amount_usd}} USD via {{payment_method}}": "Manually topped up user {{username}} (ID: {{id}}) by {{amount_usd}} USD via {{payment_method}}",
+    "Plugin metadata contains an unknown field \"{{field}}\". If this plugin was downloaded from the official marketplace, it may require a newer version of new-api. Try updating new-api and installing the plugin again.": "Siêu dữ liệu plugin chứa trường không xác định \"{{field}}\". Nếu plugin được tải từ chợ chính thức, có thể cần phiên bản tokenfunc mới hơn. Hãy cập nhật tokenfunc rồi cài đặt lại plugin.",
+    "Administrator manual top-up succeeded, quota added: {{quota}}, amount: ${{amount}}, payment method: {{method}}": "Quản trị viên nạp tiền thủ công thành công, hạn mức đã thêm: {{quota}}, số tiền: ${{amount}}, phương thức thanh toán: {{method}}"
   }
 }

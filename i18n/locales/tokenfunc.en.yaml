@@ -1,3 +1,0 @@
-# tokenfunc overrides for upstream English messages (loaded after the upstream file, same ID wins)
-
-task_plugin.unknown_meta_field: 'Plugin metadata contains an unknown field "{{.Field}}". If this plugin was downloaded from the official marketplace, it may require a newer version of tokenfunc. Try updating tokenfunc and installing the plugin again.'

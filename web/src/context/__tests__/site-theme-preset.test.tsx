@@ -119,7 +119,7 @@ describe('server-driven color preset', () => {
       expect(screen.getByLabelText('Preset')).toHaveTextContent('default')
     )
     expect(document.body).not.toHaveAttribute('data-theme-preset')
-    expect(document.body).toHaveAttribute('data-theme-font', 'sans')
+    expect(document.body).toHaveAttribute('data-theme-font', 'system')
   })
 
   it('switches presets when the admin changes the server theme', async () => {

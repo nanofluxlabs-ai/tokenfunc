@@ -1014,6 +1014,8 @@
     "Bank transfer": "Bank transfer",
     "Gift": "Gift",
     "Admin top-up": "Admin top-up",
-    "Manually topped up user {{username}} (ID: {{id}}) by {{amount_usd}} USD via {{payment_method}}": "Manually topped up user {{username}} (ID: {{id}}) by {{amount_usd}} USD via {{payment_method}}"
+    "Manually topped up user {{username}} (ID: {{id}}) by {{amount_usd}} USD via {{payment_method}}": "Manually topped up user {{username}} (ID: {{id}}) by {{amount_usd}} USD via {{payment_method}}",
+    "Plugin metadata contains an unknown field \"{{field}}\". If this plugin was downloaded from the official marketplace, it may require a newer version of new-api. Try updating new-api and installing the plugin again.": "外掛中繼資料包含未知欄位「{{field}}」。如果外掛來自官方市集，可能需要較新版本的 tokenfunc。請嘗試更新 tokenfunc 後重新安裝外掛。",
+    "Administrator manual top-up succeeded, quota added: {{quota}}, amount: ${{amount}}, payment method: {{method}}": "管理員手動儲值成功，儲值額度: {{quota}}，金額: ${{amount}}，收款方式: {{method}}"
   }
 }

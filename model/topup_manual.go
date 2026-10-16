@@ -71,7 +71,8 @@ func RegisterManualTopUp(userId int, operatorRole int, quota int, moneyUSD float
 	if err != nil {
 		return nil, err
 	}
-	syncCreditUserQuotaCache(userId, quota, "admin manual topup")
-	RecordTopupLog(userId, fmt.Sprintf("管理员手动充值成功，充值额度: %v，金额: $%.2f，收款方式: %s", logger.FormatQuota(quota), moneyUSD, paymentMethod), callerIp, paymentMethod, PaymentProviderAdmin)
+	syncCreditUserQuotaCache(userId, quota, common.LogText("admin manual topup"))
+	// 充值日志内容是前端翻译 key，译文在 web/src/i18n/locales/tokenfunc/<lang>.json
+	RecordTopupLog(userId, common.NewMessage("Administrator manual top-up succeeded, quota added: {{quota}}, amount: ${{amount}}, payment method: {{method}}", map[string]any{"quota": logger.FormatQuota(quota), "amount": fmt.Sprintf("%.2f", moneyUSD), "method": paymentMethod}), callerIp, paymentMethod, PaymentProviderAdmin)
 	return topUp, nil
 }

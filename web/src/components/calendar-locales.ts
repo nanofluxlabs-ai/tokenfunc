@@ -1,9 +1,10 @@
-import { enUS, fr, ja, ru, vi, zhCN } from 'react-day-picker/locale'
+import { enUS, fr, ja, ru, vi, zhCN, zhTW } from 'react-day-picker/locale'
 
 /** 界面语言 → react-day-picker locale；date-picker / datetime-picker / date-range-picker 共用 */
 export const calendarLocales = {
   en: enUS,
-  zh: zhCN,
+  zhCN,
+  zhTW,
   fr,
   ru,
   ja,

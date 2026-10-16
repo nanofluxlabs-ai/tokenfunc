@@ -1014,6 +1014,8 @@
     "Bank transfer": "Bank transfer",
     "Gift": "Gift",
     "Admin top-up": "Admin top-up",
-    "Manually topped up user {{username}} (ID: {{id}}) by {{amount_usd}} USD via {{payment_method}}": "Manually topped up user {{username}} (ID: {{id}}) by {{amount_usd}} USD via {{payment_method}}"
+    "Manually topped up user {{username}} (ID: {{id}}) by {{amount_usd}} USD via {{payment_method}}": "Manually topped up user {{username}} (ID: {{id}}) by {{amount_usd}} USD via {{payment_method}}",
+    "Plugin metadata contains an unknown field \"{{field}}\". If this plugin was downloaded from the official marketplace, it may require a newer version of new-api. Try updating new-api and installing the plugin again.": "Метаданные плагина содержат неизвестное поле «{{field}}». Если плагин загружен из официального маркетплейса, ему может требоваться более новая версия tokenfunc. Обновите tokenfunc и установите плагин заново.",
+    "Administrator manual top-up succeeded, quota added: {{quota}}, amount: ${{amount}}, payment method: {{method}}": "Ручное пополнение администратором выполнено, добавлено квоты: {{quota}}, сумма: ${{amount}}, способ оплаты: {{method}}"
   }
 }

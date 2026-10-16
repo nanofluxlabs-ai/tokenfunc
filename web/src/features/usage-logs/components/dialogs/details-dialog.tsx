@@ -70,6 +70,10 @@ import { cn } from '@/lib/utils'
 import { AuditDetailFields } from '../../audit/components/audit-detail-fields'
 import type { UsageLog } from '../../data/schema'
 import {
+  getClientPlatformLabel,
+  getClientSourceLabel,
+} from '../../lib/client-source'
+import {
   parseLogOther,
   getParamOverrideActionLabel,
   parseAuditLine,
@@ -620,6 +624,36 @@ export function DetailsDialog(props: DetailsDialogProps) {
     props.log.type !== 6 &&
     (other?.request_path || conversionChain.length > 0)
 
+  // 发起调用的客户端特征（消耗 / 错误日志），由 service/log_client_source.go 写入
+  const clientPlatformLabel = getClientPlatformLabel(other?.client_platform, t)
+  const clientFields =
+    showTiming && other?.client_source
+      ? ([
+          {
+            label: t('Client Source'),
+            value: getClientSourceLabel(other.client_source, t),
+          },
+          clientPlatformLabel && {
+            label: t('Client Platform'),
+            value: clientPlatformLabel,
+          },
+          other.client_originator && {
+            label: t('Originator'),
+            value: other.client_originator,
+            mono: true,
+          },
+          other.client_user_agent && {
+            label: t('User Agent'),
+            value: other.client_user_agent,
+            mono: true,
+          },
+        ].filter(Boolean) as Array<{
+          label: string
+          value: string
+          mono?: boolean
+        }>)
+      : []
+
   const useChannel = other?.admin_info?.use_channel
   const channelChain =
     useChannel && useChannel.length > 0 ? useChannel.join(' → ') : undefined
@@ -759,6 +793,24 @@ export function DetailsDialog(props: DetailsDialogProps) {
             />
           )}
         </div>
+
+        {/* Calling client (consume / error logs) */}
+        {clientFields.length > 0 && (
+          <DetailSection
+            icon={<Monitor className='size-3.5' aria-hidden='true' />}
+            iconTone='info'
+            label={t('Client')}
+          >
+            {clientFields.map((field) => (
+              <DetailRow
+                key={field.label}
+                label={field.label}
+                value={field.value}
+                mono={field.mono}
+              />
+            ))}
+          </DetailSection>
+        )}
 
         {/* Request conversion (admin only, not for refund) */}
         {showConversion && (

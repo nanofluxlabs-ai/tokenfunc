@@ -7872,6 +7872,7 @@
     "Originator": "Originator",
     "Request Rejected": "Yêu cầu bị từ chối",
     "Upstream Failed": "Upstream thất bại",
-    "System Error": "Lỗi hệ thống"
+    "System Error": "Lỗi hệ thống",
+    "Error Code": "Mã lỗi"
   }
 }

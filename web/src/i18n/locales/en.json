@@ -7872,6 +7872,7 @@
     "Originator": "Originator",
     "Request Rejected": "Request Rejected",
     "Upstream Failed": "Upstream Failed",
-    "System Error": "System Error"
+    "System Error": "System Error",
+    "Error Code": "Error Code"
   }
 }

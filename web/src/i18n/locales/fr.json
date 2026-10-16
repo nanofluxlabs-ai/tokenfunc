@@ -7872,6 +7872,7 @@
     "Originator": "Originator",
     "Request Rejected": "Requête rejetée",
     "Upstream Failed": "Échec amont",
-    "System Error": "Erreur système"
+    "System Error": "Erreur système",
+    "Error Code": "Code d’erreur"
   }
 }

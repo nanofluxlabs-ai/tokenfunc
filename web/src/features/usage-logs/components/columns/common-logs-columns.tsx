@@ -55,17 +55,7 @@ import { useSystemConfigStore } from '@/stores/system-config-store'
 
 import { LOG_TYPE_ALL_VALUE, LOG_TYPE_ENUM } from '../../constants'
 import type { UsageLog } from '../../data/schema'
-import {
-  getClientPlatformLabel,
-  getClientSourceLabel,
-  getClientSourceVariant,
-} from '../../lib/client-source'
-import {
-  ERROR_CATEGORY_LABEL_KEYS,
-  getErrorCategoryVariant,
-  getStatusCodeVariant,
-  resolveErrorCategory,
-} from '../../lib/error-category'
+import { getStatusCodeVariant } from '../../lib/error-category'
 import {
   formatModelName,
   decodeBillingExprB64,
@@ -840,61 +830,6 @@ export function useCommonLogsColumns(
       },
 
       {
-        id: 'client_source',
-        header: t('Client'),
-        meta: { label: t('Client') },
-        cell: ({ row }) => {
-          const log = row.original
-          if (!isTimingLogType(log.type)) return null
-          const other = parseLogOther(log.other)
-          const sourceLabel = getClientSourceLabel(other?.client_source, t)
-          if (!sourceLabel) return null
-          const platformLabel = getClientPlatformLabel(
-            other?.client_platform,
-            t
-          )
-          return (
-            <div className='flex flex-col items-start gap-0.5'>
-              <StatusBadge
-                label={sourceLabel}
-                variant={getClientSourceVariant(other?.client_source)}
-                size='sm'
-                copyable={false}
-                title={other?.client_user_agent}
-              />
-              {platformLabel && (
-                <span className='text-muted-foreground text-[11px]'>
-                  {platformLabel}
-                </span>
-              )}
-            </div>
-          )
-        },
-      },
-
-      {
-        id: 'error_category',
-        header: t('Error Category'),
-        meta: { label: t('Error Category') },
-        cell: ({ row }) => {
-          const log = row.original
-          if (log.type !== LOG_TYPE_ENUM.ERROR) return null
-          const other = parseLogOther(log.other)
-          const category = resolveErrorCategory(other)
-          if (!category) return null
-          return (
-            <StatusBadge
-              label={t(ERROR_CATEGORY_LABEL_KEYS[category])}
-              variant={getErrorCategoryVariant(category)}
-              size='sm'
-              copyable={false}
-              title={other?.error_code}
-            />
-          )
-        },
-      },
-
-      {
         id: 'status_code',
         header: t('Status Code'),
         meta: { label: t('Status Code') },
@@ -912,26 +847,6 @@ export function useCommonLogsColumns(
               copyable={false}
               className='font-mono tabular-nums'
             />
-          )
-        },
-      },
-
-      {
-        id: 'request_path',
-        header: t('Request Path'),
-        meta: { label: t('Request Path') },
-        cell: ({ row }) => {
-          const log = row.original
-          if (!isTimingLogType(log.type)) return null
-          const other = parseLogOther(log.other)
-          if (!other?.request_path) return null
-          return (
-            <span
-              className='block max-w-[160px] truncate font-mono text-xs'
-              title={other.request_path}
-            >
-              {other.request_path}
-            </span>
           )
         },
       },

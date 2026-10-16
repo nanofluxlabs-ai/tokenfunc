@@ -7872,6 +7872,7 @@
     "Originator": "Originator",
     "Request Rejected": "Запрос отклонён",
     "Upstream Failed": "Сбой апстрима",
-    "System Error": "Системная ошибка"
+    "System Error": "Системная ошибка",
+    "Error Code": "Код ошибки"
   }
 }

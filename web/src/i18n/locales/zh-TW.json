@@ -7872,6 +7872,7 @@
     "Originator": "Originator",
     "Request Rejected": "請求被拒",
     "Upstream Failed": "上游失敗",
-    "System Error": "系統錯誤"
+    "System Error": "系統錯誤",
+    "Error Code": "錯誤碼"
   }
 }

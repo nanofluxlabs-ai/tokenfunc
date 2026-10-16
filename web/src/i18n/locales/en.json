@@ -4243,7 +4243,6 @@
     "Only the first {{shown}} IDs were recorded": "Only the first {{shown}} IDs were recorded",
     "Only the first {{shown}} IDs were recorded ({{total}} requested)": "Only the first {{shown}} IDs were recorded ({{total}} requested)",
     "Only the last {{value}} log files will be retained; the rest will be deleted.": "Only the last {{value}} log files will be retained; the rest will be deleted.",
-    "Only used to find historical logs. New records are available in Audit Logs.": "Only used to find historical logs. New records are available in Audit Logs.",
     "Oops! Page Not Found!": "Oops! Page Not Found!",
     "Oops! Something went wrong": "Oops! Something went wrong",
     "Open": "Open",

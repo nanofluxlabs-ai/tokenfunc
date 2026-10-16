@@ -4243,7 +4243,6 @@
     "Only the first {{shown}} IDs were recorded": "Chỉ ghi nhận {{shown}} ID đầu tiên",
     "Only the first {{shown}} IDs were recorded ({{total}} requested)": "Chỉ ghi nhận {{shown}} ID đầu tiên (đã yêu cầu {{total}})",
     "Only the last {{value}} log files will be retained; the rest will be deleted.": "Chỉ giữ lại {{value}} tệp nhật ký gần nhất; phần còn lại sẽ bị xóa.",
-    "Only used to find historical logs. New records are available in Audit Logs.": "Chỉ dùng để tìm nhật ký cũ. Bản ghi mới có trong Nhật ký kiểm toán.",
     "Oops! Page Not Found!": "Ối! Không tìm thấy trang!",
     "Oops! Something went wrong": "Oops! An error occurred.",
     "Open": "Mở",

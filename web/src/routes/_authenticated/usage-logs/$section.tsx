@@ -25,7 +25,8 @@ import {
   USAGE_LOGS_DEFAULT_SECTION,
 } from '@/features/usage-logs/section-registry'
 
-const logTypeValues = ['0', '1', '2', '3', '4', '5', '6', '7'] as const
+// 管理(3)、登录(7) 已迁入审计日志，不再作为筛选值；旧链接带这两个值时回落为全部类型
+const logTypeValues = ['0', '1', '2', '4', '5', '6'] as const
 const logTypeSearchSchema = z
   .preprocess((value) => {
     if (value == null || value === '') return undefined

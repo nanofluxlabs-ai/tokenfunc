@@ -4243,7 +4243,6 @@
     "Only the first {{shown}} IDs were recorded": "先頭の {{shown}} 件の ID のみ記録されています",
     "Only the first {{shown}} IDs were recorded ({{total}} requested)": "先頭の {{shown}} 件のみ記録されています（リクエスト：{{total}} 件）",
     "Only the last {{value}} log files will be retained; the rest will be deleted.": "最新の{{value}}個のログファイルのみ保持され、残りは削除されます。",
-    "Only used to find historical logs. New records are available in Audit Logs.": "過去のログの検索専用です。新しい記録は監査ログで確認できます。",
     "Oops! Page Not Found!": "おっと！ページが見つかりません！",
     "Oops! Something went wrong": "おっと！何か問題が発生しました",
     "Open": "開く",

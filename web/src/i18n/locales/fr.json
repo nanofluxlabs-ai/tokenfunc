@@ -4243,7 +4243,6 @@
     "Only the first {{shown}} IDs were recorded": "Seuls les {{shown}} premiers ID ont été enregistrés",
     "Only the first {{shown}} IDs were recorded ({{total}} requested)": "Seuls les {{shown}} premiers ID ont été enregistrés ({{total}} demandés)",
     "Only the last {{value}} log files will be retained; the rest will be deleted.": "Seuls les {{value}} derniers fichiers journaux seront conservés ; le reste sera supprimé.",
-    "Only used to find historical logs. New records are available in Audit Logs.": "Uniquement pour consulter les anciens journaux. Les nouveaux événements figurent dans les journaux d’audit.",
     "Oops! Page Not Found!": "Oups ! Page introuvable !",
     "Oops! Something went wrong": "Oups ! Quelque chose s'est mal passé",
     "Open": "Ouvrir",

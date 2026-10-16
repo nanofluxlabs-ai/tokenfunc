@@ -4243,7 +4243,6 @@
     "Only the first {{shown}} IDs were recorded": "僅記錄前 {{shown}} 項 ID",
     "Only the first {{shown}} IDs were recorded ({{total}} requested)": "僅記錄前 {{shown}} 項，共請求 {{total}} 項",
     "Only the last {{value}} log files will be retained; the rest will be deleted.": "將只保留最近 {{value}} 個日誌檔案，其餘將被刪除。",
-    "Only used to find historical logs. New records are available in Audit Logs.": "僅用於查詢歷史日誌，新記錄請前往稽核日誌查看。",
     "Oops! Page Not Found!": "糟糕！頁面未找到！",
     "Oops! Something went wrong": "糟糕！出錯了",
     "Open": "打開",

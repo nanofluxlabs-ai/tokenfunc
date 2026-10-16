@@ -104,16 +104,21 @@ export const LOG_TYPES = [
  * Log types for DataTableToolbar filters (single select mode)
  * Backend treats type=0 as "all logs" in list/stat endpoints, so the filter
  * must not expose the display-only "Unknown" label for that value.
+ * Manage and Login records now live in Audit Logs and are no longer written
+ * to the logs table, so they are not offered as filters either.
  */
+const RETIRED_LOG_TYPE_VALUES: ReadonlySet<number> = new Set([
+  LOG_TYPE_ENUM.UNKNOWN,
+  LOG_TYPE_ENUM.MANAGE,
+  LOG_TYPE_ENUM.LOGIN,
+])
+
 export const LOG_TYPE_FILTERS = [
-  { label: 'All Types', value: LOG_TYPE_ALL_VALUE, deprecated: false },
-  ...LOG_TYPES.filter((type) => type.value !== LOG_TYPE_ENUM.UNKNOWN).map(
+  { label: 'All Types', value: LOG_TYPE_ALL_VALUE },
+  ...LOG_TYPES.filter((type) => !RETIRED_LOG_TYPE_VALUES.has(type.value)).map(
     (type) => ({
       label: type.label,
       value: String(type.value),
-      deprecated:
-        type.value === LOG_TYPE_ENUM.MANAGE ||
-        type.value === LOG_TYPE_ENUM.LOGIN,
     })
   ),
 ] as const

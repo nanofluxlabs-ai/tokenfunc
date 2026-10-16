@@ -25,13 +25,7 @@ import {
   RouterProvider,
 } from '@tanstack/react-router'
 import { getCoreRowModel, useReactTable } from '@tanstack/react-table'
-import {
-  cleanup,
-  render,
-  screen,
-  waitFor,
-  within,
-} from '@testing-library/react'
+import { cleanup, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, expect, it, vi } from 'vitest'
 
@@ -53,7 +47,7 @@ function FilterFixture() {
   )
 }
 
-async function renderFilter() {
+async function renderFilter(initialEntry = '/usage-logs/common') {
   vi.spyOn(api, 'get').mockImplementation(async (url) => ({
     data: {
       success: true,
@@ -70,7 +64,7 @@ async function renderFilter() {
   })
   const router = createRouter({
     routeTree: root.addChildren([auth.addChildren([logs])]),
-    history: createMemoryHistory({ initialEntries: ['/usage-logs/common'] }),
+    history: createMemoryHistory({ initialEntries: [initialEntry] }),
   })
   const client = new QueryClient({
     defaultOptions: { queries: { retry: false } },
@@ -89,42 +83,39 @@ afterEach(() => {
   vi.restoreAllMocks()
 })
 
-it('marks only retired log types as deprecated while keeping historical filters selectable', async () => {
-  const router = await renderFilter()
+it('offers only live log types and no deprecated badge in the type filter', async () => {
+  await renderFilter()
   await userEvent.click(screen.getByRole('combobox', { name: 'Type' }))
-  for (const label of ['Manage', 'Login']) {
-    expect(
-      within(
-        screen.getByRole('option', { name: new RegExp(`^${label}`) })
-      ).getByText('Deprecated')
-    ).toBeVisible()
-  }
-  for (const label of [
+  const options = screen
+    .getAllByRole('option')
+    .map((option) => option.textContent?.trim())
+  expect(options).toEqual([
     'All Types',
     'Top-up',
     'Consume',
     'System',
     'Error',
     'Refund',
-  ]) {
-    expect(
-      within(screen.getByRole('option', { name: label })).queryByText(
-        'Deprecated'
-      )
-    ).not.toBeInTheDocument()
-  }
-  await userEvent.click(screen.getByRole('option', { name: /^Manage/ }))
-  expect(screen.getByRole('combobox', { name: 'Type' })).toHaveTextContent(
-    'Deprecated'
-  )
-  await userEvent.click(screen.getByRole('button', { name: 'Search' }))
-  await waitFor(() =>
-    expect(router.state.location.search).toMatchObject({ type: ['3'], page: 1 })
-  )
+  ])
+  expect(screen.queryByText('Deprecated')).not.toBeInTheDocument()
+})
+
+it('writes the selected live log type to the URL on search', async () => {
+  const router = await renderFilter()
   await userEvent.click(screen.getByRole('combobox', { name: 'Type' }))
-  await userEvent.click(screen.getByRole('option', { name: /^Login/ }))
+  await userEvent.click(screen.getByRole('option', { name: 'Consume' }))
+  expect(screen.getByRole('combobox', { name: 'Type' })).toHaveTextContent(
+    'Consume'
+  )
   await userEvent.click(screen.getByRole('button', { name: 'Search' }))
   await waitFor(() =>
-    expect(router.state.location.search).toMatchObject({ type: ['7'], page: 1 })
+    expect(router.state.location.search).toMatchObject({ type: ['2'], page: 1 })
+  )
+})
+
+it('falls back to all types when the URL carries a retired manage type', async () => {
+  await renderFilter('/usage-logs/common?type=3')
+  expect(screen.getByRole('combobox', { name: 'Type' })).toHaveTextContent(
+    'All Types'
   )
 })

@@ -4243,7 +4243,6 @@
     "Only the first {{shown}} IDs were recorded": "Записаны только первые {{shown}} ID",
     "Only the first {{shown}} IDs were recorded ({{total}} requested)": "Записаны только первые {{shown}} ID (запрошено: {{total}})",
     "Only the last {{value}} log files will be retained; the rest will be deleted.": "Будут сохранены только последние {{value}} файлов журналов; остальные будут удалены.",
-    "Only used to find historical logs. New records are available in Audit Logs.": "Только для поиска старых журналов. Новые записи доступны в журнале аудита.",
     "Oops! Page Not Found!": "Ой! Страница не найдена!",
     "Oops! Something went wrong": "Ой! Что-то пошло не так",
     "Open": "Открыть",

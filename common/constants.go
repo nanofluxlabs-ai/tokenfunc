@@ -232,6 +232,12 @@ var (
 	CriticalRateLimitNum            = 20
 	CriticalRateLimitDuration int64 = 20 * 60
 
+	// 会话续期 / 登出单独一个按 IP 的桶：刷新令牌是高熵随机值没有爆破面，
+	// 前端每次导航又会连续调用，不能挤占登录接口的防爆破额度
+	SessionRateLimitEnable   bool
+	SessionRateLimitNum            = 120
+	SessionRateLimitDuration int64 = 20 * 60
+
 	UploadRateLimitNum            = 10
 	UploadRateLimitDuration int64 = 60
 

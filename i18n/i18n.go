@@ -41,6 +41,8 @@ func Init() error {
 
 		// Load embedded translation files
 		files := []string{"locales/zh-CN.yaml", "locales/zh-TW.yaml", "locales/en.yaml"}
+		// tokenfunc 二开译文放在独立文件中，后加载即可覆盖上游同 ID 的消息（go-i18n AddMessages 同 ID 覆盖）
+		files = append(files, "locales/tokenfunc.zh-CN.yaml", "locales/tokenfunc.zh-TW.yaml", "locales/tokenfunc.en.yaml")
 		for _, file := range files {
 			_, err := bundle.LoadMessageFileFS(localeFS, file)
 			if err != nil {

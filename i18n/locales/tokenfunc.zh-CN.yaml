@@ -1,0 +1,3 @@
+# tokenfunc 对上游简体中文消息的覆盖（在上游文件之后加载，同 ID 以本文件为准）
+
+task_plugin.unknown_meta_field: '插件元数据包含未知字段“{{.Field}}”。如果插件来自官方市场，可能需要更高版本的 tokenfunc。请尝试更新 tokenfunc 后重新安装插件。'

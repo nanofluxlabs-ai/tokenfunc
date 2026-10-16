@@ -7863,6 +7863,15 @@
     "Unknown request path. Check the endpoint URL against the API reference.": "請求路徑不存在。請對照 API 參考文件檢查端點位址。",
     "No available channel for the model — it may be unknown, disabled, or out of capacity. Try another model or contact the administrator.": "模型暫無可用渠道——可能未配置、已停用或容量耗盡。請更換模型或聯絡管理員。",
     "Cycle Days": "帳期天數",
-    "View usage logs of {{username}}": "查看 {{username}} 的使用日誌"
+    "View usage logs of {{username}}": "查看 {{username}} 的使用日誌",
+    "Token column help": "Token 欄說明",
+    "Input / output tokens. Cache read and cache write tokens are listed below them and billed at their own rates; Anthropic models exclude cached tokens from the input count, OpenAI models include them.": "輸入 / 輸出 tokens。快取讀取與快取寫入 tokens 列在其下方並按各自價格計費；Anthropic 模型的輸入數不含快取 tokens，OpenAI 模型則包含。",
+    "Error Category": "錯誤分類",
+    "Client Source": "用戶端來源",
+    "Client Platform": "用戶端平台",
+    "Originator": "Originator",
+    "Request Rejected": "請求被拒",
+    "Upstream Failed": "上游失敗",
+    "System Error": "系統錯誤"
   }
 }

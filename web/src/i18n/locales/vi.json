@@ -7863,6 +7863,15 @@
     "Unknown request path. Check the endpoint URL against the API reference.": "Đường dẫn yêu cầu không tồn tại. Đối chiếu URL endpoint với tài liệu tham chiếu API.",
     "No available channel for the model — it may be unknown, disabled, or out of capacity. Try another model or contact the administrator.": "Không có kênh khả dụng cho mô hình — có thể chưa cấu hình, bị vô hiệu hóa hoặc hết dung lượng. Hãy thử mô hình khác hoặc liên hệ quản trị viên.",
     "Cycle Days": "Số ngày chu kỳ",
-    "View usage logs of {{username}}": "Xem nhật ký sử dụng của {{username}}"
+    "View usage logs of {{username}}": "Xem nhật ký sử dụng của {{username}}",
+    "Token column help": "Chú thích cột Token",
+    "Input / output tokens. Cache read and cache write tokens are listed below them and billed at their own rates; Anthropic models exclude cached tokens from the input count, OpenAI models include them.": "Token đầu vào / đầu ra. Token đọc và ghi bộ nhớ đệm được liệt kê bên dưới và tính phí theo đơn giá riêng; mô hình Anthropic không tính token đã đệm vào đầu vào, mô hình OpenAI thì có.",
+    "Error Category": "Phân loại lỗi",
+    "Client Source": "Nguồn client",
+    "Client Platform": "Nền tảng client",
+    "Originator": "Originator",
+    "Request Rejected": "Yêu cầu bị từ chối",
+    "Upstream Failed": "Upstream thất bại",
+    "System Error": "Lỗi hệ thống"
   }
 }

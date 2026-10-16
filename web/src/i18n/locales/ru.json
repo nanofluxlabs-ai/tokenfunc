@@ -7863,6 +7863,15 @@
     "Unknown request path. Check the endpoint URL against the API reference.": "Неизвестный путь запроса. Сверьте адрес эндпоинта со справочником API.",
     "No available channel for the model — it may be unknown, disabled, or out of capacity. Try another model or contact the administrator.": "Нет доступного канала для модели — она может быть неизвестна, отключена или перегружена. Попробуйте другую модель или обратитесь к администратору.",
     "Cycle Days": "Дней в цикле",
-    "View usage logs of {{username}}": "Журнал использования {{username}}"
+    "View usage logs of {{username}}": "Журнал использования {{username}}",
+    "Token column help": "Справка по столбцу токенов",
+    "Input / output tokens. Cache read and cache write tokens are listed below them and billed at their own rates; Anthropic models exclude cached tokens from the input count, OpenAI models include them.": "Входные / выходные токены. Токены чтения и записи кэша показаны ниже и тарифицируются отдельно; модели Anthropic не включают кэшированные токены во входные, модели OpenAI включают.",
+    "Error Category": "Категория ошибки",
+    "Client Source": "Источник клиента",
+    "Client Platform": "Платформа клиента",
+    "Originator": "Originator",
+    "Request Rejected": "Запрос отклонён",
+    "Upstream Failed": "Сбой апстрима",
+    "System Error": "Системная ошибка"
   }
 }

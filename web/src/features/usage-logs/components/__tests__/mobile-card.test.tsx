@@ -222,8 +222,11 @@ it('keeps input, output and cache quantities readable without empty metric cells
   renderLogs()
   expect(screen.getByText('Input')).toBeVisible()
   expect(screen.getByText('Output')).toBeVisible()
+  expect(screen.getByText('Cache Read')).toBeVisible()
   expect(screen.getByText(/300/)).toBeVisible()
-  expect(screen.getByText('Cache ↑ 200')).toBeVisible()
+  expect(screen.getByText('Cache Write')).toBeVisible()
+  // 精确匹配 200，避免命中输入 1,200
+  expect(screen.getByText('200')).toBeVisible()
 })
 
 it('shows the established empty state when no logs exist', () => {

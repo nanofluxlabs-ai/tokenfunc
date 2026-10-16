@@ -17,7 +17,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 For commercial licensing, please contact support@quantumnous.com
 */
 import type { ColumnDef } from '@tanstack/react-table'
-import { GitBranch, Sparkles, KeyRound } from 'lucide-react'
+import { GitBranch, Info, Sparkles, KeyRound } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
@@ -53,8 +53,19 @@ import { formatLogQuota, formatTimestampToDate } from '@/lib/format'
 import { cn } from '@/lib/utils'
 import { useSystemConfigStore } from '@/stores/system-config-store'
 
-import { LOG_TYPE_ALL_VALUE } from '../../constants'
+import { LOG_TYPE_ALL_VALUE, LOG_TYPE_ENUM } from '../../constants'
 import type { UsageLog } from '../../data/schema'
+import {
+  getClientPlatformLabel,
+  getClientSourceLabel,
+  getClientSourceVariant,
+} from '../../lib/client-source'
+import {
+  ERROR_CATEGORY_LABEL_KEYS,
+  getErrorCategoryVariant,
+  getStatusCodeVariant,
+  resolveErrorCategory,
+} from '../../lib/error-category'
 import {
   formatModelName,
   decodeBillingExprB64,
@@ -716,7 +727,31 @@ export function useCommonLogsColumns(
       },
       {
         accessorKey: 'prompt_tokens',
-        header: t('Tokens', { context: 'usage' }),
+        header: () => (
+          <span className='inline-flex items-center gap-1'>
+            {t('Tokens', { context: 'usage' })}
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger
+                  render={
+                    <Info
+                      className='text-muted-foreground size-3'
+                      aria-label={t('Token column help')}
+                    />
+                  }
+                />
+                <TooltipContent side='top' className='max-w-72'>
+                  <p className='text-xs'>
+                    {t(
+                      'Input / output tokens. Cache read and cache write tokens are listed below them and billed at their own rates; Anthropic models exclude cached tokens from the input count, OpenAI models include them.'
+                    )}
+                  </p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          </span>
+        ),
+        meta: { label: t('Tokens', { context: 'usage' }) },
         cell: ({ row }) => {
           const log = row.original
           if (!isDisplayableLogType(log.type)) return null
@@ -744,15 +779,18 @@ export function useCommonLogsColumns(
                 {completionTokens.toLocaleString()}
               </span>
               {(cacheReadTokens > 0 || cacheWriteTokens > 0) && (
-                <div className='flex items-center gap-1 text-[11px]'>
+                <div className='text-muted-foreground flex items-center gap-1 text-[11px] whitespace-nowrap tabular-nums'>
                   {cacheReadTokens > 0 && (
-                    <span className='text-muted-foreground/60'>
-                      {t('Cache')}↓ {cacheReadTokens.toLocaleString()}
+                    <span>
+                      {t('Cache Read')} {cacheReadTokens.toLocaleString()}
                     </span>
                   )}
+                  {cacheReadTokens > 0 && cacheWriteTokens > 0 && (
+                    <span aria-hidden='true'>·</span>
+                  )}
                   {cacheWriteTokens > 0 && (
-                    <span className='text-muted-foreground/60'>
-                      ↑ {cacheWriteTokens.toLocaleString()}
+                    <span>
+                      {t('Cache Write')} {cacheWriteTokens.toLocaleString()}
                     </span>
                   )}
                 </div>
@@ -797,6 +835,103 @@ export function useCommonLogsColumns(
               frtMs={other?.frt}
               isStream={log.is_stream}
             />
+          )
+        },
+      },
+
+      {
+        id: 'client_source',
+        header: t('Client'),
+        meta: { label: t('Client') },
+        cell: ({ row }) => {
+          const log = row.original
+          if (!isTimingLogType(log.type)) return null
+          const other = parseLogOther(log.other)
+          const sourceLabel = getClientSourceLabel(other?.client_source, t)
+          if (!sourceLabel) return null
+          const platformLabel = getClientPlatformLabel(
+            other?.client_platform,
+            t
+          )
+          return (
+            <div className='flex flex-col items-start gap-0.5'>
+              <StatusBadge
+                label={sourceLabel}
+                variant={getClientSourceVariant(other?.client_source)}
+                size='sm'
+                copyable={false}
+                title={other?.client_user_agent}
+              />
+              {platformLabel && (
+                <span className='text-muted-foreground text-[11px]'>
+                  {platformLabel}
+                </span>
+              )}
+            </div>
+          )
+        },
+      },
+
+      {
+        id: 'error_category',
+        header: t('Error Category'),
+        meta: { label: t('Error Category') },
+        cell: ({ row }) => {
+          const log = row.original
+          if (log.type !== LOG_TYPE_ENUM.ERROR) return null
+          const other = parseLogOther(log.other)
+          const category = resolveErrorCategory(other)
+          if (!category) return null
+          return (
+            <StatusBadge
+              label={t(ERROR_CATEGORY_LABEL_KEYS[category])}
+              variant={getErrorCategoryVariant(category)}
+              size='sm'
+              copyable={false}
+              title={other?.error_code}
+            />
+          )
+        },
+      },
+
+      {
+        id: 'status_code',
+        header: t('Status Code'),
+        meta: { label: t('Status Code') },
+        cell: ({ row }) => {
+          const log = row.original
+          if (log.type !== LOG_TYPE_ENUM.ERROR) return null
+          const other = parseLogOther(log.other)
+          const statusCode = Number(other?.status_code ?? 0)
+          if (!Number.isFinite(statusCode) || statusCode <= 0) return null
+          return (
+            <StatusBadge
+              label={String(statusCode)}
+              variant={getStatusCodeVariant(statusCode)}
+              size='sm'
+              copyable={false}
+              className='font-mono tabular-nums'
+            />
+          )
+        },
+      },
+
+      {
+        id: 'request_path',
+        header: t('Request Path'),
+        meta: { label: t('Request Path') },
+        cell: ({ row }) => {
+          const log = row.original
+          if (!isTimingLogType(log.type)) return null
+          const other = parseLogOther(log.other)
+          if (!other?.request_path) return null
+          return (
+            <span
+              className='block max-w-[160px] truncate font-mono text-xs'
+              title={other.request_path}
+            >
+              {other.request_path}
+            </span>
           )
         },
       },

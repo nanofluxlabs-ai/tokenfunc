@@ -7863,6 +7863,15 @@
     "Unknown request path. Check the endpoint URL against the API reference.": "リクエストパスが存在しません。API リファレンスと照らし合わせてエンドポイント URL を確認してください。",
     "No available channel for the model — it may be unknown, disabled, or out of capacity. Try another model or contact the administrator.": "モデルに利用可能なチャンネルがありません——未設定、無効化、または容量不足の可能性があります。別のモデルを試すか管理者に連絡してください。",
     "Cycle Days": "サイクル日数",
-    "View usage logs of {{username}}": "{{username}} の使用ログを表示"
+    "View usage logs of {{username}}": "{{username}} の使用ログを表示",
+    "Token column help": "トークン列の説明",
+    "Input / output tokens. Cache read and cache write tokens are listed below them and billed at their own rates; Anthropic models exclude cached tokens from the input count, OpenAI models include them.": "入力 / 出力トークン。キャッシュ読み取りと書き込みトークンはその下に表示され、それぞれの単価で課金されます。Anthropic モデルの入力数はキャッシュ済みトークンを含まず、OpenAI モデルは含みます。",
+    "Error Category": "エラー分類",
+    "Client Source": "クライアント種別",
+    "Client Platform": "クライアント OS",
+    "Originator": "Originator",
+    "Request Rejected": "リクエスト拒否",
+    "Upstream Failed": "上流失敗",
+    "System Error": "システムエラー"
   }
 }

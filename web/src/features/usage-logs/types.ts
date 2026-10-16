@@ -172,6 +172,15 @@ export interface LogOtherData {
   login_method?: string
   user_agent?: string
   request_path?: string
+  // Relay error log fields (type=5), written by service/relay_error.go
+  error_type?: string
+  error_code?: string
+  status_code?: number
+  // Calling client classification, written by service/log_client_source.go
+  client_source?: string
+  client_platform?: string
+  client_originator?: string
+  client_user_agent?: string
   request_conversion?: string[]
   ws?: boolean
   audio?: boolean

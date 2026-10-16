@@ -485,6 +485,8 @@ const AUDIT_TEMPLATES: Record<string, string> = {
   'user.passkey_register': 'Registered a passkey',
   'user.passkey_delete': 'Deleted a passkey',
   'user.topup_complete': 'Completed top-up order for the user',
+  'user.topup':
+    'Manually topped up user {{username}} (ID: {{id}}) by {{amount_usd}} USD via {{payment_method}}',
   'user.reset_passkey': 'Reset the user passkey',
   'user.oauth_unbind': 'Removed an OAuth binding for the user',
   // System settings

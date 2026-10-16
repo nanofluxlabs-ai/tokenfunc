@@ -46,13 +46,14 @@ import {
 import { Skeleton } from '@/components/ui/skeleton'
 import { useCopyToClipboard } from '@/hooks/use-copy-to-clipboard'
 import { formatCurrencyFromUSD } from '@/lib/currency'
-import { formatNumber } from '@/lib/format'
+import { formatNumber, formatQuota } from '@/lib/format'
 
 import { useBillingHistory } from '../../hooks/use-billing-history'
 import {
   getStatusConfig,
   getPaymentMethodName,
   formatTimestamp,
+  isQuotaAmountTopup,
 } from '../../lib/billing'
 
 interface BillingHistoryDialogProps {
@@ -224,6 +225,11 @@ export function BillingHistoryDialog({
                           <div className='text-muted-foreground text-xs'>
                             {formatTimestamp(record.create_time)}
                           </div>
+                          {record.reference && (
+                            <div className='text-muted-foreground text-xs'>
+                              {t('Reference')}: {record.reference}
+                            </div>
+                          )}
                         </div>
                         <StatusBadge
                           label={t(statusConfig.label)}
@@ -240,7 +246,9 @@ export function BillingHistoryDialog({
                             {t('Payment Method')}
                           </Label>
                           <div className='text-sm font-medium'>
-                            {getPaymentMethodName(record.payment_method, t)}
+                            {record.payment_provider === 'admin'
+                              ? `${t('Admin top-up')} / ${getPaymentMethodName(record.payment_method, t)}`
+                              : getPaymentMethodName(record.payment_method, t)}
                           </div>
                         </div>
                         <div className='space-y-1'>
@@ -248,11 +256,13 @@ export function BillingHistoryDialog({
                             {t('Amount')}
                           </Label>
                           <div className='text-sm font-semibold'>
-                            {formatCurrencyFromUSD(record.amount, {
-                              digitsLarge: 2,
-                              digitsSmall: 2,
-                              abbreviate: false,
-                            })}
+                            {isQuotaAmountTopup(record)
+                              ? formatQuota(record.amount)
+                              : formatCurrencyFromUSD(record.amount, {
+                                  digitsLarge: 2,
+                                  digitsSmall: 2,
+                                  abbreviate: false,
+                                })}
                           </div>
                         </div>
                         <div className='space-y-1'>

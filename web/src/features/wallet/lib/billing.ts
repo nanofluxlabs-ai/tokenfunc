@@ -63,6 +63,22 @@ export const PAYMENT_METHOD_NAMES: Record<string, string> = {
   alipay: 'Alipay',
   wxpay: 'WeChat Pay',
   waffo: 'Waffo',
+  creem: 'Creem',
+  bank_transfer: 'Bank transfer',
+  gift: 'Gift',
+  admin: 'Admin top-up',
+}
+
+/**
+ * Creem 与管理员手动充值把 amount 存成额度而不是美元数
+ * （见后端 model/finance_order.go 的 financeOrderItem）
+ */
+export function isQuotaAmountTopup(record: {
+  payment_method: string
+  payment_provider?: string
+}): boolean {
+  const provider = record.payment_provider || record.payment_method
+  return provider === 'creem' || provider === 'admin'
 }
 
 /**

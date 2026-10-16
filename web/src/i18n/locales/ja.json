@@ -7863,6 +7863,14 @@
     "Unknown request path. Check the endpoint URL against the API reference.": "リクエストパスが存在しません。API リファレンスと照らし合わせてエンドポイント URL を確認してください。",
     "No available channel for the model — it may be unknown, disabled, or out of capacity. Try another model or contact the administrator.": "モデルに利用可能なチャンネルがありません——未設定、無効化、または容量不足の可能性があります。別のモデルを試すか管理者に連絡してください。",
     "Cycle Days": "サイクル日数",
-    "View usage logs of {{username}}": "{{username}} の使用ログを表示"
+    "View usage logs of {{username}}": "{{username}} の使用ログを表示",
+    "Top up user": "Top up user",
+    "Record a manual top-up for {{username}}. The balance is credited immediately and a top-up record is kept.": "Record a manual top-up for {{username}}. The balance is credited immediately and a top-up record is kept.",
+    "Verify to top up user": "Verify to top up user",
+    "Failed to top up user": "Failed to top up user",
+    "Bank transfer": "Bank transfer",
+    "Gift": "Gift",
+    "Admin top-up": "Admin top-up",
+    "Manually topped up user {{username}} (ID: {{id}}) by {{amount_usd}} USD via {{payment_method}}": "Manually topped up user {{username}} (ID: {{id}}) by {{amount_usd}} USD via {{payment_method}}"
   }
 }

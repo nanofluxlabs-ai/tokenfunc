@@ -416,6 +416,11 @@ export const STATIC_I18N_KEYS = [
   'Sync from the public upstream metadata repository.',
   'Upload or reference a local configuration file.',
 
+  // Manual top-up payment methods (dynamic labelKey)
+  'Bank transfer',
+  'Gift',
+  'Admin top-up',
+
   // Subscription constants (dynamic labelKey)
   'years',
   'months',

@@ -6,10 +6,12 @@ import (
 	"net/http"
 	"net/url"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 
 	"github.com/QuantumNous/new-api/common"
+	"github.com/QuantumNous/new-api/i18n"
 	"github.com/QuantumNous/new-api/logger"
 	"github.com/QuantumNous/new-api/model"
 	"github.com/QuantumNous/new-api/service"
@@ -20,6 +22,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/samber/lo"
 	"github.com/shopspring/decimal"
+	"gorm.io/gorm"
 )
 
 func GetTopUpInfo(c *gin.Context) {
@@ -583,4 +586,59 @@ func AdminCompleteTopUp(c *gin.Context) {
 		return
 	}
 	common.ApiSuccess(c, nil)
+}
+
+// TokenFunc 二开：管理员手动充值
+type AdminManualTopupRequest struct {
+	UserId        int     `json:"user_id"`
+	AmountUSD     float64 `json:"amount_usd"`
+	PaymentMethod string  `json:"payment_method"`
+	Reference     string  `json:"reference"`
+}
+
+// AdminManualTopUp 管理员手动为用户充值：等同一笔已成功的在线充值（加余额 + 写充值单），需二次验证。
+// 参数校验在二次验证之前，验证在任何余额读写之前。
+func AdminManualTopUp(c *gin.Context) {
+	var req AdminManualTopupRequest
+	if err := c.ShouldBindJSON(&req); err != nil || req.UserId <= 0 {
+		common.ApiErrorI18n(c, i18n.MsgInvalidParams)
+		return
+	}
+	quota, err := usdToQuota(req.AmountUSD)
+	if err != nil || req.AmountUSD <= 0 || quota <= 0 {
+		common.ApiErrorMsg(c, "top-up amount must be positive")
+		return
+	}
+	req.PaymentMethod = strings.TrimSpace(req.PaymentMethod)
+	if !model.IsManualTopUpPaymentMethod(req.PaymentMethod) {
+		common.ApiErrorMsg(c, "unsupported payment method")
+		return
+	}
+	req.Reference = strings.TrimSpace(req.Reference)
+	if len(req.Reference) > 128 {
+		common.ApiErrorMsg(c, "reference is too long")
+		return
+	}
+	authorization := requireAdminUserProof(c, service.VerificationScopeAdminUserManage, service.AdminUserManageContext{UserID: req.UserId, Action: "topup"})
+	if authorization == nil {
+		return
+	}
+	topUp, err := model.RegisterManualTopUp(req.UserId, c.GetInt("role"), quota, req.AmountUSD, req.PaymentMethod, req.Reference, c.ClientIP())
+	if err != nil {
+		switch {
+		case errors.Is(err, model.ErrUserQuotaPermission):
+			common.ApiErrorI18n(c, i18n.MsgUserNoPermissionHigherLevel)
+		case errors.Is(err, gorm.ErrRecordNotFound):
+			common.ApiErrorI18n(c, i18n.MsgUserNotExists)
+		default:
+			common.ApiError(c, err)
+		}
+		return
+	}
+	username, _ := model.GetUsernameById(req.UserId, false)
+	recordManageAuditFor(c, req.UserId, "user.topup", map[string]any{
+		"username": username, "id": req.UserId, "amount_usd": req.AmountUSD, "payment_method": req.PaymentMethod,
+		"reference": req.Reference, "quota": quota, "trade_no": topUp.TradeNo, "verification_method": authorization.Method,
+	})
+	common.ApiSuccess(c, topUp)
 }

@@ -12,7 +12,7 @@ import (
 
 // 个人财务对账·充值账单（TokenFunc 二开，PG-only）：钱包的非消费流水，满足 期末余额 = 期初 + Σ本账单 − Σ消费账单。
 // 上游写充值 / 调额日志时不写 quota，金额不能从 logs 取，按来源回到各自的事实表：
-//   - online：top_ups 成功单（含管理员补单），额度推导复用订单中心的 financeOrderItem；订阅镜像行用 NOT EXISTS 剔除
+//   - online：top_ups 成功单（含管理员补单与管理员手动充值 provider=admin，remark 取参考号），额度推导复用订单中心的 financeOrderItem；订阅镜像行用 NOT EXISTS 剔除
 //   - redemption：redemptions.used_user_id（兑换后被删除的码也算，raw SQL 不受软删影响）
 //   - enterprise_topup：ent_ledger.topup（预付企业主的线下充值；credit 模式的 adjustment 不动钱包，不算）
 //   - subscription_balance：余额购买订阅，钱包扣减记负数
@@ -87,7 +87,7 @@ func FinanceTopupTypeOf(source string) string {
 
 // 主库四类来源的 UNION；列顺序与 financeTopupMainScan 一致，整型统一成 bigint 以免 UNION 类型不匹配
 const financeTopupMainSQL = `SELECT 'online' AS source, t.id::bigint AS source_id, t.complete_time AS created_at, t.payment_method, t.payment_provider,
-	t.amount::bigint AS amount, t.money, 0::bigint AS quota, t.trade_no AS ref_no, '' AS remark, '' AS payload
+	t.amount::bigint AS amount, t.money, 0::bigint AS quota, t.trade_no AS ref_no, t.reference AS remark, '' AS payload
 FROM top_ups t
 WHERE t.user_id = @uid AND t.status = @success AND t.complete_time >= @start AND t.complete_time < @end
 	AND NOT EXISTS (SELECT 1 FROM subscription_orders s WHERE s.trade_no = t.trade_no)

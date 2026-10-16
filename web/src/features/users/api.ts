@@ -31,6 +31,7 @@ import type {
   UserFormData,
   ManageUserAction,
   ManageUserQuotaPayload,
+  ManualTopupPayload,
   ApiResponse,
 } from './types'
 
@@ -172,6 +173,21 @@ export async function adjustUserQuota(
   payload: ManageUserQuotaPayload
 ): Promise<ApiResponse<Partial<User>>> {
   const res = await api.post('/api/user/manage', payload)
+  return res.data
+}
+
+/**
+ * 管理员手动充值；需要 `admin.user.manage` + action `topup` 的二次验证凭证
+ */
+export async function adminTopupUser(
+  payload: ManualTopupPayload,
+  proofToken: string
+): Promise<ApiResponse> {
+  const res = await api.post(
+    '/api/user/topup/manual',
+    payload,
+    securityProofConfig(proofToken)
+  )
   return res.data
 }
 

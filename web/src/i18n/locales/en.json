@@ -7863,6 +7863,14 @@
     "Unknown request path. Check the endpoint URL against the API reference.": "Unknown request path. Check the endpoint URL against the API reference.",
     "No available channel for the model — it may be unknown, disabled, or out of capacity. Try another model or contact the administrator.": "No available channel for the model — it may be unknown, disabled, or out of capacity. Try another model or contact the administrator.",
     "Cycle Days": "Cycle Days",
-    "View usage logs of {{username}}": "View usage logs of {{username}}"
+    "View usage logs of {{username}}": "View usage logs of {{username}}",
+    "Top up user": "Top up user",
+    "Record a manual top-up for {{username}}. The balance is credited immediately and a top-up record is kept.": "Record a manual top-up for {{username}}. The balance is credited immediately and a top-up record is kept.",
+    "Verify to top up user": "Verify to top up user",
+    "Failed to top up user": "Failed to top up user",
+    "Bank transfer": "Bank transfer",
+    "Gift": "Gift",
+    "Admin top-up": "Admin top-up",
+    "Manually topped up user {{username}} (ID: {{id}}) by {{amount_usd}} USD via {{payment_method}}": "Manually topped up user {{username}} (ID: {{id}}) by {{amount_usd}} USD via {{payment_method}}"
   }
 }

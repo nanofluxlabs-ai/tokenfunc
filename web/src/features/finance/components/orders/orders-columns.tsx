@@ -58,6 +58,11 @@ export function useOrdersColumns(): ColumnDef<FinanceOrder, unknown>[] {
             <span className='text-muted-foreground truncate font-mono text-xs'>
               {row.original.id}
             </span>
+            {row.original.reference && (
+              <span className='text-muted-foreground truncate text-xs'>
+                {t('Reference')}: {row.original.reference}
+              </span>
+            )}
           </div>
         ),
         size: 280,

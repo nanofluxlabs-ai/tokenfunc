@@ -154,3 +154,17 @@ export interface ManageUserQuotaPayload {
 // ============================================================================
 
 export type UsersDialogType = 'create' | 'update' | 'delete'
+
+// 管理员手动充值的收款方式（与后端 model.ManualTopUpPaymentMethods 一致）
+export type ManualTopupPaymentMethod =
+  | 'bank_transfer'
+  | 'alipay'
+  | 'wxpay'
+  | 'gift'
+
+export interface ManualTopupPayload {
+  user_id: number
+  amount_usd: number
+  payment_method: ManualTopupPaymentMethod
+  reference: string
+}

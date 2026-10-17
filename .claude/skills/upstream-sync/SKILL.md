@@ -74,6 +74,10 @@ make upstream-diff REF=$REF        # 写到 .tmp/upstream/$REF.md
 | 回退 | 与二开冲突或不需要的功能，合并后 `git revert -m` 不可行时在冲突解决阶段保留我方 |
 | 需适配 | 动了二开挂载点（`model/user.go`、`model/topup.go`、`service/quota.go`、`main.go`、计费文件），合并后要补二开逻辑或测试 |
 
+第 3 节「热点重叠」要逐个看上游 commit 的意图，而不只看会不会冲突：上游 fix 的落点可能在我们已经抽出去的文件里（例：日历 locale 键修复落在 `calendar-locales.ts`），这种不会报冲突但必须手工搬。
+
+上游每次改动消息 / 日志机制（`ApiErrorT` / `NewMessage` / `LogText` / i18n 键删除），二开的覆盖层要整体重核：后端 `i18n/locales/tokenfunc.*.yaml`、前端 `locales/tokenfunc/`、`common/log_text.tokenfunc.zh-CN.json`、我方调用上游 `Record*Log` / `i18n.Msg*` 的地方。签名变化靠 `go build` 暴露，不要靠肉眼。
+
 把填好的清单用一句话概括给用户（几个接受 / 几个需适配 / 哪些回退），**不要整段贴**。
 
 ## Phase 3 — 合并 + 解冲突
@@ -101,7 +105,8 @@ cd web && bun run typecheck && bun run test && bun run i18n:sync && git status -
 ```
 
 - `i18n:sync` 之后上游 locale json 必须无 diff；二开目录 `locales/tokenfunc/_extras/` 必须为空。
-- 迁移幂等：上游清单第 2 节有 `model/` 或迁移改动时，`make up-build` 启动两次，第二次日志不得再出现 `ALTER TABLE`。
+- 迁移幂等：上游清单第 2 节有 `model/` 或迁移改动时，宿主机 API 连 dev schema 启动两次：`make api TF_API_PORT=3003` → `make api-stop` → `DEBUG=true make api TF_API_PORT=3003`（GORM 默认不打 SQL，DEBUG 才打），第二次 `grep -c 'ALTER TABLE' .tmp/logs/api.out` 必须为 0，且 SQL 行数 > 0 证明确实在打印；完成后 `make api-stop`。
+- `DEFAULT_LANGUAGE=zh-CN` 下启动日志应为中文，`grep 已启动 .tmp/logs/api.out` 出现 `tokenfunc vX 已启动`（品牌名由 `log_text.tokenfunc.zh-CN.json` 覆盖）。
 - 二开冒烟（`make api` 后 `http://127.0.0.1:3000`）：`/api/status` 的 `theme=tokenfunc`；企业列表 / 授信 / 报价 / 财务导出 / 手工充值接口返回正常；营销页中文文案与品牌色正常。
 - 上游新功能（清单里的 `feat`）至少各点一次。
 
@@ -142,3 +147,10 @@ git cherry-pick -x <sha>
 | 上游往 `common/constants.go` 加变量与我方冲突 | 我方二开变量都在 `common/tokenfunc_constants.go`，`constants.go` 直接取上游后补 `SystemName` / `RequestIdKey` 两处改值 |
 | `i18n:sync` 把二开 key 挪进 `_extras` | 该 key 没写进 `locales/tokenfunc/en.json`，补上再跑 |
 | 上游测试在 PG 上报 `3F000` | 测试 DSN 的 `search_path=test,public` 已处理，见 makefile `TEST_SQL_DSN` 注释 |
+| `TestLanguageFromUserSetting` 报 `expected key-values, got a single value` | go-i18n 不接受只有注释的 yaml；`i18n.go` 按 glob 可选加载 `tokenfunc.*.yaml`，没有覆盖项就不要留文件 |
+| `i18n:sync` 把某种语言的译文填进其他语言 | sync 以 key 最多的文件为基准填缺失值；二开 key 先写 `tokenfunc/en.json` 再写 `zh.json`，覆盖上游 key 时其他语言填上游原值 |
+| 我方调用 `RecordTopupLog` / `i18n.Msg*` 编译失败 | 上游把控制台消息改成前端翻译 key：改用 `common.NewMessage(key, params)` / `common.ApiErrorT(c, key)`，key 的译文加进 `locales/tokenfunc/<lang>.json` |
+| 上游 `SysLog(LogText(...))` 与我方 JSON 日志叠加 | `recover.go` / `main.go` 保留 `LogFormatJSON` 分支走 `LogPanic`，文本分支用上游 `LogText`；`logger.go` 的 lumberjack 段整体取我方 |
+| 从非 main 分支（stacked PR）建 sync 分支 | `make upstream-merge REF=… BASE=<branch>`；PR base 指向该分支，合并顺序错会把前置 commit 混进 diff |
+| 自写 bash 脚本在 macOS 报 `未绑定的变量` | bash 3.2 把 `$var` 紧跟的中文字节当变量名，一律写 `${var}` |
+| 品牌名残留 | 上游新增的日志 / 文案里 `New API` 指产品名的要改 `common.SystemName`（`New API channel` 指渠道类型，保留） |

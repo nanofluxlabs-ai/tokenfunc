@@ -70,6 +70,7 @@ make dev          # 自动生成 .env → 起 postgres/redis → 编译并后台
 | `LOG_FORMAT` | `json` | `text` 保持上游文本格式（`make api` 固定用 text，便于本地阅读） |
 | `LOG_DIR` | `--log-dir` 的值 | 覆盖日志目录；显式设为空串只输出 stdout（TKE 上交给 CLS 采集容器日志） |
 | `LOG_MAX_SIZE_MB` / `LOG_MAX_BACKUPS` / `LOG_RETENTION_DAYS` | 64 / 32 / 7 | 文件滚动：活动文件 `tokenfunc.log`，备份 `tokenfunc-<时间戳>.log`，按大小切分、按天数清理 |
+| `DEFAULT_LANGUAGE` | `zh-CN` | 服务端日志文案与未指定语言的请求提示 / 邮件 / 通知的语言（上游 rc.44 起），`TF_DEFAULT_LANGUAGE` 覆盖，可选 en / zh-CN / zh-TW |
 
 容器内这几项由 `compose.yml` 透传 `TF_LOG_*`。
 
@@ -107,7 +108,7 @@ make dev          # 自动生成 .env → 起 postgres/redis → 编译并后台
 - **例外通道**：安全修复、数据正确性 fix、生产踩到的 bug，单个 commit `git cherry-pick -x <sha>` 到 `fix/upstream-<sha>` 分支，走同样门禁，不等节奏。
 - **流程**（由 `/upstream-sync` 驱动）：`make upstream-status` 选 rc → `make upstream-diff REF=` 出评估清单，逐条标 接受 / 回退 / 需适配 → `make upstream-merge REF=` → **只解冲突不重构上游代码**，二开只支持 PG，不为上游补 SQLite/MySQL → 门禁 → PR，merge commit 固定 `merge(upstream): sync new-api <REF>` → 用户确认合并 → `/release-standalone` **独立发版**，发布报告注明"基于上游 <REF>"，不与二开功能混在同一版本。
 - **门禁**：CI（`make test` + 前端 typecheck/test）、本地 `make test-db`、迁移幂等（`make up-build` 启动两次，日志无重复 `ALTER`）、二开关键路径冒烟（企业 / 授信 / 报价 / 财务导出 / 手工充值）。
-- **减少冲突的结构约定**：二开内容放独立文件，上游文件只留一两行接线——翻译在 `web/src/i18n/locales/tokenfunc/` 与 `i18n/locales/tokenfunc.*.yaml`；品牌主题在 `web/src/lib/tokenfunc-theme.ts`、`web/src/lib/tokenfunc-site-theme.ts`、`web/src/styles/tokenfunc-theme.css`；二开全局变量在 `common/tokenfunc_constants.go`。新增二开翻译 key 必须同时写进 `tokenfunc/en.json` 与 `tokenfunc/zh.json`，否则 `bun run i18n:sync` 会把孤立 key 挪进 `_extras`。
+- **减少冲突的结构约定**：二开内容放独立文件，上游文件只留一两行接线——翻译在 `web/src/i18n/locales/tokenfunc/` 与 `i18n/locales/tokenfunc.*.yaml`；品牌主题在 `web/src/lib/tokenfunc-theme.ts`、`web/src/lib/tokenfunc-site-theme.ts`、`web/src/styles/tokenfunc-theme.css`；二开全局变量在 `common/tokenfunc_constants.go`；服务端日志中文文案的覆盖在 `common/log_text.tokenfunc.zh-CN.json`。新增二开翻译 key 必须同时写进 `tokenfunc/en.json` 与 `tokenfunc/zh.json`，否则 `bun run i18n:sync` 会把孤立 key 挪进 `_extras`。
 - 基线不另记文件：`make upstream-status` 用 `git describe` 从 merge-base 算出当前 rc。
 
 ## 5. 数据与重置

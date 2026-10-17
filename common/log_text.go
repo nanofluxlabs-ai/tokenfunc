@@ -23,6 +23,7 @@ func SetLogLanguage(language string) {
 		return
 	}
 	_ = Unmarshal(logTextZhCN, &logTexts)
+	applyTokenfuncLogTexts()
 }
 
 // LogText formats a server log line in the language of DEFAULT_LANGUAGE. format is

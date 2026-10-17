@@ -2,7 +2,8 @@
 name: upstream-sync
 description: >-
   把上游 QuantumNous/new-api 的 rc tag（v1.0.0-rc.N）同步进 tokenfunc：拉取 → 选 rc → 评估清单 →
-  建 sync 分支合并 → 只解冲突 → 门禁（go/bun 测试、make test-db、迁移幂等、二开冒烟）→ 开 PR → 用户确认合并 → 提示独立发版。
+  变更摘要（bugfix / feature / 影响面）+ 合不合的建议与理由 → 用户拍板 → 建 sync 分支合并 → 只解冲突 →
+  门禁（go/bun 测试、make test-db、迁移幂等、二开冒烟）→ 开 PR → 用户确认合并 → 提示独立发版。
   当用户要"同步上游 / 合并 new-api / 跟进上游 rc / 吸收上游修复"时使用。rc tag 可选，缺省取最新 rc；
   传上游 commit sha 则走 cherry-pick 例外通道。节奏与约定见 docs/tokenfunc/development.md §4.6。
 # 仅人工手动触发（/upstream-sync）：合并上游会大面积改动代码，禁止模型自动调用。
@@ -29,7 +30,9 @@ allowed-tools:
 
 # tokenfunc 上游同步
 
-流程：`P1 选 rc → P2 评估清单 → P3 合并 + 解冲突 → P4 门禁 → P5 开 PR → P6 合并后收尾`。
+流程：`P1 选 rc → P2 评估清单 → P2.5 变更摘要 + 建议 + 用户拍板 → P3 合并 + 解冲突 → P4 门禁 → P5 开 PR → P6 合并后收尾`。
+
+**P2.5 之前不建分支、不合并。** 用户看完摘要和建议说"合"才进 P3；说"不合"或"只要其中几条"就按 cherry-pick 例外通道或直接结束。
 
 ## 参数
 
@@ -78,7 +81,61 @@ make upstream-diff REF=$REF        # 写到 .tmp/upstream/$REF.md
 
 上游每次改动消息 / 日志机制（`ApiErrorT` / `NewMessage` / `LogText` / i18n 键删除），二开的覆盖层要整体重核：后端 `i18n/locales/tokenfunc.*.yaml`、前端 `locales/tokenfunc/`、`common/log_text.tokenfunc.zh-CN.json`、我方调用上游 `Record*Log` / `i18n.Msg*` 的地方。签名变化靠 `go build` 暴露，不要靠肉眼。
 
-把填好的清单用一句话概括给用户（几个接受 / 几个需适配 / 哪些回退），**不要整段贴**。
+清单填好后进入 P2.5，不要在这里直接概括给用户。
+
+## Phase 2.5 — 变更摘要 + 合并建议 + 用户拍板
+
+目的：让用户基于"这个 rc 给 tokenfunc 带来什么、风险多大"决定合不合，而不是基于"到节奏了"。
+
+### 怎么读上游变更
+
+每条 commit 至少看 `git show --stat <sha>` 和标题；动了 `relay/`、`model/`、计费文件、`middleware/` 的再看 diff 正文。判断影响面时用这个标尺：
+
+| 影响面 | 判定依据 |
+|--------|----------|
+| 生产正在踩 | 修的 bug 在生产日志 / 记忆 / 发布报告里出现过（例：限流分桶、Passkey origin） |
+| 二开直接依赖 | 改了二开挂载点或覆盖层（`model/user.go`、`model/topup.go`、`service/quota.go`、`main.go`、消息 / 日志机制、主题、i18n） |
+| 客户可感知 | relay 协议转换、计费口径、渠道行为、管理端页面 |
+| 内部 | 仅重构 / 依赖升级 / 文档 / CI / 测试 |
+
+### 摘要格式（写到 `.tmp/upstream/$REF-summary.md`，回复里贴这一份，不贴第 4 节大表）
+
+```
+# 上游 $REF 变更摘要（基线 rc.N → rc.M，X commit）
+
+## Bugfix（N 条）
+| sha | 修了什么（一句话，人话） | 影响面 | 对 tokenfunc |
+|-----|------------------------|--------|-------------|
+| … | … | 生产正在踩 / 客户可感知 / 内部 | 需要 / 顺带 / 无关 |
+
+## Feature（N 条）
+| sha | 加了什么 | 影响面 | 对 tokenfunc |
+|-----|---------|--------|-------------|
+| … | … | … | 有用 / 中性 / 不想要（要回退） |
+
+## 其它（chore / build / refactor / docs，N 条）
+一句话带过，只点名依赖升级与 CI 变化。
+
+## 风险
+- 真冲突 N 个文件（列出），其中二开热点 N 个
+- 需适配 N 条（列出 sha 与原因）
+- 迁移 / 依赖：有无 model 改动、go.mod 变化
+- 上游机制变化：消息 / 日志 / 主题 / i18n 有无重做
+```
+
+### 建议（必须给，三选一，附理由）
+
+| 建议 | 给出条件 |
+|------|----------|
+| **合入** | 有"生产正在踩"或"二开直接依赖"的修复，或 feature 有用且冲突 / 适配量可控 |
+| **只 cherry-pick 列出的几条** | 只有零星关键 fix，其余是大改机制或不想要的 feature，整合成本高于收益 |
+| **跳过，等下一个 rc** | 全是内部改动 / 不想要的 feature，或上游刚做了大改造（消息机制、依赖大版本）且紧接着还有后续 rc 在修它 |
+
+理由写三点以内：收益（哪几条 fix / feature）、成本（冲突 + 适配 + 迁移）、时机（上游是否还在连续改同一块、我方是否有在飞的分支会撞）。有在飞的二开分支撞上游改动时要点名（`git branch -r --no-merged main` 看有哪些，和冲突文件比对）。
+
+### 拍板
+
+用 `AskUserQuestion` 三个选项：合入 / 只 cherry-pick（列 sha）/ 跳过。推荐项放第一个并标 (Recommended)。用户选"跳过"就结束并把摘要文件路径告诉用户；选"只 cherry-pick"走文末例外通道；选"合入"才进 P3。
 
 ## Phase 3 — 合并 + 解冲突
 

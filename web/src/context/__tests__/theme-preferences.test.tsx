@@ -17,7 +17,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 For commercial licensing, please contact support@quantumnous.com
 */
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { cleanup, render, screen, waitFor } from '@testing-library/react'
+import { cleanup, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
@@ -34,7 +34,7 @@ vi.mock('@/lib/api', () => ({
   getStatus: () => getStatusMock(),
 }))
 
-// 用户仍可持久化的偏好：明暗、密度、内容宽度。预设/字体/圆角已改为跟随服务端。
+// tokenfunc 二开：预设/字体/圆角跟随服务端（见 site-theme-preset.test.tsx），这里只覆盖用户仍可持久化的偏好。
 const savedPreferences = {
   'tokenfunc:theme:v1:mode': 'dark',
   'tokenfunc:theme:v1:scale': 'sm',
@@ -106,66 +106,6 @@ afterEach(() => {
     if (name.startsWith('data-theme-')) document.body.removeAttribute(name)
   }
 })
-
-describe('server-driven color preset', () => {
-  it('applies the preset from /api/status and resolves the brand font', async () => {
-    render(<ThemeFixture />)
-
-    await waitFor(() =>
-      expect(document.body).toHaveAttribute('data-theme-preset', 'tokenfunc')
-    )
-    expect(screen.getByLabelText('Preset')).toHaveTextContent('tokenfunc')
-    expect(document.body).toHaveAttribute('data-theme-font', 'brand')
-    expect(document.body).not.toHaveAttribute('data-theme-radius')
-  })
-
-  it('ignores a preset left in localStorage by older builds', async () => {
-    localStorage.setItem('tokenfunc:theme:v1:preset', 'rose-garden')
-    localStorage.setItem('tokenfunc:theme:v1:font', 'serif')
-
-    render(<ThemeFixture />)
-
-    await waitFor(() =>
-      expect(document.body).toHaveAttribute('data-theme-preset', 'tokenfunc')
-    )
-    expect(document.body).toHaveAttribute('data-theme-font', 'brand')
-  })
-
-  it('uses the server-injected body attribute before status has loaded', () => {
-    document.body.setAttribute('data-theme-preset', 'tokenfunc')
-    getStatusMock.mockReturnValue(new Promise(() => {}))
-
-    render(<ThemeFixture />)
-
-    expect(screen.getByLabelText('Preset')).toHaveTextContent('tokenfunc')
-    expect(document.body).toHaveAttribute('data-theme-preset', 'tokenfunc')
-    expect(document.body).toHaveAttribute('data-theme-font', 'brand')
-  })
-
-  it('falls back to the default preset when the server sends an unknown theme', async () => {
-    getStatusMock.mockResolvedValue({ theme: 'no-such-preset' })
-
-    render(<ThemeFixture />)
-
-    await waitFor(() =>
-      expect(screen.getByLabelText('Preset')).toHaveTextContent('default')
-    )
-    expect(document.body).not.toHaveAttribute('data-theme-preset')
-    expect(document.body).toHaveAttribute('data-theme-font', 'sans')
-  })
-
-  it('switches presets when the admin changes the server theme', async () => {
-    getStatusMock.mockResolvedValue({ theme: 'anthropic' })
-
-    render(<ThemeFixture />)
-
-    await waitFor(() =>
-      expect(document.body).toHaveAttribute('data-theme-preset', 'anthropic')
-    )
-    expect(document.body).toHaveAttribute('data-theme-font', 'serif')
-  })
-})
-
 describe('theme preference persistence', () => {
   it('starts with defaults when only shared legacy theme cookies exist', () => {
     document.cookie = 'theme_preset=ocean-breeze; path=/'

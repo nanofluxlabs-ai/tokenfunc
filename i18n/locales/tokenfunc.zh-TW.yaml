@@ -1,0 +1,3 @@
+# tokenfunc 對上游繁體中文訊息的覆蓋（在上游檔案之後載入，同 ID 以本檔案為準）
+
+task_plugin.unknown_meta_field: '外掛中繼資料包含未知欄位「{{.Field}}」。如果外掛來自官方市集，可能需要較新版本的 tokenfunc。請嘗試更新 tokenfunc 後重新安裝外掛。'

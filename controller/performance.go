@@ -208,7 +208,9 @@ func getLogFiles() ([]LogFileInfo, error) {
 			continue
 		}
 		name := entry.Name()
-		if !strings.HasPrefix(name, "tokenfunc-") || !strings.HasSuffix(name, ".log") {
+		// lumberjack 的活动文件是 tokenfunc.log，滚动备份是 tokenfunc-<时间戳>.log
+		isRotated := strings.HasPrefix(name, "tokenfunc-") && strings.HasSuffix(name, ".log")
+		if name != "tokenfunc.log" && !isRotated {
 			continue
 		}
 		info, err := entry.Info()

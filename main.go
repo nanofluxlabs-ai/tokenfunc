@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"runtime/debug"
 	"strconv"
 	"strings"
 	"syscall"
@@ -191,15 +192,21 @@ func main() {
 		common.FatalLog("failed to configure trusted proxies: " + err.Error())
 		return
 	}
-	server.Use(gin.CustomRecovery(func(c *gin.Context, err any) {
-		common.SysLog(fmt.Sprintf("panic detected: %v", err))
+	panicHandler := func(c *gin.Context, err any) {
+		common.LogPanic(c.GetString(common.RequestIdKey), err, debug.Stack())
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error": gin.H{
 				"message": fmt.Sprintf("Panic detected, error: %v. Please submit a issue here: https://github.com/Calcium-Ion/new-api", err),
 				"type":    "new_api_panic",
 			},
 		})
-	}))
+	}
+	if common.LogFormatJSON {
+		// json 模式下不让 gin 自己往 stderr 打多行彩色堆栈，堆栈由 LogPanic 压成单行写进 stack 字段
+		server.Use(gin.CustomRecoveryWithWriter(nil, panicHandler))
+	} else {
+		server.Use(gin.CustomRecovery(panicHandler))
+	}
 	// This will cause SSE not to work!!!
 	//server.Use(gzip.Gzip(gzip.DefaultCompression))
 	server.Use(middleware.RequestId())

@@ -46,7 +46,7 @@ make dev          # 自动生成 .env → 起 postgres/redis → 编译并后台
 | 目标 | 作用 |
 |---|---|
 | `make dev` | 基础设施 + API + 前端一键启动 |
-| `make api` / `make api-stop` / `make logs` | 重新编译并重启宿主机 API / 停止 / 看日志（`.tmp/logs/api.out`） |
+| `make api` / `make api-stop` / `make logs` | 重新编译并重启宿主机 API / 停止 / 看日志（`.tmp/logs/api.out`，宿主机为文本格式；容器默认 NDJSON，见下文「系统日志」） |
 | `make web` | 前端 dev server |
 | `make infra` / `make stop` / `make down` / `make reset` | 起库 / 停容器 / 删容器保留数据 / 连数据卷一起删（需确认） |
 | `make psql [SCHEMA=test]` / `make redis-cli [DB=1]` | 进入数据库命令行 |
@@ -57,6 +57,18 @@ make dev          # 自动生成 .env → 起 postgres/redis → 编译并后台
 | `make reset-setup` | 清掉初始化向导状态，重新走 setup |
 
 所有 `TF_*` 变量都可在 `.env` 或命令行覆盖，例如端口冲突时 `make dev TF_API_PORT=3100 TF_WEB_PORT=5174`。
+
+### 3.1 系统日志（stdout / 文件）
+
+进程日志与 tokensolo 对齐为 NDJSON（每行一个 JSON 对象），字段 `ts`（RFC3339 毫秒带时区）、`level`（info / warn / error / fatal）、`service`（固定 `tokenfunc`）、`request_id`、`msg`；访问日志 `type=access` 另带 `status` / `latency_ms` / `client_ip` / `method` / `path` / `route_tag` / `user_id`；中间件级事件（`auth_failed` / `distribute_failed` / `rate_limited` / `panic`）带 `event` 字段。GORM 与标准库 `log` 的输出收口为 `component=gorm` / `component=stdlog`。上 CLS 时用 JSON 提取模式、时间字段选 `ts`，tokensolo 的查询语句可直接复用。
+
+| 变量 | 默认 | 说明 |
+|---|---|---|
+| `LOG_FORMAT` | `json` | `text` 保持上游文本格式（`make api` 固定用 text，便于本地阅读） |
+| `LOG_DIR` | `--log-dir` 的值 | 覆盖日志目录；显式设为空串只输出 stdout（TKE 上交给 CLS 采集容器日志） |
+| `LOG_MAX_SIZE_MB` / `LOG_MAX_BACKUPS` / `LOG_RETENTION_DAYS` | 64 / 32 / 7 | 文件滚动：活动文件 `tokenfunc.log`，备份 `tokenfunc-<时间戳>.log`，按大小切分、按天数清理 |
+
+容器内这几项由 `compose.yml` 透传 `TF_LOG_*`。
 
 ## 4. 协作约定
 

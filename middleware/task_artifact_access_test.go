@@ -152,6 +152,42 @@ func TestSetUpLoggerNeverWritesTaskArtifactAccess(t *testing.T) {
 	assert.False(t, strings.Contains(output.String(), "never-log-this"))
 }
 
+// JSON 访问日志同样不得带出 access 参数，并且要有 type=access 的结构化字段
+func TestSetUpLoggerJSONAccessLogRedactsAndStructures(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	previousFormat := common.LogFormatJSON
+	common.LogFormatJSON = true
+	t.Cleanup(func() { common.LogFormatJSON = previousFormat })
+	previousWriter := gin.DefaultWriter
+	var output bytes.Buffer
+	gin.DefaultWriter = &output
+	t.Cleanup(func() { gin.DefaultWriter = previousWriter })
+
+	router := gin.New()
+	SetUpLogger(router)
+	router.GET("/v1/tasks/:key/artifacts/:artifact_key/content", func(c *gin.Context) {
+		c.Set("id", 7)
+		c.Set(RouteTagKey, "relay")
+		c.Status(http.StatusNotFound)
+	})
+	request := httptest.NewRequest(
+		http.MethodGet,
+		"/v1/tasks/task-1/artifacts/video/content?access=never-log-this&keep=ok",
+		nil,
+	)
+	router.ServeHTTP(httptest.NewRecorder(), request)
+
+	var entry map[string]any
+	require.NoError(t, common.Unmarshal(bytes.TrimSpace(output.Bytes()), &entry), output.String())
+	assert.Equal(t, "access", entry["type"])
+	assert.Equal(t, "warn", entry["level"])
+	assert.EqualValues(t, http.StatusNotFound, entry["status"])
+	assert.EqualValues(t, 7, entry["user_id"])
+	assert.Equal(t, "relay", entry["route_tag"])
+	assert.Equal(t, "/v1/tasks/task-1/artifacts/video/content?keep=ok", entry["path"])
+	assert.NotContains(t, output.String(), "never-log-this")
+}
+
 func urlQueryEscape(value string) string {
 	replacer := strings.NewReplacer("+", "%2B", "=", "%3D")
 	return replacer.Replace(value)

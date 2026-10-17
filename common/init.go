@@ -69,6 +69,10 @@ func InitEnv() {
 	if os.Getenv("SQLITE_PATH") != "" {
 		SQLitePath = os.Getenv("SQLITE_PATH")
 	}
+	// LOG_DIR 覆盖 --log-dir；显式设为空串表示只输出 stdout（上 TKE 后交给 CLS 采集容器日志）
+	if v, ok := os.LookupEnv("LOG_DIR"); ok {
+		*LogDir = v
+	}
 	if *LogDir != "" {
 		var err error
 		*LogDir, err = filepath.Abs(*LogDir)
@@ -85,6 +89,11 @@ func InitEnv() {
 
 	// Initialize variables from constants.go that were using environment variables
 	DebugEnabled = os.Getenv("DEBUG") == "true"
+	// 系统日志格式与文件滚动：LOG_FORMAT=text 保持上游文本格式（本地开发），其余一律 JSON
+	LogFormatJSON = GetEnvOrDefaultString("LOG_FORMAT", "json") != "text"
+	LogMaxSizeMB = max(GetEnvOrDefault("LOG_MAX_SIZE_MB", LogMaxSizeMB), 1)
+	LogMaxBackups = max(GetEnvOrDefault("LOG_MAX_BACKUPS", LogMaxBackups), 0)
+	LogRetentionDays = max(GetEnvOrDefault("LOG_RETENTION_DAYS", LogRetentionDays), 1)
 	MemoryCacheEnabled = os.Getenv("MEMORY_CACHE_ENABLED") == "true"
 	IsMasterNode = os.Getenv("NODE_TYPE") != "slave"
 	PasswordLoginEncryptionEnabled = GetEnvOrDefaultBool("PASSWORD_LOGIN_ENCRYPTION_ENABLED", false)

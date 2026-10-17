@@ -1014,6 +1014,8 @@
     "Bank transfer": "银行转账",
     "Gift": "赠送",
     "Admin top-up": "管理员充值",
-    "Manually topped up user {{username}} (ID: {{id}}) by {{amount_usd}} USD via {{payment_method}}": "管理员为用户 {{username}}（ID: {{id}}）手动充值 {{amount_usd}} 美元，收款方式 {{payment_method}}"
+    "Manually topped up user {{username}} (ID: {{id}}) by {{amount_usd}} USD via {{payment_method}}": "管理员为用户 {{username}}（ID: {{id}}）手动充值 {{amount_usd}} 美元，收款方式 {{payment_method}}",
+    "Plugin metadata contains an unknown field \"{{field}}\". If this plugin was downloaded from the official marketplace, it may require a newer version of new-api. Try updating new-api and installing the plugin again.": "插件元数据包含未知字段“{{field}}”。如果插件来自官方市场，可能需要更高版本的 tokenfunc。请尝试更新 tokenfunc 后重新安装插件。",
+    "Administrator manual top-up succeeded, quota added: {{quota}}, amount: ${{amount}}, payment method: {{method}}": "管理员手动充值成功，充值额度: {{quota}}，金额: ${{amount}}，收款方式: {{method}}"
   }
 }

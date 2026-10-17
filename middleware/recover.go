@@ -16,8 +16,8 @@ func RelayPanicRecover() gin.HandlerFunc {
 				if common.LogFormatJSON {
 					common.LogPanic(c.GetString(common.RequestIdKey), err, debug.Stack())
 				} else {
-					common.SysLog(fmt.Sprintf("panic detected: %v", err))
-					common.SysLog(fmt.Sprintf("stacktrace from panic: %s", string(debug.Stack())))
+					common.SysLog(common.LogText("panic detected: %v", err))
+					common.SysLog(common.LogText("stacktrace from panic: %s", string(debug.Stack())))
 				}
 				c.JSON(http.StatusInternalServerError, gin.H{
 					"error": gin.H{

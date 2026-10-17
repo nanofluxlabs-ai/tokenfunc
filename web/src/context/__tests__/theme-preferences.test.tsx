@@ -231,3 +231,5 @@ describe('theme preference persistence', () => {
     expect(localStorage.getItem('stale-ui-cache')).toBeNull()
   })
 })
+
+// 上游的 'theme font selection' 用例依赖用户可选字体；tokenfunc 锁定为管理员预设，见 site-theme-preset.test.tsx

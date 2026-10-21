@@ -109,7 +109,9 @@ func TestLogEventUsesEnvelopeFields(t *testing.T) {
 	bad := decodeLogLine(t, errOut.String())
 	assert.Equal(t, "error", bad["level"])
 	message, _ := bad[FieldErrorMessage].(string)
-	assert.NotContains(t, message, "api.openai.com", "upstream host must be masked")
+	// 上游 rc.45 起 MaskSensitiveInfo 只脱敏请求里登记的自定义上游地址，官方域名保持可读；
+	// 事件日志没有 relay 上下文，所以这里只约束凭据一定被打码
+	assert.Contains(t, message, "api.openai.com", "preset upstream host stays readable")
 	assert.NotContains(t, message, "sk-secret", "api key must be masked")
 }
 

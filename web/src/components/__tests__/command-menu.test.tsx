@@ -38,6 +38,11 @@ import { Search } from '../search'
 const adminEntries = ['Channels', 'Models', 'Users', 'Redemption Codes']
 const superAdminEntries = ['System Info', 'Task Plugins', 'System Settings']
 
+// tokenfunc 把管理页收进分组（如「Channel Management」），搜索项文本是「分组  页面」，按页面名尾缀匹配
+function hasEntry(entries: string[], name: string) {
+  return entries.some((entry) => entry === name || entry.endsWith(`  ${name}`))
+}
+
 // jsdom lacks the Web Animations API the menu's scroll area waits on.
 const getAnimationsDescriptor = Object.getOwnPropertyDescriptor(
   HTMLElement.prototype,
@@ -106,16 +111,18 @@ test('regular users only find their own console pages in search', async () => {
     expect.arrayContaining(['API Keys', 'Usage Logs', 'Wallet', 'Profile'])
   )
   for (const entry of [...adminEntries, ...superAdminEntries]) {
-    expect(entries).not.toContain(entry)
+    expect(hasEntry(entries, entry)).toBe(false)
   }
 })
 
 test('admins find admin pages in search but not super admin pages', async () => {
   const entries = await searchEntriesFor(ROLE.ADMIN)
 
-  expect(entries).toEqual(expect.arrayContaining(adminEntries))
+  for (const entry of adminEntries) {
+    expect(hasEntry(entries, entry)).toBe(true)
+  }
   for (const entry of superAdminEntries) {
-    expect(entries).not.toContain(entry)
+    expect(hasEntry(entries, entry)).toBe(false)
   }
 })
 

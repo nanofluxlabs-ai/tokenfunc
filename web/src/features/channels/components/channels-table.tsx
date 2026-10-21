@@ -76,7 +76,6 @@ import {
   ChannelPriorityStatus,
 } from './channel-priority-controls'
 import { ChannelPriorityDropHint } from './channel-priority-drop-hint'
-import { ChannelTypeLogo } from './channel-type-badge'
 import { ChannelTypeTabs } from './channel-type-tabs'
 import { useChannelsColumns } from './channels-columns'
 import { useChannels } from './channels-provider'
@@ -515,7 +514,7 @@ export function ChannelsTable() {
         role='region'
         aria-label={t('Channels')}
         {...drag.rootEvents}
-        className='relative flex h-full min-h-0 flex-col gap-2.5 sm:gap-3 data-[priority-dragging=true]:select-none data-[priority-dragging=true]:[&_[data-sortable-id]]:pointer-events-none'
+        className='relative flex h-full min-h-0 flex-col gap-2.5 data-[priority-dragging=true]:select-none sm:gap-3 data-[priority-dragging=true]:[&_[data-sortable-id]]:pointer-events-none'
       >
         <ChannelTypeTabs
           value={selectedTypeTab}

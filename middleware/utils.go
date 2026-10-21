@@ -134,6 +134,15 @@ func classifyRelayRequestFailure(statusCode int, errorCode string, message strin
 	}
 }
 
+// invalidRequestStatus is the status of a request whose body could not be
+// read or parsed: 413 when the body exceeds MAX_REQUEST_BODY_MB, else 400.
+func invalidRequestStatus(err error) int {
+	if common.IsRequestBodyTooLargeError(err) {
+		return http.StatusRequestEntityTooLarge
+	}
+	return http.StatusBadRequest
+}
+
 func abortWithMidjourneyMessage(c *gin.Context, statusCode int, code int, description string) {
 	c.JSON(statusCode, gin.H{
 		"description": description,

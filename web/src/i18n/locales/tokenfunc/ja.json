@@ -1016,6 +1016,16 @@
     "Admin top-up": "Admin top-up",
     "Manually topped up user {{username}} (ID: {{id}}) by {{amount_usd}} USD via {{payment_method}}": "Manually topped up user {{username}} (ID: {{id}}) by {{amount_usd}} USD via {{payment_method}}",
     "Plugin metadata contains an unknown field \"{{field}}\". If this plugin was downloaded from the official marketplace, it may require a newer version of new-api. Try updating new-api and installing the plugin again.": "プラグインのメタデータに不明なフィールド「{{field}}」が含まれています。公式マーケットプレイスから入手したプラグインの場合、より新しいバージョンの tokenfunc が必要な可能性があります。tokenfunc を更新してから、プラグインを再インストールしてください。",
-    "Administrator manual top-up succeeded, quota added: {{quota}}, amount: ${{amount}}, payment method: {{method}}": "管理者による手動チャージが完了しました。追加クォータ: {{quota}}、金額: ${{amount}}、支払い方法: {{method}}"
+    "Administrator manual top-up succeeded, quota added: {{quota}}, amount: ${{amount}}, payment method: {{method}}": "管理者による手動チャージが完了しました。追加クォータ: {{quota}}、金額: ${{amount}}、支払い方法: {{method}}",
+    "Token column help": "トークン列の説明",
+    "Input / output tokens. Cache read and cache write tokens are listed below them and billed at their own rates; Anthropic models exclude cached tokens from the input count, OpenAI models include them.": "入力 / 出力トークン。キャッシュ読み取りと書き込みトークンはその下に表示され、それぞれの単価で課金されます。Anthropic モデルの入力数はキャッシュ済みトークンを含まず、OpenAI モデルは含みます。",
+    "Error Category": "エラー分類",
+    "Client Source": "クライアント種別",
+    "Client Platform": "クライアント OS",
+    "Originator": "Originator",
+    "Request Rejected": "リクエスト拒否",
+    "Upstream Failed": "上流失敗",
+    "System Error": "システムエラー",
+    "Error Code": "エラーコード"
   }
 }

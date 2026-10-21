@@ -1016,6 +1016,16 @@
     "Admin top-up": "Admin top-up",
     "Manually topped up user {{username}} (ID: {{id}}) by {{amount_usd}} USD via {{payment_method}}": "Manually topped up user {{username}} (ID: {{id}}) by {{amount_usd}} USD via {{payment_method}}",
     "Plugin metadata contains an unknown field \"{{field}}\". If this plugin was downloaded from the official marketplace, it may require a newer version of new-api. Try updating new-api and installing the plugin again.": "Siêu dữ liệu plugin chứa trường không xác định \"{{field}}\". Nếu plugin được tải từ chợ chính thức, có thể cần phiên bản tokenfunc mới hơn. Hãy cập nhật tokenfunc rồi cài đặt lại plugin.",
-    "Administrator manual top-up succeeded, quota added: {{quota}}, amount: ${{amount}}, payment method: {{method}}": "Quản trị viên nạp tiền thủ công thành công, hạn mức đã thêm: {{quota}}, số tiền: ${{amount}}, phương thức thanh toán: {{method}}"
+    "Administrator manual top-up succeeded, quota added: {{quota}}, amount: ${{amount}}, payment method: {{method}}": "Quản trị viên nạp tiền thủ công thành công, hạn mức đã thêm: {{quota}}, số tiền: ${{amount}}, phương thức thanh toán: {{method}}",
+    "Token column help": "Chú thích cột Token",
+    "Input / output tokens. Cache read and cache write tokens are listed below them and billed at their own rates; Anthropic models exclude cached tokens from the input count, OpenAI models include them.": "Token đầu vào / đầu ra. Token đọc và ghi bộ nhớ đệm được liệt kê bên dưới và tính phí theo đơn giá riêng; mô hình Anthropic không tính token đã đệm vào đầu vào, mô hình OpenAI thì có.",
+    "Error Category": "Phân loại lỗi",
+    "Client Source": "Nguồn client",
+    "Client Platform": "Nền tảng client",
+    "Originator": "Originator",
+    "Request Rejected": "Yêu cầu bị từ chối",
+    "Upstream Failed": "Upstream thất bại",
+    "System Error": "Lỗi hệ thống",
+    "Error Code": "Mã lỗi"
   }
 }

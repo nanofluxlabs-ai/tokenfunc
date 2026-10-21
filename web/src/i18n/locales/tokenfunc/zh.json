@@ -1016,6 +1016,16 @@
     "Admin top-up": "管理员充值",
     "Manually topped up user {{username}} (ID: {{id}}) by {{amount_usd}} USD via {{payment_method}}": "管理员为用户 {{username}}（ID: {{id}}）手动充值 {{amount_usd}} 美元，收款方式 {{payment_method}}",
     "Plugin metadata contains an unknown field \"{{field}}\". If this plugin was downloaded from the official marketplace, it may require a newer version of new-api. Try updating new-api and installing the plugin again.": "插件元数据包含未知字段“{{field}}”。如果插件来自官方市场，可能需要更高版本的 tokenfunc。请尝试更新 tokenfunc 后重新安装插件。",
-    "Administrator manual top-up succeeded, quota added: {{quota}}, amount: ${{amount}}, payment method: {{method}}": "管理员手动充值成功，充值额度: {{quota}}，金额: ${{amount}}，收款方式: {{method}}"
+    "Administrator manual top-up succeeded, quota added: {{quota}}, amount: ${{amount}}, payment method: {{method}}": "管理员手动充值成功，充值额度: {{quota}}，金额: ${{amount}}，收款方式: {{method}}",
+    "Token column help": "Token 列说明",
+    "Input / output tokens. Cache read and cache write tokens are listed below them and billed at their own rates; Anthropic models exclude cached tokens from the input count, OpenAI models include them.": "输入 / 输出 tokens。缓存读取与缓存写入 tokens 列在其下方并按各自价格计费；Anthropic 模型的输入数不含缓存 tokens，OpenAI 模型则包含。",
+    "Error Category": "错误分类",
+    "Client Source": "客户端来源",
+    "Client Platform": "客户端平台",
+    "Originator": "Originator",
+    "Request Rejected": "请求被拒",
+    "Upstream Failed": "上游失败",
+    "System Error": "系统错误",
+    "Error Code": "错误码"
   }
 }

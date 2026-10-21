@@ -1016,6 +1016,16 @@
     "Admin top-up": "Admin top-up",
     "Manually topped up user {{username}} (ID: {{id}}) by {{amount_usd}} USD via {{payment_method}}": "Manually topped up user {{username}} (ID: {{id}}) by {{amount_usd}} USD via {{payment_method}}",
     "Plugin metadata contains an unknown field \"{{field}}\". If this plugin was downloaded from the official marketplace, it may require a newer version of new-api. Try updating new-api and installing the plugin again.": "Метаданные плагина содержат неизвестное поле «{{field}}». Если плагин загружен из официального маркетплейса, ему может требоваться более новая версия tokenfunc. Обновите tokenfunc и установите плагин заново.",
-    "Administrator manual top-up succeeded, quota added: {{quota}}, amount: ${{amount}}, payment method: {{method}}": "Ручное пополнение администратором выполнено, добавлено квоты: {{quota}}, сумма: ${{amount}}, способ оплаты: {{method}}"
+    "Administrator manual top-up succeeded, quota added: {{quota}}, amount: ${{amount}}, payment method: {{method}}": "Ручное пополнение администратором выполнено, добавлено квоты: {{quota}}, сумма: ${{amount}}, способ оплаты: {{method}}",
+    "Token column help": "Справка по столбцу токенов",
+    "Input / output tokens. Cache read and cache write tokens are listed below them and billed at their own rates; Anthropic models exclude cached tokens from the input count, OpenAI models include them.": "Входные / выходные токены. Токены чтения и записи кэша показаны ниже и тарифицируются отдельно; модели Anthropic не включают кэшированные токены во входные, модели OpenAI включают.",
+    "Error Category": "Категория ошибки",
+    "Client Source": "Источник клиента",
+    "Client Platform": "Платформа клиента",
+    "Originator": "Originator",
+    "Request Rejected": "Запрос отклонён",
+    "Upstream Failed": "Сбой апстрима",
+    "System Error": "Системная ошибка",
+    "Error Code": "Код ошибки"
   }
 }

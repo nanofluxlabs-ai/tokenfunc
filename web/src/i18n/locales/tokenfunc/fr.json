@@ -1016,6 +1016,16 @@
     "Admin top-up": "Admin top-up",
     "Manually topped up user {{username}} (ID: {{id}}) by {{amount_usd}} USD via {{payment_method}}": "Manually topped up user {{username}} (ID: {{id}}) by {{amount_usd}} USD via {{payment_method}}",
     "Plugin metadata contains an unknown field \"{{field}}\". If this plugin was downloaded from the official marketplace, it may require a newer version of new-api. Try updating new-api and installing the plugin again.": "Les métadonnées du plugin contiennent un champ inconnu « {{field}} ». Si ce plugin provient de la marketplace officielle, il peut nécessiter une version plus récente de tokenfunc. Mettez à jour tokenfunc puis réinstallez le plugin.",
-    "Administrator manual top-up succeeded, quota added: {{quota}}, amount: ${{amount}}, payment method: {{method}}": "Recharge manuelle par l’administrateur réussie, quota ajouté : {{quota}}, montant : ${{amount}}, mode de paiement : {{method}}"
+    "Administrator manual top-up succeeded, quota added: {{quota}}, amount: ${{amount}}, payment method: {{method}}": "Recharge manuelle par l’administrateur réussie, quota ajouté : {{quota}}, montant : ${{amount}}, mode de paiement : {{method}}",
+    "Token column help": "Aide de la colonne Tokens",
+    "Input / output tokens. Cache read and cache write tokens are listed below them and billed at their own rates; Anthropic models exclude cached tokens from the input count, OpenAI models include them.": "Tokens d’entrée / de sortie. Les tokens de lecture et d’écriture du cache sont listés en dessous et facturés à leur propre tarif ; les modèles Anthropic excluent les tokens en cache du décompte d’entrée, les modèles OpenAI les incluent.",
+    "Error Category": "Catégorie d’erreur",
+    "Client Source": "Source du client",
+    "Client Platform": "Plateforme du client",
+    "Originator": "Originator",
+    "Request Rejected": "Requête rejetée",
+    "Upstream Failed": "Échec amont",
+    "System Error": "Erreur système",
+    "Error Code": "Code d’erreur"
   }
 }

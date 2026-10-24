@@ -56,6 +56,8 @@ import { Route as AuthenticatedModelsIndexRouteImport } from './routes/_authenti
 import { Route as AuthenticatedModelsSectionRouteImport } from './routes/_authenticated/models/$section'
 import { Route as AuthenticatedPlaygroundIndexRouteImport } from './routes/_authenticated/playground/index'
 import { Route as AuthenticatedProfileIndexRouteImport } from './routes/_authenticated/profile/index'
+import { Route as AuthenticatedPromoterCenterIndexRouteImport } from './routes/_authenticated/promoter-center/index'
+import { Route as AuthenticatedPromotersIndexRouteImport } from './routes/_authenticated/promoters/index'
 import { Route as AuthenticatedQuotesIndexRouteImport } from './routes/_authenticated/quotes/index'
 import { Route as AuthenticatedReconciliationIndexRouteImport } from './routes/_authenticated/reconciliation/index'
 import { Route as AuthenticatedRedemptionCodesIndexRouteImport } from './routes/_authenticated/redemption-codes/index'
@@ -74,6 +76,7 @@ import { Route as AuthenticatedEnterpriseBillsIndexRouteImport } from './routes/
 import { Route as AuthenticatedEnterpriseBillsIdRouteImport } from './routes/_authenticated/enterprise/bills.$id'
 import { Route as AuthenticatedFinanceBillsBillIdRouteImport } from './routes/_authenticated/finance/bills.$billId'
 import { Route as AuthenticatedFinanceUsersUserIdRouteImport } from './routes/_authenticated/finance/users.$userId'
+import { Route as AuthenticatedPromotersIdCenterRouteImport } from './routes/_authenticated/promoters/$id.center'
 import { Route as AuthenticatedSystemSettingsAuthIndexRouteImport } from './routes/_authenticated/system-settings/auth/index'
 import { Route as AuthenticatedSystemSettingsAuthSectionRouteImport } from './routes/_authenticated/system-settings/auth/$section'
 import { Route as AuthenticatedSystemSettingsBillingIndexRouteImport } from './routes/_authenticated/system-settings/billing/index'
@@ -343,6 +346,18 @@ const AuthenticatedProfileIndexRoute =
     path: '/profile/',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedPromoterCenterIndexRoute =
+  AuthenticatedPromoterCenterIndexRouteImport.update({
+    id: '/promoter-center/',
+    path: '/promoter-center/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedPromotersIndexRoute =
+  AuthenticatedPromotersIndexRouteImport.update({
+    id: '/promoters/',
+    path: '/promoters/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedQuotesIndexRoute =
   AuthenticatedQuotesIndexRouteImport.update({
     id: '/quotes/',
@@ -447,6 +462,12 @@ const AuthenticatedFinanceUsersUserIdRoute =
   AuthenticatedFinanceUsersUserIdRouteImport.update({
     id: '/finance/users/$userId',
     path: '/finance/users/$userId',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedPromotersIdCenterRoute =
+  AuthenticatedPromotersIdCenterRouteImport.update({
+    id: '/promoters/$id/center',
+    path: '/promoters/$id/center',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
 const AuthenticatedSystemSettingsAuthIndexRoute =
@@ -594,6 +615,8 @@ export interface FileRoutesByFullPath {
   '/models/': typeof AuthenticatedModelsIndexRoute
   '/playground/': typeof AuthenticatedPlaygroundIndexRoute
   '/profile/': typeof AuthenticatedProfileIndexRoute
+  '/promoter-center/': typeof AuthenticatedPromoterCenterIndexRoute
+  '/promoters/': typeof AuthenticatedPromotersIndexRoute
   '/quotes/': typeof AuthenticatedQuotesIndexRoute
   '/reconciliation/': typeof AuthenticatedReconciliationIndexRoute
   '/redemption-codes/': typeof AuthenticatedRedemptionCodesIndexRoute
@@ -609,6 +632,7 @@ export interface FileRoutesByFullPath {
   '/enterprise/bills/$id': typeof AuthenticatedEnterpriseBillsIdRoute
   '/finance/bills/$billId': typeof AuthenticatedFinanceBillsBillIdRoute
   '/finance/users/$userId': typeof AuthenticatedFinanceUsersUserIdRoute
+  '/promoters/$id/center': typeof AuthenticatedPromotersIdCenterRoute
   '/system-settings/auth/$section': typeof AuthenticatedSystemSettingsAuthSectionRoute
   '/system-settings/billing/$section': typeof AuthenticatedSystemSettingsBillingSectionRoute
   '/system-settings/content/$section': typeof AuthenticatedSystemSettingsContentSectionRoute
@@ -674,6 +698,8 @@ export interface FileRoutesByTo {
   '/models': typeof AuthenticatedModelsIndexRoute
   '/playground': typeof AuthenticatedPlaygroundIndexRoute
   '/profile': typeof AuthenticatedProfileIndexRoute
+  '/promoter-center': typeof AuthenticatedPromoterCenterIndexRoute
+  '/promoters': typeof AuthenticatedPromotersIndexRoute
   '/quotes': typeof AuthenticatedQuotesIndexRoute
   '/reconciliation': typeof AuthenticatedReconciliationIndexRoute
   '/redemption-codes': typeof AuthenticatedRedemptionCodesIndexRoute
@@ -689,6 +715,7 @@ export interface FileRoutesByTo {
   '/enterprise/bills/$id': typeof AuthenticatedEnterpriseBillsIdRoute
   '/finance/bills/$billId': typeof AuthenticatedFinanceBillsBillIdRoute
   '/finance/users/$userId': typeof AuthenticatedFinanceUsersUserIdRoute
+  '/promoters/$id/center': typeof AuthenticatedPromotersIdCenterRoute
   '/system-settings/auth/$section': typeof AuthenticatedSystemSettingsAuthSectionRoute
   '/system-settings/billing/$section': typeof AuthenticatedSystemSettingsBillingSectionRoute
   '/system-settings/content/$section': typeof AuthenticatedSystemSettingsContentSectionRoute
@@ -758,6 +785,8 @@ export interface FileRoutesById {
   '/_authenticated/models/': typeof AuthenticatedModelsIndexRoute
   '/_authenticated/playground/': typeof AuthenticatedPlaygroundIndexRoute
   '/_authenticated/profile/': typeof AuthenticatedProfileIndexRoute
+  '/_authenticated/promoter-center/': typeof AuthenticatedPromoterCenterIndexRoute
+  '/_authenticated/promoters/': typeof AuthenticatedPromotersIndexRoute
   '/_authenticated/quotes/': typeof AuthenticatedQuotesIndexRoute
   '/_authenticated/reconciliation/': typeof AuthenticatedReconciliationIndexRoute
   '/_authenticated/redemption-codes/': typeof AuthenticatedRedemptionCodesIndexRoute
@@ -773,6 +802,7 @@ export interface FileRoutesById {
   '/_authenticated/enterprise/bills/$id': typeof AuthenticatedEnterpriseBillsIdRoute
   '/_authenticated/finance/bills/$billId': typeof AuthenticatedFinanceBillsBillIdRoute
   '/_authenticated/finance/users/$userId': typeof AuthenticatedFinanceUsersUserIdRoute
+  '/_authenticated/promoters/$id/center': typeof AuthenticatedPromotersIdCenterRoute
   '/_authenticated/system-settings/auth/$section': typeof AuthenticatedSystemSettingsAuthSectionRoute
   '/_authenticated/system-settings/billing/$section': typeof AuthenticatedSystemSettingsBillingSectionRoute
   '/_authenticated/system-settings/content/$section': typeof AuthenticatedSystemSettingsContentSectionRoute
@@ -841,6 +871,8 @@ export interface FileRouteTypes {
     | '/models/'
     | '/playground/'
     | '/profile/'
+    | '/promoter-center/'
+    | '/promoters/'
     | '/quotes/'
     | '/reconciliation/'
     | '/redemption-codes/'
@@ -856,6 +888,7 @@ export interface FileRouteTypes {
     | '/enterprise/bills/$id'
     | '/finance/bills/$billId'
     | '/finance/users/$userId'
+    | '/promoters/$id/center'
     | '/system-settings/auth/$section'
     | '/system-settings/billing/$section'
     | '/system-settings/content/$section'
@@ -921,6 +954,8 @@ export interface FileRouteTypes {
     | '/models'
     | '/playground'
     | '/profile'
+    | '/promoter-center'
+    | '/promoters'
     | '/quotes'
     | '/reconciliation'
     | '/redemption-codes'
@@ -936,6 +971,7 @@ export interface FileRouteTypes {
     | '/enterprise/bills/$id'
     | '/finance/bills/$billId'
     | '/finance/users/$userId'
+    | '/promoters/$id/center'
     | '/system-settings/auth/$section'
     | '/system-settings/billing/$section'
     | '/system-settings/content/$section'
@@ -1004,6 +1040,8 @@ export interface FileRouteTypes {
     | '/_authenticated/models/'
     | '/_authenticated/playground/'
     | '/_authenticated/profile/'
+    | '/_authenticated/promoter-center/'
+    | '/_authenticated/promoters/'
     | '/_authenticated/quotes/'
     | '/_authenticated/reconciliation/'
     | '/_authenticated/redemption-codes/'
@@ -1019,6 +1057,7 @@ export interface FileRouteTypes {
     | '/_authenticated/enterprise/bills/$id'
     | '/_authenticated/finance/bills/$billId'
     | '/_authenticated/finance/users/$userId'
+    | '/_authenticated/promoters/$id/center'
     | '/_authenticated/system-settings/auth/$section'
     | '/_authenticated/system-settings/billing/$section'
     | '/_authenticated/system-settings/content/$section'
@@ -1390,6 +1429,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedProfileIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/promoter-center/': {
+      id: '/_authenticated/promoter-center/'
+      path: '/promoter-center'
+      fullPath: '/promoter-center/'
+      preLoaderRoute: typeof AuthenticatedPromoterCenterIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/promoters/': {
+      id: '/_authenticated/promoters/'
+      path: '/promoters'
+      fullPath: '/promoters/'
+      preLoaderRoute: typeof AuthenticatedPromotersIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/quotes/': {
       id: '/_authenticated/quotes/'
       path: '/quotes'
@@ -1514,6 +1567,13 @@ declare module '@tanstack/react-router' {
       path: '/finance/users/$userId'
       fullPath: '/finance/users/$userId'
       preLoaderRoute: typeof AuthenticatedFinanceUsersUserIdRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/promoters/$id/center': {
+      id: '/_authenticated/promoters/$id/center'
+      path: '/promoters/$id/center'
+      fullPath: '/promoters/$id/center'
+      preLoaderRoute: typeof AuthenticatedPromotersIdCenterRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/system-settings/auth/': {
@@ -1745,6 +1805,8 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedModelsIndexRoute: typeof AuthenticatedModelsIndexRoute
   AuthenticatedPlaygroundIndexRoute: typeof AuthenticatedPlaygroundIndexRoute
   AuthenticatedProfileIndexRoute: typeof AuthenticatedProfileIndexRoute
+  AuthenticatedPromoterCenterIndexRoute: typeof AuthenticatedPromoterCenterIndexRoute
+  AuthenticatedPromotersIndexRoute: typeof AuthenticatedPromotersIndexRoute
   AuthenticatedQuotesIndexRoute: typeof AuthenticatedQuotesIndexRoute
   AuthenticatedReconciliationIndexRoute: typeof AuthenticatedReconciliationIndexRoute
   AuthenticatedRedemptionCodesIndexRoute: typeof AuthenticatedRedemptionCodesIndexRoute
@@ -1758,6 +1820,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedEnterpriseBillsIdRoute: typeof AuthenticatedEnterpriseBillsIdRoute
   AuthenticatedFinanceBillsBillIdRoute: typeof AuthenticatedFinanceBillsBillIdRoute
   AuthenticatedFinanceUsersUserIdRoute: typeof AuthenticatedFinanceUsersUserIdRoute
+  AuthenticatedPromotersIdCenterRoute: typeof AuthenticatedPromotersIdCenterRoute
   AuthenticatedEnterpriseBillsIndexRoute: typeof AuthenticatedEnterpriseBillsIndexRoute
 }
 
@@ -1790,6 +1853,8 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedModelsIndexRoute: AuthenticatedModelsIndexRoute,
   AuthenticatedPlaygroundIndexRoute: AuthenticatedPlaygroundIndexRoute,
   AuthenticatedProfileIndexRoute: AuthenticatedProfileIndexRoute,
+  AuthenticatedPromoterCenterIndexRoute: AuthenticatedPromoterCenterIndexRoute,
+  AuthenticatedPromotersIndexRoute: AuthenticatedPromotersIndexRoute,
   AuthenticatedQuotesIndexRoute: AuthenticatedQuotesIndexRoute,
   AuthenticatedReconciliationIndexRoute: AuthenticatedReconciliationIndexRoute,
   AuthenticatedRedemptionCodesIndexRoute:
@@ -1804,6 +1869,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedEnterpriseBillsIdRoute: AuthenticatedEnterpriseBillsIdRoute,
   AuthenticatedFinanceBillsBillIdRoute: AuthenticatedFinanceBillsBillIdRoute,
   AuthenticatedFinanceUsersUserIdRoute: AuthenticatedFinanceUsersUserIdRoute,
+  AuthenticatedPromotersIdCenterRoute: AuthenticatedPromotersIdCenterRoute,
   AuthenticatedEnterpriseBillsIndexRoute:
     AuthenticatedEnterpriseBillsIndexRoute,
 }

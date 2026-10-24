@@ -29,6 +29,7 @@ import { translateServerText } from '@/lib/server-error-message'
 import type { UsageLog } from '../data/schema'
 import type { LogOtherData } from '../types'
 import { buildQuotaAuditOperation } from './quota-audit-operation'
+import { TOKENFUNC_AUDIT_TEMPLATES } from './tokenfunc-audit-templates'
 
 export { normalizeTierLabel }
 
@@ -449,6 +450,7 @@ export function formatDuration(
  * translatable instead of being frozen to whatever language was written to DB.
  */
 const AUDIT_TEMPLATES: Record<string, string> = {
+  ...TOKENFUNC_AUDIT_TEMPLATES,
   'token.create': 'API token creation',
   'token.update': 'API token configuration update',
   'token.status_update': 'API token status update',

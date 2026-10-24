@@ -32,6 +32,7 @@ import {
   Key,
   LayoutDashboard,
   ListTodo,
+  Megaphone,
   MessageSquare,
   Radio,
   Scale,
@@ -176,6 +177,18 @@ export function useSidebarData(): SidebarData {
         ],
       },
       {
+        // 推广中心：仅推广人可见（见 use-sidebar-view）
+        id: 'promoter',
+        title: t('Promotion'),
+        items: [
+          {
+            title: t('Promoter Center'),
+            url: '/promoter-center',
+            icon: Megaphone,
+          },
+        ],
+      },
+      {
         // 管理员菜单（TokenFunc 二开）按「供给 → 客户 → 经营 → 运维」分组，一级项控制在 6 个
         id: 'admin',
         title: t('Admin'),
@@ -220,6 +233,10 @@ export function useSidebarData(): SidebarData {
               {
                 title: t('Redemption Codes'),
                 url: '/redemption-codes',
+              },
+              {
+                title: t('Promoters'),
+                url: '/promoters',
               },
             ],
           },

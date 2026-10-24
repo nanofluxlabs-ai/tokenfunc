@@ -1,0 +1,73 @@
+import { ADMIN_PROMOTER_BASE } from '@/features/promoter-center/api'
+import type { PromoterRangeParams } from '@/features/promoter-center/types'
+import { api } from '@/lib/api'
+
+import type {
+  ApiResponse,
+  PagedData,
+  PromoterBindResult,
+  PromoterBindingsResponse,
+  PromoterListItem,
+  PromoterProfile,
+} from './types'
+
+export async function listPromoters(params: {
+  keyword?: string
+  p: number
+  page_size: number
+}): Promise<ApiResponse<PagedData<PromoterListItem>>> {
+  const res = await api.get(ADMIN_PROMOTER_BASE, { params })
+  return res.data
+}
+
+export async function createPromoter(payload: {
+  user_id: number
+  remark: string
+}): Promise<ApiResponse<PromoterProfile>> {
+  const res = await api.post(ADMIN_PROMOTER_BASE, payload)
+  return res.data
+}
+
+export async function updatePromoterRemark(
+  id: number,
+  remark: string
+): Promise<ApiResponse> {
+  const res = await api.put(`${ADMIN_PROMOTER_BASE}/${id}`, { remark })
+  return res.data
+}
+
+export async function removePromoter(
+  id: number
+): Promise<ApiResponse<{ unbound_count: number }>> {
+  const res = await api.delete(`${ADMIN_PROMOTER_BASE}/${id}`)
+  return res.data
+}
+
+/** 绑定列表 = 管理员视图的名下用户（含邮箱 / 分组 / 操作人），区间缺省本月 */
+export async function listPromoterBindings(
+  id: number,
+  range?: PromoterRangeParams
+): Promise<ApiResponse<PromoterBindingsResponse>> {
+  const res = await api.get(`${ADMIN_PROMOTER_BASE}/${id}/bindings`, {
+    params: range,
+  })
+  return res.data
+}
+
+export async function bindPromoterUsers(
+  id: number,
+  payload: { inputs: string[]; include_history: boolean }
+): Promise<ApiResponse<PromoterBindResult>> {
+  const res = await api.post(`${ADMIN_PROMOTER_BASE}/${id}/bindings`, payload)
+  return res.data
+}
+
+export async function unbindPromoterUser(
+  id: number,
+  userId: number
+): Promise<ApiResponse> {
+  const res = await api.delete(
+    `${ADMIN_PROMOTER_BASE}/${id}/bindings/${userId}`
+  )
+  return res.data
+}

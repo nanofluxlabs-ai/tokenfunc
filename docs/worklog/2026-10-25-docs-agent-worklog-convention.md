@@ -2,7 +2,7 @@
 
 - 日期：2026-10-25
 - 分支：docs/agent-worklog-convention
-- PR：
+- PR：#31
 - 关键 commit：de2dd12fc
 
 ## 背景

@@ -2,7 +2,7 @@
 
 - 日期：2026-10-25
 - 分支：feat/promoter（base = feat/log-daily-rollup，PR #32）
-- PR：
+- PR：#33
 - 关键 commit：c5c1edabd（后端）、6226246e3（前端）
 
 ## 背景

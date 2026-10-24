@@ -2,8 +2,8 @@
 
 - 日期：2026-10-25
 - 分支：feat/log-daily-rollup
-- PR：
-- 关键 commit：
+- PR：#32
+- 关键 commit：4678c74e0
 
 ## 背景
 

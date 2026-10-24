@@ -155,7 +155,7 @@ Tasks that touch none of these (for example unrelated frontend work, authenticat
 
 **Documentation files:**
 
-- Do NOT add new files under `docs/` or any of its subdirectories unless the user explicitly requests it.
+- Do NOT add new files under `docs/` or any of its subdirectories unless the user explicitly requests it. Exception: worklog entries under `docs/worklog/` required by **TokenFunc Worklog** below.
 - Do NOT create or generate documentation files in this repository's plugin directories under `plugins/`, including `plugins/tasks/<plugin>/` and their subdirectories. This includes README files, changelogs, usage guides, and other documentation files, regardless of format.
 
 ### Frontend Rules
@@ -183,3 +183,17 @@ Tasks that touch none of these (for example unrelated frontend work, authenticat
 - If the current git user is not one of those historical core developers, explicitly state in the PR body that the code was AI-generated or AI-assisted.
 - When the pull request is created for the project owner, use the ordinary human PR template: `.github/PULL_REQUEST_TEMPLATE.md` for Chinese requests or `.github/PULL_REQUEST_TEMPLATE/en.md` for English requests. Project-owner pull requests MUST NOT use `.agents/github/PR.md` unless the owner explicitly asks for it.
 - For all other agent-created pull requests, fill `.agents/github/PR.md` as the entire PR body. Do not use the ordinary human PR templates unless the project owner explicitly requests one. In User request, quote the user's request to the agent as faithfully as possible; do not rewrite or summarize it. Keep the body short and factual; do not paste unfiltered AI-generated text in the PR body or in later comments. Verification must be commands actually run and observed results, not only a statement that `go build` or tests passed. If any required condition is not met, tell the user and do not open the PR.
+
+## TokenFunc Worklog
+
+Every branch or PR that changes code MUST include one worklog entry, written before the final commit and committed with the change. Pure Q&A and read-only investigation need none.
+
+- Path: `docs/worklog/YYYY-MM-DD-<type>-<slug>.md`
+  - `YYYY-MM-DD`: the date the change started.
+  - `<type>`: the commit prefix — `feat`, `fix`, `refactor`, `perf`, `chore`, or `docs`.
+  - `<slug>`: 2–5 lowercase English words joined by `-`, preferably the branch name. Append `-2`, `-3` on a same-day collision.
+  - Example: `docs/worklog/2026-10-25-fix-usage-log-cache-miss.md`
+- One file per change (branch / PR). Never append to a shared daily file; parallel agents would conflict.
+- Follow `docs/worklog/TEMPLATE.md`. Write in Chinese.
+- Record what git cannot: why the change was made, the root cause of a bug, the verification actually run, and leftovers (known issues, TODOs, temporary workarounds). Summarize the changes; do not paste diffs.
+- When follow-up commits land on the same branch, update the same entry instead of creating a new one.

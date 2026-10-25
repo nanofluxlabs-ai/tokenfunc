@@ -127,10 +127,24 @@ export async function listAdminBills(params: {
   status?: string
   bill_type?: string
   overdue?: 'true'
+  /** 只看出账时计数器与明细不一致的授信账单 */
+  reconcile?: 'diff'
   p?: number
   page_size?: number
 }): Promise<ApiResponse<PageData<Bill>>> {
   const res = await api.get('/api/admin/enterprise/bills', { params })
+  return res.data
+}
+
+/** 标记对账差异已人工核对（幂等） */
+export async function ackReconcileAlert(
+  billId: number,
+  note: string
+): Promise<ApiResponse<Bill>> {
+  const res = await api.post(
+    `/api/admin/enterprise/reconcile/alerts/${billId}/ack`,
+    { note }
+  )
   return res.data
 }
 

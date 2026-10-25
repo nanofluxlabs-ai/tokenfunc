@@ -369,7 +369,7 @@ func GetSelfFinanceTopupExport(c *gin.Context) {
 
 func AdminListFinanceBills(c *gin.Context) {
 	pageInfo := common.GetPageQuery(c)
-	filter := model.EnterpriseBillFilter{BillType: c.Query("bill_type"), Status: c.Query("status"), OverdueOnly: c.Query("overdue") == "true"}
+	filter := model.EnterpriseBillFilter{BillType: c.Query("bill_type"), Status: c.Query("status"), OverdueOnly: c.Query("overdue") == "true", ReconcileDiffOnly: c.Query("reconcile") == "diff"}
 	if id, err := strconv.Atoi(c.Query("enterprise_id")); err == nil && id > 0 {
 		filter.EnterpriseId = id
 	}

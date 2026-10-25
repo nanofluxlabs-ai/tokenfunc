@@ -29,7 +29,7 @@ func setupPromoterControllerPostgres(t *testing.T) {
 	require.NoError(t, err)
 	sqlDB, err := db.DB()
 	require.NoError(t, err)
-	tables := []any{&model.User{}, &model.Log{}, &model.Option{}, &model.Enterprise{}, &model.EnterpriseCreditPeriod{}, &model.EnterpriseBill{}, &model.LogDailyRollup{}, &model.Promoter{}, &model.PromoterBinding{}, &model.PromoterSettlement{}}
+	tables := []any{&model.User{}, &model.Log{}, &model.Option{}, &model.Enterprise{}, &model.EnterpriseCreditPeriod{}, &model.EnterpriseCreditNotifyRecord{}, &model.EnterpriseBill{}, &model.LogDailyRollup{}, &model.Promoter{}, &model.PromoterBinding{}, &model.PromoterSettlement{}}
 	previousDB, previousLogDB := model.DB, model.LOG_DB
 	previousMain, previousLog := common.MainDatabaseType(), common.LogDatabaseType()
 	// 审计日志会走用户缓存，测试进程没有 Redis 连接

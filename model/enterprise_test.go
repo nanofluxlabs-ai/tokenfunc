@@ -44,7 +44,7 @@ func setupEnterprisePostgres(t *testing.T) {
 
 var enterpriseTestTables = []any{
 	&User{}, &Token{}, &Enterprise{}, &EnterpriseTeam{}, &EnterpriseMember{}, &EnterpriseTokenAssignment{},
-	&EnterpriseCreditPeriod{}, &EnterpriseLedgerEntry{}, &EnterpriseUsageDaily{}, &EnterpriseBill{}, &EnterpriseTrialLead{},
+	&EnterpriseCreditPeriod{}, &EnterpriseCreditNotifyRecord{}, &EnterpriseLedgerEntry{}, &EnterpriseUsageDaily{}, &EnterpriseBill{}, &EnterpriseTrialLead{},
 }
 
 func createEnterpriseTestUser(t *testing.T, username string, role int) *User {
@@ -190,19 +190,42 @@ func TestEnterpriseCreditPeriodsAndUsage(t *testing.T) {
 	assert.Equal(t, EnterpriseBillingModeCredit, info.BillingMode)
 	assert.Equal(t, period.Id, info.OpenPeriodId)
 
-	// 额度内预扣成功并计入在途；超额预扣失败且不改变计数
-	ok, err := AddCreditUsage(period.Id, 600, 1, true)
+	// 额度内预扣成功并计入在途，同一条 UPDATE 用 RETURNING 带回更新后的计数；超额预扣失败且不改变计数
+	ok, state, err := AddCreditUsageReturning(period.Id, 600, 1, true)
 	require.NoError(t, err)
 	assert.True(t, ok)
-	ok, err = AddCreditUsage(period.Id, 500, 1, true)
+	assert.Equal(t, CreditUsageState{PeriodId: period.Id, UsedQuota: 600, LimitQuota: 1000}, state)
+	ok, state, err = AddCreditUsageReturning(period.Id, 500, 1, true)
 	require.NoError(t, err)
 	assert.False(t, ok)
+	assert.Zero(t, state)
+
+	// 预警发送权：同一期同一档只能抢到一次；上调额度后 warn 可再抢，exhausted 保留
+	claimed, err := ClaimCreditNotify(period.Id, CreditNotifyKindWarn, ent.Id)
+	require.NoError(t, err)
+	assert.True(t, claimed)
+	claimed, err = ClaimCreditNotify(period.Id, CreditNotifyKindWarn, ent.Id)
+	require.NoError(t, err)
+	assert.False(t, claimed)
+	claimed, err = ClaimCreditNotify(period.Id, CreditNotifyKindExhausted, ent.Id)
+	require.NoError(t, err)
+	assert.True(t, claimed)
 	period, _ = GetCreditPeriodById(period.Id)
 	assert.Equal(t, int64(600), period.UsedQuota)
 	assert.Equal(t, 1, period.InflightCount)
 
-	// 上调额度立即作用于当前期，之前失败的预扣现在成功
-	require.NoError(t, ConfigureEnterpriseCredit(ent.Id, EnterpriseCreditConfig{CycleType: EnterpriseCreditCycleFixedDays, CycleDays: 30, LimitQuota: 2000}, 1))
+	// 上调额度立即作用于当前期，之前失败的预扣现在成功；warn 发送记录被清、exhausted 保留
+	require.NoError(t, ConfigureEnterpriseCredit(ent.Id, EnterpriseCreditConfig{CycleType: EnterpriseCreditCycleFixedDays, CycleDays: 30, LimitQuota: 2000, AlertPercent: 90}, 1))
+	stored, err := GetEnterpriseById(ent.Id)
+	require.NoError(t, err)
+	assert.Equal(t, 90, stored.CreditAlertPercent)
+	claimed, err = ClaimCreditNotify(period.Id, CreditNotifyKindWarn, ent.Id)
+	require.NoError(t, err)
+	assert.True(t, claimed, "raising the limit re-arms the warn notification")
+	claimed, err = ClaimCreditNotify(period.Id, CreditNotifyKindExhausted, ent.Id)
+	require.NoError(t, err)
+	assert.False(t, claimed)
+	assert.ErrorIs(t, ConfigureEnterpriseCredit(ent.Id, EnterpriseCreditConfig{CycleType: EnterpriseCreditCycleFixedDays, CycleDays: 30, LimitQuota: 2000, AlertPercent: 100}, 1), ErrEnterpriseCreditConfig)
 	ok, err = AddCreditUsage(period.Id, 500, 1, true)
 	require.NoError(t, err)
 	assert.True(t, ok)
@@ -241,7 +264,10 @@ func TestEnterpriseCreditPeriodsAndUsage(t *testing.T) {
 
 	// 已出账的期再收到结算差额：记入当前 open 期并写跨期调整流水
 	require.NoError(t, DB.Model(&EnterpriseCreditPeriod{}).Where("id = ?", previous.Id).Update("status", EnterpriseCreditPeriodBilled).Error)
-	require.NoError(t, ApplyCreditSettlement(ent.Id, previous.Id, 70, 0))
+	carried, err := ApplyCreditSettlement(ent.Id, previous.Id, 70, 0)
+	require.NoError(t, err)
+	assert.Equal(t, next.Id, carried.PeriodId, "settlement after billing lands on the open period")
+	assert.Equal(t, int64(70), carried.UsedQuota)
 	next, _ = GetCreditPeriodById(next.Id)
 	assert.Equal(t, int64(70), next.UsedQuota)
 	entries, total, err := ListEnterpriseLedger(ent.Id, EnterpriseLedgerCrossPeriodAdjustment, 0, 10)
@@ -340,6 +366,37 @@ func TestEnterpriseCreditBillLifecycle(t *testing.T) {
 	again, err := IssueCreditBill(period.Id)
 	require.NoError(t, err)
 	assert.Equal(t, bill.Id, again.Id, "issuing twice must return the same bill")
+
+	// 对账差异：待处理列表 / 差异筛选 / 标记已核对（幂等，不覆盖首次备注）
+	alerts, total, err := ListReconcileAlerts(ReconcileAlertStatePending, 0, 0, 10)
+	require.NoError(t, err)
+	require.Equal(t, int64(1), total)
+	assert.Equal(t, bill.Id, alerts[0].BillId)
+	assert.Equal(t, "Bill Co", alerts[0].EnterpriseName)
+	assert.Equal(t, int64(999_900), alerts[0].DetailTotalQuota)
+	assert.Equal(t, int64(100), alerts[0].ReconcileDiffQuota)
+	_, total, err = ListEnterpriseBills(EnterpriseBillFilter{ReconcileDiffOnly: true}, 0, 10)
+	require.NoError(t, err)
+	assert.Equal(t, int64(1), total)
+	_, _, err = ListReconcileAlerts("bogus", 0, 0, 10)
+	assert.ErrorIs(t, err, ErrReconcileAlertState)
+	acked, err := AckReconcileAlert(bill.Id, 9, "  checked against raw logs  ")
+	require.NoError(t, err)
+	assert.Equal(t, 9, acked.ReconcileAckedBy)
+	assert.Equal(t, "checked against raw logs", acked.ReconcileAckNote)
+	assert.NotZero(t, acked.ReconcileAckedAt)
+	ackedAgain, err := AckReconcileAlert(bill.Id, 10, "someone else")
+	require.NoError(t, err)
+	assert.Equal(t, 9, ackedAgain.ReconcileAckedBy, "second ack is a no-op")
+	assert.Equal(t, acked.ReconcileAckedAt, ackedAgain.ReconcileAckedAt)
+	_, total, err = ListReconcileAlerts(ReconcileAlertStatePending, 0, 0, 10)
+	require.NoError(t, err)
+	assert.Zero(t, total)
+	_, total, err = ListReconcileAlerts(ReconcileAlertStateAcked, ent.Id, 0, 10)
+	require.NoError(t, err)
+	assert.Equal(t, int64(1), total)
+	_, err = AckReconcileAlert(bill.Id+1000, 9, "")
+	assert.ErrorIs(t, err, ErrEnterpriseResourceNotFound)
 	entries, _, err := ListEnterpriseLedger(ent.Id, EnterpriseLedgerBillIssued, 0, 10)
 	require.NoError(t, err)
 	require.Len(t, entries, 1)

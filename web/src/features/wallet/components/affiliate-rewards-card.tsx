@@ -25,6 +25,7 @@ import { Card, CardContent } from '@/components/ui/card'
 import { IconBadge } from '@/components/ui/icon-badge'
 import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
+import { PromoterSummaryRow } from '@/features/promoter-center/components/promoter-summary-row'
 import { formatQuota } from '@/lib/format'
 
 import type { UserWalletData } from '../types'
@@ -130,6 +131,8 @@ export function AffiliateRewardsCard({
             )}
           </p>
         ) : null}
+        {/* 推广人附加行（TokenFunc 二开）：非推广人为 null */}
+        <PromoterSummaryRow />
       </CardContent>
     </Card>
   )

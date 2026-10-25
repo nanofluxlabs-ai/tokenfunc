@@ -48,6 +48,11 @@ var auditContentTemplates = map[string]string{
 	"user.reset_passkey":        "Reset the user passkey",
 	"option.update":             "Updated system setting ${key}",
 
+	"promoter.create": "Set user ${username} (ID: ${user_id}) as promoter",
+	"promoter.remove": "Removed promoter ${username} (ID: ${user_id}) and unbound ${unbound} users",
+	"promoter.bind":   "Bound ${bound} users to promoter ${username} (ID: ${user_id})",
+	"promoter.unbind": "Unbound user ${target_username} (ID: ${target_user_id}) from promoter ${username}",
+
 	"option.passkey_domains":           "Updated Passkey domains: removed ${domains}; affected ${known}; unknown ${unknown}",
 	"option.passkey_domains_confirmed": "Confirmed removal of Passkey domains: ${domains}; affected ${known}; unknown ${unknown}",
 	"option.passkey_domains_blocked":   "Passkey domain change blocked: ${domains}; affected ${known}; unknown ${unknown}",

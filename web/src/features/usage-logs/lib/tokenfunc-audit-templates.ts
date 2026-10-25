@@ -1,0 +1,10 @@
+/** TokenFunc 二开的审计动作 → 英文模板（与 controller/audit.go auditContentTemplates 对应），并入上游 AUDIT_TEMPLATES */
+export const TOKENFUNC_AUDIT_TEMPLATES: Record<string, string> = {
+  'promoter.create': 'Set user {{username}} (ID: {{user_id}}) as promoter',
+  'promoter.remove':
+    'Removed promoter {{username}} (ID: {{user_id}}) and unbound {{unbound}} users',
+  'promoter.bind':
+    'Bound {{bound}} users to promoter {{username}} (ID: {{user_id}})',
+  'promoter.unbind':
+    'Unbound user {{target_username}} (ID: {{target_user_id}}) from promoter {{username}}',
+}

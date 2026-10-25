@@ -392,6 +392,8 @@ func migrateDB() error {
 		&ChannelHealthState{},
 		&ChannelHealthEvent{},
 		&LogDailyRollup{},
+		&Promoter{},
+		&PromoterBinding{},
 	)
 	if err != nil {
 		return err

@@ -1,9 +1,10 @@
-import { createFileRoute } from '@tanstack/react-router'
+import { createFileRoute, redirect } from '@tanstack/react-router'
 
-import { EnterpriseOrganization } from '@/features/enterprise-console'
-
+// 组织架构页已并入团队页；旧链接统一跳到 /enterprise/teams
 export const Route = createFileRoute('/_authenticated/enterprise/organization')(
   {
-    component: EnterpriseOrganization,
+    beforeLoad: () => {
+      throw redirect({ to: '/enterprise/teams', replace: true })
+    },
   }
 )

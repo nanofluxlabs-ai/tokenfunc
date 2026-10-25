@@ -16,6 +16,8 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
+import type { AxiosRequestConfig } from 'axios'
+
 import { api } from '@/lib/http-client'
 import { authRequestOptions, authResult } from '@/lib/secure-verification'
 import { requireServerSuccess } from '@/lib/server-error-message'
@@ -36,6 +38,19 @@ export {
 export type { AuthTokenRotation, RefreshOutcome } from '@/lib/auth-session'
 export { api }
 export type { ApiRequestConfig } from '@/lib/http-client'
+
+/**
+ * Request config carrying a step-up proof. A proof is single-use, so the
+ * request must never be replayed by the auth-refresh interceptor; it refreshes
+ * first instead.
+ */
+export function securityProofConfig(proofToken?: string): AxiosRequestConfig {
+  if (!proofToken) return {}
+  return {
+    headers: { 'X-Security-Proof': proofToken },
+    singleUseAuthorization: true,
+  }
+}
 
 // ============================================================================
 // User APIs

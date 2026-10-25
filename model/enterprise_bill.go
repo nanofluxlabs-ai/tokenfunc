@@ -341,19 +341,8 @@ func RegisterBillPayment(billId int64, amountUSD decimal.Decimal, operatorId int
 		if bill.Status != EnterpriseBillPaid {
 			return nil
 		}
-		// 锁序与其他路径一致（企业行 → 账期行）；账单行锁只在本函数与作废里用，不构成环
-		enterprise, err := lockEnterprise(tx, bill.EnterpriseId)
-		if err != nil {
-			return err
-		}
-		if enterprise.BillingMode != EnterpriseBillingModeCredit || enterprise.CreditCycleType != EnterpriseCreditCycleQuotaBased || enterprise.CreditAutoReset {
-			return nil
-		}
-		_, err = openNextCreditPeriodTx(tx, enterprise, now, operatorId, "bill_paid")
-		if errors.Is(err, ErrEnterpriseCreditPeriodAlreadyOpen) {
-			return nil
-		}
-		reopened = err == nil
+		var err error
+		reopened, err = reopenCreditPeriodAfterBillSettledTx(tx, bill.EnterpriseId, now, operatorId)
 		return err
 	})
 	if err != nil {
@@ -363,6 +352,24 @@ func RegisterBillPayment(billId int64, amountUSD decimal.Decimal, operatorId int
 		InvalidateEnterpriseBillingInfoByEnterprise(bill.EnterpriseId)
 	}
 	return &bill, nil
+}
+
+// reopenCreditPeriodAfterBillSettledTx 账单结清后，额度信用（auto_reset=false）用满待收款的企业在同一事务内开下一期恢复服务；
+// 其余计费模式或已有 open 期时什么都不做。收款与人工调账把账单调到结清共用这一步。
+// 锁序与其他路径一致（企业行 → 账期行）；账单行锁只在收款 / 调账 / 作废里用，不构成环。
+func reopenCreditPeriodAfterBillSettledTx(tx *gorm.DB, enterpriseId int, now int64, operatorId int) (bool, error) {
+	enterprise, err := lockEnterprise(tx, enterpriseId)
+	if err != nil {
+		return false, err
+	}
+	if enterprise.BillingMode != EnterpriseBillingModeCredit || enterprise.CreditCycleType != EnterpriseCreditCycleQuotaBased || enterprise.CreditAutoReset {
+		return false, nil
+	}
+	_, err = openNextCreditPeriodTx(tx, enterprise, now, operatorId, "bill_paid")
+	if errors.Is(err, ErrEnterpriseCreditPeriodAlreadyOpen) {
+		return false, nil
+	}
+	return err == nil, err
 }
 
 // VoidBill 作废未结清的账单（账期保持 billed，不会重新出账）
@@ -513,7 +520,8 @@ func GenerateMonthlyStatements(now int64) (int, error) {
 		if err := ledgerRange.Where("type = ?", EnterpriseLedgerTopup).Select("COALESCE(SUM(amount_quota), 0)").Scan(&topups).Error; err != nil {
 			return created, err
 		}
-		if err := DB.Model(&EnterpriseLedgerEntry{}).Where("enterprise_id = ? AND created_at >= ? AND created_at < ? AND type = ?", enterprise.Id, periodStart.Unix(), periodEnd.Unix(), EnterpriseLedgerAdjustment).
+		// 只有钱包调账（ref_type = wallet）动余额；账单调账 / 作废同为 adjustment 类型但 ref_type = bill，不进余额口径
+		if err := DB.Model(&EnterpriseLedgerEntry{}).Where("enterprise_id = ? AND created_at >= ? AND created_at < ? AND type = ? AND ref_type = ?", enterprise.Id, periodStart.Unix(), periodEnd.Unix(), EnterpriseLedgerAdjustment, EnterpriseLedgerRefWallet).
 			Select("COALESCE(SUM(amount_quota), 0)").Scan(&adjustments).Error; err != nil {
 			return created, err
 		}

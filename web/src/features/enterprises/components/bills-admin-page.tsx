@@ -3,7 +3,7 @@ import {
   useQuery,
   useQueryClient,
 } from '@tanstack/react-query'
-import { Ban, HandCoins, Settings2 } from 'lucide-react'
+import { Ban, HandCoins, Scale, Settings2 } from 'lucide-react'
 import { useState, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
@@ -18,6 +18,7 @@ import { handleServerError } from '@/lib/handle-server-error'
 import { requireServerSuccess } from '@/lib/server-error-message'
 
 import { listAdminBills, voidBill } from '../api'
+import { AdjustmentDialog } from './adjustment-dialog'
 import { BillPaymentDialog } from './bill-payment-dialog'
 import { SellerProfileDialog } from './seller-profile-dialog'
 
@@ -35,6 +36,7 @@ export function BillsAdminContent(props: {
   const [filter, setFilter] = useState<Filter>('unpaid')
   const [page, setPage] = useState(1)
   const [paying, setPaying] = useState<Bill | null>(null)
+  const [adjusting, setAdjusting] = useState<Bill | null>(null)
   const [voiding, setVoiding] = useState<Bill | null>(null)
   const [voidRemark, setVoidRemark] = useState('')
 
@@ -127,6 +129,14 @@ export function BillsAdminContent(props: {
               <Button
                 variant='ghost'
                 size='icon-sm'
+                aria-label={t('Adjust bill')}
+                onClick={() => setAdjusting(bill)}
+              >
+                <Scale />
+              </Button>
+              <Button
+                variant='ghost'
+                size='icon-sm'
                 aria-label={t('Void bill')}
                 onClick={() => setVoiding(bill)}
               >
@@ -161,6 +171,13 @@ export function BillsAdminContent(props: {
       <BillPaymentDialog
         bill={paying}
         onOpenChange={(open) => !open && setPaying(null)}
+        onSaved={refresh}
+      />
+      <AdjustmentDialog
+        open={adjusting !== null}
+        onOpenChange={(open) => !open && setAdjusting(null)}
+        enterpriseId={adjusting?.enterprise_id ?? 0}
+        bill={adjusting}
         onSaved={refresh}
       />
       <ConfirmDialog

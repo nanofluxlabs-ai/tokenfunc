@@ -124,7 +124,7 @@ export function useSidebarData(): SidebarData {
           },
           {
             title: t('Teams'),
-            url: '/enterprise/organization',
+            url: '/enterprise/teams',
             icon: Building2,
           },
           {

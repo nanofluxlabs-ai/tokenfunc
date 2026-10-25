@@ -2,8 +2,8 @@
 
 - 日期：2026-10-25
 - 分支：refactor/finance-daily-reader
-- PR：
-- 关键 commit：
+- PR：#34
+- 关键 commit：4c40d59d0
 
 ## 背景
 

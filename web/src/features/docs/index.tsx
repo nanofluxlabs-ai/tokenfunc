@@ -42,6 +42,9 @@ const DOC_PAGE_COMPONENTS: Record<string, ComponentType> = {
   'tools-workbuddy': lazy(() => import('./content/tools-workbuddy')),
   'tools-hermes': lazy(() => import('./content/tools-hermes')),
   'tools-openai-client': lazy(() => import('./content/tools-openai-client')),
+  'enterprise-integration': lazy(
+    () => import('./content/enterprise-integration')
+  ),
 }
 
 function DocsPageView(props: { slug: string }) {

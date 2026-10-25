@@ -182,8 +182,13 @@ export interface ListModelConsumptionsParams {
 // 用量明细（用户消耗详情 / 账单详情共用）
 // ---------------------------------------------------------------------------
 
-/** 用量接口的主体：管理员指定 user_id，个人财务对账只看本人 */
-export type UsageScope = { scope: 'admin'; user_id: number } | { scope: 'self' }
+/**
+ * 用量接口的主体：管理员指定 user_id，个人财务对账只看本人。
+ * 管理员看已出账账单时附 bill_id：账单已归档且账期 logs 已清理时后端改读账期包冻结件
+ */
+export type UsageScope =
+  | { scope: 'admin'; user_id: number; bill_id?: number }
+  | { scope: 'self' }
 
 export type UsageRangeParams = UsageScope & {
   ts_start: number
@@ -368,6 +373,10 @@ export interface FinanceBillContext {
   usage_ts_end: number
   /** 账期内已有原始日志被归档删除：明细区按实时 logs 计算会不完整 */
   logs_purged: boolean
+  /** 逐条明细的数据来源：实时 logs / 账期包冻结件 / logs 已清理但没有可读的冻结件 */
+  usage_source: UsageSource
 }
+
+export type UsageSource = 'live' | 'archive' | 'archive_unavailable'
 
 export type BillArchiveFile = 'statement' | 'raw-logs'

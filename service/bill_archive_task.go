@@ -18,8 +18,8 @@ import (
 
 // 账单账期包归档（TokenFunc 二开，仅 PostgreSQL）。事件驱动 + 低频兜底：
 //   - 出账成功后立即异步归档（ArchiveBillAsync）：生成 bills/{bill_no}/statement.csv.gz（对账单冻结件，与账单详情页
-//     「导出 CSV（含明细）」同一装配函数）与 raw-logs.csv.gz（企业主账号本账期的原始日志全列），上传核对后把登记写进
-//     ent_bills.archive_info 并置 archived_at；
+//     「导出 CSV（含明细）」同一装配函数）、statement.json.gz（同一载荷的 JSON 旁路件，供 logs 清理后的明细读取）
+//     与 raw-logs.csv.gz（企业主账号本账期的原始日志全列），上传核对后把登记写进 ent_bills.archive_info 并置 archived_at；
 //   - 每小时一轮兜底任务，只扫 archived_at = 0 的漏网账单（出账时对象存储抖动、进程重启、存量回填），每轮最多 10 张。
 //
 // 对象存储未配置时只记一次日志不归档。失败的账单按指数退避重试（1 小时起、封顶 24 小时），连续 3 次起通知管理员。
@@ -208,7 +208,26 @@ func ArchiveBill(ctx context.Context, bill *model.EnterpriseBill) (model.BillArc
 	}
 	statementBytes, statementSha, _, _ := statement.Finish()
 
-	// 2. 原始日志全列：企业主账号本账期全部类型的日志（员工无登录账号，消耗都落在主账号）
+	// 2. JSON 旁路件：同一载荷原样序列化，logs 清理后财务中心的逐条明细从这里读（见 bill_archive_read.go）
+	statementJSON, err := newArchiveFile()
+	if err != nil {
+		return info, err
+	}
+	defer statementJSON.Remove()
+	payloadJSON, err := common.Marshal(payload)
+	if err != nil {
+		return info, fmt.Errorf("marshal statement json: %w", err)
+	}
+	if _, err := statementJSON.Writer().Write(payloadJSON); err != nil {
+		return info, fmt.Errorf("write statement json: %w", err)
+	}
+	statementJSONKey := store.Key(model.BillArchiveObjectKey(bill.BillNo, model.BillArchiveFileStatementJSON)...)
+	if err := statementJSON.Upload(ctx, store, statementJSONKey, metadata); err != nil {
+		return info, err
+	}
+	statementJSONBytes, statementJSONSha, _, _ := statementJSON.Finish()
+
+	// 3. 原始日志全列：企业主账号本账期全部类型的日志（员工无登录账号，消耗都落在主账号）
 	raw, err := newArchiveFile()
 	if err != nil {
 		return info, err
@@ -226,8 +245,9 @@ func ArchiveBill(ctx context.Context, bill *model.EnterpriseBill) (model.BillArc
 
 	info = model.BillArchiveInfo{
 		Statement:     &model.BillArchiveObject{Key: statementKey, Bytes: statementBytes, Sha256: statementSha, Rows: int64(len(payload.Details))},
+		StatementJSON: &model.BillArchiveObject{Key: statementJSONKey, Bytes: statementJSONBytes, Sha256: statementJSONSha, Rows: int64(len(payload.Details))},
 		RawLogs:       &model.BillArchiveObject{Key: rawKey, Bytes: rawBytes, Sha256: rawSha, Rows: stats.Rows},
-		SchemaVersion: LogArchiveSchemaVersion,
+		SchemaVersion: model.BillArchiveSchemaVersion,
 		ArchivedAt:    common.GetTimestamp(),
 	}
 	if err := model.MarkBillArchived(bill.Id, info); err != nil {
@@ -235,7 +255,7 @@ func ArchiveBill(ctx context.Context, bill *model.EnterpriseBill) (model.BillArc
 	}
 	raw0, _ := common.Marshal(info)
 	bill.ArchiveInfo, bill.ArchivedAt = model.JSONValue(raw0), info.ArchivedAt
-	common.SysLog(fmt.Sprintf("bill archive %s: statement=%dB detail_rows=%d raw_rows=%d raw=%dB", bill.BillNo, statementBytes, len(payload.Details), stats.Rows, rawBytes))
+	common.SysLog(fmt.Sprintf("bill archive %s: statement=%dB statement_json=%dB detail_rows=%d raw_rows=%d raw=%dB", bill.BillNo, statementBytes, statementJSONBytes, len(payload.Details), stats.Rows, rawBytes))
 	return info, nil
 }
 
@@ -257,5 +277,5 @@ func OpenBillArchiveObject(ctx context.Context, bill *model.EnterpriseBill, file
 	if err != nil {
 		return nil, 0, "", err
 	}
-	return body, info.Size, bill.BillNo + "-" + file + ".csv.gz", nil
+	return body, info.Size, bill.BillNo + "-" + model.BillArchiveObjectName(file), nil
 }

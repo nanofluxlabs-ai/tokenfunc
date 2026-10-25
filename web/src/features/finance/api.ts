@@ -34,6 +34,9 @@ function usageRequest(params: UsageRangeParams, path: string) {
   }
   if (params.scope === 'admin') {
     query.user_id = params.user_id
+    if (params.bill_id) {
+      query.bill_id = params.bill_id
+    }
     return { url: `${FINANCE_BASE}${path}`, query }
   }
   return { url: `${SELF_FINANCE_BASE}${path}`, query }

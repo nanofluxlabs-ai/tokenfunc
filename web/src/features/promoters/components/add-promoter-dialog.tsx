@@ -5,13 +5,14 @@ import { toast } from 'sonner'
 
 import { Dialog } from '@/components/dialog'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { handleServerError } from '@/lib/handle-server-error'
 import { requireServerSuccess } from '@/lib/server-error-message'
 
 import { createPromoter } from '../api'
-import type { PickedUser } from '../types'
+import { EMPTY_PROMOTER_FIELDS } from '../constants'
+import type { PickedUser, PromoterEditableFields } from '../types'
+import { PromoterFields } from './promoter-fields'
 import { usePromoters } from './promoters-provider'
 import { UserPicker } from './user-picker'
 
@@ -25,18 +26,24 @@ export function AddPromoterDialog(props: AddPromoterDialogProps) {
   const { t } = useTranslation()
   const { triggerRefresh } = usePromoters()
   const [user, setUser] = useState<PickedUser | null>(null)
-  const [remark, setRemark] = useState('')
+  const [fields, setFields] = useState<PromoterEditableFields>(
+    EMPTY_PROMOTER_FIELDS
+  )
 
   const close = () => {
     setUser(null)
-    setRemark('')
+    setFields(EMPTY_PROMOTER_FIELDS)
     props.onOpenChange(false)
   }
   const mutation = useMutation({
     mutationFn: async () => {
       if (!user) throw new Error(t('Select user'))
       return requireServerSuccess(
-        await createPromoter({ user_id: user.id, remark: remark.trim() })
+        await createPromoter({
+          user_id: user.id,
+          remark: fields.remark.trim(),
+          share_rate: fields.share_rate,
+        })
       )
     },
     onSuccess: () => {
@@ -74,16 +81,7 @@ export function AddPromoterDialog(props: AddPromoterDialogProps) {
           <Label htmlFor='promoter-user'>{t('User')}</Label>
           <UserPicker id='promoter-user' value={user} onChange={setUser} />
         </div>
-        <div className='flex flex-col gap-2'>
-          <Label htmlFor='promoter-remark'>{t('Remark')}</Label>
-          <Input
-            id='promoter-remark'
-            value={remark}
-            maxLength={255}
-            onChange={(event) => setRemark(event.target.value)}
-            placeholder={t('Optional, e.g. channel or contact')}
-          />
-        </div>
+        <PromoterFields value={fields} onChange={setFields} />
       </div>
     </Dialog>
   )

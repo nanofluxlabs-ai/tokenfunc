@@ -14,6 +14,8 @@ export interface PromoterProfile {
   display_name: string
   aff_code: string
   remark: string
+  /** 分成比例（百分比，0 = 未设置），只做标识 */
+  share_rate: number
   created_at: number
 }
 
@@ -102,4 +104,48 @@ export type PromoterScope =
 /** YYYY-MM-DD 闭区间；缺省时后端取本月 1 日 → 今天 */
 export type PromoterRangeParams = { start: string; end: string } | undefined
 
-export type PromoterCenterTab = 'daily' | 'users' | 'models'
+export type PromoterCenterTab = 'daily' | 'users' | 'models' | 'settlements'
+
+/** 已落库的结算记录；reference / settled_by 只在管理员视图下发 */
+export interface PromoterSettlementRecord {
+  id: number
+  /** 实付金额（USD 字符串）；未填为 null */
+  amount_usd: string | null
+  remark: string
+  settled_at: number
+  reference?: string
+  settled_by?: number
+  settled_by_username?: string
+}
+
+/** 某月某个绑定用户的消耗；has_credit 为 false 时两个授信桶无意义 */
+export interface PromoterSettlementUser {
+  user_id: number
+  username: string
+  display_name: string
+  deleted: boolean
+  is_enterprise: boolean
+  net_quota: number
+  has_credit: boolean
+  credit_paid_quota: number
+  credit_unpaid_quota: number
+}
+
+/** 一个自然月：整月口径的净消耗、授信拆分、结算状态与按用户子行 */
+export interface PromoterSettlementMonth {
+  month: string
+  settleable: boolean
+  net_quota: number
+  credit_paid_quota: number
+  credit_unpaid_quota: number
+  /** 仅管理员：待回款中已核销账单的部分 */
+  credit_void_quota?: number
+  settled: boolean
+  settlement?: PromoterSettlementRecord
+  users: PromoterSettlementUser[]
+}
+
+/** 结算列表参数：按区间列月份，或 all=true 列推广人创建月至今 */
+export type PromoterSettlementParams =
+  | { start: string; end: string }
+  | { all: true }

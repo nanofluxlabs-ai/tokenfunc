@@ -23,14 +23,16 @@ const (
 )
 
 type Promoter struct {
-	Id        int    `json:"id"`
-	UserId    int    `json:"user_id" gorm:"not null;uniqueIndex:uk_tf_promoter_active,where:removed_at IS NULL"`
-	Remark    string `json:"remark" gorm:"type:varchar(255);not null;default:''"`
-	CreatedBy int    `json:"created_by" gorm:"not null;default:0"`
-	CreatedAt int64  `json:"created_at" gorm:"not null;default:0"`
-	UpdatedAt int64  `json:"updated_at" gorm:"not null;default:0"`
-	RemovedAt *int64 `json:"removed_at"`
-	RemovedBy int    `json:"removed_by" gorm:"not null;default:0"`
+	Id     int    `json:"id"`
+	UserId int    `json:"user_id" gorm:"not null;uniqueIndex:uk_tf_promoter_active,where:removed_at IS NULL"`
+	Remark string `json:"remark" gorm:"type:varchar(255);not null;default:''"`
+	// ShareRate 分成比例（百分比，0 = 未设置）；只做标识，不参与任何计算
+	ShareRate float64 `json:"share_rate" gorm:"type:numeric(5,2);not null;default:0"`
+	CreatedBy int     `json:"created_by" gorm:"not null;default:0"`
+	CreatedAt int64   `json:"created_at" gorm:"not null;default:0"`
+	UpdatedAt int64   `json:"updated_at" gorm:"not null;default:0"`
+	RemovedAt *int64  `json:"removed_at"`
+	RemovedBy int     `json:"removed_by" gorm:"not null;default:0"`
 }
 
 func (Promoter) TableName() string { return "tf_promoters" }
@@ -115,6 +117,19 @@ func ListAllActivePromoterUserIds() ([]int, error) {
 // CreatePromoter 新增推广人；活跃记录已存在时返回唯一冲突错误，由调用方翻译
 func CreatePromoter(promoter *Promoter) error {
 	return DB.Create(promoter).Error
+}
+
+// UpdatePromoter 修改活跃推广人的备注与分成比例；记录不存在或已移除返回 gorm.ErrRecordNotFound
+func UpdatePromoter(id int, remark string, shareRate float64, now int64) error {
+	result := DB.Model(&Promoter{}).Where("id = ? AND removed_at IS NULL", id).
+		Updates(map[string]any{"remark": remark, "share_rate": shareRate, "updated_at": now})
+	if result.Error != nil {
+		return result.Error
+	}
+	if result.RowsAffected == 0 {
+		return gorm.ErrRecordNotFound
+	}
+	return nil
 }
 
 // RemovePromoterWithBindings 一个事务内软移除推广人并解绑名下全部活跃用户；返回解绑数

@@ -36,6 +36,7 @@ import type {
 } from '../types'
 import { DailyTab } from './daily-tab'
 import { ModelsTab } from './models-tab'
+import { SettlementsTab } from './settlements-tab'
 import { UserUsageSheet } from './user-usage-sheet'
 import { UsersTab } from './users-tab'
 
@@ -151,6 +152,15 @@ export function PromoterCenterPage(props: PromoterCenterPageProps) {
                 'Consumption of users bound to this promoter, net of refunds. Users who signed up through the referral link are bound automatically.'
               )}
             </p>
+            {profile && (
+              <p className='text-muted-foreground -mt-2 text-sm'>
+                {profile.share_rate > 0 &&
+                  `${t('Share rate {{rate}}%', { rate: profile.share_rate })}. `}
+                {t(
+                  'Payouts are calculated on net profit after operating and resource costs; the settlement records are authoritative.'
+                )}
+              </p>
+            )}
             <div className='grid gap-3 sm:grid-cols-2 lg:grid-cols-4'>
               <MetricCard
                 label={t('Bound users')}
@@ -223,6 +233,13 @@ export function PromoterCenterPage(props: PromoterCenterPageProps) {
                     items={models.data?.items ?? []}
                     loading={models.isLoading}
                     fetching={models.isFetching}
+                  />
+                )}
+                {tab === 'settlements' && (
+                  <SettlementsTab
+                    scope={props.scope}
+                    range={rangeParams}
+                    enabled={tab === 'settlements'}
                   />
                 )}
               </>

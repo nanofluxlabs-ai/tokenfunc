@@ -6,13 +6,38 @@ import {
   getPromoterOverview,
   getPromoterUserUsage,
   listPromoterModels,
+  listPromoterSettlements,
   listPromoterUsers,
 } from '../api'
 import { PROMOTER_QUERY_KEY } from '../constants'
-import type { PromoterRangeParams, PromoterScope } from '../types'
+import type {
+  PromoterRangeParams,
+  PromoterScope,
+  PromoterSettlementParams,
+} from '../types'
 
 function scopeKey(scope: PromoterScope) {
   return scope.scope === 'admin' ? ['admin', scope.promoterId] : ['self']
+}
+
+/** 结算列表的 query key 前缀（标记 / 撤销后用它失效缓存） */
+export function promoterSettlementsKey(scope: PromoterScope) {
+  return [PROMOTER_QUERY_KEY, ...scopeKey(scope), 'settlements']
+}
+
+export function usePromoterSettlements(
+  scope: PromoterScope,
+  params: PromoterSettlementParams,
+  enabled = true
+) {
+  return useQuery({
+    queryKey: [...promoterSettlementsKey(scope), params],
+    queryFn: async () =>
+      requireServerSuccess(await listPromoterSettlements(scope, params)).data
+        ?.items ?? [],
+    enabled,
+    placeholderData: keepPreviousData,
+  })
 }
 
 export function usePromoterOverview(

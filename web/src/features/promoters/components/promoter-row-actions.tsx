@@ -1,5 +1,5 @@
 import { Link } from '@tanstack/react-router'
-import { BarChart3, Trash2, Users2 } from 'lucide-react'
+import { BarChart3, Pencil, ReceiptText, Trash2, Users2 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
 import { Button } from '@/components/ui/button'
@@ -17,6 +17,24 @@ export function PromoterRowActions(props: { promoter: PromoterListItem }) {
   const { setOpen, setCurrentRow } = usePromoters()
   return (
     <div className='-ml-1.5 flex items-center gap-1'>
+      <Tooltip>
+        <TooltipTrigger
+          render={
+            <Button
+              variant='ghost'
+              size='icon-sm'
+              onClick={() => {
+                setCurrentRow(props.promoter)
+                setOpen('edit')
+              }}
+              aria-label={t('Edit promoter')}
+            />
+          }
+        >
+          <Pencil />
+        </TooltipTrigger>
+        <TooltipContent>{t('Edit promoter')}</TooltipContent>
+      </Tooltip>
       <Tooltip>
         <TooltipTrigger
           render={
@@ -51,6 +69,24 @@ export function PromoterRowActions(props: { promoter: PromoterListItem }) {
           }
         />
         <TooltipContent>{t('Promoter Center')}</TooltipContent>
+      </Tooltip>
+      <Tooltip>
+        <TooltipTrigger
+          render={
+            <Button
+              variant='ghost'
+              size='icon-sm'
+              onClick={() => {
+                setCurrentRow(props.promoter)
+                setOpen('settlements')
+              }}
+              aria-label={t('Settlements')}
+            />
+          }
+        >
+          <ReceiptText />
+        </TooltipTrigger>
+        <TooltipContent>{t('Settlements')}</TooltipContent>
       </Tooltip>
       <Tooltip>
         <TooltipTrigger

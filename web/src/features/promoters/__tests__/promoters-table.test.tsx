@@ -30,6 +30,7 @@ async function renderTable() {
           display_name: 'Promo',
           aff_code: 'PRM',
           remark: 'offline channel',
+          share_rate: 20,
           created_at: 1_700_000_000,
           email: 'promo@example.com',
           deleted: false,
@@ -81,6 +82,16 @@ test('renders the toolbar search and the promoter rows with bound count and mont
   expect(
     screen.getAllByRole('button', { name: 'Manage bindings' })[0]
   ).toHaveTextContent('4')
+  // 列头是「本月消耗」而不是上游的「This month」（中文译文「本月获得」会被当成收入）
+  expect(
+    screen.getByRole('columnheader', { name: 'Month consumption' })
+  ).toBeInTheDocument()
+  expect(screen.queryByText('This month')).toBeNull()
+  // 分成比例列只做标识，按百分比显示
+  expect(
+    screen.getByRole('columnheader', { name: 'Share rate' })
+  ).toBeInTheDocument()
+  expect(screen.getByText('20%')).toBeInTheDocument()
   expect(apiMock.listPromoters).toHaveBeenCalledWith({
     keyword: undefined,
     p: 1,

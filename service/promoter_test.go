@@ -8,6 +8,7 @@ import (
 	"github.com/QuantumNous/new-api/common"
 	"github.com/QuantumNous/new-api/model"
 
+	"github.com/shopspring/decimal"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"gorm.io/driver/postgres"
@@ -25,7 +26,7 @@ func setupPromoterPostgres(t *testing.T) {
 	require.NoError(t, err)
 	sqlDB, err := db.DB()
 	require.NoError(t, err)
-	tables := []any{&model.User{}, &model.Log{}, &model.Option{}, &model.Enterprise{}, &model.LogDailyRollup{}, &model.Promoter{}, &model.PromoterBinding{}}
+	tables := []any{&model.User{}, &model.Log{}, &model.Option{}, &model.Enterprise{}, &model.EnterpriseCreditPeriod{}, &model.EnterpriseBill{}, &model.LogDailyRollup{}, &model.Promoter{}, &model.PromoterBinding{}, &model.PromoterSettlement{}}
 	previousDB, previousLogDB := model.DB, model.LOG_DB
 	previousMain, previousLog := common.MainDatabaseType(), common.LogDatabaseType()
 	model.DB, model.LOG_DB = db, db
@@ -67,14 +68,25 @@ func TestPromoterRulesAndLifecycle(t *testing.T) {
 	bob := newPromoterTestUser(t, "bob", common.RoleCommonUser)
 
 	// 设为推广人：管理员不行、不存在不行、重复不行
-	assert.Equal(t, errPromoterAdmin, messageKey(t, func() error { _, err := SetPromoter(operator, admin.Id, ""); return err }()))
-	assert.Equal(t, errPromoterUserMissing, messageKey(t, func() error { _, err := SetPromoter(operator, 99999, ""); return err }()))
-	promoter, err := SetPromoter(operator, promoterUser.Id, " 线下渠道 ")
+	assert.Equal(t, errPromoterAdmin, messageKey(t, func() error { _, err := SetPromoter(operator, admin.Id, "", 0); return err }()))
+	assert.Equal(t, errPromoterUserMissing, messageKey(t, func() error { _, err := SetPromoter(operator, 99999, "", 0); return err }()))
+	assert.Equal(t, errPromoterShareRate, messageKey(t, func() error { _, err := SetPromoter(operator, promoterUser.Id, "", 100.5); return err }()))
+	promoter, err := SetPromoter(operator, promoterUser.Id, " 线下渠道 ", 20.125)
 	require.NoError(t, err)
 	assert.Equal(t, "线下渠道", promoter.Remark)
-	assert.Equal(t, errPromoterExists, messageKey(t, func() error { _, err := SetPromoter(operator, promoterUser.Id, ""); return err }()))
-	otherPromoter, err := SetPromoter(operator, otherPromoterUser.Id, "")
+	assert.Equal(t, 20.13, promoter.ShareRate, "share rate keeps two decimals")
+	assert.Equal(t, errPromoterExists, messageKey(t, func() error { _, err := SetPromoter(operator, promoterUser.Id, "", 0); return err }()))
+	otherPromoter, err := SetPromoter(operator, otherPromoterUser.Id, "", 0)
 	require.NoError(t, err)
+
+	// 修改备注与分成比例：越界拒绝、成功后库里与内存对象一致
+	assert.Equal(t, errPromoterShareRate, messageKey(t, UpdatePromoter(promoter, "x", -1)))
+	require.NoError(t, UpdatePromoter(promoter, " 新备注 ", 15))
+	stored, err := model.GetActivePromoterById(promoter.Id)
+	require.NoError(t, err)
+	assert.Equal(t, "新备注", stored.Remark)
+	assert.Equal(t, float64(15), stored.ShareRate)
+	assert.Equal(t, float64(15), promoter.ShareRate)
 
 	// 批量绑定：自己 / 管理员 / 不存在 失败，alice 成功，同一批重复输入只算一次；不含历史 → usage_since > 0
 	before := common.GetTimestamp()
@@ -134,8 +146,9 @@ func TestPromoterRulesAndLifecycle(t *testing.T) {
 	assert.ErrorIs(t, err, gorm.ErrRecordNotFound)
 	_, err = model.GetActiveBindingByUserId(bob.Id)
 	assert.ErrorIs(t, err, gorm.ErrRecordNotFound)
-	_, err = SetPromoter(operator, promoterUser.Id, "again")
+	_, err = SetPromoter(operator, promoterUser.Id, "again", 0)
 	require.NoError(t, err)
+	assert.Equal(t, errPromoterNotFound, messageKey(t, UpdatePromoter(promoter, "stale", 1)), "removed promoter cannot be updated")
 	_ = otherPromoter
 }
 
@@ -143,7 +156,7 @@ func TestBindPromoterOnRegister(t *testing.T) {
 	setupPromoterPostgres(t)
 	promoterUser := newPromoterTestUser(t, "promo", common.RoleCommonUser)
 	plainInviter := newPromoterTestUser(t, "plain", common.RoleCommonUser)
-	_, err := SetPromoter(1, promoterUser.Id, "")
+	_, err := SetPromoter(1, promoterUser.Id, "", 0)
 	require.NoError(t, err)
 
 	// 邀请人不是推广人：不绑
@@ -181,7 +194,7 @@ func TestPromoterCenterStats(t *testing.T) {
 	eve := newPromoterTestUser(t, "eve", common.RoleCommonUser)     // usage_since 在区间中间
 	outsider := newPromoterTestUser(t, "outsider", common.RoleCommonUser)
 	require.NoError(t, model.DB.Create(&model.Enterprise{UserId: carol.Id, Name: "Carol Inc", BillingMode: "prepaid", Currency: "USD"}).Error)
-	promoter, err := SetPromoter(1, promoterUser.Id, "")
+	promoter, err := SetPromoter(1, promoterUser.Id, "", 0)
 	require.NoError(t, err)
 
 	logAt := func(user *model.User, logType int, modelName string, quota int, prompt int, completion int, at int64) {
@@ -261,4 +274,164 @@ func TestPromoterCenterStats(t *testing.T) {
 	byPromoter, err := PromoterNetQuotaByPromoter([]int{promoterUser.Id, 424242}, r)
 	require.NoError(t, err)
 	assert.Equal(t, map[int]int64{promoterUser.Id: 2700 + 1500 + 400}, byPromoter)
+}
+
+func TestPromoterSettlementMonths(t *testing.T) {
+	setupPromoterPostgres(t)
+	loc := model.BillingLocation()
+	at := func(month time.Month, day int, hour int) int64 {
+		return time.Date(2026, month, day, hour, 0, 0, 0, loc).Unix()
+	}
+	admin := newPromoterTestUser(t, "admin", common.RoleAdminUser)
+	promoterUser := newPromoterTestUser(t, "promo", common.RoleCommonUser)
+	alice := newPromoterTestUser(t, "alice", common.RoleCommonUser) // 预付用户
+	carol := newPromoterTestUser(t, "carol", common.RoleCommonUser) // 授信企业主账号
+	eve := newPromoterTestUser(t, "eve", common.RoleCommonUser)     // usage_since 在 3 月中间
+	dave := newPromoterTestUser(t, "dave", common.RoleCommonUser)   // 0 消耗
+	promoter, err := SetPromoter(admin.Id, promoterUser.Id, "", 20)
+	require.NoError(t, err)
+
+	// 授信企业 carol：账期 A（2 月，已出账已付）/ B（3-01～3-11，已出账已核销）/ C（3-11 起，进行中）
+	enterprise := &model.Enterprise{UserId: carol.Id, Name: "Carol Inc", BillingMode: model.EnterpriseBillingModeCredit, Currency: "USD"}
+	require.NoError(t, model.DB.Create(enterprise).Error)
+	newBill := func(no string, periodId int64, status string) int64 {
+		bill := &model.EnterpriseBill{BillNo: no, EnterpriseId: enterprise.Id, PeriodId: periodId, BillType: model.EnterpriseBillTypeCredit, Status: status, IssuedAt: at(time.March, 1, 0), CreatedAt: 1, UpdatedAt: 1}
+		require.NoError(t, model.DB.Create(bill).Error)
+		return bill.Id
+	}
+	newPeriod := func(no int, start int64, end int64, status string) *model.EnterpriseCreditPeriod {
+		period := &model.EnterpriseCreditPeriod{EnterpriseId: enterprise.Id, PeriodNo: no, StartAt: start, EndAt: end, Status: status, LimitQuota: 1, CreatedAt: 1, UpdatedAt: 1}
+		require.NoError(t, model.DB.Create(period).Error)
+		return period
+	}
+	periodA := newPeriod(1, at(time.February, 1, 0), at(time.March, 1, 0), model.EnterpriseCreditPeriodBilled)
+	periodB := newPeriod(2, at(time.March, 1, 0), at(time.March, 11, 0), model.EnterpriseCreditPeriodBilled)
+	newPeriod(3, at(time.March, 11, 0), at(time.April, 1, 0), model.EnterpriseCreditPeriodOpen)
+	require.NoError(t, model.DB.Model(periodA).Update("bill_id", newBill("B-A", periodA.Id, model.EnterpriseBillPaid)).Error)
+	require.NoError(t, model.DB.Model(periodB).Update("bill_id", newBill("B-B", periodB.Id, model.EnterpriseBillVoid)).Error)
+
+	logAt := func(user *model.User, logType int, quota int, ts int64) {
+		require.NoError(t, model.LOG_DB.Create(&model.Log{UserId: user.Id, Username: user.Username, Type: logType, ModelName: "gpt-4o", Group: "default", Quota: quota, PromptTokens: 10, CompletionTokens: 5, CreatedAt: ts}).Error)
+	}
+	// 2-28、3-10、3-11、3-12 四天
+	for _, day := range []int64{at(time.February, 28, 9), at(time.March, 10, 9), at(time.March, 11, 9), at(time.March, 12, 9)} {
+		logAt(alice, model.LogTypeConsume, 1000, day)
+		logAt(alice, model.LogTypeRefund, 100, day+60)
+		logAt(carol, model.LogTypeConsume, 500, day+120)
+		logAt(eve, model.LogTypeConsume, 200, day+180)
+	}
+	bind := func(user *model.User, usageSince int64) {
+		require.NoError(t, model.CreatePromoterBinding(&model.PromoterBinding{PromoterUserId: promoterUser.Id, UserId: user.Id, Source: model.PromoterBindingSourceAdmin, BoundBy: admin.Id, BoundAt: at(time.March, 5, 0), UsageSince: usageSince}))
+	}
+	bind(alice, 0)
+	bind(carol, 0)
+	bind(dave, 0)
+	bind(eve, at(time.March, 11, 15))
+	// 2-28 / 3-10 走预聚合，之后实时
+	for _, day := range []string{"2026-02-28", "2026-03-10"} {
+		_, err := model.RollupLogDay(day)
+		require.NoError(t, err)
+	}
+	require.NoError(t, model.SetLogRollupCursor("2026-03-10"))
+
+	// 月份工具
+	r, err := model.ParseFinanceDayRange("2026-02-20", "2026-03-12")
+	require.NoError(t, err)
+	assert.Equal(t, []string{"2026-03", "2026-02"}, PromoterMonthsInRange(r))
+	assert.Equal(t, []string{"2026-04", "2026-03"}, PromoterAllMonths(at(time.March, 5, 0), time.Date(2026, 4, 15, 0, 0, 0, 0, loc)))
+	assert.Equal(t, []string{"2026-03"}, PromoterAllMonths(at(time.March, 5, 0), time.Date(2026, 3, 20, 0, 0, 0, 0, loc)))
+
+	// 推广人视图：3 月未结束 → 不可结算；核销数不下发
+	months, err := ListPromoterSettlementMonths(promoter, PromoterMonthsInRange(r), time.Date(2026, 3, 20, 0, 0, 0, 0, loc), false)
+	require.NoError(t, err)
+	require.Len(t, months, 2)
+	march, feb := months[0], months[1]
+	assert.Equal(t, "2026-03", march.Month)
+	assert.False(t, march.Settleable)
+	assert.True(t, feb.Settleable)
+	// 3 月：alice 900×3 + carol 500×3 + eve 200×2（3-10 被 usage_since 截掉）
+	assert.Equal(t, int64(2700+1500+400), march.NetQuota)
+	assert.Equal(t, int64(0), march.CreditPaidQuota)
+	assert.Equal(t, int64(1500), march.CreditUnpaidQuota, "B 已核销 500 + C 进行中 1000 都算待回款")
+	assert.Equal(t, int64(0), march.CreditVoidQuota, "self view hides the void split")
+	// 2 月：alice 900 + carol 500（A 已付）；eve 被截掉
+	assert.Equal(t, int64(900+500), feb.NetQuota)
+	assert.Equal(t, int64(500), feb.CreditPaidQuota)
+	assert.Equal(t, int64(0), feb.CreditUnpaidQuota)
+	// 与推广中心同月区间的净消耗一致，用户子行之和等于月合计
+	marchRange, err := PromoterSettlementMonthRange("2026-03")
+	require.NoError(t, err)
+	overview, err := GetPromoterCenterOverview(promoter, marchRange)
+	require.NoError(t, err)
+	assert.Equal(t, overview.Summary.NetQuota, march.NetQuota)
+	require.Len(t, march.Users, 3)
+	assert.Equal(t, []string{"alice", "carol", "eve"}, []string{march.Users[0].Username, march.Users[1].Username, march.Users[2].Username})
+	var usersNet int64
+	for _, user := range march.Users {
+		usersNet += user.NetQuota
+	}
+	assert.Equal(t, march.NetQuota, usersNet)
+	assert.False(t, march.Users[0].HasCredit)
+	assert.True(t, march.Users[1].HasCredit)
+	assert.True(t, march.Users[1].IsEnterprise)
+	assert.Equal(t, int64(1500), march.Users[1].CreditUnpaidQuota)
+
+	// 管理员视图看到核销数
+	adminMonths, err := ListPromoterSettlementMonths(promoter, []string{"2026-03"}, time.Date(2026, 4, 15, 0, 0, 0, 0, loc), true)
+	require.NoError(t, err)
+	assert.Equal(t, int64(500), adminMonths[0].CreditVoidQuota)
+	assert.True(t, adminMonths[0].Settleable)
+
+	// 标记：非法月份 / 当前月 / 负金额 拒绝；成功后快照正确；重复标记报已结算
+	now := time.Date(2026, 4, 15, 10, 0, 0, 0, loc)
+	assert.Equal(t, errPromoterMonthInvalid, messageKey(t, func() error {
+		_, err := MarkPromoterSettled(admin.Id, promoter, "2026-3", decimal.NullDecimal{}, "", "", now)
+		return err
+	}()))
+	assert.Equal(t, errPromoterMonthNotSettleable, messageKey(t, func() error {
+		_, err := MarkPromoterSettled(admin.Id, promoter, "2026-04", decimal.NullDecimal{}, "", "", now)
+		return err
+	}()))
+	assert.Equal(t, errPromoterAmountNegative, messageKey(t, func() error {
+		_, err := MarkPromoterSettled(admin.Id, promoter, "2026-03", decimal.NewNullDecimal(decimal.NewFromInt(-1)), "", "", now)
+		return err
+	}()))
+	settled, err := MarkPromoterSettled(admin.Id, promoter, "2026-03", decimal.NewNullDecimal(decimal.NewFromFloat(61.5)), " TX-1 ", " note ", now)
+	require.NoError(t, err)
+	assert.Equal(t, int64(4600), settled.NetQuotaSnapshot)
+	assert.Equal(t, int64(1500), settled.CreditUnpaidSnapshot)
+	assert.Equal(t, float64(20), settled.ShareRateSnapshot)
+	assert.Equal(t, "TX-1", settled.Reference)
+	assert.Equal(t, "note", settled.Remark)
+	assert.Equal(t, errPromoterMonthSettled, messageKey(t, func() error {
+		_, err := MarkPromoterSettled(admin.Id, promoter, "2026-03", decimal.NullDecimal{}, "", "", now)
+		return err
+	}()))
+
+	// 列表：已结算；推广人视图不带流水号 / 操作人，管理员视图带
+	months, err = ListPromoterSettlementMonths(promoter, []string{"2026-03"}, now, false)
+	require.NoError(t, err)
+	require.True(t, months[0].Settled)
+	require.NotNil(t, months[0].Settlement)
+	assert.True(t, months[0].Settlement.AmountUSD.Decimal.Equal(decimal.NewFromFloat(61.5)))
+	assert.Equal(t, "note", months[0].Settlement.Remark)
+	assert.Empty(t, months[0].Settlement.Reference)
+	assert.Empty(t, months[0].Settlement.SettledByUsername)
+	adminMonths, err = ListPromoterSettlementMonths(promoter, []string{"2026-03"}, now, true)
+	require.NoError(t, err)
+	assert.Equal(t, "TX-1", adminMonths[0].Settlement.Reference)
+	assert.Equal(t, "admin", adminMonths[0].Settlement.SettledByUsername)
+
+	// 撤销：回到待结算，记录留痕；再撤销报无记录；再次标记插入新行
+	require.NoError(t, RevertPromoterSettlement(admin.Id, promoter, "2026-03", now))
+	months, err = ListPromoterSettlementMonths(promoter, []string{"2026-03"}, now, false)
+	require.NoError(t, err)
+	assert.False(t, months[0].Settled)
+	assert.Equal(t, errPromoterSettlementMissing, messageKey(t, RevertPromoterSettlement(admin.Id, promoter, "2026-03", now)))
+	again, err := MarkPromoterSettled(admin.Id, promoter, "2026-03", decimal.NullDecimal{}, "", "", now)
+	require.NoError(t, err)
+	assert.NotEqual(t, settled.Id, again.Id)
+	var historyRows int64
+	require.NoError(t, model.DB.Model(&model.PromoterSettlement{}).Where("promoter_user_id = ? AND month = ?", promoterUser.Id, "2026-03").Count(&historyRows).Error)
+	assert.Equal(t, int64(2), historyRows, "revert keeps the old row")
 }

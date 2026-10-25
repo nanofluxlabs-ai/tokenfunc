@@ -20,6 +20,7 @@ func registerPromoterRoutes(apiRouter *gin.RouterGroup) {
 		centerRoute.GET("/users", controller.ListPromoterCenterUsers)
 		centerRoute.GET("/models", controller.ListPromoterCenterModels)
 		centerRoute.GET("/users/:user_id/usage", controller.GetPromoterCenterUserUsage)
+		centerRoute.GET("/settlements", controller.ListPromoterCenterSettlements)
 	}
 
 	adminRoute := apiRouter.Group("/admin/promoter")
@@ -30,6 +31,7 @@ func registerPromoterRoutes(apiRouter *gin.RouterGroup) {
 		oneRoute := adminRoute.Group("/promoters/:id")
 		oneRoute.Use(middleware.PromoterFromParam())
 		{
+			oneRoute.PUT("", controller.AdminUpdatePromoter)
 			oneRoute.DELETE("", controller.AdminRemovePromoter)
 			oneRoute.GET("/bindings", controller.ListPromoterCenterUsers)
 			oneRoute.POST("/bindings", controller.AdminBindPromoterUsers)
@@ -38,6 +40,9 @@ func registerPromoterRoutes(apiRouter *gin.RouterGroup) {
 			oneRoute.GET("/center/users", controller.ListPromoterCenterUsers)
 			oneRoute.GET("/center/models", controller.ListPromoterCenterModels)
 			oneRoute.GET("/center/users/:user_id/usage", controller.GetPromoterCenterUserUsage)
+			oneRoute.GET("/center/settlements", controller.ListPromoterCenterSettlements)
+			oneRoute.POST("/settlements", controller.AdminMarkPromoterSettled)
+			oneRoute.DELETE("/settlements/:month", controller.AdminRevertPromoterSettlement)
 		}
 	}
 }

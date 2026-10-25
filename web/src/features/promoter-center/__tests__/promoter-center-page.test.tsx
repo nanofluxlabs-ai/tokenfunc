@@ -33,6 +33,7 @@ function overviewPayload(boundUserCount: number) {
       display_name: 'Promo',
       aff_code: 'PRM7',
       remark: '',
+      share_rate: 12.5,
       created_at: 0,
     },
     range: { start: 0, end_excl: 0, start_day: '', end_day: '' },
@@ -161,6 +162,16 @@ test('self scope reads the self center endpoints and exposes the referral link c
   ).toBeInTheDocument()
 })
 
+test('shows the share rate with the net-profit disclaimer when a rate is configured', async () => {
+  await renderPage({ scope: 'self' })
+  expect(await screen.findByText(/Share rate 12\.5%/)).toBeInTheDocument()
+  expect(
+    screen.getByText(
+      /calculated on net profit after operating and resource costs/
+    )
+  ).toBeInTheDocument()
+})
+
 test('shows the empty state instead of tabs when the promoter has no bound users', async () => {
   await renderPage({ scope: 'self' }, 0)
   expect(await screen.findByText('No bound users yet')).toBeInTheDocument()
@@ -174,6 +185,22 @@ test('switching tab writes the tab key to the URL search', async () => {
   )
   await waitFor(() =>
     expect(router.state.location.search).toMatchObject({ tab: 'users' })
+  )
+})
+
+test('the settlements tab writes tab=settlements to the URL and requests the settlements for the applied range', async () => {
+  const { router, getSpy } = await renderPage({ scope: 'self' })
+  await userEvent.click(await screen.findByRole('tab', { name: 'Settlements' }))
+  await waitFor(() =>
+    expect(router.state.location.search).toMatchObject({ tab: 'settlements' })
+  )
+  await waitFor(() =>
+    expect(getSpy).toHaveBeenCalledWith(
+      '/api/promoter/center/settlements',
+      expect.objectContaining({
+        params: expect.objectContaining({ start: expect.any(String) }),
+      })
+    )
   )
 })
 

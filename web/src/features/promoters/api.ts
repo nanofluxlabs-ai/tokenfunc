@@ -4,9 +4,11 @@ import { api } from '@/lib/api'
 
 import type {
   ApiResponse,
+  MarkSettledPayload,
   PagedData,
   PromoterBindResult,
   PromoterBindingsResponse,
+  PromoterEditableFields,
   PromoterListItem,
   PromoterProfile,
 } from './types'
@@ -20,11 +22,18 @@ export async function listPromoters(params: {
   return res.data
 }
 
-export async function createPromoter(payload: {
-  user_id: number
-  remark: string
-}): Promise<ApiResponse<PromoterProfile>> {
+export async function createPromoter(
+  payload: PromoterEditableFields & { user_id: number }
+): Promise<ApiResponse<PromoterProfile>> {
   const res = await api.post(ADMIN_PROMOTER_BASE, payload)
+  return res.data
+}
+
+export async function updatePromoter(
+  id: number,
+  payload: PromoterEditableFields
+): Promise<ApiResponse<PromoterProfile>> {
+  const res = await api.put(`${ADMIN_PROMOTER_BASE}/${id}`, payload)
   return res.data
 }
 
@@ -60,6 +69,27 @@ export async function unbindPromoterUser(
 ): Promise<ApiResponse> {
   const res = await api.delete(
     `${ADMIN_PROMOTER_BASE}/${id}/bindings/${userId}`
+  )
+  return res.data
+}
+
+export async function markPromoterSettled(
+  id: number,
+  payload: MarkSettledPayload
+): Promise<ApiResponse> {
+  const res = await api.post(
+    `${ADMIN_PROMOTER_BASE}/${id}/settlements`,
+    payload
+  )
+  return res.data
+}
+
+export async function revertPromoterSettlement(
+  id: number,
+  month: string
+): Promise<ApiResponse> {
+  const res = await api.delete(
+    `${ADMIN_PROMOTER_BASE}/${id}/settlements/${month}`
   )
   return res.data
 }

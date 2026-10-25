@@ -23,6 +23,8 @@ export function PromotersTable() {
   const {
     globalFilter,
     onGlobalFilterChange,
+    columnFilters,
+    onColumnFiltersChange,
     pagination,
     onPaginationChange,
     ensurePageInRange,
@@ -59,10 +61,13 @@ export function PromotersTable() {
     data: data?.items || [],
     columns,
     getRowId: (row) => String(row.id),
+    // 工具栏读 table 状态里的 columnFilters，必须传空数组而不是省略
+    columnFilters,
     globalFilter,
     pagination,
     onPaginationChange,
     onGlobalFilterChange,
+    onColumnFiltersChange,
     manualPagination: true,
     manualFiltering: true,
     totalCount: data?.total || 0,

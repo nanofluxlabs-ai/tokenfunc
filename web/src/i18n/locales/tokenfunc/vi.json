@@ -1375,6 +1375,23 @@
     "optional holder": "optional holder",
     "overview, teams, API keys, usage report and bills. Team admins and developers see only their own team.": "overview, teams, API keys, usage report and bills. Team admins and developers see only their own team.",
     "quota, periodic reset, model & IP allowlists": "quota, periodic reset, model & IP allowlists",
-    "team": "team"
+    "team": "team",
+    "Fixed quota": "Hạn mức cố định",
+    "Periodic quota": "Hạn mức định kỳ",
+    "A one-off amount. Raise it manually when it runs out.": "Số tiền một lần. Tăng thủ công khi dùng hết.",
+    "Restored to the period amount every day, week, month or custom interval.": "Tự động khôi phục về hạn mức mỗi ngày, tuần, tháng hoặc chu kỳ tùy chỉnh.",
+    "Reset period": "Chu kỳ đặt lại",
+    "No periodic quota": "Không đặt hạn mức định kỳ",
+    "Custom period (hours)": "Chu kỳ tùy chỉnh (giờ)",
+    "Period quota ({{currency}})": "Hạn mức chu kỳ ({{currency}})",
+    "Next reset: {{time}}": "Lần đặt lại tiếp theo: {{time}}",
+    "Resets {{time}}": "Đặt lại lúc {{time}}",
+    "The remaining quota is set to the period amount immediately and restored at every reset.": "Hạn mức còn lại được đặt ngay bằng hạn mức chu kỳ và khôi phục ở mỗi lần đặt lại.",
+    "Period quota must be greater than 0": "Hạn mức chu kỳ phải lớn hơn 0",
+    "Custom period must be between 1 and 8784 hours": "Chu kỳ tùy chỉnh phải từ 1 đến 8784 giờ",
+    "Set periodic quota": "Đặt hạn mức định kỳ",
+    "Set periodic quota for {{count}} keys": "Đặt hạn mức định kỳ cho {{count}} khóa",
+    "Set periodic quota for selected": "Đặt hạn mức định kỳ cho mục đã chọn",
+    "Periodic quota saved": "Đã lưu hạn mức định kỳ"
   }
 }

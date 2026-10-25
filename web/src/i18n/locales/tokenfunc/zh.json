@@ -1375,6 +1375,23 @@
     "optional holder": "可选持有人",
     "overview, teams, API keys, usage report and bills. Team admins and developers see only their own team.": "概览、团队、API 密钥、用量报表与账单。团队管理员与开发者只能看到本团队。",
     "quota, periodic reset, model & IP allowlists": "额度、周期限额、模型与 IP 白名单",
-    "team": "团队"
+    "team": "团队",
+    "Fixed quota": "固定额度",
+    "Periodic quota": "周期限额",
+    "A one-off amount. Raise it manually when it runs out.": "一次性额度，用完后需手动调高。",
+    "Restored to the period amount every day, week, month or custom interval.": "每日 / 每周 / 每月或自定义周期自动恢复到周期额度。",
+    "Reset period": "重置周期",
+    "No periodic quota": "不设周期限额",
+    "Custom period (hours)": "自定义周期（小时）",
+    "Period quota ({{currency}})": "周期额度（{{currency}}）",
+    "Next reset: {{time}}": "下次重置：{{time}}",
+    "Resets {{time}}": "{{time}} 重置",
+    "The remaining quota is set to the period amount immediately and restored at every reset.": "保存后剩余额度立即等于周期额度，之后每到重置时刻自动恢复。",
+    "Period quota must be greater than 0": "周期额度必须大于 0",
+    "Custom period must be between 1 and 8784 hours": "自定义周期须在 1～8784 小时之间",
+    "Set periodic quota": "设置周期限额",
+    "Set periodic quota for {{count}} keys": "为 {{count}} 把密钥设置周期限额",
+    "Set periodic quota for selected": "为所选设置周期限额",
+    "Periodic quota saved": "周期限额已保存"
   }
 }

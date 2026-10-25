@@ -1375,6 +1375,23 @@
     "optional holder": "optional holder",
     "overview, teams, API keys, usage report and bills. Team admins and developers see only their own team.": "overview, teams, API keys, usage report and bills. Team admins and developers see only their own team.",
     "quota, periodic reset, model & IP allowlists": "quota, periodic reset, model & IP allowlists",
-    "team": "team"
+    "team": "team",
+    "Fixed quota": "Фиксированная квота",
+    "Periodic quota": "Периодическая квота",
+    "A one-off amount. Raise it manually when it runs out.": "Разовая сумма. Увеличьте вручную, когда она закончится.",
+    "Restored to the period amount every day, week, month or custom interval.": "Восстанавливается до суммы периода каждый день, неделю, месяц или через заданный интервал.",
+    "Reset period": "Период сброса",
+    "No periodic quota": "Без периодической квоты",
+    "Custom period (hours)": "Пользовательский период (часы)",
+    "Period quota ({{currency}})": "Квота периода ({{currency}})",
+    "Next reset: {{time}}": "Следующий сброс: {{time}}",
+    "Resets {{time}}": "Сброс {{time}}",
+    "The remaining quota is set to the period amount immediately and restored at every reset.": "Остаток квоты сразу устанавливается равным сумме периода и восстанавливается при каждом сбросе.",
+    "Period quota must be greater than 0": "Квота периода должна быть больше 0",
+    "Custom period must be between 1 and 8784 hours": "Пользовательский период должен быть от 1 до 8784 часов",
+    "Set periodic quota": "Задать периодическую квоту",
+    "Set periodic quota for {{count}} keys": "Задать периодическую квоту для {{count}} ключей",
+    "Set periodic quota for selected": "Задать периодическую квоту для выбранных",
+    "Periodic quota saved": "Периодическая квота сохранена"
   }
 }

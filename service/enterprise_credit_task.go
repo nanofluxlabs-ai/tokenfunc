@@ -68,5 +68,12 @@ func runEnterpriseCreditTaskOnce() {
 	if rolled > 0 {
 		logger.LogInfo(ctx, fmt.Sprintf("enterprise credit periods rolled over: %d", rolled))
 	}
+	// 员工 key 周期限额（M4）：到点把 remain_quota 恢复到周期额度
+	reset, err := model.ResetDueTokenQuotaPolicies(now)
+	if err != nil {
+		logger.LogWarn(ctx, fmt.Sprintf("enterprise token quota reset failed after %d keys: %v", reset, err))
+	} else if reset > 0 {
+		logger.LogInfo(ctx, fmt.Sprintf("enterprise token periodic quotas reset: %d", reset))
+	}
 	runEnterpriseBillingOnce(ctx, now)
 }

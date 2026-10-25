@@ -384,6 +384,7 @@ func migrateDB() error {
 		&EnterpriseTeam{},
 		&EnterpriseMember{},
 		&EnterpriseTokenAssignment{},
+		&EnterpriseTokenQuotaPolicy{},
 		&EnterpriseCreditPeriod{},
 		&EnterpriseLedgerEntry{},
 		&EnterpriseUsageDaily{},

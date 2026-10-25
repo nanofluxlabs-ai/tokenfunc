@@ -41,6 +41,8 @@ func newEnterpriseConsoleRouter() *gin.Engine {
 	console.POST("/tokens/:id/key", GetEnterpriseTokenKey)
 	console.POST("/tokens/batch-status", BatchUpdateEnterpriseTokenStatus)
 	console.POST("/tokens/batch-delete", BatchDeleteEnterpriseTokens)
+	console.PUT("/tokens/:id/quota-policy", SetEnterpriseTokenQuotaPolicy)
+	console.POST("/tokens/batch-quota-policy", BatchSetEnterpriseTokenQuotaPolicy)
 	return router
 }
 
@@ -192,7 +194,7 @@ func TestEnterpriseConsoleTokenManagement(t *testing.T) {
 	setupAccessTokenAudit(t)
 	// GetUserGroup / 列表 SELECT 用到带引号的 group / key 列名
 	model.InitColumnNames()
-	require.NoError(t, model.DB.AutoMigrate(&model.Token{}, &model.Ability{}, &model.Enterprise{}, &model.EnterpriseTeam{}, &model.EnterpriseMember{}, &model.EnterpriseTokenAssignment{}, &model.EnterpriseUsageDaily{}))
+	require.NoError(t, model.DB.AutoMigrate(&model.Token{}, &model.Ability{}, &model.Enterprise{}, &model.EnterpriseTeam{}, &model.EnterpriseMember{}, &model.EnterpriseTokenAssignment{}, &model.EnterpriseTokenQuotaPolicy{}, &model.EnterpriseUsageDaily{}))
 	require.NoError(t, model.DB.Create(&model.Ability{Group: "default", Model: "gpt-4o", ChannelId: 1, Enabled: true}).Error)
 	owner := &model.User{Username: "key-owner", Password: "placeholder", Role: common.RoleCommonUser, Status: common.UserStatusEnabled, Group: "default", AuthVersion: 1, AffCode: "key-own"}
 	require.NoError(t, model.DB.Create(owner).Error)
@@ -267,6 +269,47 @@ func TestEnterpriseConsoleTokenManagement(t *testing.T) {
 	assert.Equal(t, float64(1500), row["month_quota"])
 	assert.Equal(t, "Research", row["team_name"])
 	assert.Equal(t, "gpt-4o", row["model_limits"])
+	assert.Equal(t, "", row["reset_period"], "no periodic quota yet")
+
+	// 周期限额：团队管理员给本团队的 key 设每日 $1 → 立刻 remain_quota = $1、不限关闭，列表透出策略；
+	// 自定义周期越界拒绝；混入范围外 id 整批 404；never 删策略但保留当前额度
+	code, body = call("PUT", "/api/enterprise/tokens/"+itoa(keyId)+"/quota-policy", leadToken, `{"reset_period":"daily","period_quota":500000}`)
+	require.Equal(t, http.StatusOK, code)
+	require.Equal(t, true, body["success"], body["message"])
+	withPolicy, err := model.GetTokenById(keyId)
+	require.NoError(t, err)
+	assert.Equal(t, 500000, withPolicy.RemainQuota)
+	assert.False(t, withPolicy.UnlimitedQuota)
+	code, body = call("GET", "/api/enterprise/tokens?member_id="+itoa(alice.Id), ownerToken, "")
+	require.Equal(t, http.StatusOK, code)
+	row = dataOf(body)["items"].([]any)[0].(map[string]any)
+	assert.Equal(t, "daily", row["reset_period"])
+	assert.Equal(t, float64(500000), row["period_quota"])
+	assert.Greater(t, row["next_reset_at"].(float64), float64(time.Now().Unix()))
+	code, body = call("PUT", "/api/enterprise/tokens/"+itoa(keyId)+"/quota-policy", ownerToken, `{"reset_period":"custom","custom_seconds":60,"period_quota":1}`)
+	require.Equal(t, http.StatusOK, code)
+	assert.Equal(t, false, body["success"], "custom period below one hour is rejected")
+	code, body = call("POST", "/api/enterprise/tokens", ownerToken, `{"name":"qa-weekly","unlimited_quota":true,"team_id":`+itoa(qa.Id)+`,"quota_policy":{"reset_period":"weekly","period_quota":250000}}`)
+	require.Equal(t, http.StatusOK, code)
+	require.Equal(t, true, body["success"], body["message"])
+	weeklyId := int(dataOf(body)["id"].(float64))
+	weekly, err := model.GetTokenById(weeklyId)
+	require.NoError(t, err)
+	assert.Equal(t, 250000, weekly.RemainQuota, "a key created with a policy starts at the period quota")
+	code, _ = call("POST", "/api/enterprise/tokens/batch-quota-policy", leadToken, `{"token_ids":[`+itoa(keyId)+`,`+itoa(weeklyId)+`],"reset_period":"monthly","period_quota":1000}`)
+	assert.Equal(t, http.StatusNotFound, code, "a QA key is outside the Research lead's scope")
+	code, body = call("POST", "/api/enterprise/tokens/batch-quota-policy", ownerToken, `{"token_ids":[`+itoa(keyId)+`,`+itoa(weeklyId)+`],"reset_period":"never"}`)
+	require.Equal(t, http.StatusOK, code)
+	require.Equal(t, true, body["success"], body["message"])
+	var policyCount int64
+	require.NoError(t, model.DB.Model(&model.EnterpriseTokenQuotaPolicy{}).Count(&policyCount).Error)
+	assert.Zero(t, policyCount)
+	weekly, err = model.GetTokenById(weeklyId)
+	require.NoError(t, err)
+	assert.Equal(t, 250000, weekly.RemainQuota, "never keeps the quota as a fixed quota")
+	code, body = call("POST", "/api/enterprise/tokens/batch-delete", ownerToken, `{"ids":[`+itoa(weeklyId)+`]}`)
+	require.Equal(t, http.StatusOK, code)
+	require.Equal(t, true, body["success"], body["message"])
 
 	// 编辑：改名 + 挪到 QA 团队公共 key + 固定额度 0（之后不能启用）
 	code, body = call("PUT", "/api/enterprise/tokens/"+itoa(keyId), ownerToken, `{"name":"qa-key","unlimited_quota":false,"remain_quota":0,"team_id":`+itoa(qa.Id)+`}`)

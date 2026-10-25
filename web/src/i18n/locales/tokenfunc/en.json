@@ -1375,6 +1375,23 @@
     "optional holder": "optional holder",
     "overview, teams, API keys, usage report and bills. Team admins and developers see only their own team.": "overview, teams, API keys, usage report and bills. Team admins and developers see only their own team.",
     "quota, periodic reset, model & IP allowlists": "quota, periodic reset, model & IP allowlists",
-    "team": "team"
+    "team": "team",
+    "Fixed quota": "Fixed quota",
+    "Periodic quota": "Periodic quota",
+    "A one-off amount. Raise it manually when it runs out.": "A one-off amount. Raise it manually when it runs out.",
+    "Restored to the period amount every day, week, month or custom interval.": "Restored to the period amount every day, week, month or custom interval.",
+    "Reset period": "Reset period",
+    "No periodic quota": "No periodic quota",
+    "Custom period (hours)": "Custom period (hours)",
+    "Period quota ({{currency}})": "Period quota ({{currency}})",
+    "Next reset: {{time}}": "Next reset: {{time}}",
+    "Resets {{time}}": "Resets {{time}}",
+    "The remaining quota is set to the period amount immediately and restored at every reset.": "The remaining quota is set to the period amount immediately and restored at every reset.",
+    "Period quota must be greater than 0": "Period quota must be greater than 0",
+    "Custom period must be between 1 and 8784 hours": "Custom period must be between 1 and 8784 hours",
+    "Set periodic quota": "Set periodic quota",
+    "Set periodic quota for {{count}} keys": "Set periodic quota for {{count}} keys",
+    "Set periodic quota for selected": "Set periodic quota for selected",
+    "Periodic quota saved": "Periodic quota saved"
   }
 }

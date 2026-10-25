@@ -33,6 +33,34 @@ type enterpriseTokenRequest struct {
 	Group          string   `json:"group"`
 	ModelLimits    []string `json:"model_limits"`
 	AllowIps       string   `json:"allow_ips"`
+	// 周期限额（M4）：省略时不动现有策略；reset_period=never 删除策略；其余写入即施行（额度取 period_quota）
+	QuotaPolicy *enterpriseTokenQuotaPolicyRequest `json:"quota_policy"`
+}
+
+// enterpriseTokenQuotaPolicyRequest 周期限额：daily / weekly / monthly / custom（custom_seconds 1 小时～366 天）/ never
+type enterpriseTokenQuotaPolicyRequest struct {
+	ResetPeriod   string `json:"reset_period"`
+	CustomSeconds int    `json:"custom_seconds"`
+	PeriodQuota   int64  `json:"period_quota"`
+}
+
+type enterpriseTokenBatchQuotaPolicyRequest struct {
+	TokenIds []int `json:"token_ids"`
+	enterpriseTokenQuotaPolicyRequest
+}
+
+func (req enterpriseTokenQuotaPolicyRequest) input() model.TokenQuotaPolicyInput {
+	return model.TokenQuotaPolicyInput{ResetPeriod: strings.TrimSpace(req.ResetPeriod), CustomSeconds: req.CustomSeconds, PeriodQuota: req.PeriodQuota}
+}
+
+// validateEnterpriseTokenQuotaPolicy 校验策略；失败时已写响应
+func validateEnterpriseTokenQuotaPolicy(c *gin.Context, req enterpriseTokenQuotaPolicyRequest) (model.TokenQuotaPolicyInput, bool) {
+	input := req.input()
+	if err := input.Validate(int64(maxTokenQuota())); err != nil {
+		common.ApiErrorMsg(c, err.Error())
+		return input, false
+	}
+	return input, true
 }
 
 type enterpriseTokenAssignmentRequest struct {
@@ -204,6 +232,14 @@ func CreateEnterpriseToken(c *gin.Context) {
 	if !ok {
 		return
 	}
+	var quotaPolicy *model.TokenQuotaPolicyInput
+	if req.QuotaPolicy != nil {
+		input, ok := validateEnterpriseTokenQuotaPolicy(c, *req.QuotaPolicy)
+		if !ok {
+			return
+		}
+		quotaPolicy = &input
+	}
 	teamId, ok := resolveScopedTeam(c, req.TeamId)
 	if !ok {
 		return
@@ -238,7 +274,7 @@ func CreateEnterpriseToken(c *gin.Context) {
 		ModelLimits:        policy.modelLimits,
 		AllowIps:           &allowIps,
 	}
-	if err := model.CreateEnterpriseToken(enterprise.Id, currentScope(c), token, teamId, req.MemberId); err != nil {
+	if err := model.CreateEnterpriseTokenWithPolicy(enterprise.Id, currentScope(c), token, teamId, req.MemberId, quotaPolicy); err != nil {
 		enterpriseApiError(c, err)
 		return
 	}
@@ -266,6 +302,14 @@ func UpdateEnterpriseToken(c *gin.Context) {
 	policy, ok := validateEnterpriseTokenRequest(c, enterprise, &req)
 	if !ok {
 		return
+	}
+	var quotaPolicy *model.TokenQuotaPolicyInput
+	if req.QuotaPolicy != nil {
+		input, ok := validateEnterpriseTokenQuotaPolicy(c, *req.QuotaPolicy)
+		if !ok {
+			return
+		}
+		quotaPolicy = &input
 	}
 	token, assignment, err := model.GetEnterpriseToken(enterprise.Id, enterprise.UserId, currentScope(c), id)
 	if err != nil {
@@ -297,8 +341,67 @@ func UpdateEnterpriseToken(c *gin.Context) {
 		common.ApiError(c, err)
 		return
 	}
+	// 周期限额紧随字段更新写入（never 只删策略，保留上面写入的固定额度 / 不限）
+	if quotaPolicy != nil {
+		if err := model.SetTokenQuotaPolicies(enterprise.Id, enterprise.UserId, currentScope(c), []int{token.Id}, *quotaPolicy); err != nil {
+			enterpriseApiError(c, err)
+			return
+		}
+	}
 	recordEnterpriseConsoleAudit(c, "enterprise.token.update", map[string]any{"token_id": token.Id, "name": token.Name, "team_id": teamId, "member_id": req.MemberId})
 	common.ApiSuccess(c, nil)
+}
+
+// SetEnterpriseTokenQuotaPolicy 给一把 key 设 / 删周期限额：写入即施行（remain_quota 立刻等于周期额度）
+func SetEnterpriseTokenQuotaPolicy(c *gin.Context) {
+	id, ok := paramId(c)
+	if !ok {
+		return
+	}
+	var req enterpriseTokenQuotaPolicyRequest
+	if err := common.DecodeJson(c.Request.Body, &req); err != nil {
+		common.ApiErrorMsg(c, "invalid request body")
+		return
+	}
+	input, ok := validateEnterpriseTokenQuotaPolicy(c, req)
+	if !ok {
+		return
+	}
+	enterprise := currentEnterprise(c)
+	if err := model.SetTokenQuotaPolicies(enterprise.Id, enterprise.UserId, currentScope(c), []int{id}, input); err != nil {
+		enterpriseApiError(c, err)
+		return
+	}
+	recordEnterpriseConsoleAudit(c, "enterprise.token.quota_policy", map[string]any{"token_id": id, "reset_period": input.ResetPeriod, "custom_seconds": input.CustomSeconds, "period_quota": input.PeriodQuota})
+	common.ApiSuccess(c, nil)
+}
+
+// BatchSetEnterpriseTokenQuotaPolicy 批量设 / 删周期限额（≤ 200）；任一 id 不在范围内整批 404，全成功或全失败
+func BatchSetEnterpriseTokenQuotaPolicy(c *gin.Context) {
+	var req enterpriseTokenBatchQuotaPolicyRequest
+	if err := common.DecodeJson(c.Request.Body, &req); err != nil {
+		common.ApiErrorMsg(c, "invalid request body")
+		return
+	}
+	if len(req.TokenIds) == 0 {
+		common.ApiErrorMsg(c, "token_ids are required")
+		return
+	}
+	if len(req.TokenIds) > enterpriseTokenBatchMax {
+		common.ApiErrorMsg(c, "at most "+strconv.Itoa(enterpriseTokenBatchMax)+" keys per batch")
+		return
+	}
+	input, ok := validateEnterpriseTokenQuotaPolicy(c, req.enterpriseTokenQuotaPolicyRequest)
+	if !ok {
+		return
+	}
+	enterprise := currentEnterprise(c)
+	if err := model.SetTokenQuotaPolicies(enterprise.Id, enterprise.UserId, currentScope(c), req.TokenIds, input); err != nil {
+		enterpriseApiError(c, err)
+		return
+	}
+	recordEnterpriseConsoleAudit(c, "enterprise.token.batch_quota_policy", map[string]any{"count": len(req.TokenIds), "reset_period": input.ResetPeriod, "custom_seconds": input.CustomSeconds, "period_quota": input.PeriodQuota})
+	common.ApiSuccess(c, gin.H{"updated": len(req.TokenIds)})
 }
 
 // UpdateEnterpriseTokenStatus 启用 / 停用；过期或耗尽的 key 不能启用（与上游一致）

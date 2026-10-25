@@ -50,12 +50,13 @@ describe('admin sidebar grouping', () => {
     expect(checkIsActive('/users', channel)).toBe(false)
   })
 
-  it('groups users, subscriptions and redemption codes under customers and quotes with trial requests under business tools', () => {
+  it('groups users, subscriptions, redemption codes and promoters under customers and quotes with trial requests under business tools', () => {
     const items = adminGroup().items
     expect(subUrls(items[1] as NavCollapsible)).toEqual([
       '/users',
       '/subscriptions',
       '/redemption-codes',
+      '/promoters',
     ])
     expect(subUrls(items[3] as NavCollapsible)).toEqual([
       '/quotes',

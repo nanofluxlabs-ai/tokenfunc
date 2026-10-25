@@ -23,6 +23,7 @@ func registerEnterpriseRoutes(apiRouter *gin.RouterGroup) {
 		adminRoute.POST("/enterprises/:id/topup", controller.AdminRegisterEnterpriseTopup)
 		adminRoute.GET("/enterprises/:id/ledger", controller.AdminListEnterpriseLedger)
 		adminRoute.GET("/enterprises/:id/credit-periods", controller.AdminListEnterpriseCreditPeriods)
+		adminRoute.POST("/enterprises/:id/credit-periods/open", controller.AdminOpenEnterpriseCreditPeriod)
 		adminRoute.GET("/enterprises/:id/usage/summary", controller.AdminGetEnterpriseUsageSummary)
 		adminRoute.GET("/enterprises/:id/usage/export", controller.AdminExportEnterpriseUsage)
 		adminRoute.GET("/bills", controller.AdminListEnterpriseBills)

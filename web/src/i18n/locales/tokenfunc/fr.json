@@ -1268,6 +1268,21 @@
     "{{total}} of {{limit}} API keys used. Contact your account manager to raise the limit.": "{{total}} clés API utilisées sur {{limit}}. Contactez votre chargé de compte pour augmenter la limite.",
     "Enable selected": "Activer la sélection",
     "Disable selected": "Désactiver la sélection",
-    "Delete selected": "Supprimer la sélection"
+    "Delete selected": "Supprimer la sélection",
+    "Usage by department": "Usage par service",
+    "Enterprise API Keys": "Clés API de l'entreprise",
+    "By quota": "Par quota",
+    "Quota based credit requires a positive limit": "Le crédit par quota exige une limite strictement positive",
+    "The period has no end date: it is billed as soon as the limit is used up.": "La période n'a pas de date de fin : elle est facturée dès que la limite est épuisée.",
+    "Open next period automatically": "Ouvrir automatiquement la période suivante",
+    "On: a new period starts as soon as the limit is used up. Off: requests are rejected until the bill is paid or a period is opened manually.": "Activé : une nouvelle période démarre dès que la limite est épuisée. Désactivé : les requêtes sont refusées jusqu'au paiement de la facture ou à l'ouverture manuelle d'une période.",
+    "Open next period": "Ouvrir la période suivante",
+    "A new credit period starts immediately without waiting for the bill to be paid.": "Une nouvelle période de crédit démarre immédiatement sans attendre le paiement de la facture.",
+    "Awaiting payment": "En attente de paiement",
+    "The limit was used up and billed; requests are rejected until the bill is paid.": "La limite est épuisée et facturée ; les requêtes sont refusées jusqu'au paiement de la facture.",
+    "Usage is billed per credit period; a bill is issued as soon as the limit is used up.": "L'usage est facturé par période de crédit ; une facture est émise dès que la limite est épuisée.",
+    "When the limit is used up the period is billed and the next period starts automatically.": "Lorsque la limite est épuisée, la période est facturée et la suivante démarre automatiquement.",
+    "When the limit is used up the period is billed; requests are rejected until the bill is paid.": "Lorsque la limite est épuisée, la période est facturée ; les requêtes sont refusées jusqu'au paiement.",
+    "Awaiting bill payment. Contact your account manager to open the next period.": "En attente du paiement de la facture. Contactez votre chargé de compte pour ouvrir la période suivante."
   }
 }

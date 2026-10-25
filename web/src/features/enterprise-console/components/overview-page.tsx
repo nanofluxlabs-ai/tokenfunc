@@ -16,6 +16,10 @@ import { formatTimestampToDate } from '@/lib/format'
 import { requireServerSuccess } from '@/lib/server-error-message'
 
 import { getEnterpriseOverview, listCreditPeriods, listLedger } from '../api'
+import {
+  formatCreditPeriodRange,
+  isCreditAwaitingPayment,
+} from '../lib/credit-period'
 import { CreditPeriodsTable, LedgerTable } from './billing-tables'
 import { CreditAlertHint } from './credit-alert-hint'
 import { EnterpriseGuard } from './enterprise-guard'
@@ -48,6 +52,45 @@ function OverviewContent() {
       ? (period.used_quota / period.limit_quota) * 100
       : 0
   const usedPercent = Math.min(100, rawUsedPercent)
+  const isQuotaBased = data?.enterprise.credit_cycle_type === 'quota_based'
+  const awaitingPayment =
+    data !== undefined &&
+    data !== null &&
+    isCredit &&
+    isCreditAwaitingPayment(data.enterprise, period !== null)
+
+  let billingModeHint = t(
+    'Top-ups are registered by your account manager after bank transfer.'
+  )
+  if (isCredit) {
+    billingModeHint = isQuotaBased
+      ? t(
+          'Usage is billed per credit period; a bill is issued as soon as the limit is used up.'
+        )
+      : t(
+          'Usage is billed per credit period; a bill is issued when the period ends.'
+        )
+  }
+  let limitHint = t(
+    'Requests are rejected once the period limit is reached. Contact your account manager to raise it.'
+  )
+  if (isQuotaBased) {
+    limitHint = data?.enterprise.credit_auto_reset
+      ? t(
+          'When the limit is used up the period is billed and the next period starts automatically.'
+        )
+      : t(
+          'When the limit is used up the period is billed; requests are rejected until the bill is paid.'
+        )
+  }
+  let currentPeriodText = t('No open credit period')
+  if (period) {
+    currentPeriodText = formatCreditPeriodRange(period, formatTimestampToDate)
+  } else if (awaitingPayment) {
+    currentPeriodText = t(
+      'Awaiting bill payment. Contact your account manager to open the next period.'
+    )
+  }
 
   return (
     <div className='flex flex-col gap-6'>
@@ -67,13 +110,7 @@ function OverviewContent() {
             </CardTitle>
           </CardHeader>
           <CardContent className='text-muted-foreground text-sm'>
-            {isCredit
-              ? t(
-                  'Usage is billed per credit period; a bill is issued when the period ends.'
-                )
-              : t(
-                  'Top-ups are registered by your account manager after bank transfer.'
-                )}
+            {billingModeHint}
           </CardContent>
         </Card>
         {isCredit ? (
@@ -101,22 +138,25 @@ function OverviewContent() {
                   />
                 )}
                 <p className='text-muted-foreground mt-2 text-xs'>
-                  {t(
-                    'Requests are rejected once the period limit is reached. Contact your account manager to raise it.'
-                  )}
+                  {limitHint}
                 </p>
               </CardContent>
             </Card>
             <Card>
               <CardHeader>
                 <CardDescription>{t('Current period')}</CardDescription>
-                <CardTitle>{period ? `#${period.period_no}` : '—'}</CardTitle>
+                <CardTitle className='flex items-center gap-2'>
+                  {period ? `#${period.period_no}` : '—'}
+                  {awaitingPayment && (
+                    <StatusBadge
+                      label={t('Awaiting payment')}
+                      variant='warning'
+                      copyable={false}
+                    />
+                  )}
+                </CardTitle>
               </CardHeader>
-              <CardContent className='text-sm'>
-                {period
-                  ? `${formatTimestampToDate(period.start_at)} ~ ${formatTimestampToDate(period.end_at)}`
-                  : t('No open credit period')}
-              </CardContent>
+              <CardContent className='text-sm'>{currentPeriodText}</CardContent>
             </Card>
           </>
         ) : (

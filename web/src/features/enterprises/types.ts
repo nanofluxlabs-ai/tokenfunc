@@ -24,6 +24,8 @@ export interface Enterprise {
   credit_cycle_type: string
   credit_cycle_days: number
   credit_limit_quota: number
+  /** 额度信用（quota_based）用满后是否自动开下一期 */
+  credit_auto_reset: boolean
   /** 授信预警阈值（已用占额度百分比，0 关闭） */
   credit_alert_percent: number
   payment_terms_days: number
@@ -88,12 +90,16 @@ export type ListEnterprisesResponse = ApiResponse<{
 
 export type EnterprisesDialogType = 'create' | 'update' | 'billing'
 
+export type CreditCycleType = 'natural_month' | 'fixed_days' | 'quota_based'
+
 export interface CreditConfigPayload {
-  cycle_type: 'natural_month' | 'fixed_days'
+  cycle_type: CreditCycleType
   cycle_days: number
   limit_usd: number
   /** 预警阈值 0..99，0 关闭 */
   alert_percent: number
+  /** 仅 quota_based：用满即自动开下一期；关闭则用满后拒绝请求直到账单收款 / 手动开期 */
+  auto_reset: boolean
 }
 
 export interface TopupPayload {

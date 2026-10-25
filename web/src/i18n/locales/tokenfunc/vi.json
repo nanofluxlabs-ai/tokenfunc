@@ -1268,6 +1268,21 @@
     "{{total}} of {{limit}} API keys used. Contact your account manager to raise the limit.": "Đã dùng {{total}}/{{limit}} API key. Liên hệ người quản lý tài khoản để nâng giới hạn.",
     "Enable selected": "Bật các mục đã chọn",
     "Disable selected": "Tắt các mục đã chọn",
-    "Delete selected": "Xóa các mục đã chọn"
+    "Delete selected": "Xóa các mục đã chọn",
+    "Usage by department": "Sử dụng theo phòng ban",
+    "Enterprise API Keys": "API key doanh nghiệp",
+    "By quota": "Theo hạn mức",
+    "Quota based credit requires a positive limit": "Tín dụng theo hạn mức cần một giới hạn lớn hơn 0",
+    "The period has no end date: it is billed as soon as the limit is used up.": "Kỳ không có ngày kết thúc: sẽ xuất hóa đơn ngay khi dùng hết hạn mức.",
+    "Open next period automatically": "Tự động mở kỳ tiếp theo",
+    "On: a new period starts as soon as the limit is used up. Off: requests are rejected until the bill is paid or a period is opened manually.": "Bật: kỳ mới bắt đầu ngay khi dùng hết hạn mức. Tắt: từ chối yêu cầu cho đến khi hóa đơn được thanh toán hoặc mở kỳ thủ công.",
+    "Open next period": "Mở kỳ tiếp theo",
+    "A new credit period starts immediately without waiting for the bill to be paid.": "Kỳ tín dụng mới bắt đầu ngay mà không chờ thanh toán hóa đơn.",
+    "Awaiting payment": "Chờ thanh toán",
+    "The limit was used up and billed; requests are rejected until the bill is paid.": "Hạn mức đã dùng hết và đã xuất hóa đơn; từ chối yêu cầu cho đến khi thanh toán.",
+    "Usage is billed per credit period; a bill is issued as soon as the limit is used up.": "Mức dùng được tính theo kỳ tín dụng; hóa đơn được xuất ngay khi dùng hết hạn mức.",
+    "When the limit is used up the period is billed and the next period starts automatically.": "Khi dùng hết hạn mức, kỳ này được xuất hóa đơn và kỳ tiếp theo tự động bắt đầu.",
+    "When the limit is used up the period is billed; requests are rejected until the bill is paid.": "Khi dùng hết hạn mức, kỳ này được xuất hóa đơn; từ chối yêu cầu cho đến khi thanh toán.",
+    "Awaiting bill payment. Contact your account manager to open the next period.": "Đang chờ thanh toán hóa đơn. Liên hệ người quản lý tài khoản để mở kỳ tiếp theo."
   }
 }

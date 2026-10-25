@@ -33,6 +33,7 @@ function makeItem(overrides: Partial<EnterpriseListItem>): EnterpriseListItem {
     credit_cycle_type: '',
     credit_cycle_days: 0,
     credit_limit_quota: 0,
+    credit_auto_reset: false,
     credit_alert_percent: 80,
     payment_terms_days: 15,
     currency: 'USD',
@@ -150,6 +151,21 @@ test('fixed-day credit cycle shows the configured day count', () => {
   })
   render(<ColumnCell item={item} columnId='cycle_days' />)
   expect(screen.getByText('45 days')).toBeInTheDocument()
+})
+
+test('quota based credit cycle shows "By quota" and an open-ended period range', () => {
+  const item = makeItem({
+    billing_mode: 'credit',
+    credit_cycle_type: 'quota_based',
+    period_start_at: PERIOD_START,
+    period_end_at: 0,
+  })
+  const { unmount } = render(<ColumnCell item={item} columnId='cycle_days' />)
+  expect(screen.getByText('By quota')).toBeInTheDocument()
+  unmount()
+
+  render(<ColumnCell item={item} columnId='billing_cycle' />)
+  expect(screen.getByText('2026-10-01 ~ —')).toBeInTheDocument()
 })
 
 test('prepaid enterprise keeps wallet balance and leaves credit columns empty', () => {

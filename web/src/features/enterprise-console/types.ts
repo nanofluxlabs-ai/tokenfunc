@@ -185,11 +185,13 @@ export interface CreditPeriod {
   id: number
   period_no: number
   start_at: number
+  /** 额度信用期没有固定截止，为 0；关闭时刻看 closed_at */
   end_at: number
   limit_quota: number
   used_quota: number
   inflight_count: number
   status: 'open' | 'closing' | 'billed'
+  closed_at: number
 }
 
 export interface EnterpriseOverview {
@@ -197,6 +199,7 @@ export interface EnterpriseOverview {
     credit_cycle_type: string
     credit_cycle_days: number
     credit_limit_quota: number
+    credit_auto_reset: boolean
     credit_alert_percent: number
     payment_terms_days: number
   }

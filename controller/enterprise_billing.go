@@ -24,6 +24,8 @@ type adminEnterpriseCreditRequest struct {
 	LimitUSD  float64 `json:"limit_usd"`
 	// AlertPercent 预警阈值（0..99，0 关闭）；缺省沿用企业当前值，首次开通时为默认 80
 	AlertPercent *int `json:"alert_percent"`
+	// AutoReset 仅 cycle_type=quota_based 有效：用满即自动开下一期
+	AutoReset bool `json:"auto_reset"`
 }
 
 // AdminConfigureEnterpriseCredit 开通/修改授信（额度立即生效，周期从下一期生效）
@@ -42,7 +44,11 @@ func AdminConfigureEnterpriseCredit(c *gin.Context) {
 		common.ApiErrorMsg(c, "invalid credit limit")
 		return
 	}
-	config := model.EnterpriseCreditConfig{CycleType: req.CycleType, CycleDays: req.CycleDays, LimitQuota: int64(limitQuota), AlertPercent: model.EnterpriseDefaultCreditAlertPercent}
+	config := model.EnterpriseCreditConfig{
+		CycleType: req.CycleType, CycleDays: req.CycleDays, LimitQuota: int64(limitQuota),
+		AlertPercent: model.EnterpriseDefaultCreditAlertPercent,
+		AutoReset:    req.CycleType == model.EnterpriseCreditCycleQuotaBased && req.AutoReset,
+	}
 	if req.AlertPercent != nil {
 		config.AlertPercent = *req.AlertPercent
 	} else if current, err := model.GetEnterpriseById(id); err == nil && current.BillingMode == model.EnterpriseBillingModeCredit {
@@ -59,8 +65,31 @@ func AdminConfigureEnterpriseCredit(c *gin.Context) {
 	enterprise, _ := model.GetEnterpriseById(id)
 	recordManageAuditFor(c, enterpriseOwnerId(enterprise), "enterprise.credit.configure", map[string]any{
 		"enterprise_id": id, "cycle_type": req.CycleType, "cycle_days": req.CycleDays, "limit_usd": req.LimitUSD, "alert_percent": config.AlertPercent,
+		"auto_reset": config.AutoReset,
 	})
 	common.ApiSuccess(c, nil)
+}
+
+// AdminOpenEnterpriseCreditPeriod 手动开下一期：额度信用 auto_reset=false 用满出账后，不等收款提前放行（或账单作废后恢复服务）
+func AdminOpenEnterpriseCreditPeriod(c *gin.Context) {
+	id, ok := paramId(c)
+	if !ok {
+		return
+	}
+	period, err := model.OpenNextCreditPeriod(id, c.GetInt("id"), "manual")
+	if err != nil {
+		if errors.Is(err, model.ErrEnterpriseNotCredit) || errors.Is(err, model.ErrEnterpriseCreditPeriodAlreadyOpen) {
+			common.ApiErrorMsg(c, err.Error())
+			return
+		}
+		enterpriseApiError(c, err)
+		return
+	}
+	enterprise, _ := model.GetEnterpriseById(id)
+	recordManageAuditFor(c, enterpriseOwnerId(enterprise), "enterprise.credit.period_open", map[string]any{
+		"enterprise_id": id, "period_id": period.Id, "period_no": period.PeriodNo,
+	})
+	common.ApiSuccess(c, period)
 }
 
 // AdminSwitchEnterprisePrepaid 授信切回预付

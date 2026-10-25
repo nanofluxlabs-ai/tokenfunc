@@ -1268,6 +1268,21 @@
     "{{total}} of {{limit}} API keys used. Contact your account manager to raise the limit.": "已使用 {{total}} / {{limit}} 个密钥名额，如需提高上限请联系客户经理。",
     "Enable selected": "启用所选",
     "Disable selected": "停用所选",
-    "Delete selected": "删除所选"
+    "Delete selected": "删除所选",
+    "Usage by department": "按部门用量",
+    "Enterprise API Keys": "企业 API 密钥",
+    "By quota": "按额度",
+    "Quota based credit requires a positive limit": "额度信用必须设置大于 0 的额度",
+    "The period has no end date: it is billed as soon as the limit is used up.": "账期没有固定截止日期：额度用满即出账。",
+    "Open next period automatically": "用满自动开下一期",
+    "On: a new period starts as soon as the limit is used up. Off: requests are rejected until the bill is paid or a period is opened manually.": "开：额度用满立即开始新一期。关：用满后拒绝请求，直到账单收款或管理员手动开期。",
+    "Open next period": "手动开下一期",
+    "A new credit period starts immediately without waiting for the bill to be paid.": "不等账单收款，立即开始新的授信账期。",
+    "Awaiting payment": "待收款",
+    "The limit was used up and billed; requests are rejected until the bill is paid.": "额度已用满并出账，收款前拒绝请求。",
+    "Usage is billed per credit period; a bill is issued as soon as the limit is used up.": "用量按授信账期结算，额度用满即出账。",
+    "When the limit is used up the period is billed and the next period starts automatically.": "额度用满后本期出账，下一期自动开始。",
+    "When the limit is used up the period is billed; requests are rejected until the bill is paid.": "额度用满后本期出账，收款前拒绝请求。",
+    "Awaiting bill payment. Contact your account manager to open the next period.": "等待账单收款。如需提前开启下一期，请联系客户经理。"
   }
 }

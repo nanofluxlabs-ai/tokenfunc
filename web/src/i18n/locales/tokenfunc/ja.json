@@ -1268,6 +1268,21 @@
     "{{total}} of {{limit}} API keys used. Contact your account manager to raise the limit.": "API キー {{limit}} 件中 {{total}} 件を使用中。上限の引き上げは担当者にご連絡ください。",
     "Enable selected": "選択したものを有効化",
     "Disable selected": "選択したものを無効化",
-    "Delete selected": "選択したものを削除"
+    "Delete selected": "選択したものを削除",
+    "Usage by department": "部署別利用",
+    "Enterprise API Keys": "企業 API キー",
+    "By quota": "額度ベース",
+    "Quota based credit requires a positive limit": "額度ベースの与信には 0 より大きい上限が必要です",
+    "The period has no end date: it is billed as soon as the limit is used up.": "期間に終了日はなく、上限を使い切った時点で請求されます。",
+    "Open next period automatically": "次の期間を自動で開始",
+    "On: a new period starts as soon as the limit is used up. Off: requests are rejected until the bill is paid or a period is opened manually.": "オン：上限を使い切ると直ちに新しい期間が始まります。オフ：請求書が支払われるか手動で期間を開始するまでリクエストは拒否されます。",
+    "Open next period": "次の期間を開始",
+    "A new credit period starts immediately without waiting for the bill to be paid.": "請求書の支払いを待たずに、直ちに新しい与信期間を開始します。",
+    "Awaiting payment": "入金待ち",
+    "The limit was used up and billed; requests are rejected until the bill is paid.": "上限を使い切り請求済みです。支払いが完了するまでリクエストは拒否されます。",
+    "Usage is billed per credit period; a bill is issued as soon as the limit is used up.": "利用量は与信期間ごとに精算され、上限を使い切った時点で請求書が発行されます。",
+    "When the limit is used up the period is billed and the next period starts automatically.": "上限を使い切ると当期が請求され、次の期間が自動的に始まります。",
+    "When the limit is used up the period is billed; requests are rejected until the bill is paid.": "上限を使い切ると当期が請求され、支払いが完了するまでリクエストは拒否されます。",
+    "Awaiting bill payment. Contact your account manager to open the next period.": "請求書の入金待ちです。次の期間を開始するには担当者にご連絡ください。"
   }
 }

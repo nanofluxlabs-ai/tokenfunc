@@ -9,6 +9,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"gorm.io/gorm"
 )
 
 // 组织模型 v2：团队 / 成员 / key（PG 实库，夹具见 enterprise_test.go）
@@ -618,4 +619,146 @@ func TestEnterpriseTeamBudgetAlertsAndState(t *testing.T) {
 	require.NoError(t, UpdateEnterpriseTeam(team))
 	record(5000)
 	assert.Len(t, alerts, 3)
+}
+
+// 周期限额（M4）：边界计算、写入即施行、范围校验、到期重置、软删清理、disabled 保持、never 删行
+func TestEnterpriseTokenQuotaPolicy(t *testing.T) {
+	setupEnterprisePostgres(t)
+	// 2026-10-25 23:59:59 CST（周日）：日 / 周边界都落在 2026-10-26 00:00 CST = 1792944000（2026-10-25T16:00Z）；
+	// 10-26 00:00 CST 本身是周一 0 点，下一次应推到 10-27 / 11-02 / 11-01
+	const sundayLate, mondayStart = int64(1792943999), int64(1792944000)
+	for _, test := range []struct {
+		name   string
+		period string
+		now    int64
+		want   int64
+	}{
+		{"daily before midnight", TokenQuotaResetDaily, sundayLate, mondayStart},
+		{"daily at midnight moves to next day", TokenQuotaResetDaily, mondayStart, mondayStart + 86400},
+		{"weekly before monday", TokenQuotaResetWeekly, sundayLate, mondayStart},
+		{"weekly on monday moves a full week", TokenQuotaResetWeekly, mondayStart, mondayStart + 7*86400},
+		{"monthly", TokenQuotaResetMonthly, mondayStart, mondayStart + 6*86400},
+		{"custom", TokenQuotaResetCustom, mondayStart, mondayStart + 7200},
+	} {
+		assert.Equal(t, test.want, NextTokenQuotaResetAt(test.period, 7200, test.now), test.name)
+	}
+	assert.ErrorIs(t, TokenQuotaPolicyInput{ResetPeriod: TokenQuotaResetCustom, CustomSeconds: 1800, PeriodQuota: 1}.Validate(1000), ErrEnterpriseTokenQuotaPolicy)
+	assert.ErrorIs(t, TokenQuotaPolicyInput{ResetPeriod: TokenQuotaResetCustom, CustomSeconds: 367 * 86400, PeriodQuota: 1}.Validate(1000), ErrEnterpriseTokenQuotaPolicy)
+	assert.ErrorIs(t, TokenQuotaPolicyInput{ResetPeriod: TokenQuotaResetDaily, PeriodQuota: 0}.Validate(1000), ErrEnterpriseTokenQuotaPolicy)
+	assert.ErrorIs(t, TokenQuotaPolicyInput{ResetPeriod: TokenQuotaResetDaily, PeriodQuota: 1001}.Validate(1000), ErrEnterpriseTokenQuotaPolicy)
+	assert.ErrorIs(t, TokenQuotaPolicyInput{ResetPeriod: "yearly", PeriodQuota: 1}.Validate(1000), ErrEnterpriseTokenQuotaPolicy)
+	assert.NoError(t, TokenQuotaPolicyInput{ResetPeriod: TokenQuotaResetNever}.Validate(1000))
+
+	owner, ent := newEnterpriseForTest(t, "quotaowner", "Quota Co")
+	rd := &EnterpriseTeam{EnterpriseId: ent.Id, Name: "R&D"}
+	require.NoError(t, CreateEnterpriseTeam(rd))
+	qa := &EnterpriseTeam{EnterpriseId: ent.Id, Name: "QA"}
+	require.NoError(t, CreateEnterpriseTeam(qa))
+	exhausted := newEnterpriseTestToken(t, ent, owner.Id, "exhausted000000000000000000000000000000000000001", rd.Id, 0)
+	require.NoError(t, DB.Model(&Token{}).Where("id = ?", exhausted.Id).Updates(map[string]any{"status": common.TokenStatusExhausted, "unlimited_quota": false, "remain_quota": 0, "used_quota": 900}).Error)
+	disabled := newEnterpriseTestToken(t, ent, owner.Id, "disabled0000000000000000000000000000000000000001", rd.Id, 0)
+	require.NoError(t, DB.Model(&Token{}).Where("id = ?", disabled.Id).Update("status", common.TokenStatusDisabled).Error)
+	qaKey := newEnterpriseTestToken(t, ent, owner.Id, "qakey00000000000000000000000000000000000000000002", qa.Id, 0)
+	daily := TokenQuotaPolicyInput{ResetPeriod: TokenQuotaResetDaily, PeriodQuota: 500000}
+
+	// 范围：团队角色不能动别的团队的 key；超过 200 把拒绝；整批里混一个范围外 id 整批 404
+	rdScope := EnterpriseScope{TeamId: &rd.Id}
+	assert.ErrorIs(t, SetTokenQuotaPolicies(ent.Id, owner.Id, rdScope, []int{qaKey.Id}, daily), ErrEnterpriseResourceNotFound)
+	assert.ErrorIs(t, SetTokenQuotaPolicies(ent.Id, owner.Id, rdScope, []int{exhausted.Id, qaKey.Id}, daily), ErrEnterpriseResourceNotFound)
+	tooMany := make([]int, TokenQuotaPolicyBatchMax+1)
+	assert.ErrorIs(t, SetTokenQuotaPolicies(ent.Id, owner.Id, EnterpriseScope{}, tooMany, daily), ErrEnterpriseTokenQuotaPolicy)
+	var policyCount int64
+	require.NoError(t, DB.Model(&EnterpriseTokenQuotaPolicy{}).Count(&policyCount).Error)
+	assert.Zero(t, policyCount, "rejected batches must not leave rows behind")
+
+	// 写入即施行：耗尽的 key 立刻恢复到周期额度并回到启用态，used_quota 不动；disabled 保持 disabled
+	before := common.GetTimestamp()
+	require.NoError(t, SetTokenQuotaPolicies(ent.Id, owner.Id, rdScope, []int{exhausted.Id, disabled.Id}, daily))
+	stored, err := GetTokenById(exhausted.Id)
+	require.NoError(t, err)
+	assert.Equal(t, 500000, stored.RemainQuota)
+	assert.False(t, stored.UnlimitedQuota)
+	assert.Equal(t, common.TokenStatusEnabled, stored.Status)
+	assert.Equal(t, 900, stored.UsedQuota)
+	stored, err = GetTokenById(disabled.Id)
+	require.NoError(t, err)
+	assert.Equal(t, 500000, stored.RemainQuota)
+	assert.Equal(t, common.TokenStatusDisabled, stored.Status)
+	items, _, err := ListEnterpriseTokens(ent.Id, owner.Id, EnterpriseScope{}, EnterpriseTokenFilter{TeamId: &rd.Id}, 0, 20)
+	require.NoError(t, err)
+	require.Len(t, items, 2)
+	for _, item := range items {
+		assert.Equal(t, TokenQuotaResetDaily, item.ResetPeriod)
+		assert.Equal(t, int64(500000), item.PeriodQuota)
+		assert.Equal(t, NextTokenQuotaResetAt(TokenQuotaResetDaily, 0, before), item.NextResetAt)
+	}
+	qaItems, _, err := ListEnterpriseTokens(ent.Id, owner.Id, EnterpriseScope{}, EnterpriseTokenFilter{TeamId: &qa.Id}, 0, 20)
+	require.NoError(t, err)
+	require.Len(t, qaItems, 1)
+	assert.Empty(t, qaItems[0].ResetPeriod)
+	assert.Zero(t, qaItems[0].NextResetAt)
+
+	// 到期任务：未到期不动；到期后恢复额度、4 → 1、next 以 now 为基准前移（补跑不连跳）；disabled 只重置额度
+	require.NoError(t, DB.Model(&Token{}).Where("id = ?", exhausted.Id).Updates(map[string]any{"status": common.TokenStatusExhausted, "remain_quota": 0, "used_quota": 1500}).Error)
+	reset, err := ResetDueTokenQuotaPolicies(before)
+	require.NoError(t, err)
+	assert.Zero(t, reset)
+	past := before - 3*86400
+	require.NoError(t, DB.Model(&EnterpriseTokenQuotaPolicy{}).Where("enterprise_id = ?", ent.Id).Update("next_reset_at", past).Error)
+	reset, err = ResetDueTokenQuotaPolicies(before)
+	require.NoError(t, err)
+	assert.Equal(t, 2, reset)
+	stored, err = GetTokenById(exhausted.Id)
+	require.NoError(t, err)
+	assert.Equal(t, 500000, stored.RemainQuota)
+	assert.Equal(t, common.TokenStatusEnabled, stored.Status)
+	assert.Equal(t, 1500, stored.UsedQuota)
+	stored, err = GetTokenById(disabled.Id)
+	require.NoError(t, err)
+	assert.Equal(t, common.TokenStatusDisabled, stored.Status)
+	// 每次用新变量查，避免 GORM 把上一次查到的主键带进条件
+	var policy EnterpriseTokenQuotaPolicy
+	findPolicy := func(tokenId int) error {
+		policy = EnterpriseTokenQuotaPolicy{}
+		return DB.First(&policy, "token_id = ?", tokenId).Error
+	}
+	require.NoError(t, findPolicy(exhausted.Id))
+	assert.Equal(t, NextTokenQuotaResetAt(TokenQuotaResetDaily, 0, before), policy.NextResetAt)
+	reset, err = ResetDueTokenQuotaPolicies(before)
+	require.NoError(t, err)
+	assert.Zero(t, reset, "second run in the same minute is a no-op")
+
+	// 新建带策略：初始额度就是周期额度；never 删行且不动 tokens
+	withPolicy := &Token{UserId: owner.Id, Name: "weekly", Key: "weekly000000000000000000000000000000000000000001", Status: common.TokenStatusEnabled, ExpiredTime: -1, UnlimitedQuota: true}
+	require.NoError(t, CreateEnterpriseTokenWithPolicy(ent.Id, EnterpriseScope{}, withPolicy, rd.Id, 0, &TokenQuotaPolicyInput{ResetPeriod: TokenQuotaResetWeekly, PeriodQuota: 250000}))
+	stored, err = GetTokenById(withPolicy.Id)
+	require.NoError(t, err)
+	assert.Equal(t, 250000, stored.RemainQuota)
+	assert.False(t, stored.UnlimitedQuota)
+	require.NoError(t, findPolicy(withPolicy.Id))
+	assert.Equal(t, TokenQuotaResetWeekly, policy.ResetPeriod)
+	require.NoError(t, SetTokenQuotaPolicies(ent.Id, owner.Id, EnterpriseScope{}, []int{withPolicy.Id}, TokenQuotaPolicyInput{ResetPeriod: TokenQuotaResetNever}))
+	assert.ErrorIs(t, findPolicy(withPolicy.Id), gorm.ErrRecordNotFound)
+	stored, err = GetTokenById(withPolicy.Id)
+	require.NoError(t, err)
+	assert.Equal(t, 250000, stored.RemainQuota, "never keeps the current quota as a fixed quota")
+
+	// 软删：企业页删除同事务清策略；绕过企业页软删的 key 由到期任务顺手清理
+	_, err = DeleteEnterpriseToken(ent.Id, owner.Id, EnterpriseScope{}, disabled.Id)
+	require.NoError(t, err)
+	assert.ErrorIs(t, findPolicy(disabled.Id), gorm.ErrRecordNotFound)
+	require.NoError(t, DB.Delete(&Token{}, "id = ?", exhausted.Id).Error)
+	require.NoError(t, DB.Model(&EnterpriseTokenQuotaPolicy{}).Where("token_id = ?", exhausted.Id).Update("next_reset_at", past).Error)
+	reset, err = ResetDueTokenQuotaPolicies(before)
+	require.NoError(t, err)
+	assert.Zero(t, reset)
+	assert.ErrorIs(t, findPolicy(exhausted.Id), gorm.ErrRecordNotFound)
+
+	// BatchUpdateEnabled 只影响扣费落库方式，策略写入不受影响
+	previousBatch := common.BatchUpdateEnabled
+	common.BatchUpdateEnabled = true
+	t.Cleanup(func() { common.BatchUpdateEnabled = previousBatch })
+	require.NoError(t, SetTokenQuotaPolicies(ent.Id, owner.Id, EnterpriseScope{}, []int{qaKey.Id}, TokenQuotaPolicyInput{ResetPeriod: TokenQuotaResetCustom, CustomSeconds: 7200, PeriodQuota: 100}))
+	require.NoError(t, findPolicy(qaKey.Id))
+	assert.Equal(t, policy.UpdatedAt+7200, policy.NextResetAt)
 }

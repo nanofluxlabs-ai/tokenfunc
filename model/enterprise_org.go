@@ -929,6 +929,10 @@ type EnterpriseTokenListItem struct {
 	MemberName         string `json:"member_name"`
 	MonthQuota         int64  `json:"month_quota" gorm:"-"`
 	PrevMonthQuota     int64  `json:"prev_month_quota" gorm:"-"`
+	// 周期限额（M4）：没有策略时 reset_period 为空、其余为 0
+	ResetPeriod string `json:"reset_period"`
+	PeriodQuota int64  `json:"period_quota"`
+	NextResetAt int64  `json:"next_reset_at"`
 }
 
 // EnterpriseTokenExpiringWindow 「即将过期」筛选的窗口：7 天内
@@ -957,6 +961,7 @@ func enterpriseTokenQuery(enterpriseId int, ownerUserId int, scope EnterpriseSco
 		Joins("LEFT JOIN ent_token_assignments a ON a.token_id = tokens.id AND a.enterprise_id = ?", enterpriseId).
 		Joins("LEFT JOIN ent_teams tm ON tm.id = a.team_id").
 		Joins("LEFT JOIN ent_members m ON m.id = a.member_id").
+		Joins("LEFT JOIN ent_token_quota_policies qp ON qp.token_id = tokens.id").
 		Where("tokens.user_id = ? AND tokens.deleted_at IS NULL", ownerUserId)
 	if scope.TeamId != nil {
 		query = query.Where("a.team_id = ?", *scope.TeamId)
@@ -969,7 +974,8 @@ const enterpriseTokenSelect = `tokens.id, tokens.name, tokens.` + "%s" + ` AS to
 	tokens.` + "%s" + ` AS token_group, tokens.model_limits_enabled, COALESCE(tokens.model_limits, '') AS model_limits,
 	COALESCE(tokens.allow_ips, '') AS allow_ips,
 	COALESCE(a.team_id, 0) AS team_id, COALESCE(tm.name, '') AS team_name, COALESCE(tm.status, '') AS team_status,
-	COALESCE(a.member_id, 0) AS member_id, COALESCE(m.name, '') AS member_name`
+	COALESCE(a.member_id, 0) AS member_id, COALESCE(m.name, '') AS member_name,
+	COALESCE(qp.reset_period, '') AS reset_period, COALESCE(qp.period_quota, 0) AS period_quota, COALESCE(qp.next_reset_at, 0) AS next_reset_at`
 
 func ListEnterpriseTokens(enterpriseId int, ownerUserId int, scope EnterpriseScope, filter EnterpriseTokenFilter, startIdx int, num int) ([]*EnterpriseTokenListItem, int64, error) {
 	query := enterpriseTokenQuery(enterpriseId, ownerUserId, scope)
@@ -1051,6 +1057,9 @@ func DeleteEnterpriseToken(enterpriseId int, ownerUserId int, scope EnterpriseSc
 	}
 	err = DB.Transaction(func(tx *gorm.DB) error {
 		if err := tx.Delete(&Token{}, "id = ? AND user_id = ?", tokenId, ownerUserId).Error; err != nil {
+			return err
+		}
+		if err := tx.Where("token_id = ?", tokenId).Delete(&EnterpriseTokenQuotaPolicy{}).Error; err != nil {
 			return err
 		}
 		return tx.Where("token_id = ?", tokenId).Delete(&EnterpriseTokenAssignment{}).Error
@@ -1154,6 +1163,9 @@ func BatchDeleteEnterpriseTokens(enterpriseId int, ownerUserId int, scope Enterp
 			return result.Error
 		}
 		deleted = result.RowsAffected
+		if err := tx.Where("token_id IN ?", targets).Delete(&EnterpriseTokenQuotaPolicy{}).Error; err != nil {
+			return err
+		}
 		return tx.Where("token_id IN ?", targets).Delete(&EnterpriseTokenAssignment{}).Error
 	})
 	if err != nil {
@@ -1233,6 +1245,17 @@ func AssignEnterpriseToken(enterpriseId int, ownerUserId int, scope EnterpriseSc
 
 // CreateEnterpriseToken 为企业主账号创建 key 并写入归属（同一事务）；teamId 为 0 落默认团队
 func CreateEnterpriseToken(enterpriseId int, scope EnterpriseScope, token *Token, teamId int, memberId int) error {
+	return CreateEnterpriseTokenWithPolicy(enterpriseId, scope, token, teamId, memberId, nil)
+}
+
+// CreateEnterpriseTokenWithPolicy 创建 key、写归属，并在同一事务里写周期限额策略（policy 为 nil 或 never 时不写）；
+// 带策略时 key 的初始额度就是周期额度
+func CreateEnterpriseTokenWithPolicy(enterpriseId int, scope EnterpriseScope, token *Token, teamId int, memberId int, policy *TokenQuotaPolicyInput) error {
+	hasPolicy := policy != nil && policy.ResetPeriod != TokenQuotaResetNever
+	if hasPolicy {
+		token.RemainQuota = int(policy.PeriodQuota)
+		token.UnlimitedQuota = false
+	}
 	return DB.Transaction(func(tx *gorm.DB) error {
 		resolved, err := validateTokenAssignmentTargets(tx, enterpriseId, teamId, memberId)
 		if err != nil {
@@ -1243,6 +1266,11 @@ func CreateEnterpriseToken(enterpriseId int, scope EnterpriseScope, token *Token
 		}
 		if err := tx.Create(token).Error; err != nil {
 			return err
+		}
+		if hasPolicy {
+			if err := createTokenQuotaPolicy(tx, enterpriseId, token.Id, *policy, common.GetTimestamp()); err != nil {
+				return err
+			}
 		}
 		return upsertTokenAssignment(tx, enterpriseId, token.Id, resolved, memberId)
 	})

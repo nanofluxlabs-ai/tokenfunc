@@ -97,5 +97,7 @@ func registerEnterpriseRoutes(apiRouter *gin.RouterGroup) {
 		consoleRoute.POST("/tokens/:id/key", controller.GetEnterpriseTokenKey)
 		consoleRoute.POST("/tokens/batch-status", controller.BatchUpdateEnterpriseTokenStatus)
 		consoleRoute.POST("/tokens/batch-delete", controller.BatchDeleteEnterpriseTokens)
+		consoleRoute.PUT("/tokens/:id/quota-policy", controller.SetEnterpriseTokenQuotaPolicy)
+		consoleRoute.POST("/tokens/batch-quota-policy", controller.BatchSetEnterpriseTokenQuotaPolicy)
 	}
 }

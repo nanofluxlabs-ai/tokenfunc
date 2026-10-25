@@ -75,6 +75,8 @@ export interface Member {
   status: MemberStatus
   remark: string
   token_count: number
+  /** 本月消耗（quota），按持有人快照汇总 */
+  month_quota: number
   created_at: number
 }
 

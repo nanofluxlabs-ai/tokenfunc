@@ -1,4 +1,4 @@
-export { EnterpriseOrganization } from './components/organization-page'
+export { EnterpriseTeams } from './components/teams-page'
 export { EnterpriseKeys } from './components/keys-page'
 export { EnterpriseOverview } from './components/overview-page'
 export { EnterpriseUsage } from './components/usage-page'

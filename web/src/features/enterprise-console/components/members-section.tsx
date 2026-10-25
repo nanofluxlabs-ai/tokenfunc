@@ -4,63 +4,131 @@ import {
   useQueryClient,
 } from '@tanstack/react-query'
 import { Link } from '@tanstack/react-router'
-import { KeyRound, Pencil, Plus, Trash2, Upload, UserCog } from 'lucide-react'
-import { useState } from 'react'
+import { KeyRound, Pencil, Power, PowerOff, Trash2, UserCog } from 'lucide-react'
+import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 
 import { ConfirmDialog } from '@/components/confirm-dialog'
 import {
+  DataTableRowActionMenu,
   StaticDataTable,
   type StaticDataTableColumn,
 } from '@/components/data-table'
 import { StatusBadge } from '@/components/status-badge'
 import { Button } from '@/components/ui/button'
+import {
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+} from '@/components/ui/dropdown-menu'
 import { Input } from '@/components/ui/input'
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import { useDebounce } from '@/hooks/use-debounce'
+import { formatQuotaWithCurrency } from '@/lib/currency'
 import { handleServerError } from '@/lib/handle-server-error'
 import { requireServerSuccess } from '@/lib/server-error-message'
 
-import { deleteMember, listMembers } from '../api'
+import { deleteMember, listMembers, updateMember } from '../api'
 import {
   canManageMembers,
   isTeamScoped,
   MEMBER_ROLE_LABELS,
 } from '../lib/member-roles'
+import type { EnterpriseTeamsSearch } from '../search-schema'
 import type { EnterpriseActor, Member } from '../types'
 import { MemberDialog } from './member-dialog'
-import { MemberImportDialog } from './member-import-dialog'
 import { MemberLoginDialog } from './member-login-dialog'
 import type { TeamSelection } from './team-panel'
 import { TokenMutateSheet } from './token-mutate-sheet'
 
 const PAGE_SIZE = 20
+const ANY = 'all'
 
-export function MembersSection(props: {
+type MembersSectionProps = {
   team: TeamSelection
   actor: EnterpriseActor | null | undefined
+  /** URL 里的筛选（status / login / q / page） */
+  search: EnterpriseTeamsSearch
+  onSearchChange: (patch: Partial<EnterpriseTeamsSearch>) => void
+}
+
+/** 简单的单选筛选（值为字符串，'all' 表示不筛选） */
+function FilterSelect(props: {
+  label: string
+  value: string
+  options: { value: string; label: string }[]
+  onChange: (value: string) => void
 }) {
+  return (
+    <Select
+      items={props.options}
+      value={props.value}
+      onValueChange={(value) => value && props.onChange(value)}
+    >
+      <SelectTrigger aria-label={props.label} className='w-full'>
+        <SelectValue />
+      </SelectTrigger>
+      <SelectContent alignItemWithTrigger={false}>
+        <SelectGroup>
+          {props.options.map((option) => (
+            <SelectItem key={option.value} value={option.value}>
+              {option.label}
+            </SelectItem>
+          ))}
+        </SelectGroup>
+      </SelectContent>
+    </Select>
+  )
+}
+
+export function MembersSection(props: MembersSectionProps) {
   const { t } = useTranslation()
   const queryClient = useQueryClient()
-  const [keyword, setKeyword] = useState('')
+  const [keyword, setKeyword] = useState(props.search.q ?? '')
   const debouncedKeyword = useDebounce(keyword, 400)
-  const [page, setPage] = useState(1)
   const [dialog, setDialog] = useState<{ member?: Member } | null>(null)
   const [login, setLogin] = useState<Member | null>(null)
   const [issuingKey, setIssuingKey] = useState<Member | null>(null)
   const [deleting, setDeleting] = useState<Member | null>(null)
-  const [importing, setImporting] = useState(false)
+  const [toggling, setToggling] = useState<number | null>(null)
   const manage = canManageMembers(props.actor)
   const teamScoped = isTeamScoped(props.actor)
 
-  const teamId = props.team === 'all' ? undefined : props.team
+  const teamId = props.team === ANY ? undefined : props.team
+  const page = props.search.page ?? 1
+  const { onSearchChange } = props
+
+  // 关键字防抖后再写入 URL
+  useEffect(() => {
+    const next = debouncedKeyword || undefined
+    if (next === props.search.q) return
+    onSearchChange({ q: next })
+  }, [debouncedKeyword, props.search.q, onSearchChange])
+
   const { data, isLoading } = useQuery({
-    queryKey: ['enterprise', 'members', teamId, debouncedKeyword, page],
+    queryKey: [
+      'enterprise',
+      'members',
+      teamId,
+      props.search.q,
+      props.search.status,
+      props.search.login,
+      page,
+    ],
     queryFn: async () =>
       requireServerSuccess(
         await listMembers({
           team_id: teamId,
-          keyword: debouncedKeyword || undefined,
+          keyword: props.search.q || undefined,
+          status: props.search.status,
+          has_login: props.search.login,
           p: page,
           page_size: PAGE_SIZE,
         })
@@ -91,6 +159,36 @@ export function MembersSection(props: {
       handleServerError(error)
     }
   }
+
+  const handleToggleStatus = async (row: Member) => {
+    const next = row.status === 'active' ? 'disabled' : 'active'
+    setToggling(row.id)
+    try {
+      const result = await updateMember(row.id, {
+        team_id: row.team_id,
+        name: row.name,
+        email: row.email,
+        employee_no: row.employee_no,
+        status: next,
+        remark: row.remark,
+      })
+      if (!result.success) {
+        handleServerError(result)
+        return
+      }
+      toast.success(
+        next === 'active' ? t('Member enabled') : t('Member disabled')
+      )
+      refresh()
+    } catch (error) {
+      handleServerError(error)
+    } finally {
+      setToggling(null)
+    }
+  }
+
+  const loginValue =
+    props.search.login === undefined ? ANY : String(props.search.login)
 
   const columns: StaticDataTableColumn<Member>[] = [
     {
@@ -127,7 +225,7 @@ export function MembersSection(props: {
             </span>
           </div>
         ) : (
-          <span className='text-muted-foreground'>{t('No login')}</span>
+          <span className='text-muted-foreground'>{t('Key only')}</span>
         ),
     },
     {
@@ -137,13 +235,31 @@ export function MembersSection(props: {
         row.token_count > 0 ? (
           <Link
             to='/enterprise/keys'
-            search={{ member_id: row.id }}
+            search={{ team_id: row.team_id, member_id: row.id }}
             className='underline-offset-4 hover:underline'
           >
             {row.token_count}
           </Link>
         ) : (
           <span className='text-muted-foreground'>0</span>
+        ),
+    },
+    {
+      id: 'month_quota',
+      header: t('This month'),
+      cell: (row) =>
+        row.month_quota > 0 ? (
+          <Link
+            to='/enterprise/usage'
+            search={{ group_by: 'token', member_id: row.id }}
+            className='font-mono underline-offset-4 hover:underline'
+          >
+            {formatQuotaWithCurrency(row.month_quota)}
+          </Link>
+        ) : (
+          <span className='text-muted-foreground font-mono'>
+            {formatQuotaWithCurrency(0)}
+          </span>
         ),
     },
     {
@@ -161,7 +277,7 @@ export function MembersSection(props: {
       id: 'actions',
       header: t('Actions'),
       cell: (row) => (
-        <div className='flex gap-1'>
+        <div className='-ml-1.5 flex items-center gap-1'>
           <Button
             variant='ghost'
             size='icon-sm'
@@ -169,35 +285,35 @@ export function MembersSection(props: {
             disabled={row.status !== 'active'}
             onClick={() => setIssuingKey(row)}
           >
-            <KeyRound />
+            <KeyRound className='size-4' />
           </Button>
           {manage && (
-            <>
-              <Button
-                variant='ghost'
-                size='icon-sm'
-                aria-label={t('Console access')}
-                onClick={() => setLogin(row)}
+            <DataTableRowActionMenu ariaLabel={t('Open menu')} modal={false}>
+              <DropdownMenuItem onClick={() => setLogin(row)}>
+                <UserCog className='size-4' /> {t('Console access')}
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setDialog({ member: row })}>
+                <Pencil className='size-4' /> {t('Edit')}
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                disabled={toggling === row.id}
+                onClick={() => void handleToggleStatus(row)}
               >
-                <UserCog />
-              </Button>
-              <Button
-                variant='ghost'
-                size='icon-sm'
-                aria-label={t('Edit')}
-                onClick={() => setDialog({ member: row })}
-              >
-                <Pencil />
-              </Button>
-              <Button
-                variant='ghost'
-                size='icon-sm'
-                aria-label={t('Delete')}
+                {row.status === 'active' ? (
+                  <PowerOff className='size-4' />
+                ) : (
+                  <Power className='size-4' />
+                )}{' '}
+                {row.status === 'active' ? t('Disable') : t('Enable')}
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                variant='destructive'
                 onClick={() => setDeleting(row)}
               >
-                <Trash2 />
-              </Button>
-            </>
+                <Trash2 className='size-4' /> {t('Delete')}
+              </DropdownMenuItem>
+            </DataTableRowActionMenu>
           )}
         </div>
       ),
@@ -212,28 +328,41 @@ export function MembersSection(props: {
           placeholder={t('Search name, email or employee No....')}
           aria-label={t('Search members')}
           value={keyword}
-          onChange={(event) => {
-            setKeyword(event.target.value)
-            setPage(1)
-          }}
+          onChange={(event) => setKeyword(event.target.value)}
         />
-        <div className='flex-1' />
-        {manage && (
-          <>
-            <Button
-              variant='outline'
-              size='sm'
-              onClick={() => setImporting(true)}
-            >
-              <Upload className='h-4 w-4' />
-              {t('Import CSV')}
-            </Button>
-            <Button size='sm' onClick={() => setDialog({})}>
-              <Plus className='h-4 w-4' />
-              {t('Add Member')}
-            </Button>
-          </>
-        )}
+        <div className='w-36'>
+          <FilterSelect
+            label={t('Filter by status')}
+            value={props.search.status ?? ANY}
+            options={[
+              { value: ANY, label: t('All statuses') },
+              { value: 'active', label: t('Active') },
+              { value: 'disabled', label: t('Disabled') },
+            ]}
+            onChange={(value) =>
+              onSearchChange({
+                status:
+                  value === ANY ? undefined : (value as 'active' | 'disabled'),
+              })
+            }
+          />
+        </div>
+        <div className='w-40'>
+          <FilterSelect
+            label={t('Filter by console access')}
+            value={loginValue}
+            options={[
+              { value: ANY, label: t('All members') },
+              { value: 'true', label: t('Can sign in') },
+              { value: 'false', label: t('Key only') },
+            ]}
+            onChange={(value) =>
+              onSearchChange({
+                login: value === ANY ? undefined : value === 'true',
+              })
+            }
+          />
+        </div>
       </div>
       <StaticDataTable
         columns={columns}
@@ -248,7 +377,7 @@ export function MembersSection(props: {
           variant='outline'
           size='sm'
           disabled={page <= 1}
-          onClick={() => setPage(page - 1)}
+          onClick={() => onSearchChange({ page: page - 1 })}
         >
           {t('Previous')}
         </Button>
@@ -259,7 +388,7 @@ export function MembersSection(props: {
           variant='outline'
           size='sm'
           disabled={page >= pageCount}
-          onClick={() => setPage(page + 1)}
+          onClick={() => onSearchChange({ page: page + 1 })}
         >
           {t('Next')}
         </Button>
@@ -284,11 +413,6 @@ export function MembersSection(props: {
         onOpenChange={(open) => !open && setIssuingKey(null)}
         member={issuingKey ?? undefined}
         onSaved={refresh}
-      />
-      <MemberImportDialog
-        open={importing}
-        onOpenChange={setImporting}
-        onImported={refresh}
       />
       <ConfirmDialog
         open={deleting !== null}

@@ -35,6 +35,8 @@ type MemberPickerProps = {
   allowAny?: boolean
   /** 只列某个团队的成员（key 归属场景：持有人必须属于该团队） */
   teamId?: number
+  /** 只列已开通登录的成员（设团队管理员场景） */
+  hasLogin?: boolean
   id?: string
   'aria-label'?: string
 }
@@ -51,12 +53,20 @@ export function MemberPicker(props: MemberPickerProps) {
   const keyword = useDebounce(search.trim(), 300)
 
   const { data, isFetching } = useQuery({
-    queryKey: ['enterprise', 'members', 'picker', props.teamId ?? 0, keyword],
+    queryKey: [
+      'enterprise',
+      'members',
+      'picker',
+      props.teamId ?? 0,
+      props.hasLogin ?? null,
+      keyword,
+    ],
     queryFn: async () =>
       requireServerSuccess(
         await listMembers({
           status: 'active',
           team_id: props.teamId || undefined,
+          has_login: props.hasLogin,
           keyword: keyword || undefined,
           page_size: 20,
         })

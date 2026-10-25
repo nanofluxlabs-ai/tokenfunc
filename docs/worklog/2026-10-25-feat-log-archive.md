@@ -2,7 +2,7 @@
 
 - 日期：2026-10-25
 - 分支：feat/log-archive
-- PR：
+- PR：#35
 - 关键 commit：ba11ea300（后端）、ee30d5e4c（前端）
 
 ## 背景

@@ -137,8 +137,9 @@ func enterpriseBillNo(issuedAt int64, id int64) string {
 	return fmt.Sprintf("TF-%s-%06d", time.Unix(issuedAt, 0).In(enterpriseBillingLocation).Format("200601"), id)
 }
 
-// summarizeUsageByPeriod 账期内按模型/团队/成员的汇总，写进账单快照
-func summarizeUsageByPeriod(tx *gorm.DB, enterpriseId int, periodId int64) (map[string]any, error) {
+// summarizeUsageAttribution 按模型 / 团队 / 成员的归因汇总（来自 ent_usage_daily），写进账单快照；
+// scope 限定范围：授信账单按 period_id，预付对账单按日期区间
+func summarizeUsageAttribution(tx *gorm.DB, enterpriseId int, scope func(*gorm.DB) *gorm.DB) (map[string]any, error) {
 	snapshot := map[string]any{}
 	sums := enterpriseUsageSums
 	groups := []struct {
@@ -153,7 +154,7 @@ func summarizeUsageByPeriod(tx *gorm.DB, enterpriseId int, periodId int64) (map[
 	}
 	for _, group := range groups {
 		items := make([]*EnterpriseUsageSummaryItem, 0)
-		err := group.query.Where("u.enterprise_id = ? AND u.period_id = ?", enterpriseId, periodId).Order("quota DESC").Limit(200).Scan(&items).Error
+		err := scope(group.query.Where("u.enterprise_id = ?", enterpriseId)).Order("quota DESC").Limit(200).Scan(&items).Error
 		if err != nil {
 			return nil, err
 		}
@@ -164,7 +165,16 @@ func summarizeUsageByPeriod(tx *gorm.DB, enterpriseId int, periodId int64) (map[
 
 // IssueCreditBill 对 closing 状态的账期出账（幂等：已 billed 的账期直接返回其账单）。
 // 账单金额以账期计数器为准，明细合计用于对账，差异写入 reconcile_diff_quota。
+// 财务口径的 logs 聚合（快照 v2）在事务之前只读执行：扫 logs 可能较慢，不能占着账期行锁。
 func IssueCreditBill(periodId int64) (*EnterpriseBill, error) {
+	var financeSnapshot *EnterpriseBillUsageSnapshot
+	var pending EnterpriseCreditPeriod
+	if err := DB.First(&pending, "id = ?", periodId).Error; err != nil {
+		return nil, err
+	}
+	if pending.Status == EnterpriseCreditPeriodClosing {
+		financeSnapshot = snapshotEnterpriseBillUsage(pending.EnterpriseId, pending.StartAt, pending.EndAt)
+	}
 	var bill *EnterpriseBill
 	err := DB.Transaction(func(tx *gorm.DB) error {
 		var period EnterpriseCreditPeriod
@@ -197,11 +207,14 @@ func IssueCreditBill(periodId int64) (*EnterpriseBill, error) {
 				"status": EnterpriseCreditPeriodBilled, "billed_at": now, "updated_at": now,
 			}).Error
 		}
-		usage, err := summarizeUsageByPeriod(tx, period.EnterpriseId, period.Id)
+		usage, err := summarizeUsageAttribution(tx, period.EnterpriseId, func(query *gorm.DB) *gorm.DB {
+			return query.Where("u.period_id = ?", period.Id)
+		})
 		if err != nil {
 			return err
 		}
 		usage["detail_total_quota"] = detailTotal
+		financeSnapshot.mergeInto(usage)
 		usageJSON, _ := common.Marshal(usage)
 		sellerJSON, _ := common.Marshal(GetEnterpriseSellerProfile())
 		buyerJSON, _ := common.Marshal(map[string]any{
@@ -216,12 +229,17 @@ func IssueCreditBill(periodId int64) (*EnterpriseBill, error) {
 		if terms <= 0 {
 			terms = EnterpriseDefaultPaymentTermsDays
 		}
+		// 额度信用期没有固定截止（end_at=0），账单周期以用满关闭时刻为止
+		periodEnd := period.EndAt
+		if periodEnd == 0 {
+			periodEnd = period.ClosedAt
+		}
 		bill = &EnterpriseBill{
 			EnterpriseId:       period.EnterpriseId,
 			PeriodId:           period.Id,
 			BillType:           EnterpriseBillTypeCredit,
 			PeriodStart:        period.StartAt,
-			PeriodEnd:          period.EndAt,
+			PeriodEnd:          periodEnd,
 			AmountQuota:        period.UsedQuota,
 			AmountUSD:          amountUSD,
 			TotalUSD:           amountUSD,
@@ -276,12 +294,14 @@ func FindClosingPeriodsReadyToBill(now int64) ([]*EnterpriseCreditPeriod, error)
 	return periods, err
 }
 
-// RegisterBillPayment 登记收款（支持部分付款），写 bill_payment 流水
+// RegisterBillPayment 登记收款（支持部分付款），写 bill_payment 流水。
+// 账单结清时，额度信用（auto_reset=false）用满后等待收款的企业在同一事务内自动开下一期恢复服务。
 func RegisterBillPayment(billId int64, amountUSD decimal.Decimal, operatorId int, reference string, remark string) (*EnterpriseBill, error) {
 	if !amountUSD.IsPositive() {
 		return nil, errors.New("payment amount must be positive")
 	}
 	var bill EnterpriseBill
+	reopened := false
 	err := DB.Transaction(func(tx *gorm.DB) error {
 		if err := lockForUpdate(tx).First(&bill, "id = ?", billId).Error; err != nil {
 			return err
@@ -306,7 +326,7 @@ func RegisterBillPayment(billId int64, amountUSD decimal.Decimal, operatorId int
 			return err
 		}
 		amountQuota := amountUSD.Mul(decimal.NewFromFloat(common.QuotaPerUnit)).Round(0).IntPart()
-		return recordEnterpriseLedger(tx, &EnterpriseLedgerEntry{
+		if err := recordEnterpriseLedger(tx, &EnterpriseLedgerEntry{
 			EnterpriseId: bill.EnterpriseId,
 			Type:         EnterpriseLedgerBillPayment,
 			AmountQuota:  amountQuota,
@@ -315,12 +335,41 @@ func RegisterBillPayment(billId int64, amountUSD decimal.Decimal, operatorId int
 			OperatorId:   operatorId,
 			Reference:    reference,
 			Remark:       remark,
-		})
+		}); err != nil {
+			return err
+		}
+		if bill.Status != EnterpriseBillPaid {
+			return nil
+		}
+		var err error
+		reopened, err = reopenCreditPeriodAfterBillSettledTx(tx, bill.EnterpriseId, now, operatorId)
+		return err
 	})
 	if err != nil {
 		return nil, err
 	}
+	if reopened {
+		InvalidateEnterpriseBillingInfoByEnterprise(bill.EnterpriseId)
+	}
 	return &bill, nil
+}
+
+// reopenCreditPeriodAfterBillSettledTx 账单结清后，额度信用（auto_reset=false）用满待收款的企业在同一事务内开下一期恢复服务；
+// 其余计费模式或已有 open 期时什么都不做。收款与人工调账把账单调到结清共用这一步。
+// 锁序与其他路径一致（企业行 → 账期行）；账单行锁只在收款 / 调账 / 作废里用，不构成环。
+func reopenCreditPeriodAfterBillSettledTx(tx *gorm.DB, enterpriseId int, now int64, operatorId int) (bool, error) {
+	enterprise, err := lockEnterprise(tx, enterpriseId)
+	if err != nil {
+		return false, err
+	}
+	if enterprise.BillingMode != EnterpriseBillingModeCredit || enterprise.CreditCycleType != EnterpriseCreditCycleQuotaBased || enterprise.CreditAutoReset {
+		return false, nil
+	}
+	_, err = openNextCreditPeriodTx(tx, enterprise, now, operatorId, "bill_paid")
+	if errors.Is(err, ErrEnterpriseCreditPeriodAlreadyOpen) {
+		return false, nil
+	}
+	return err == nil, err
 }
 
 // VoidBill 作废未结清的账单（账期保持 billed，不会重新出账）
@@ -468,10 +517,18 @@ func GenerateMonthlyStatements(now int64) (int, error) {
 			return created, err
 		}
 		opening := closing - topups + consumption - adjustments
-		snapshot, _ := common.Marshal(map[string]any{
-			"opening_quota": opening, "topup_quota": topups, "consumption_quota": consumption,
-			"adjustment_quota": adjustments, "closing_quota": closing,
+		// 余额变动之外再冻结用量：归因块来自 ent_usage_daily（预付 period_id = 0，按日期取），财务块按自然月扫 logs
+		usage, err := summarizeUsageAttribution(DB, enterprise.Id, func(query *gorm.DB) *gorm.DB {
+			return query.Where("u.day BETWEEN ? AND ?", fromDay, toDay)
 		})
+		if err != nil {
+			return created, err
+		}
+		usage["opening_quota"], usage["topup_quota"], usage["consumption_quota"] = opening, topups, consumption
+		usage["adjustment_quota"], usage["closing_quota"] = adjustments, closing
+		usage["detail_total_quota"] = consumption
+		snapshotEnterpriseBillUsage(enterprise.Id, periodStart.Unix(), periodEnd.Unix()).mergeInto(usage)
+		snapshot, _ := common.Marshal(usage)
 		buyerJSON, _ := common.Marshal(map[string]any{"enterprise_name": enterprise.Name, "billing_profile": enterprise.BillingProfile})
 		sellerJSON, _ := common.Marshal(GetEnterpriseSellerProfile())
 		bill := &EnterpriseBill{
@@ -492,7 +549,7 @@ func GenerateMonthlyStatements(now int64) (int, error) {
 			CreatedAt:      now,
 			UpdatedAt:      now,
 		}
-		err := DB.Transaction(func(tx *gorm.DB) error {
+		err = DB.Transaction(func(tx *gorm.DB) error {
 			if err := tx.Create(bill).Error; err != nil {
 				return err
 			}

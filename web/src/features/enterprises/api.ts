@@ -123,6 +123,16 @@ export async function listEnterpriseCreditPeriods(
   return res.data
 }
 
+/** 额度信用待收款期间手动开下一期（提前放行 / 账单作废后恢复） */
+export async function openCreditPeriod(
+  id: number
+): Promise<ApiResponse<CreditPeriod>> {
+  const res = await api.post(
+    `${ADMIN_ENTERPRISE_BASE}/${id}/credit-periods/open`
+  )
+  return res.data
+}
+
 export async function getEnterpriseUsageSummary(
   id: number,
   params: {

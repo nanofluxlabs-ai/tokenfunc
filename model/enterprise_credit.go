@@ -42,6 +42,10 @@ var (
 	ErrEnterpriseNotPrepaid         = errors.New("enterprise is not in prepaid billing mode")
 	ErrEnterpriseCreditConfig       = errors.New("invalid credit configuration")
 	ErrEnterpriseCreditNoOpenPeriod = errors.New("enterprise has no open credit period")
+	// ErrEnterpriseCreditAwaitingPayment 额度信用（auto_reset=false）上一期已用满出账，等待收款或管理员手动开期
+	ErrEnterpriseCreditAwaitingPayment = errors.New("enterprise credit period is exhausted and awaiting bill payment")
+	// ErrEnterpriseCreditPeriodAlreadyOpen 手动开期时已有 open 期
+	ErrEnterpriseCreditPeriodAlreadyOpen = errors.New("enterprise already has an open credit period")
 )
 
 // EnterpriseCreditPeriod 授信账期：预扣时确定归属，结算/退款都记回同一期
@@ -89,6 +93,8 @@ type EnterpriseCreditConfig struct {
 	LimitQuota int64
 	// AlertPercent 预警阈值百分比（0..99，0 关闭预警）
 	AlertPercent int
+	// AutoReset 仅 quota_based 有效：用满后立即开下一期
+	AutoReset bool
 }
 
 // EnterpriseDefaultCreditAlertPercent 新开通授信时的默认预警阈值
@@ -104,6 +110,11 @@ func (c EnterpriseCreditConfig) validate() error {
 		if c.CycleDays < 1 || c.CycleDays > 366 {
 			return fmt.Errorf("%w: cycle days must be between 1 and 366", ErrEnterpriseCreditConfig)
 		}
+	case EnterpriseCreditCycleQuotaBased:
+		// 额度为 0 时首次预扣就会"用满"，翻转后新期仍为 0，陷入死循环；额度信用必须有正额度
+		if c.LimitQuota <= 0 {
+			return fmt.Errorf("%w: quota based credit requires a positive limit", ErrEnterpriseCreditConfig)
+		}
 	default:
 		return fmt.Errorf("%w: unknown cycle type %q", ErrEnterpriseCreditConfig, c.CycleType)
 	}
@@ -113,8 +124,11 @@ func (c EnterpriseCreditConfig) validate() error {
 	return nil
 }
 
-// creditPeriodBounds 计算包含 now 的账期区间 [start, end)
+// creditPeriodBounds 计算包含 now 的账期区间 [start, end)；额度信用没有截止，返回 [now, 0)
 func creditPeriodBounds(cycleType string, cycleDays int, anchorAt int64, now int64) (int64, int64) {
+	if cycleType == EnterpriseCreditCycleQuotaBased {
+		return now, 0
+	}
 	if cycleType == EnterpriseCreditCycleFixedDays && cycleDays > 0 {
 		length := int64(cycleDays) * 86400
 		if anchorAt <= 0 || anchorAt > now {
@@ -145,6 +159,8 @@ func recordEnterpriseLedger(tx *gorm.DB, entry *EnterpriseLedgerEntry) error {
 }
 
 // ensureOpenCreditPeriodTx 保证授信企业有且仅有一个 open 期：到期的 open 期转为 closing 并开下一期；没有则开第一期。
+// 额度信用（end_at=0）的 open 期永不到期，用满翻转由 RolloverExhaustedCreditPeriod 负责；
+// auto_reset=false 且上一期已用满出账时没有 open 期是正常状态，返回 ErrEnterpriseCreditAwaitingPayment 而不开新期。
 // 调用方必须已对企业行加锁。
 func ensureOpenCreditPeriodTx(tx *gorm.DB, enterprise *Enterprise, now int64) (*EnterpriseCreditPeriod, error) {
 	if enterprise.BillingMode != EnterpriseBillingModeCredit {
@@ -158,7 +174,7 @@ func ensureOpenCreditPeriodTx(tx *gorm.DB, enterprise *Enterprise, now int64) (*
 	periodNo := 1
 	startAt, endAt := creditPeriodBounds(enterprise.CreditCycleType, enterprise.CreditCycleDays, enterprise.CreditAnchorAt, now)
 	if err == nil {
-		if now < open.EndAt {
+		if open.EndAt == 0 || now < open.EndAt {
 			return &open, nil
 		}
 		// 到期：转 closing，等在途请求结算完由出账任务处理
@@ -170,14 +186,17 @@ func ensureOpenCreditPeriodTx(tx *gorm.DB, enterprise *Enterprise, now int64) (*
 			return nil, err
 		}
 		periodNo = open.PeriodNo + 1
-		// 相邻周期保持连续：新期从上期结束时刻开始（除非系统停摆太久已跨过多个周期）
-		if startAt <= open.EndAt {
+		// 相邻周期保持连续：新期从上期结束时刻开始（除非系统停摆太久已跨过多个周期）；额度信用新期从现在开始
+		if endAt > 0 && startAt <= open.EndAt {
 			startAt = open.EndAt
 		}
 	} else {
 		var maxNo int
 		if err := tx.Model(&EnterpriseCreditPeriod{}).Where("enterprise_id = ?", enterprise.Id).Select("COALESCE(MAX(period_no), 0)").Scan(&maxNo).Error; err != nil {
 			return nil, err
+		}
+		if maxNo > 0 && enterprise.CreditCycleType == EnterpriseCreditCycleQuotaBased && !enterprise.CreditAutoReset {
+			return nil, ErrEnterpriseCreditAwaitingPayment
 		}
 		periodNo = maxNo + 1
 		// 首期从开通时刻开始，不足一个周期
@@ -223,6 +242,125 @@ func GetOpenCreditPeriod(enterpriseId int) (*EnterpriseCreditPeriod, error) {
 		return nil, ErrEnterpriseCreditNoOpenPeriod
 	}
 	return &period, err
+}
+
+// openNextCreditPeriodTx 在没有 open 期时开下一期（期号 = 已有最大期号 + 1，从 now 开始），并写 credit_limit_change 流水记录开期原因。
+// 调用方必须已对企业行加锁；已有 open 期返回 ErrEnterpriseCreditPeriodAlreadyOpen。
+func openNextCreditPeriodTx(tx *gorm.DB, enterprise *Enterprise, now int64, operatorId int, reason string) (*EnterpriseCreditPeriod, error) {
+	if enterprise.BillingMode != EnterpriseBillingModeCredit {
+		return nil, ErrEnterpriseNotCredit
+	}
+	var openCount int64
+	if err := tx.Model(&EnterpriseCreditPeriod{}).Where("enterprise_id = ? AND status = ?", enterprise.Id, EnterpriseCreditPeriodOpen).Count(&openCount).Error; err != nil {
+		return nil, err
+	}
+	if openCount > 0 {
+		return nil, ErrEnterpriseCreditPeriodAlreadyOpen
+	}
+	var maxNo int
+	if err := tx.Model(&EnterpriseCreditPeriod{}).Where("enterprise_id = ?", enterprise.Id).Select("COALESCE(MAX(period_no), 0)").Scan(&maxNo).Error; err != nil {
+		return nil, err
+	}
+	_, endAt := creditPeriodBounds(enterprise.CreditCycleType, enterprise.CreditCycleDays, enterprise.CreditAnchorAt, now)
+	period := &EnterpriseCreditPeriod{
+		EnterpriseId: enterprise.Id,
+		PeriodNo:     maxNo + 1,
+		StartAt:      now,
+		EndAt:        endAt,
+		LimitQuota:   enterprise.CreditLimitQuota,
+		Status:       EnterpriseCreditPeriodOpen,
+		CreatedAt:    now,
+		UpdatedAt:    now,
+	}
+	if err := tx.Create(period).Error; err != nil {
+		return nil, err
+	}
+	detail, _ := common.Marshal(map[string]any{"reason": reason, "period_no": period.PeriodNo, "limit_quota": period.LimitQuota})
+	return period, recordEnterpriseLedger(tx, &EnterpriseLedgerEntry{
+		EnterpriseId: enterprise.Id,
+		Type:         EnterpriseLedgerCreditLimitChange,
+		RefType:      "credit_period",
+		RefId:        period.Id,
+		OperatorId:   operatorId,
+		Remark:       "opened credit period #" + fmt.Sprint(period.PeriodNo) + " (" + reason + ")",
+		Detail:       JSONValue(detail),
+	})
+}
+
+// OpenNextCreditPeriod 管理员手动开期：额度信用 auto_reset=false 用满出账后，不等收款提前放行（或账单作废后恢复服务）
+func OpenNextCreditPeriod(enterpriseId int, operatorId int, reason string) (*EnterpriseCreditPeriod, error) {
+	var period *EnterpriseCreditPeriod
+	err := DB.Transaction(func(tx *gorm.DB) error {
+		enterprise, err := lockEnterprise(tx, enterpriseId)
+		if err != nil {
+			return err
+		}
+		period, err = openNextCreditPeriodTx(tx, enterprise, common.GetTimestamp(), operatorId, reason)
+		return err
+	})
+	if err == nil {
+		InvalidateEnterpriseBillingInfoByEnterprise(enterpriseId)
+	}
+	return period, err
+}
+
+// RolloverExhaustedCreditPeriod 额度信用用满翻转：periodId 为预扣被拒的 open 期。
+// 返回 rolled=true 表示该期已不再 open（本次或其他副本已关闭），next 为翻转后的 open 期（auto_reset=false 时为 nil，进入待收款）；
+// rolled=false 表示没有翻转（非额度信用、该期零消费即单笔请求超过整期额度），调用方按额度不足处理。
+// 翻转在企业行锁内完成：open → closing（closed_at=now，交给出账任务），auto_reset 时同事务开 period_no+1 的新期（end_at=0）。
+func RolloverExhaustedCreditPeriod(enterpriseId int, periodId int64) (next *EnterpriseCreditPeriod, rolled bool, err error) {
+	err = DB.Transaction(func(tx *gorm.DB) error {
+		enterprise, err := lockEnterprise(tx, enterpriseId)
+		if err != nil {
+			return err
+		}
+		var period EnterpriseCreditPeriod
+		if err := lockForUpdate(tx).First(&period, "id = ? AND enterprise_id = ?", periodId, enterpriseId).Error; err != nil {
+			return err
+		}
+		if period.Status != EnterpriseCreditPeriodOpen {
+			// 别的请求 / 副本已经翻过：直接用当前 open 期（可能没有）
+			rolled = true
+			var open EnterpriseCreditPeriod
+			err := tx.Where("enterprise_id = ? AND status = ?", enterpriseId, EnterpriseCreditPeriodOpen).First(&open).Error
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				return nil
+			}
+			next = &open
+			return err
+		}
+		if enterprise.BillingMode != EnterpriseBillingModeCredit || enterprise.CreditCycleType != EnterpriseCreditCycleQuotaBased || period.UsedQuota <= 0 {
+			return nil
+		}
+		now := common.GetTimestamp()
+		if err := tx.Model(&EnterpriseCreditPeriod{}).Where("id = ?", period.Id).Updates(map[string]any{
+			"status": EnterpriseCreditPeriodClosing, "closed_at": now, "updated_at": now,
+		}).Error; err != nil {
+			return err
+		}
+		rolled = true
+		if !enterprise.CreditAutoReset {
+			return nil
+		}
+		next = &EnterpriseCreditPeriod{
+			EnterpriseId: enterpriseId,
+			PeriodNo:     period.PeriodNo + 1,
+			StartAt:      now,
+			EndAt:        0,
+			LimitQuota:   enterprise.CreditLimitQuota,
+			Status:       EnterpriseCreditPeriodOpen,
+			CreatedAt:    now,
+			UpdatedAt:    now,
+		}
+		return tx.Create(next).Error
+	})
+	if err != nil {
+		return nil, false, err
+	}
+	if rolled {
+		InvalidateEnterpriseBillingInfoByEnterprise(enterpriseId)
+	}
+	return next, rolled, nil
 }
 
 // EnterpriseCreditSnapshot 授信企业的只读额度快照：企业资料 + 当前 open 账期（账期滚动空窗时 Period 为 nil）
@@ -313,6 +451,17 @@ func ApplyCreditSettlement(enterpriseId int, periodId int64, delta int64, inflig
 		return CreditUsageState{}, nil
 	}
 	open, err := EnsureOpenCreditPeriod(enterpriseId)
+	if errors.Is(err, ErrEnterpriseCreditAwaitingPayment) {
+		// 额度信用待收款期间没有 open 期：差额只留流水、不动任何计数器，由人工调账兜底
+		return CreditUsageState{}, recordEnterpriseLedger(DB, &EnterpriseLedgerEntry{
+			EnterpriseId: enterpriseId,
+			Type:         EnterpriseLedgerCrossPeriodAdjustment,
+			AmountQuota:  delta,
+			RefType:      "credit_period",
+			RefId:        periodId,
+			Remark:       fmt.Sprintf("settlement of period %d arrived after billing; no open period (awaiting payment)", periodId),
+		})
+	}
 	if err != nil {
 		return CreditUsageState{}, fmt.Errorf("period %d is billed and no open period to carry delta %d: %w", periodId, delta, err)
 	}
@@ -344,7 +493,7 @@ func ConfigureEnterpriseCredit(enterpriseId int, config EnterpriseCreditConfig, 
 		previous := map[string]any{
 			"billing_mode": enterprise.BillingMode, "cycle_type": enterprise.CreditCycleType,
 			"cycle_days": enterprise.CreditCycleDays, "limit_quota": enterprise.CreditLimitQuota,
-			"alert_percent": enterprise.CreditAlertPercent,
+			"alert_percent": enterprise.CreditAlertPercent, "auto_reset": enterprise.CreditAutoReset,
 		}
 		updates := map[string]any{
 			"billing_mode":         EnterpriseBillingModeCredit,
@@ -352,9 +501,11 @@ func ConfigureEnterpriseCredit(enterpriseId int, config EnterpriseCreditConfig, 
 			"credit_cycle_days":    config.CycleDays,
 			"credit_limit_quota":   config.LimitQuota,
 			"credit_alert_percent": config.AlertPercent,
+			"credit_auto_reset":    config.AutoReset,
 			"updated_at":           now,
 		}
-		if enterprise.CreditAnchorAt == 0 || enterprise.BillingMode != EnterpriseBillingModeCredit {
+		freshEnable := enterprise.BillingMode != EnterpriseBillingModeCredit
+		if enterprise.CreditAnchorAt == 0 || freshEnable {
 			updates["credit_anchor_at"] = now
 			enterprise.CreditAnchorAt = now
 		}
@@ -365,32 +516,45 @@ func ConfigureEnterpriseCredit(enterpriseId int, config EnterpriseCreditConfig, 
 		enterprise.CreditCycleType = config.CycleType
 		enterprise.CreditCycleDays = config.CycleDays
 		enterprise.CreditLimitQuota = config.LimitQuota
+		enterprise.CreditAutoReset = config.AutoReset
 		period, err := ensureOpenCreditPeriodTx(tx, enterprise, now)
+		if errors.Is(err, ErrEnterpriseCreditAwaitingPayment) {
+			// 额度信用待收款：改配置不替企业放行（手动开期 / 收款才开新期）；从预付刚切回授信则直接开第一期
+			period, err = nil, nil
+			if freshEnable {
+				period, err = openNextCreditPeriodTx(tx, enterprise, now, operatorId, "credit_enabled")
+			}
+		}
 		if err != nil {
 			return err
 		}
-		if period.LimitQuota != config.LimitQuota {
-			if err := tx.Model(&EnterpriseCreditPeriod{}).Where("id = ?", period.Id).Updates(map[string]any{
-				"limit_quota": config.LimitQuota, "updated_at": now,
-			}).Error; err != nil {
-				return err
+		var periodId int64
+		if period != nil {
+			periodId = period.Id
+			if period.LimitQuota != config.LimitQuota {
+				if err := tx.Model(&EnterpriseCreditPeriod{}).Where("id = ?", period.Id).Updates(map[string]any{
+					"limit_quota": config.LimitQuota, "updated_at": now,
+				}).Error; err != nil {
+					return err
+				}
 			}
-		}
-		// 额度上调或阈值变化后，本期的预警应按新口径重新生效；用尽通知不重置（额度不足仍是事实）
-		if config.LimitQuota > period.LimitQuota || config.AlertPercent != enterprise.CreditAlertPercent {
-			if err := resetCreditNotifyTx(tx, period.Id, CreditNotifyKindWarn); err != nil {
-				return err
+			// 额度上调或阈值变化后，本期的预警应按新口径重新生效；用尽通知不重置（额度不足仍是事实）
+			if config.LimitQuota > period.LimitQuota || config.AlertPercent != enterprise.CreditAlertPercent {
+				if err := resetCreditNotifyTx(tx, period.Id, CreditNotifyKindWarn); err != nil {
+					return err
+				}
 			}
 		}
 		detail, _ := common.Marshal(map[string]any{"before": previous, "after": map[string]any{
 			"billing_mode": EnterpriseBillingModeCredit, "cycle_type": config.CycleType,
 			"cycle_days": config.CycleDays, "limit_quota": config.LimitQuota, "alert_percent": config.AlertPercent,
+			"auto_reset": config.AutoReset,
 		}})
 		return recordEnterpriseLedger(tx, &EnterpriseLedgerEntry{
 			EnterpriseId: enterpriseId,
 			Type:         EnterpriseLedgerCreditLimitChange,
 			RefType:      "credit_period",
-			RefId:        period.Id,
+			RefId:        periodId,
 			OperatorId:   operatorId,
 			Detail:       JSONValue(detail),
 		})
@@ -525,11 +689,12 @@ func ListEnterpriseCreditPeriods(enterpriseId int, startIdx int, num int) ([]*En
 	return periods, total, err
 }
 
-// RolloverDueCreditPeriods 把已到期的 open 期滚动到下一期（定时任务调用，幂等）
+// RolloverDueCreditPeriods 把已到期的 open 期滚动到下一期（定时任务调用，幂等）。
+// 额度信用期（end_at=0）不按时间滚动；结算补扣推过额度但之后没有新请求触发翻转的，由这里兜底翻转。
 func RolloverDueCreditPeriods(now int64) (int, error) {
 	var enterpriseIds []int
 	err := DB.Model(&EnterpriseCreditPeriod{}).
-		Where("status = ? AND end_at <= ?", EnterpriseCreditPeriodOpen, now).
+		Where("status = ? AND end_at > 0 AND end_at <= ?", EnterpriseCreditPeriodOpen, now).
 		Distinct().Pluck("enterprise_id", &enterpriseIds).Error
 	if err != nil {
 		return 0, err
@@ -543,6 +708,25 @@ func RolloverDueCreditPeriods(now int64) (int, error) {
 			return rolled, err
 		}
 		rolled++
+	}
+	var exhausted []struct {
+		Id           int64
+		EnterpriseId int
+	}
+	err = DB.Table("ent_credit_periods p").
+		Joins("JOIN enterprises e ON e.id = p.enterprise_id").
+		Where("p.status = ? AND e.billing_mode = ? AND e.credit_cycle_type = ? AND p.limit_quota > 0 AND p.used_quota >= p.limit_quota",
+			EnterpriseCreditPeriodOpen, EnterpriseBillingModeCredit, EnterpriseCreditCycleQuotaBased).
+		Select("p.id, p.enterprise_id").Scan(&exhausted).Error
+	if err != nil {
+		return rolled, err
+	}
+	for _, period := range exhausted {
+		if _, ok, err := RolloverExhaustedCreditPeriod(period.EnterpriseId, period.Id); err != nil {
+			return rolled, err
+		} else if ok {
+			rolled++
+		}
 	}
 	return rolled, nil
 }
@@ -558,6 +742,8 @@ type EnterpriseBillingInfo struct {
 	Status             string
 	OpenPeriodId       int64
 	CreditAlertPercent int
+	// TeamBudgets 设了月度预算的团队（team_id -> 预算配置）；没有时为 nil，计费入口只多一次 map 读
+	TeamBudgets map[int]EnterpriseTeamBudget
 }
 
 const enterpriseBillingInfoTTL = 15 * time.Second
@@ -588,6 +774,11 @@ func loadEnterpriseBillingInfo(userId int) (*EnterpriseBillingInfo, error) {
 		}
 		info.OpenPeriodId = periodId
 	}
+	budgets, err := loadEnterpriseTeamBudgets(enterprise.Id)
+	if err != nil {
+		return nil, err
+	}
+	info.TeamBudgets = budgets
 	return info, nil
 }
 

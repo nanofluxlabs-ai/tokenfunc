@@ -19,7 +19,9 @@ import type {
   Team,
   TeamPayload,
   TokenAssignmentPayload,
-  TokenCreatePayload,
+  TokenBatchResult,
+  TokenMutatePayload,
+  TokenOptions,
   UsageGroupBy,
   UsageSummary,
 } from './types'
@@ -140,6 +142,7 @@ export async function listEnterpriseTokens(params: {
   team_id?: number
   member_id?: number
   status?: number
+  expiring?: boolean
   keyword?: string
   p?: number
   page_size?: number
@@ -148,10 +151,54 @@ export async function listEnterpriseTokens(params: {
   return res.data
 }
 
+/** 新建 / 编辑抽屉的可选项：分组、各分组模型、key 上限与当前总数 */
+export async function getEnterpriseTokenOptions(): Promise<
+  ApiResponse<TokenOptions>
+> {
+  const res = await api.get(`${BASE}/tokens/options`)
+  return res.data
+}
+
 export async function createEnterpriseToken(
-  payload: TokenCreatePayload
+  payload: TokenMutatePayload
 ): Promise<ApiResponse<{ id: number }>> {
   const res = await api.post(`${BASE}/tokens`, payload)
+  return res.data
+}
+
+export async function updateEnterpriseToken(
+  id: number,
+  payload: TokenMutatePayload
+): Promise<ApiResponse> {
+  const res = await api.put(`${BASE}/tokens/${id}`, payload)
+  return res.data
+}
+
+export async function updateEnterpriseTokenStatus(
+  id: number,
+  status: number
+): Promise<ApiResponse> {
+  const res = await api.put(`${BASE}/tokens/${id}/status`, { status })
+  return res.data
+}
+
+export async function deleteEnterpriseToken(id: number): Promise<ApiResponse> {
+  const res = await api.delete(`${BASE}/tokens/${id}`)
+  return res.data
+}
+
+export async function batchUpdateEnterpriseTokenStatus(
+  ids: number[],
+  status: number
+): Promise<ApiResponse<TokenBatchResult>> {
+  const res = await api.post(`${BASE}/tokens/batch-status`, { ids, status })
+  return res.data
+}
+
+export async function batchDeleteEnterpriseTokens(
+  ids: number[]
+): Promise<ApiResponse<{ deleted: number }>> {
+  const res = await api.post(`${BASE}/tokens/batch-delete`, { ids })
   return res.data
 }
 
@@ -225,7 +272,6 @@ export async function downloadUsageCsv(
 export const USAGE_EXPORT_URL = `${BASE}/usage/export`
 
 export async function listBills(params: {
-  bill_type?: string
   status?: string
   p?: number
   page_size?: number
@@ -237,4 +283,19 @@ export async function listBills(params: {
 export async function getBill(id: number): Promise<ApiResponse<Bill>> {
   const res = await api.get(`${BASE}/bills/${id}`)
   return res.data
+}
+
+/** 账单 CSV 的主体：企业控制台看自己的账单，管理员财务中心走 admin 路由 */
+export type BillExportScope = 'enterprise' | 'admin'
+
+/** 下载账单 CSV（已归档透传冻结件，否则由快照还原）；业务失败时返回 JSON blob，调用方按 content-type 区分 */
+export async function downloadBillCsv(
+  id: number,
+  scope: BillExportScope
+): Promise<Blob> {
+  const base = scope === 'admin' ? '/api/admin/enterprise' : BASE
+  const res = await api.get(`${base}/bills/${id}/export`, {
+    responseType: 'blob',
+  })
+  return res.data as Blob
 }

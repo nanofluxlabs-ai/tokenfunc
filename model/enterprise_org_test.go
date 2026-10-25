@@ -1,7 +1,9 @@
 package model
 
 import (
+	"sync"
 	"testing"
+	"time"
 
 	"github.com/QuantumNous/new-api/common"
 
@@ -513,4 +515,107 @@ func TestEnterpriseOrgV2Migration(t *testing.T) {
 	assert.Equal(t, int64(2), rowCount)
 	assert.True(t, DB.Migrator().HasTable("ent_usage_daily_legacy"), "legacy table is kept for one release")
 	assert.False(t, columnExists("ent_usage_daily_legacy", "department_id"), "legacy table is marked as migrated")
+}
+
+// TestEnterpriseTeamBudgetAlertsAndState 团队月度预算：跨阈值每月每档只发一次、并发只一方抢到、上调预算后可再触发、列表回填状态
+func TestEnterpriseTeamBudgetAlertsAndState(t *testing.T) {
+	setupEnterprisePostgres(t)
+	owner, ent := newEnterpriseForTest(t, "budgetowner", "Budget Co")
+	team := &EnterpriseTeam{EnterpriseId: ent.Id, Name: "Research", MonthlyBudgetQuota: 1000, BudgetAlertPercent: 80}
+	require.NoError(t, CreateEnterpriseTeam(team))
+	token := newEnterpriseTestToken(t, ent, owner.Id, "budgetkey000000000000000000000000000000000000001", team.Id, 0)
+	InvalidateEnterpriseBillingInfo(owner.Id)
+	// 表重建后 token id 会复用，前一个用例的归属缓存（30 秒）必须清掉
+	InvalidateAllTokenAttribution()
+	InvalidateTeamMonthUsage(team.Id)
+	teamBudgetNotified.Range(func(key, _ any) bool { teamBudgetNotified.Delete(key); return true })
+
+	var alerts []TeamBudgetAlert
+	previousSender := TeamBudgetAlertSender
+	TeamBudgetAlertSender = func(alert TeamBudgetAlert) { alerts = append(alerts, alert) }
+	t.Cleanup(func() { TeamBudgetAlertSender = previousSender })
+
+	record := func(quota int) {
+		t.Helper()
+		require.NoError(t, RecordEnterpriseUsage(EnterpriseUsageEvent{UserId: owner.Id, TokenId: token.Id, ModelName: "gpt-4o", Quota: quota, CreatedAt: common.GetTimestamp()}))
+	}
+	month := EnterpriseBudgetMonth(time.Now())
+
+	// 700 未到阈值；800 跨过 80% 发一次 warn；850 不重复
+	record(700)
+	assert.Empty(t, alerts)
+	record(100)
+	require.Len(t, alerts, 1)
+	assert.Equal(t, TeamBudgetAlert{EnterpriseId: ent.Id, TeamId: team.Id, Month: month, Kind: TeamBudgetKindWarn, UsedQuota: 800, BudgetQuota: 1000, AlertPercent: 80}, alerts[0])
+	record(50)
+	assert.Len(t, alerts, 1)
+
+	// 1000 达到预算发 exceeded；继续消费不重复
+	record(150)
+	require.Len(t, alerts, 2)
+	assert.Equal(t, TeamBudgetKindExceeded, alerts[1].Kind)
+	assert.Equal(t, int64(1000), alerts[1].UsedQuota)
+	record(10)
+	assert.Len(t, alerts, 2)
+
+	// 列表回填本月消耗与状态；未设预算的团队为 none
+	teams, err := ListEnterpriseTeams(ent.Id, EnterpriseScope{})
+	require.NoError(t, err)
+	states := map[string]*EnterpriseTeamListItem{}
+	for _, item := range teams {
+		states[item.Name] = item
+	}
+	assert.Equal(t, int64(1010), states["Research"].MonthQuota)
+	assert.Equal(t, 101, states["Research"].BudgetPercent)
+	assert.Equal(t, TeamBudgetStateExceeded, states["Research"].BudgetState)
+	assert.Equal(t, TeamBudgetStateNone, states[EnterpriseDefaultTeamName].BudgetState)
+	assert.Equal(t, int64(0), states[EnterpriseDefaultTeamName].MonthQuota)
+
+	// 并发抢占同一档：只有一方拿到发送权；换月是另一把钥匙
+	var wg sync.WaitGroup
+	claimed := make([]bool, 8)
+	for i := range claimed {
+		wg.Go(func() {
+			ok, err := ClaimTeamBudgetNotify(team.Id, "2099-01", TeamBudgetKindWarn, ent.Id)
+			assert.NoError(t, err)
+			claimed[i] = ok
+		})
+	}
+	wg.Wait()
+	winners := 0
+	for _, ok := range claimed {
+		if ok {
+			winners++
+		}
+	}
+	assert.Equal(t, 1, winners)
+	ok, err := ClaimTeamBudgetNotify(team.Id, "2099-02", TeamBudgetKindWarn, ent.Id)
+	require.NoError(t, err)
+	assert.True(t, ok)
+
+	// 上调预算：当月记录清掉、状态回到 ok；再次跨过新阈值 warn 可再发
+	team.MonthlyBudgetQuota = 2000
+	require.NoError(t, UpdateEnterpriseTeam(team))
+	var remaining int64
+	require.NoError(t, DB.Model(&EnterpriseTeamBudgetNotify{}).Where("team_id = ? AND month = ?", team.Id, month).Count(&remaining).Error)
+	assert.Equal(t, int64(0), remaining)
+	teams, err = ListEnterpriseTeams(ent.Id, EnterpriseScope{})
+	require.NoError(t, err)
+	for _, item := range teams {
+		if item.Id == team.Id {
+			assert.Equal(t, TeamBudgetStateOk, item.BudgetState)
+			assert.Equal(t, 50, item.BudgetPercent)
+		}
+	}
+	record(600)
+	require.Len(t, alerts, 3)
+	assert.Equal(t, TeamBudgetKindWarn, alerts[2].Kind)
+	assert.Equal(t, int64(1610), alerts[2].UsedQuota)
+	assert.Equal(t, int64(2000), alerts[2].BudgetQuota)
+
+	// 预算改为 0 = 不设：不再判档
+	team.MonthlyBudgetQuota = 0
+	require.NoError(t, UpdateEnterpriseTeam(team))
+	record(5000)
+	assert.Len(t, alerts, 3)
 }

@@ -43,6 +43,9 @@
 - 顺带发现（与本分支无关）：`TestDeleteRedemptionBatch` 单独运行失败（`-run TestDeleteRedemptionBatch` → 401），它依赖同包更早的用例调用过 `model.EnsureLegacyAccessTokenRetireAt`，整包运行时通过。
 - 前端：`bun run typecheck` 通过；`bunx oxfmt --write` / `bunx oxlint -c .oxlintrc.json` 只对改动文件执行，oxlint 退出码 0；`bunx vitest run src/features/enterprises src/i18n/tokenfunc src/features/reconciliation src/features/enterprise-console src/features/usage-logs src/lib/__tests__`：48 个文件 584 用例通过（含新增 `adjustment-dialog.test.tsx` 4 用例、`locale-shape.test.ts` 七文件键集一致、`bills-admin-page-reconcile.test.tsx`），唯一失败 `usage-logs/components/__tests__/detail-preview.test.tsx > task log prices use localized unit labels`（上游用例，20s 超时，单独重跑仍超时，与本分支改动无关——本分支只在审计模板表追加两条字符串）。`users/__tests__/quota-display.test.tsx` 的「creation and last login」用例同样在本分支前就失败（`getByText('—')` 命中多个元素，最近一次改动来自 `05cf84e2b`），本分支对 users 目录只改了导入与类型。
 - 合并 `origin/main`（#47 M7 守卫 / 员工自查）后无冲突：`gofmt -l` 无输出、`go build ./...`、`go vet` 通过；`make test-db PKG='./model/ ./service/ ./controller/ ./middleware/ ./router/ -count=1'` → `ok model 20.215s / ok service 6.312s / ok controller 44.701s / ok middleware 0.770s / ok router 0.775s`；`bun run typecheck` 通过；`bunx vitest run src/features/enterprises src/i18n/tokenfunc src/features/reconciliation src/features/enterprise-console src/features/wallet src/lib/__tests__` → 27 文件 143 用例通过。
+- 合并批次 2（`origin/main` 1ebdd640d，含 #50 M14 / #51 M3 / #52 M9 / #53 M10）：冲突 9 个文件——`middleware/access_token_routes_enterprise.go`（M10 加了 `credit-periods/open` 并重排对齐，取 main 版再加回 `adjustments` 一行）、`model/enterprise_test.go`（两边都在文件尾追加用例，保留两侧）、七个 locale（取 main 版后用脚本重新写入本分支 19 条键，`locale-shape.test.ts` 键集一致）。两个前端入口文件（计费抽屉 / 账单页）自动合并成功，调账入口与 M10 的「待收款 / 手动开期」并存。
+  - **与 M10 的语义交叉**：M10 在 `RegisterBillPayment` 里对「账单结清 → 额度信用 `auto_reset=false` 待收款企业自动开下一期」；本分支账单调账「调到恰好等于已付即 paid」也是结清。按已拍板语义（用满后拒绝请求直到账单结清 / 管理员手动开期），调账结清与收款结清一视同仁：把 M10 的开期块抽成 `reopenCreditPeriodAfterBillSettledTx`，收款与调账共用；非额度信用 / `auto_reset=true` / 已有 open 期时不动。`TestEnterpriseManualAdjustments` 末尾新增用例：quota_based 用满出账待收款 → 调一半仍 unpaid 不开期 → 调到 0 即 paid 并开出 `period_no+1`、余额缓存失效。
+  - 合并后：`gofmt -l` 无输出、`go build ./...`、`go vet` 五包通过；`bun run typecheck` 通过；oxlint 退出码 0；`bunx vitest run src/features/enterprises src/i18n/tokenfunc src/features/reconciliation src/features/enterprise-console src/features/wallet src/lib/__tests__` → 33 文件 166 用例通过；`make test-db PKG='./model/ ./service/ ./controller/ ./middleware/ ./router/ -count=1'` → `ok model 38.875s / ok service 6.506s / ok controller 46.857s / ok middleware 0.787s / ok router 0.799s`。
 - 未做：浏览器手工验收（`make dev` 后在企业计费抽屉 / 财务账单页点调账、走二次验证）。
 
 ## 遗留
@@ -52,5 +55,6 @@
   - 前端二次验证没有接进 `EnterprisesProvider`，而是由 `AdjustmentDialog` 自己挂 `SecureVerificationDialog`：企业账单页 `BillsAdminContent` 渲染在财务中心，不在 provider 之内。
   - 账单调账后没有重新 `ArchiveBillAsync`：账期包只含对账单明细与原始日志（`BuildFinanceUsageCSVPayload` / `WriteLogsArchiveCSV`），不含 `adjustment_usd / total_usd`，重新归档会产出完全相同的对象。
   - 账单调到总额为 0 且未付时直接置 paid（方案写 unpaid），与出账时「零金额即 paid」一致，避免 0 元账单进催款。
+  - 账单调账结清会触发 M10 的「待收款自动开期」（方案未涉及，合并批次 2 时按已拍板语义决定）。
 - 企业侧账单详情（`enterprise-console/bill-detail-page.tsx`）已能看到 `adjustment_usd` 与 `total_usd` 变化和流水，但没有单独的「调整明细」列表；需要时读 `GET /api/enterprise/ledger?type=adjustment`。
 - 不做：授信账期计数器的人工修正、批量调账（方案「不做」项）。

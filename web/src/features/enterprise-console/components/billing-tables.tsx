@@ -10,6 +10,7 @@ import { formatQuotaWithCurrency } from '@/lib/currency'
 import { formatTimestampToDate } from '@/lib/format'
 
 import { CREDIT_PERIOD_STATUSES, LEDGER_TYPES } from '../constants'
+import { formatCreditPeriodRange } from '../lib/credit-period'
 import type { CreditPeriod, LedgerEntry } from '../types'
 
 /** 资金流水表（企业控制台与管理员共用） */
@@ -84,8 +85,7 @@ export function CreditPeriodsTable(props: {
     {
       id: 'range',
       header: t('Date Range'),
-      cell: (row) =>
-        `${formatTimestampToDate(row.start_at)} ~ ${formatTimestampToDate(row.end_at)}`,
+      cell: (row) => formatCreditPeriodRange(row, formatTimestampToDate),
     },
     {
       id: 'limit',

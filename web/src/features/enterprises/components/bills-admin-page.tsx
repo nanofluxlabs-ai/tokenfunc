@@ -110,6 +110,7 @@ export function BillsAdminContent(props: {
       <BillsTable
         bills={data?.items ?? []}
         isLoading={isLoading}
+        exportScope='admin'
         showEnterprise
         showReconcile
         renderBillNo={props.renderBillNo}

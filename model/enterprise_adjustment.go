@@ -119,6 +119,7 @@ func AdjustEnterpriseBill(billId int64, amountUSD decimal.Decimal, operatorId in
 	}
 	var bill EnterpriseBill
 	var entry *EnterpriseLedgerEntry
+	reopened := false
 	err = DB.Transaction(func(tx *gorm.DB) error {
 		if err := lockForUpdate(tx).First(&bill, "id = ?", billId).Error; err != nil {
 			if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -164,10 +165,21 @@ func AdjustEnterpriseBill(billId int64, amountUSD decimal.Decimal, operatorId in
 			Reference:    bill.BillNo,
 			Remark:       remark,
 		}
-		return recordEnterpriseLedger(tx, entry)
+		if err := recordEnterpriseLedger(tx, entry); err != nil {
+			return err
+		}
+		if bill.Status != EnterpriseBillPaid {
+			return nil
+		}
+		// 调到恰好等于已付即结清：与收款结清同语义，额度信用待收款的企业随之开下一期恢复服务
+		reopened, err = reopenCreditPeriodAfterBillSettledTx(tx, bill.EnterpriseId, now, operatorId)
+		return err
 	})
 	if err != nil {
 		return nil, nil, err
+	}
+	if reopened {
+		InvalidateEnterpriseBillingInfoByEnterprise(bill.EnterpriseId)
 	}
 	return &bill, entry, nil
 }

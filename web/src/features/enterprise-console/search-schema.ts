@@ -9,6 +9,10 @@ const idParam = z.number().int().positive().optional().catch(undefined)
 export const enterpriseKeysSearchSchema = z.object({
   team_id: idParam,
   member_id: idParam,
+  /** 上游四态：1 启用 / 2 停用 / 3 过期 / 4 耗尽 */
+  status: z.number().int().min(1).max(4).optional().catch(undefined),
+  /** 只看 7 天内到期 */
+  expiring: z.boolean().optional().catch(undefined),
   q: textParam,
   page: pageParam,
 })

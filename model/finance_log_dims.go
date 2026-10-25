@@ -249,6 +249,32 @@ func (a *financeRatioAccumulator) add(scan FinanceRatioScan, quota int64) {
 	}
 }
 
+// addResolved 把一行汇总已归并好的倍率分布再累加进来（跨分组按模型折叠用）：有 shares 按取值分摊，否则整行记到主值
+func (a *financeRatioAccumulator) addResolved(ratios FinanceRatios, quota int64) {
+	addValue := func(acc financeRatioAcc, value *FinanceRatioValue) {
+		if value == nil {
+			return
+		}
+		if len(value.Shares) == 0 {
+			acc.add(sql.NullFloat64{Float64: value.Value, Valid: true}, quota)
+			return
+		}
+		for _, share := range value.Shares {
+			acc.add(sql.NullFloat64{Float64: share.Value, Valid: true}, share.Quota)
+		}
+	}
+	addValue(a.modelRatio, ratios.ModelRatio)
+	addValue(a.groupRatio, ratios.GroupRatio)
+	addValue(a.completionRatio, ratios.CompletionRatio)
+	addValue(a.cacheRatio, ratios.CacheRatio)
+	addValue(a.cacheCreationRatio, ratios.CacheCreationRatio)
+	addValue(a.cacheCreationRatio1h, ratios.CacheCreationRatio1h)
+	addValue(a.modelPrice, ratios.ModelPrice)
+	if ratios.GroupRatio != nil && ratios.GroupRatioExclusive {
+		a.groupExclusive[ratios.GroupRatio.Value] = true
+	}
+}
+
 func (a *financeRatioAccumulator) resolve() FinanceRatios {
 	ratios := FinanceRatios{
 		ModelRatio:           a.modelRatio.resolve(),

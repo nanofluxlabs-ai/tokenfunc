@@ -200,6 +200,40 @@ func aggregateFinanceUsage(userId int, r FinanceRange) (*FinanceUsageSummary, er
 	return summary, nil
 }
 
+// FoldFinanceModelRatios 把按（令牌分组, 模型）的汇总跨分组折叠成按模型：token 与金额相加，倍率分布合并后重新取主值，
+// 单价按合并后的主值换算。返回行的 Group / GroupLabel 为空，形状与分组-模型行一致（账单快照、Invoice 共用）
+func FoldFinanceModelRatios(rows []*FinanceGroupModelRow, totalQuota int64) []*FinanceGroupModelRow {
+	folded := make([]*FinanceGroupModelRow, 0)
+	byModel := make(map[string]*FinanceGroupModelRow)
+	accumulators := make(map[string]*financeRatioAccumulator)
+	for _, row := range rows {
+		model, exists := byModel[row.ModelName]
+		if !exists {
+			model = &FinanceGroupModelRow{ModelName: row.ModelName}
+			byModel[row.ModelName] = model
+			accumulators[row.ModelName] = newFinanceRatioAccumulator()
+			folded = append(folded, model)
+		}
+		model.Count += row.Count
+		model.PromptTokens += row.PromptTokens
+		model.CompletionTokens += row.CompletionTokens
+		model.InputTokens += row.InputTokens
+		model.CachedTokens += row.CachedTokens
+		model.CacheCreationTokens += row.CacheCreationTokens
+		model.CacheCreation1hTokens += row.CacheCreation1hTokens
+		model.Quota += row.Quota
+		accumulators[row.ModelName].addResolved(row.Ratios, row.Quota)
+	}
+	for _, model := range folded {
+		model.Ratios = accumulators[model.ModelName].resolve()
+		model.UnitPrices = model.Ratios.UnitPrices()
+		model.AmountUSD = FinanceQuotaToUSD(model.Quota)
+		model.Percentage = financePercentage(model.Quota, totalQuota)
+	}
+	sort.SliceStable(folded, func(i, j int) bool { return folded[i].Quota > folded[j].Quota })
+	return folded
+}
+
 // ---------------------------------------------------------------------------
 // daily
 // ---------------------------------------------------------------------------

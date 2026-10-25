@@ -22,6 +22,9 @@ const (
 const (
 	EnterpriseCreditCycleNaturalMonth = "natural_month"
 	EnterpriseCreditCycleFixedDays    = "fixed_days"
+	// EnterpriseCreditCycleQuotaBased 额度信用：账期没有固定截止（end_at=0），额度用满即出账；
+	// credit_auto_reset 决定用满后立即开下一期还是等账单收款 / 管理员手动开期
+	EnterpriseCreditCycleQuotaBased = "quota_based"
 )
 
 // 企业状态
@@ -93,6 +96,8 @@ type Enterprise struct {
 	CreditCycleDays  int    `json:"credit_cycle_days" gorm:"not null;default:0"`
 	CreditLimitQuota int64  `json:"credit_limit_quota" gorm:"not null;default:0"`
 	CreditAnchorAt   int64  `json:"credit_anchor_at" gorm:"not null;default:0"`
+	// CreditAutoReset 额度信用（quota_based）用满后是否自动开下一期；false 时拒绝请求直到账单收款或管理员手动开期
+	CreditAutoReset bool `json:"credit_auto_reset" gorm:"not null;default:false"`
 	// CreditAlertPercent 授信预警阈值（已用占额度的百分比，0..99，0 关闭；达到后通知账单邮箱与 root）
 	CreditAlertPercent int                      `json:"credit_alert_percent" gorm:"not null;default:80"`
 	PaymentTermsDays   int                      `json:"payment_terms_days" gorm:"not null;default:15"`
@@ -100,8 +105,10 @@ type Enterprise struct {
 	BillingProfile     EnterpriseBillingProfile `json:"billing_profile" gorm:"type:jsonb"`
 	Status             string                   `json:"status" gorm:"type:varchar(16);not null;index"`
 	Remark             string                   `json:"remark" gorm:"type:text"`
-	CreatedAt          int64                    `json:"created_at" gorm:"not null"`
-	UpdatedAt          int64                    `json:"updated_at" gorm:"not null"`
+	// MaxTokens 企业 key 总数上限；0 表示沿用站点的每用户上限，大于站点上限时以本值为准
+	MaxTokens int   `json:"max_tokens" gorm:"not null;default:0"`
+	CreatedAt int64 `json:"created_at" gorm:"not null"`
+	UpdatedAt int64 `json:"updated_at" gorm:"not null"`
 }
 
 // EnterpriseListItem 管理员企业客户列表行：企业资料 + 主账号摘要 + 授信企业的当前账期额度（预付企业为 0）

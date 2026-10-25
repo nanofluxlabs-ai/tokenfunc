@@ -15,6 +15,8 @@ import (
 const (
 	billingErrorCodeCreditNotEnabled     = "enterprise_credit_not_enabled"
 	billingErrorCodeCreditPeriodNotFound = "credit_period_not_found"
+	// billingErrorCodeCreditAwaitingPayment 额度信用（auto_reset=false）上一期已用满出账，等待收款 / 管理员开期
+	billingErrorCodeCreditAwaitingPayment = "credit_period_awaiting_payment"
 )
 
 // quotaDisplayAmount 把内部额度换算成站点展示单位。OpenAI 兼容接口中的 *_USD 字段含义保持"额度单位"对应值：
@@ -183,11 +185,14 @@ func GetUsage(c *gin.Context) {
 
 // CreditBillingResponse 授信额度查询响应：*_quota 为内部额度原值，limit / used / available 为站点展示单位换算值
 type CreditBillingResponse struct {
-	Object           string  `json:"object"`
-	BillingMode      string  `json:"billing_mode"`
-	CreditCycleType  string  `json:"credit_cycle_type"`
-	PeriodNo         int     `json:"period_no"`
-	PeriodStart      int64   `json:"period_start"`
+	Object          string `json:"object"`
+	BillingMode     string `json:"billing_mode"`
+	CreditCycleType string `json:"credit_cycle_type"`
+	// CreditAutoReset 额度信用用满后是否自动开下一期（非 quota_based 恒为 false）
+	CreditAutoReset bool  `json:"credit_auto_reset"`
+	PeriodNo        int   `json:"period_no"`
+	PeriodStart     int64 `json:"period_start"`
+	// PeriodEnd 账期截止；额度信用没有固定截止，为 0
 	PeriodEnd        int64   `json:"period_end"`
 	LimitQuota       int64   `json:"limit_quota"`
 	UsedQuota        int64   `json:"used_quota"`
@@ -210,6 +215,10 @@ func GetCreditBilling(c *gin.Context) {
 		return
 	}
 	if snapshot.Period == nil {
+		if snapshot.Enterprise.CreditCycleType == model.EnterpriseCreditCycleQuotaBased && !snapshot.Enterprise.CreditAutoReset {
+			writeBillingError(c, http.StatusForbidden, billingErrorCodeCreditAwaitingPayment, "credit period is exhausted and awaiting bill payment")
+			return
+		}
 		writeBillingError(c, http.StatusNotFound, billingErrorCodeCreditPeriodNotFound, "no open credit period")
 		return
 	}
@@ -220,6 +229,7 @@ func GetCreditBilling(c *gin.Context) {
 		Object:           "billing_credit",
 		BillingMode:      snapshot.Enterprise.BillingMode,
 		CreditCycleType:  snapshot.Enterprise.CreditCycleType,
+		CreditAutoReset:  snapshot.Enterprise.CreditCycleType == model.EnterpriseCreditCycleQuotaBased && snapshot.Enterprise.CreditAutoReset,
 		PeriodNo:         period.PeriodNo,
 		PeriodStart:      period.StartAt,
 		PeriodEnd:        period.EndAt,

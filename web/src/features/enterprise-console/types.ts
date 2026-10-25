@@ -45,7 +45,13 @@ export interface Team {
   created_at: number
   member_count: number
   token_count: number
+  /** 本月消耗（quota）与预算占比；budget_state 为 none 表示未设预算 */
+  month_quota: number
+  budget_percent: number
+  budget_state: TeamBudgetState
 }
+
+export type TeamBudgetState = 'none' | 'ok' | 'warn' | 'exceeded'
 
 export interface TeamPayload {
   name: string
@@ -105,19 +111,45 @@ export interface EnterpriseToken {
   expired_time: number
   created_time: number
   accessed_time: number
+  group: string
+  model_limits_enabled: boolean
+  model_limits: string
+  allow_ips: string
   team_id: number
   team_name: string
+  team_status: TeamStatus | ''
   member_id: number
   member_name: string
+  /** 本月 / 上月消耗（quota），从 ent_usage_daily 回填 */
+  month_quota: number
+  prev_month_quota: number
 }
 
-export interface TokenCreatePayload {
+/** 新建 / 编辑共用的请求体 */
+export interface TokenMutatePayload {
   name: string
   team_id: number
   member_id: number
   remain_quota: number
   unlimited_quota: boolean
   expired_time: number
+  group: string
+  model_limits: string[]
+  allow_ips: string
+}
+
+export interface TokenOptions {
+  owner_group: string
+  groups: { value: string; desc: string; ratio: number }[]
+  /** 各分组启用的模型；空字符串键 = 不选分组时（按主账号分组路由） */
+  models_by_group: Record<string, string[]>
+  limit: number
+  total: number
+}
+
+export interface TokenBatchResult {
+  updated: number
+  skipped: number[]
 }
 
 export interface TokenAssignmentPayload {
@@ -155,11 +187,13 @@ export interface CreditPeriod {
   id: number
   period_no: number
   start_at: number
+  /** 额度信用期没有固定截止，为 0；关闭时刻看 closed_at */
   end_at: number
   limit_quota: number
   used_quota: number
   inflight_count: number
   status: 'open' | 'closing' | 'billed'
+  closed_at: number
 }
 
 export interface EnterpriseOverview {
@@ -167,6 +201,7 @@ export interface EnterpriseOverview {
     credit_cycle_type: string
     credit_cycle_days: number
     credit_limit_quota: number
+    credit_auto_reset: boolean
     credit_alert_percent: number
     payment_terms_days: number
   }
@@ -206,6 +241,52 @@ export interface UsageSnapshotGroup {
   cache_tokens?: number
   cache_creation_tokens?: number
   quota: number
+}
+
+/** 预付月度对账单的余额变动（两种快照版本都有） */
+export interface StatementBalanceSnapshot {
+  opening_quota?: number
+  topup_quota?: number
+  consumption_quota?: number
+  adjustment_quota?: number
+  closing_quota?: number
+}
+
+/** 归因块：来自 ent_usage_daily；旧快照用 by_department / by_employee / by_project 键 */
+export interface UsageAttributionSnapshot {
+  by_team?: UsageSnapshotGroup[]
+  by_member?: UsageSnapshotGroup[]
+  by_department?: UsageSnapshotGroup[]
+  by_employee?: UsageSnapshotGroup[]
+  by_project?: UsageSnapshotGroup[]
+  detail_total_quota?: number
+}
+
+/** v1 快照：只有金额级的按模型块 */
+export interface BillUsageSnapshotV1
+  extends StatementBalanceSnapshot, UsageAttributionSnapshot {
+  snapshot_version?: undefined
+  by_model?: UsageSnapshotGroup[]
+}
+
+/** v2 快照：财务中心口径，按分组-模型 / 按模型折叠（含四项 token、单价四列、倍率分布）/ 按天 */
+export interface BillUsageSnapshotV2
+  extends StatementBalanceSnapshot, UsageAttributionSnapshot {
+  snapshot_version: number
+  logs_total_calls: number
+  logs_total_quota: number
+  by_group_model: import('@/features/finance/types').UsageGroupModelRow[]
+  by_model: import('@/features/finance/types').UsageGroupModelRow[]
+  by_day: import('@/features/finance/types').UsageDailyRow[]
+}
+
+export type BillUsageSnapshot = BillUsageSnapshotV1 | BillUsageSnapshotV2
+
+/** v2 快照才有单价与按天块；旧账单按 v1 兼容渲染，新列显示「-」 */
+export function isBillSnapshotV2(
+  snapshot: BillUsageSnapshot | null | undefined
+): snapshot is BillUsageSnapshotV2 {
+  return (snapshot?.snapshot_version ?? 0) >= 2
 }
 
 /** 账期包里单个对象的登记 */
@@ -251,7 +332,7 @@ export interface Bill {
   reconcile_ack_note: string
   archive_info: BillArchiveInfo | null
   archived_at: number
-  usage_snapshot: Record<string, unknown> | null
+  usage_snapshot: BillUsageSnapshot | null
   seller_snapshot: SellerProfile | null
   buyer_snapshot: {
     enterprise_name?: string

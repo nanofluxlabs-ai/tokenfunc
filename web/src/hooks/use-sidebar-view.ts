@@ -60,6 +60,11 @@ export function useSidebarView(): ResolvedSidebarView {
     enterprise?.actor,
     'enterprise_admin'
   )
+  // 企业的 key 只在企业密钥页管：企业主与企业开通的账号不再看到上游 /keys；绑定已有账号的成员保留个人 key 入口
+  const hideUpstreamKeys = Boolean(
+    enterprise?.actor &&
+    (enterprise.actor.is_owner || enterprise.actor.provisioned)
+  )
   const isPromoter = Boolean(usePromoterSelf().data)
 
   const rootNavGroups = useMemo<NavGroup[]>(() => {
@@ -77,7 +82,8 @@ export function useSidebarView(): ResolvedSidebarView {
             (item.requiredRole === undefined || role >= item.requiredRole) &&
             (group.id !== 'enterprise' ||
               canSeeEnterpriseFinance ||
-              item.url !== '/enterprise/bills')
+              item.url !== '/enterprise/bills') &&
+            !(hideUpstreamKeys && item.url === '/keys')
         )
         return items.length === group.items.length ? group : { ...group, items }
       })
@@ -86,6 +92,7 @@ export function useSidebarView(): ResolvedSidebarView {
     userRole,
     isEnterpriseMember,
     canSeeEnterpriseFinance,
+    hideUpstreamKeys,
     isPromoter,
   ])
 

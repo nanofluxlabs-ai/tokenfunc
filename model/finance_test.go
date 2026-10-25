@@ -557,3 +557,136 @@ func TestFinanceRequiresPostgres(t *testing.T) {
 	assert.ErrorIs(t, wide.CheckMaxDays(FinanceMaxRangeDays), ErrFinanceRangeTooLarge)
 	assert.Equal(t, []string{"2026-03-10", "2026-03-11"}, FinanceRange{Start: financeTestAt(0, 0), EndExcl: financeTestAt(48, 0)}.Days())
 }
+
+// 跨分组按模型折叠：token 相加、倍率分布合并后主值取消费最大者、专属分组标记跟随主值、按次计费保留
+func TestFoldFinanceModelRatios(t *testing.T) {
+	ratio := func(value float64, shares ...FinanceRatioShare) *FinanceRatioValue {
+		return &FinanceRatioValue{Value: value, Shares: shares}
+	}
+	rows := []*FinanceGroupModelRow{
+		{Group: "default", ModelName: "claude", Count: 2, InputTokens: 60, CachedTokens: 1000, Quota: 6000,
+			Ratios: FinanceRatios{ModelRatio: ratio(2.5, FinanceRatioShare{Value: 2.5, Quota: 5000}, FinanceRatioShare{Value: 3, Quota: 1000}), GroupRatio: ratio(1), CompletionRatio: ratio(5)}},
+		{Group: "vip", ModelName: "claude", Count: 1, InputTokens: 10, Quota: 4500,
+			Ratios: FinanceRatios{ModelRatio: ratio(3), GroupRatio: ratio(0.8), GroupRatioExclusive: true, CompletionRatio: ratio(5)}},
+		{Group: "default", ModelName: "dall-e", Count: 1, Quota: 500, Ratios: FinanceRatios{ModelRatio: ratio(1), GroupRatio: ratio(1), ModelPrice: ratio(0.1)}},
+	}
+	folded := FoldFinanceModelRatios(rows, 11000)
+	require.Len(t, folded, 2)
+	claude := folded[0]
+	assert.Equal(t, "claude", claude.ModelName)
+	assert.Empty(t, claude.Group)
+	assert.Equal(t, int64(3), claude.Count)
+	assert.Equal(t, int64(70), claude.InputTokens)
+	assert.Equal(t, int64(10500), claude.Quota)
+	assert.Equal(t, "0.021000", claude.AmountUSD)
+	assert.InDelta(t, 95.45, claude.Percentage, 0.001)
+	require.NotNil(t, claude.Ratios.ModelRatio)
+	assert.Equal(t, 3.0, claude.Ratios.ModelRatio.Value, "3 的消费 1000+4500 超过 2.5 的 5000")
+	assert.Equal(t, []FinanceRatioShare{{Value: 3, Quota: 5500}, {Value: 2.5, Quota: 5000}}, claude.Ratios.ModelRatio.Shares)
+	assert.Equal(t, 1.0, claude.Ratios.GroupRatio.Value)
+	assert.False(t, claude.Ratios.GroupRatioExclusive, "专属标记只跟随主值 1（非专属）")
+	require.NotNil(t, claude.UnitPrices.Input)
+	assert.InDelta(t, 6.0, *claude.UnitPrices.Input, 1e-9, "单价按合并后的主值 3 × 1 换算")
+	assert.InDelta(t, 30.0, *claude.UnitPrices.Output, 1e-9)
+	assert.Nil(t, claude.UnitPrices.CacheRead, "没有缓存倍率时单价为空")
+
+	perCall := folded[1]
+	require.NotNil(t, perCall.Ratios.ModelPrice)
+	assert.Equal(t, 0.1, perCall.Ratios.ModelPrice.Value)
+	assert.Nil(t, perCall.UnitPrices.Input)
+	assert.Empty(t, FoldFinanceModelRatios(nil, 0))
+}
+
+// 出账快照 v2：财务块在事务外按账期扫 logs 冻结；按模型折叠倍率；按天之和 = logs 合计；聚合失败仍出账（退回 v1 字段）
+func TestIssueCreditBillSnapshotV2(t *testing.T) {
+	setupFinancePostgres(t)
+	owner := createEnterpriseTestUser(t, "snapowner", common.RoleCommonUser)
+	require.NoError(t, UpgradeUserToEnterprise(owner.Id, &Enterprise{Name: "Snap Co"}))
+	enterprise, err := GetEnterpriseByUserId(owner.Id)
+	require.NoError(t, err)
+	require.NoError(t, ConfigureEnterpriseCredit(enterprise.Id, EnterpriseCreditConfig{CycleType: EnterpriseCreditCycleNaturalMonth, LimitQuota: 1_000_000}, 0))
+	token := &Token{UserId: owner.Id, Name: "k", Key: "snapkey0000000000000000000000000000000000000001", Status: common.TokenStatusEnabled, ExpiredTime: -1, UnlimitedQuota: true}
+	require.NoError(t, CreateEnterpriseToken(enterprise.Id, EnterpriseScope{}, token, 0, 0))
+
+	start, end := financeTestAt(0, 0), financeTestAt(48, 0)
+	closing := &EnterpriseCreditPeriod{EnterpriseId: enterprise.Id, PeriodNo: 7, StartAt: start, EndAt: end, LimitQuota: 1_000_000, UsedQuota: 7600, Status: EnterpriseCreditPeriodClosing, CreatedAt: start, UpdatedAt: start}
+	require.NoError(t, DB.Create(closing).Error)
+	// 同一模型在两个分组：倍率 2.5（6000）与 3（1000）→ 折叠后主值 2.5；分组倍率 1 与 0.8
+	insertFinanceLog(t, Log{UserId: owner.Id, Group: "default", ModelName: "claude-opus", TokenName: "k", PromptTokens: 50, CompletionTokens: 20, Quota: 6000, CreatedAt: start + 60,
+		Other: `{"model_ratio":2.5,"group_ratio":1,"completion_ratio":5,"cache_ratio":0.1,"cache_tokens":1000,"cache_creation_tokens":300,"cache_creation_ratio":1.25,"model_price":-1,"usage_semantic":"anthropic"}`})
+	insertFinanceLog(t, Log{UserId: owner.Id, Group: "vip", ModelName: "claude-opus", TokenName: "k", PromptTokens: 10, CompletionTokens: 5, Quota: 1000, CreatedAt: start + 86400,
+		Other: `{"model_ratio":3,"group_ratio":0.8,"completion_ratio":5,"cache_ratio":0.1,"cache_creation_ratio":1.25,"model_price":-1,"usage_semantic":"anthropic"}`})
+	// 日志里没有倍率：单价为空，但 token 与金额照常计入
+	insertFinanceLog(t, Log{UserId: owner.Id, Group: "default", ModelName: "legacy", TokenName: "k", PromptTokens: 5, Quota: 500, CreatedAt: start + 86400 + 60, Other: ""})
+	// 账期结束时刻的日志属于下一期
+	insertFinanceLog(t, Log{UserId: owner.Id, Group: "default", ModelName: "claude-opus", Quota: 999, CreatedAt: end})
+	require.NoError(t, RecordEnterpriseUsage(EnterpriseUsageEvent{UserId: owner.Id, TokenId: token.Id, ModelName: "claude-opus", Quota: 7500, CreatedAt: start + 60, CreditPeriodId: closing.Id}))
+
+	bill, err := IssueCreditBill(closing.Id)
+	require.NoError(t, err)
+	require.NotNil(t, bill)
+	assert.Equal(t, int64(7600), bill.AmountQuota, "账单金额仍以账期计数器为准")
+
+	snapshot := bill.UsageSnapshotV2()
+	require.NotNil(t, snapshot)
+	assert.Equal(t, 2, snapshot.SnapshotVersion)
+	assert.Equal(t, int64(3), snapshot.LogsTotalCalls)
+	assert.Equal(t, int64(7500), snapshot.LogsTotalQuota)
+	require.Len(t, snapshot.ByGroupModel, 3)
+	require.Len(t, snapshot.ByModel, 2)
+	claude := snapshot.ByModel[0]
+	assert.Equal(t, "claude-opus", claude.ModelName)
+	assert.Equal(t, int64(2), claude.Count)
+	assert.Equal(t, int64(60), claude.InputTokens)
+	assert.Equal(t, int64(1000), claude.CachedTokens)
+	assert.Equal(t, int64(300), claude.CacheCreationTokens)
+	assert.Equal(t, int64(25), claude.CompletionTokens)
+	require.NotNil(t, claude.Ratios.ModelRatio)
+	assert.Equal(t, 2.5, claude.Ratios.ModelRatio.Value, "多值倍率主值 = 消费占比最大的取值")
+	assert.Equal(t, []FinanceRatioShare{{Value: 2.5, Quota: 6000}, {Value: 3, Quota: 1000}}, claude.Ratios.ModelRatio.Shares)
+	assert.Equal(t, []FinanceRatioShare{{Value: 1, Quota: 6000}, {Value: 0.8, Quota: 1000}}, claude.Ratios.GroupRatio.Shares)
+	require.NotNil(t, claude.UnitPrices.Input)
+	assert.InDelta(t, 5.0, *claude.UnitPrices.Input, 1e-9)
+	assert.InDelta(t, 0.5, *claude.UnitPrices.CacheRead, 1e-9)
+	assert.InDelta(t, 6.25, *claude.UnitPrices.CacheWrite5m, 1e-9)
+	assert.InDelta(t, 25.0, *claude.UnitPrices.Output, 1e-9)
+	assert.Equal(t, "0.014000", claude.AmountUSD)
+	legacy := snapshot.ByModel[1]
+	assert.Equal(t, "legacy", legacy.ModelName)
+	assert.Nil(t, legacy.Ratios.ModelRatio)
+	assert.Nil(t, legacy.UnitPrices.Input, "缺倍率时单价为 null，不倒推")
+
+	require.Len(t, snapshot.ByDay, 2)
+	var dayTotal int64
+	for _, day := range snapshot.ByDay {
+		dayTotal += day.Quota
+	}
+	assert.Equal(t, snapshot.LogsTotalQuota, dayTotal, "按天之和 = logs 合计")
+
+	// 归因块与对账字段和 v1 一样留在同一个 jsonb 里
+	var raw map[string]any
+	require.NoError(t, common.Unmarshal(bill.UsageSnapshot, &raw))
+	assert.EqualValues(t, 7500, raw["detail_total_quota"])
+	assert.Len(t, raw["by_team"], 1)
+	assert.Len(t, raw["by_member"], 1)
+
+	// CSV 导出用的还原：汇总与按天从快照来，不再扫 logs
+	summary := snapshot.FinanceSummary()
+	assert.Equal(t, "0.015000", summary.TotalAmountUSD)
+	require.Len(t, summary.ByModel, 2)
+	assert.Equal(t, int64(2), summary.ByModel[0].Calls)
+	assert.Equal(t, "0.015000", snapshot.FinanceDaily().TotalAmountUSD)
+
+	// 日志库不可用：出账照常，快照退回 v1（只有归因块与对账字段）
+	previousLogDB := LOG_DB
+	LOG_DB = nil
+	t.Cleanup(func() { LOG_DB = previousLogDB })
+	fallback := &EnterpriseCreditPeriod{EnterpriseId: enterprise.Id, PeriodNo: 8, StartAt: end, EndAt: end + 86400, LimitQuota: 1_000_000, UsedQuota: 100, Status: EnterpriseCreditPeriodClosing, CreatedAt: end, UpdatedAt: end}
+	require.NoError(t, DB.Create(fallback).Error)
+	v1, err := IssueCreditBill(fallback.Id)
+	require.NoError(t, err)
+	require.NotNil(t, v1)
+	assert.Nil(t, v1.UsageSnapshotV2())
+	assert.Contains(t, string(v1.UsageSnapshot), `"detail_total_quota"`)
+	assert.NotContains(t, string(v1.UsageSnapshot), `"snapshot_version"`)
+}

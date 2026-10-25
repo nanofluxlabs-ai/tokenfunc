@@ -30,10 +30,10 @@ func setupCreditFundingPostgres(t *testing.T) {
 	sqlDB, err := db.DB()
 	require.NoError(t, err)
 	tables := []any{
-		&model.User{}, &model.Token{}, &model.Enterprise{}, &model.EnterpriseTeam{}, &model.EnterpriseMember{},
+		&model.User{}, &model.Token{}, &model.Enterprise{}, &model.EnterpriseTeam{}, &model.EnterpriseMember{}, &model.EnterpriseTokenAssignment{},
 		&model.EnterpriseCreditPeriod{}, &model.EnterpriseCreditNotifyRecord{}, &model.EnterpriseLedgerEntry{},
-		// 出账测试需要明细聚合与账单表
-		&model.EnterpriseUsageDaily{}, &model.EnterpriseBill{},
+		// 出账测试需要明细聚合与账单表；团队预算测试需要通知记录表
+		&model.EnterpriseUsageDaily{}, &model.EnterpriseBill{}, &model.EnterpriseTeamBudgetNotify{},
 	}
 	previousDB := model.DB
 	previousMain, previousLog := common.MainDatabaseType(), common.LogDatabaseType()
@@ -163,6 +163,75 @@ func TestBillingSessionPrepaidEnterpriseUsesWallet(t *testing.T) {
 	assert.Equal(t, 180, quota)
 }
 
+// 团队预算拦截：勾了「超限拦截」的团队在本月消耗 + 预估预扣 > 预算 时预扣前 403；其他团队不受影响；关掉开关立即放行；
+// 本月消耗走 60 秒缓存，窗口内的略超被接受
+func TestBillingSessionTeamBudgetEnforce(t *testing.T) {
+	setupCreditFundingPostgres(t)
+	owner, ent := newCreditEnterprise(t, "budgetgate", model.EnterpriseBillingModePrepaid)
+	research := &model.EnterpriseTeam{EnterpriseId: ent.Id, Name: "Research", MonthlyBudgetQuota: 1000, BudgetAlertPercent: 80, BudgetEnforce: true}
+	require.NoError(t, model.CreateEnterpriseTeam(research))
+	sales := &model.EnterpriseTeam{EnterpriseId: ent.Id, Name: "Sales"}
+	require.NoError(t, model.CreateEnterpriseTeam(sales))
+	researchKey := &model.Token{UserId: owner.Id, Name: "research", Key: "researchkey0000000000000000000000000000000000001", Status: common.TokenStatusEnabled, ExpiredTime: -1, UnlimitedQuota: true}
+	require.NoError(t, model.CreateEnterpriseToken(ent.Id, model.EnterpriseScope{}, researchKey, research.Id, 0))
+	salesKey := &model.Token{UserId: owner.Id, Name: "sales", Key: "saleskey000000000000000000000000000000000000001", Status: common.TokenStatusEnabled, ExpiredTime: -1, UnlimitedQuota: true}
+	require.NoError(t, model.CreateEnterpriseToken(ent.Id, model.EnterpriseScope{}, salesKey, sales.Id, 0))
+	model.InvalidateEnterpriseBillingInfo(owner.Id)
+	model.InvalidateAllTokenAttribution()
+	model.InvalidateTeamMonthUsage(research.Id)
+
+	var alerts []model.TeamBudgetAlert
+	previousDispatch, previousNotify := teamBudgetAlertDispatch, teamBudgetAlertNotify
+	teamBudgetAlertDispatch = func(task func()) { task() }
+	teamBudgetAlertNotify = func(alert model.TeamBudgetAlert) { alerts = append(alerts, alert) }
+	t.Cleanup(func() { teamBudgetAlertDispatch, teamBudgetAlertNotify = previousDispatch, previousNotify })
+
+	// 本月已消耗 950（跨过 80% 阈值，warn 由聚合路径发出）
+	require.NoError(t, model.RecordEnterpriseUsage(model.EnterpriseUsageEvent{UserId: owner.Id, TokenId: researchKey.Id, ModelName: "gpt-4o", Quota: 950, CreatedAt: common.GetTimestamp()}))
+	require.Len(t, alerts, 1)
+	assert.Equal(t, model.TeamBudgetKindWarn, alerts[0].Kind)
+
+	relayFor := func(token *model.Token) *relaycommon.RelayInfo {
+		return &relaycommon.RelayInfo{UserId: owner.Id, TokenId: token.Id, IsPlayground: true, RequestId: "req"}
+	}
+	// 950 + 100 > 1000：预扣前 403，钱包未动，并按「用尽」通知一次
+	_, apiErr := NewBillingSession(newCreditTestContext(), relayFor(researchKey), 100)
+	require.NotNil(t, apiErr)
+	assert.Equal(t, 403, apiErr.StatusCode)
+	assert.Equal(t, ErrorCodeTeamBudgetExceeded, apiErr.GetErrorCode())
+	walletQuota, err := model.GetUserQuota(owner.Id, true)
+	require.NoError(t, err)
+	assert.Equal(t, 300, walletQuota)
+	require.Len(t, alerts, 2)
+	assert.Equal(t, model.TeamBudgetKindExceeded, alerts[1].Kind)
+	_, apiErr = NewBillingSession(newCreditTestContext(), relayFor(researchKey), 100)
+	require.NotNil(t, apiErr)
+	assert.Len(t, alerts, 2, "exceeded is sent once per team per month")
+
+	// 预算内的请求放行；没有预算的团队不受影响
+	session, apiErr := NewBillingSession(newCreditTestContext(), relayFor(researchKey), 50)
+	require.Nil(t, apiErr)
+	assert.Equal(t, BillingSourceWallet, session.relayInfo.BillingSource)
+	session.Refund(newCreditTestContext())
+	_, apiErr = NewBillingSession(newCreditTestContext(), relayFor(salesKey), 100)
+	require.Nil(t, apiErr)
+
+	// 其他副本写入的用量（不经过本节点缓存）在 60 秒窗口内看不到：略超被接受；缓存失效后立即拦截
+	require.NoError(t, model.DB.Model(&model.EnterpriseUsageDaily{}).Where("team_id = ?", research.Id).Update("quota", 1200).Error)
+	_, apiErr = NewBillingSession(newCreditTestContext(), relayFor(researchKey), 50)
+	require.Nil(t, apiErr)
+	model.InvalidateTeamMonthUsage(research.Id)
+	_, apiErr = NewBillingSession(newCreditTestContext(), relayFor(researchKey), 1)
+	require.NotNil(t, apiErr)
+	assert.Equal(t, ErrorCodeTeamBudgetExceeded, apiErr.GetErrorCode())
+
+	// 关掉拦截：只告警不拦截，立即放行
+	research.BudgetEnforce = false
+	require.NoError(t, model.UpdateEnterpriseTeam(research))
+	_, apiErr = NewBillingSession(newCreditTestContext(), relayFor(researchKey), 100)
+	require.Nil(t, apiErr)
+}
+
 // creditAlertRecorder 把预警发送换成同步记录，用例结束后恢复并清掉进程内已发标记
 type creditAlertRecorder struct {
 	mu    sync.Mutex
@@ -274,4 +343,95 @@ func TestCreditFundingAlerts(t *testing.T) {
 	assert.Equal(t, model.CreditNotifyKindWarn, recorder.snapshot()[3])
 	require.NoError(t, session.Settle(1600))
 	assert.Len(t, recorder.snapshot(), 4)
+}
+
+// 额度信用：预扣被拒时用满翻转，新期继续；auto_reset=false 用满后 403 待收款，收款结清自动恢复
+func TestCreditFundingQuotaBasedRollover(t *testing.T) {
+	setupCreditFundingPostgres(t)
+	recorder := &creditAlertRecorder{}
+	recorder.install(t)
+	// 直接从预付开通额度信用：从自然月改类型时当前时间期会保留到期末（周期类型从下一期生效）
+	owner, ent := newCreditEnterprise(t, "quotaflow", model.EnterpriseBillingModePrepaid)
+	configure := func(limit int64, autoReset bool) {
+		t.Helper()
+		require.NoError(t, model.ConfigureEnterpriseCredit(ent.Id, model.EnterpriseCreditConfig{CycleType: model.EnterpriseCreditCycleQuotaBased, LimitQuota: limit, AlertPercent: 80, AutoReset: autoReset}, 1))
+		model.InvalidateEnterpriseBillingInfo(owner.Id)
+	}
+	relayInfo := func() *relaycommon.RelayInfo {
+		return &relaycommon.RelayInfo{UserId: owner.Id, IsPlayground: true, RequestId: "req"}
+	}
+	configure(1000, true)
+	first, err := model.GetOpenCreditPeriod(ent.Id)
+	require.NoError(t, err)
+	assert.Zero(t, first.EndAt)
+
+	// 恰好用满本期：预扣成功并发一次用尽告警；下一笔预扣被拒 → 翻转到新期继续，归属新期
+	full, apiErr := NewBillingSession(newCreditTestContext(), relayInfo(), 1000)
+	require.Nil(t, apiErr)
+	assert.Equal(t, []string{model.CreditNotifyKindExhausted}, recorder.snapshot())
+	info := relayInfo()
+	session, apiErr := NewBillingSession(newCreditTestContext(), info, 300)
+	require.Nil(t, apiErr)
+	second, err := model.GetOpenCreditPeriod(ent.Id)
+	require.NoError(t, err)
+	assert.NotEqual(t, first.Id, second.Id)
+	assert.Equal(t, 2, second.PeriodNo)
+	assert.Equal(t, second.Id, info.CreditPeriodId)
+	assert.Equal(t, int64(300), second.UsedQuota)
+	assert.Equal(t, []string{model.CreditNotifyKindExhausted}, recorder.snapshot(), "exhausted is sent once per period")
+	closed, err := model.GetCreditPeriodById(first.Id)
+	require.NoError(t, err)
+	assert.Equal(t, model.EnterpriseCreditPeriodClosing, closed.Status)
+	require.NoError(t, session.Settle(300))
+
+	// 旧期的在途请求在翻转后结算：差额记回 closing 期，不影响新期
+	require.NoError(t, full.Settle(1050))
+	closed, _ = model.GetCreditPeriodById(first.Id)
+	assert.Equal(t, int64(1050), closed.UsedQuota)
+	assert.Zero(t, closed.InflightCount)
+	second, _ = model.GetCreditPeriodById(second.Id)
+	assert.Equal(t, int64(300), second.UsedQuota)
+
+	// 单笔请求超过整期额度：有消费的期翻一次，零消费的新期不再翻，403 且不留空期
+	_, apiErr = NewBillingSession(newCreditTestContext(), relayInfo(), 1500)
+	require.NotNil(t, apiErr)
+	assert.Equal(t, 403, apiErr.StatusCode)
+	third, err := model.GetOpenCreditPeriod(ent.Id)
+	require.NoError(t, err)
+	assert.Equal(t, 3, third.PeriodNo)
+	assert.Zero(t, third.UsedQuota)
+	_, apiErr = NewBillingSession(newCreditTestContext(), relayInfo(), 1500)
+	require.NotNil(t, apiErr)
+	assert.Equal(t, 403, apiErr.StatusCode)
+	again, err := model.GetOpenCreditPeriod(ent.Id)
+	require.NoError(t, err)
+	assert.Equal(t, third.Id, again.Id, "a period without usage is never rolled over")
+	assert.Zero(t, again.InflightCount)
+
+	// auto_reset=false：用满后拒绝请求，直到账单结清自动开下一期
+	configure(1000, false)
+	session, apiErr = NewBillingSession(newCreditTestContext(), relayInfo(), 1000)
+	require.Nil(t, apiErr)
+	require.NoError(t, session.Settle(1000))
+	for range 2 {
+		_, apiErr = NewBillingSession(newCreditTestContext(), relayInfo(), 1)
+		require.NotNil(t, apiErr)
+		assert.Equal(t, 403, apiErr.StatusCode)
+		assert.Equal(t, types.ErrorCodeInsufficientUserQuota, apiErr.GetErrorCode())
+	}
+	_, err = model.GetOpenCreditPeriod(ent.Id)
+	assert.ErrorIs(t, err, model.ErrEnterpriseCreditNoOpenPeriod)
+	bill, err := model.IssueCreditBill(third.Id)
+	require.NoError(t, err)
+	require.NotNil(t, bill)
+	_, err = model.RegisterBillPayment(bill.Id, bill.TotalUSD, 1, "WIRE", "")
+	require.NoError(t, err)
+	info = relayInfo()
+	session, apiErr = NewBillingSession(newCreditTestContext(), info, 100)
+	require.Nil(t, apiErr)
+	fourth, err := model.GetOpenCreditPeriod(ent.Id)
+	require.NoError(t, err)
+	assert.Equal(t, 4, fourth.PeriodNo)
+	assert.Equal(t, fourth.Id, info.CreditPeriodId)
+	require.NoError(t, session.Settle(100))
 }

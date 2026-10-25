@@ -24,6 +24,7 @@ import {
   LedgerTable,
 } from '@/features/enterprise-console/components/billing-tables'
 import { UsagePanel } from '@/features/enterprise-console/components/usage-panel'
+import { isCreditAwaitingPayment } from '@/features/enterprise-console/lib/credit-period'
 import { formatQuotaWithCurrency } from '@/lib/currency'
 import { handleServerError } from '@/lib/handle-server-error'
 import { requireServerSuccess } from '@/lib/server-error-message'
@@ -36,6 +37,7 @@ import {
   issueBillNow,
   listEnterpriseCreditPeriods,
   listEnterpriseLedger,
+  openCreditPeriod,
   setEnterpriseStatus,
 } from '../api'
 import type { EnterpriseListItem } from '../types'
@@ -57,7 +59,7 @@ export function EnterpriseBillingDrawer(props: EnterpriseBillingDrawerProps) {
   const { triggerRefresh } = useEnterprises()
   const enterpriseId = props.currentRow?.id ?? 0
   const [confirm, setConfirm] = useState<
-    'suspend' | 'activate' | 'disable_credit' | null
+    'suspend' | 'activate' | 'disable_credit' | 'open_period' | null
   >(null)
   const [adjustOpen, setAdjustOpen] = useState(false)
 
@@ -110,16 +112,23 @@ export function EnterpriseBillingDrawer(props: EnterpriseBillingDrawerProps) {
     }
   }
 
+  const runConfirmedAction = () => {
+    if (confirm === 'disable_credit') {
+      return disableEnterpriseCredit(enterpriseId)
+    }
+    if (confirm === 'open_period') {
+      return openCreditPeriod(enterpriseId)
+    }
+    return setEnterpriseStatus(
+      enterpriseId,
+      confirm === 'suspend' ? 'suspended' : 'active'
+    )
+  }
+
   const handleConfirm = async () => {
     if (!confirm || !enterprise.data) return
     try {
-      const result =
-        confirm === 'disable_credit'
-          ? await disableEnterpriseCredit(enterpriseId)
-          : await setEnterpriseStatus(
-              enterpriseId,
-              confirm === 'suspend' ? 'suspended' : 'active'
-            )
+      const result = await runConfirmedAction()
       if (!result.success) {
         handleServerError(result)
         return
@@ -134,7 +143,22 @@ export function EnterpriseBillingDrawer(props: EnterpriseBillingDrawerProps) {
 
   const data = enterprise.data
   const isSuspended = data?.status === 'suspended'
+  const awaitingPayment =
+    data !== undefined &&
+    data !== null &&
+    isCredit &&
+    periods.isSuccess &&
+    isCreditAwaitingPayment(
+      data,
+      periods.data.some((period) => period.status === 'open')
+    )
   const confirmCopy = {
+    open_period: {
+      title: t('Open next period'),
+      desc: t(
+        'A new credit period starts immediately without waiting for the bill to be paid.'
+      ),
+    },
     suspend: {
       title: t('Suspend enterprise'),
       desc: t(
@@ -263,6 +287,28 @@ export function EnterpriseBillingDrawer(props: EnterpriseBillingDrawerProps) {
             {isCredit && (
               <SideDrawerSection>
                 <SideDrawerSectionHeader title={t('Credit Periods')} />
+                {awaitingPayment && (
+                  <div className='flex flex-wrap items-center gap-3 text-sm'>
+                    <StatusBadge
+                      label={t('Awaiting payment')}
+                      variant='warning'
+                      copyable={false}
+                    />
+                    <span className='text-muted-foreground'>
+                      {t(
+                        'The limit was used up and billed; requests are rejected until the bill is paid.'
+                      )}
+                    </span>
+                    <div className='flex-1' />
+                    <Button
+                      variant='outline'
+                      size='sm'
+                      onClick={() => setConfirm('open_period')}
+                    >
+                      {t('Open next period')}
+                    </Button>
+                  </div>
+                )}
                 <CreditPeriodsTable
                   periods={periods.data ?? []}
                   isLoading={periods.isLoading}

@@ -24,10 +24,12 @@ func registerEnterpriseRoutes(apiRouter *gin.RouterGroup) {
 		adminRoute.POST("/enterprises/:id/adjustments", controller.AdminCreateEnterpriseAdjustment)
 		adminRoute.GET("/enterprises/:id/ledger", controller.AdminListEnterpriseLedger)
 		adminRoute.GET("/enterprises/:id/credit-periods", controller.AdminListEnterpriseCreditPeriods)
+		adminRoute.POST("/enterprises/:id/credit-periods/open", controller.AdminOpenEnterpriseCreditPeriod)
 		adminRoute.GET("/enterprises/:id/usage/summary", controller.AdminGetEnterpriseUsageSummary)
 		adminRoute.GET("/enterprises/:id/usage/export", controller.AdminExportEnterpriseUsage)
 		adminRoute.GET("/bills", controller.AdminListEnterpriseBills)
 		adminRoute.GET("/bills/:id", controller.AdminGetEnterpriseBill)
+		adminRoute.GET("/bills/:id/export", controller.AdminExportEnterpriseBill)
 		adminRoute.POST("/bills/:id/payments", controller.AdminRegisterBillPayment)
 		adminRoute.POST("/bills/:id/void", controller.AdminVoidEnterpriseBill)
 		adminRoute.POST("/credit-periods/:id/issue", controller.AdminIssueBillNow)
@@ -62,6 +64,7 @@ func registerEnterpriseRoutes(apiRouter *gin.RouterGroup) {
 			financeRoute.GET("/credit-periods", controller.ListEnterpriseCreditPeriodsSelf)
 			financeRoute.GET("/bills", controller.ListEnterpriseBillsSelf)
 			financeRoute.GET("/bills/:id", controller.GetEnterpriseBillSelf)
+			financeRoute.GET("/bills/:id/export", controller.ExportEnterpriseBillSelf)
 		}
 
 		consoleRoute.GET("/teams", controller.ListEnterpriseTeams)
@@ -87,7 +90,13 @@ func registerEnterpriseRoutes(apiRouter *gin.RouterGroup) {
 
 		consoleRoute.GET("/tokens", controller.ListEnterpriseTokens)
 		consoleRoute.POST("/tokens", controller.CreateEnterpriseToken)
+		consoleRoute.GET("/tokens/options", controller.GetEnterpriseTokenOptions)
+		consoleRoute.PUT("/tokens/:id", controller.UpdateEnterpriseToken)
+		consoleRoute.PUT("/tokens/:id/status", controller.UpdateEnterpriseTokenStatus)
 		consoleRoute.PUT("/tokens/:id/assignment", controller.UpdateEnterpriseTokenAssignment)
+		consoleRoute.DELETE("/tokens/:id", controller.DeleteEnterpriseToken)
 		consoleRoute.POST("/tokens/:id/key", controller.GetEnterpriseTokenKey)
+		consoleRoute.POST("/tokens/batch-status", controller.BatchUpdateEnterpriseTokenStatus)
+		consoleRoute.POST("/tokens/batch-delete", controller.BatchDeleteEnterpriseTokens)
 	}
 }

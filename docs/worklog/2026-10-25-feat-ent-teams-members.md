@@ -3,7 +3,7 @@
 - 日期：2026-10-25
 - 分支：feat/ent-teams-members
 - PR：#49
-- 关键 commit：6bc4266f1（后端 + 迁移）、f66532b2e（前端 + 文档）
+- 关键 commit：6bc4266f1（后端 + 迁移）、f66532b2e（前端 + 文档）、9f5096166（验收修复）
 
 ## 背景
 
@@ -31,7 +31,12 @@
 - 后端：`make test-db PKG='./model/ ./controller/ ./middleware/ ./router/ ./service/'`（PG）全部 ok；新增 `TestEnterpriseTeamsAndMembers`、`TestEnterpriseScopeIsolation`、`TestEnterpriseMemberLoginAndAccess`、`TestEnterpriseMemberImportIsAllOrNothing`、`TestEnterpriseUsageAggregationSnapshotsAttribution`、`TestEnterpriseOrgV2Migration`（旧表结构造数 → 迁移 → 团队名拍平 / Default 存在 / 聚合 SUM 不变 / `ent_projects` 不存在，再跑一次无副作用）；`go build ./...`、`gofmt` 通过。
 - 前端：`bun run typecheck` 通过；改动文件 `oxlint` 0 error、`oxfmt` 已格式化；`vitest` enterprise-console（member-picker 3 例、parse-member-csv 5 例、invoice-html）、i18n locale-shape、enterprises、hooks、layout 全部通过。
 - `src/features/usage-logs/components/__tests__/detail-preview.test.tsx` 的「task log prices use localized unit labels」单独重跑仍 20s 超时；该文件本分支未改（只改了同目录 `lib/tokenfunc-audit-templates.ts`），属既有慢测试，未处理。
-- 未做：浏览器手工验收（dev 库两次启动确认迁移幂等、acme 走团队 → 成员 → 开通登录 → 该账号只见本团队 → 发 key 流程）；需合并前在 `make dev` 上过一遍。
+- 浏览器验收（worktree `make dev`，API 3004 / 前端 5177，schema `dev_feat_ent_teams_members` 先用 `pg_dump -n dev` 克隆主 dev 的旧模型数据：4 部门 / 7 员工 / 1 条聚合）：
+  - 第一次启动日志出现 6 条 `enterprise org v2: …`，迁移后 `ent_teams` = 研发中心 / 市场部 / 「研发中心 / Agent研发部」/ 「研发中心 / 系统架构组」/ Default，成员 `team_id` 回填、主账号自建 key 归 Default、`ent_usage_daily` 按 (team 1, member 2) 汇总 15000 quota / 4 请求与旧表一致，`ent_projects` 不存在，`ent_usage_daily_legacy` 无 `department_id` 列；`make api` 第二次启动 0 条迁移日志、0 条 `ALTER TABLE`。
+  - acme（企业主）：团队页建「验收团队」（预算 100 USD）→ 选中后添加成员 → 「控制台登录」一键开通（team_admin，初始密码只显示一次）→ 已绑定态弹窗显示用户名 / 改角色 / 移除登录 → 移除后再次开通成功（修复后）→ 成员行「发放密钥」弹出明文 → 密钥页按团队筛选 URL 变为 `?team_id=6`、改归属弹窗预填团队与持有人 → 用量报表团队 / 成员 / 密钥维度与缓存列正常 → 账单列表与详情（旧快照 `by_department` 回退显示为团队块）→ 概览正常；控制台无报错。
+  - 成员账号（developer）API：`/self` actor `{member_id:8, role:developer, team_id:6}`，`/teams` 只回本团队，`/members?team_id=1` 返回 0 条，`/tokens` 只见本团队 key，`/bills` 与 `POST /teams` 403，`/overview` 只回企业资料（余额 0 / 账期 null）。浏览器用该账号登录：侧边栏无「账单」，团队页锁定本团队且无管理按钮，密钥页无团队筛选与「高级设置」链接，直接打开 `/enterprise/bills` 提示 Insufficient enterprise role。
+- 验收发现并修复（`9f5096166`）：解绑开通的账号后再次「一键开通」报 email already taken（旧账号只是停用，用户名 / 邮箱仍被占用）→ 改为复用旧账号：重置密码、重新启用、重新绑定；补 `TestEnterpriseMemberLoginAndAccess` 用例。
+- 未做：CSV 导入与团队归档 / 删除只靠 Go 测试，未在浏览器点；上游登录页协议复选框在自动化里点不中（人工无此问题）。
 
 ## 遗留
 

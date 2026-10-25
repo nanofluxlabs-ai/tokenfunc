@@ -215,7 +215,10 @@ func getModelListGroups(c *gin.Context) (modelListGroups, error) {
 	}, nil
 }
 
-func ListModels(c *gin.Context, modelType int) {
+// listUserModelNames 当前 API key 可用的模型名（分组可用 + 令牌模型白名单 + 已配置计费），
+// 与 /v1/models 口径一致；返回的 ownerGroups 供调用方推断模型归属分组。
+// TokenFunc：企业员工自查接口 GetEnterpriseEmployeeMe 复用，避免两处过滤逻辑漂移。
+func listUserModelNames(c *gin.Context) (userModelNames []string, ownerGroups []string, err error) {
 	acceptUnsetRatioModel := operation_setting.SelfUseModeEnabled
 	if !acceptUnsetRatioModel {
 		userId := c.GetInt("id")
@@ -227,16 +230,12 @@ func ListModels(c *gin.Context, modelType int) {
 		}
 	}
 
-	userModelNames := make([]string, 0)
+	userModelNames = make([]string, 0)
 	groups, err := getModelListGroups(c)
 	if err != nil {
-		c.JSON(http.StatusOK, gin.H{
-			"success": false,
-			"message": "get user group failed",
-		})
-		return
+		return nil, nil, err
 	}
-	ownerGroups := groups.ownerGroups
+	ownerGroups = groups.ownerGroups
 	modelLimitEnable := common.GetContextKeyBool(c, constant.ContextKeyTokenModelLimitEnabled)
 	var tokenModelLimit map[string]bool
 	if modelLimitEnable {
@@ -260,6 +259,18 @@ func ListModels(c *gin.Context, modelType int) {
 			continue
 		}
 		userModelNames = append(userModelNames, modelName)
+	}
+	return userModelNames, ownerGroups, nil
+}
+
+func ListModels(c *gin.Context, modelType int) {
+	userModelNames, ownerGroups, err := listUserModelNames(c)
+	if err != nil {
+		c.JSON(http.StatusOK, gin.H{
+			"success": false,
+			"message": "get user group failed",
+		})
+		return
 	}
 
 	ownerByModel := map[string]string{}

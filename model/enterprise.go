@@ -256,6 +256,8 @@ func CreateEnterpriseWithNewUser(user *User, enterprise *Enterprise) error {
 		return err
 	}
 	user.FinishInsert(0)
+	// 该 user_id 可能已被按"非企业"负缓存，立刻失效让充值拦截与企业计费路径即时生效
+	InvalidateEnterpriseBillingInfo(user.Id)
 	return nil
 }
 
@@ -264,7 +266,7 @@ func UpgradeUserToEnterprise(userId int, enterprise *Enterprise) error {
 	if err := enterprise.Normalize(); err != nil {
 		return err
 	}
-	return DB.Transaction(func(tx *gorm.DB) error {
+	err := DB.Transaction(func(tx *gorm.DB) error {
 		var user User
 		if err := lockForUpdate(tx).First(&user, "id = ?", userId).Error; err != nil {
 			return err
@@ -290,6 +292,12 @@ func UpgradeUserToEnterprise(userId int, enterprise *Enterprise) error {
 		_, err := ensureDefaultTeam(tx, enterprise.Id)
 		return err
 	})
+	if err != nil {
+		return err
+	}
+	// 升级前该用户一定被当作非企业用户缓存过（负缓存），立刻失效消除 15s 内仍可在线充值的窗口
+	InvalidateEnterpriseBillingInfo(userId)
+	return nil
 }
 
 // UpdateEnterpriseProfile 更新企业资料（不含计费模式与授信配置，授信由专门接口维护）

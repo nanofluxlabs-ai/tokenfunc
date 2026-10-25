@@ -8,6 +8,7 @@
 #
 # 隔离约定：开发、测试共用同一个 PostgreSQL 与 Redis 实例，
 #   PostgreSQL 用 schema 区分（dev / test / public），Redis 用 db 区分（0 / 1）。
+#   git worktree 并行开发时每个 worktree 再领一组 schema / redis db / 端口（make wt-init）。
 name: tokenfunc
 
 services:
@@ -40,7 +41,8 @@ services:
     image: ${TF_REDIS_IMAGE:-redis:7.4.11-bookworm}
     container_name: tokenfunc-redis
     restart: unless-stopped
-    command: ["sh", "-c", "exec redis-server --appendonly yes --requirepass \"$$REDIS_PASSWORD\""]
+    # databases 64：每个 worktree 占 2 个 db（见 makefile wt-init），默认 16 个只够 7 个 worktree
+    command: ["sh", "-c", "exec redis-server --appendonly yes --databases 64 --requirepass \"$$REDIS_PASSWORD\""]
     environment:
       REDIS_PASSWORD: ${TF_REDIS_PASSWORD:?TF_REDIS_PASSWORD 未设置，请参考 .env.example}
       REDISCLI_AUTH: ${TF_REDIS_PASSWORD}

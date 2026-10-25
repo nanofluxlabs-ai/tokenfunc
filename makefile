@@ -3,6 +3,7 @@
 #   make dev       起基础设施（docker）+ API（宿主机）+ 前端 dev server
 #   make test-db   在共享实例的 test schema 上跑需要 PostgreSQL 的 Go 测试
 #   make up        全栈 docker（与生产一致），用于联调或上线前验证
+#   make wt-init   在 git worktree 里领一套独立环境（schema / redis db / 端口），wt-clean 归还
 #
 # 所有 TF_* 变量可通过 .env 或命令行覆盖；下面的默认值只适用于本地开发。
 SHELL := /bin/bash
@@ -27,7 +28,10 @@ TF_DEFAULT_LANGUAGE ?= zh-CN   # 服务端日志 / 未指定语言的提示默�
 TF_SESSION_SECRET ?= tokenfunc-dev-session-secret
 
 WEB_DIR     := ./web
-COMPOSE     := docker compose
+# compose 始终以主 checkout 为项目目录：worktree 里 bind mount 的相对路径会变，直接在 worktree 跑 compose
+# 会被当成配置变更而重建 postgres / redis，打断所有并行会话。全栈 docker（up*）请在主 checkout 执行。
+MAIN_ROOT   := $(or $(shell git worktree list --porcelain 2>/dev/null | awk 'NR==1 && $$1=="worktree" {print $$2}'),.)
+COMPOSE     := docker compose -f $(MAIN_ROOT)/compose.yml --project-directory $(MAIN_ROOT)
 API_BIN     := .tmp/bin/tokenfunc
 API_PID     := .tmp/api.pid
 API_LOG_DIR := .tmp/logs
@@ -51,7 +55,7 @@ PKG ?= $(ROOT_PACKAGES)
 .DEFAULT_GOAL := help
 .PHONY: help env infra db-schemas api-build api api-stop web dev stop down reset logs psql redis-cli \
 	build-web test test-db test-web up up-build up-down up-logs reset-setup logarchive-import \
-	upstream-fetch upstream-status upstream-diff upstream-merge
+	upstream-fetch upstream-status upstream-diff upstream-merge wt-init wt-clean wt-list wt-env
 
 help: ## 列出所有目标
 	@grep -hE '^[a-zA-Z0-9_-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-14s\033[0m %s\n", $$1, $$2}'
@@ -65,13 +69,14 @@ infra: env ## 启动 postgres + redis 并确保 dev/test schema 存在
 	@$(COMPOSE) up -d --wait postgres redis
 	@$(MAKE) --no-print-directory db-schemas
 
-db-schemas: ## 幂等创建 TF_PG_SCHEMAS 中列出的 schema
-	@for schema in $$(echo "$(TF_PG_SCHEMAS)" | tr ',' ' '); do \
+# 列表里补上 TF_DEV_SCHEMA / TF_TEST_SCHEMA：worktree 的 .env 只改这两个值，IF NOT EXISTS 重复无害
+db-schemas: ## 幂等创建 TF_PG_SCHEMAS 与当前 dev/test schema
+	@for schema in $$(echo "$(TF_PG_SCHEMAS),$(TF_DEV_SCHEMA),$(TF_TEST_SCHEMA)" | tr ',' ' ' | tr ' ' '\n' | sort -u); do \
 		$(COMPOSE) exec -T -e PGOPTIONS="-c client_min_messages=warning" postgres \
 			psql -v ON_ERROR_STOP=1 -U $(TF_PG_USER) -d $(TF_PG_DB) \
 			-c "CREATE SCHEMA IF NOT EXISTS \"$$schema\" AUTHORIZATION \"$(TF_PG_USER)\";" >/dev/null; \
 	done
-	@echo "schema 就绪: $(TF_PG_SCHEMAS)"
+	@echo "schema 就绪: $(TF_PG_SCHEMAS),$(TF_DEV_SCHEMA),$(TF_TEST_SCHEMA)"
 
 stop: api-stop ## 停止 API 与基础设施容器（保留数据）
 	@$(COMPOSE) --profile app stop
@@ -102,10 +107,10 @@ api-build: ## 编译 API 到 .tmp/bin/tokenfunc（没有前端产物时用占位
 	fi
 	@go build -o $(API_BIN) .
 
-api: infra api-build api-stop ## 后台启动 API（宿主机，连 dev schema / redis db 0）
+api: infra api-build api-stop ## 后台启动 API（宿主机，连 TF_DEV_SCHEMA / TF_DEV_REDIS_DB，worktree 里自动用自己那套）
 	@mkdir -p $(API_LOG_DIR)
 	@SQL_DSN='$(DEV_SQL_DSN)' REDIS_CONN_STRING='$(DEV_REDIS)' SESSION_SECRET='$(TF_SESSION_SECRET)' \
-		SESSION_COOKIE_SECURE=false ERROR_LOG_ENABLED=true BATCH_UPDATE_ENABLED=true NODE_NAME=tokenfunc-dev \
+		SESSION_COOKIE_SECURE=false ERROR_LOG_ENABLED=true BATCH_UPDATE_ENABLED=true NODE_NAME=tokenfunc-dev$(if $(TF_WORKTREE),-$(TF_WORKTREE)) \
 		LOG_FORMAT=$(TF_LOG_FORMAT) DEFAULT_LANGUAGE=$(TF_DEFAULT_LANGUAGE) \
 		nohup $(API_BIN) --port $(TF_API_PORT) --log-dir $(API_LOG_DIR) > $(API_LOG_DIR)/api.out 2>&1 & \
 		echo $$! > $(API_PID)
@@ -123,9 +128,10 @@ api-stop: ## 停止宿主机 API
 logs: ## 跟随宿主机 API 日志
 	@tail -n 100 -f $(API_LOG_DIR)/api.out
 
+# 代理目标必须显式传给 rsbuild，否则它写死 localhost:3000，改了 TF_API_PORT 前端仍打到主 checkout 的 API
 web: ## 前端 dev server（前台，API 请求代理到 $(TF_API_PORT)）
-	@echo "前端: http://localhost:$(TF_WEB_PORT)"
-	@cd $(WEB_DIR) && bun install && bun run dev -- --host 0.0.0.0 --port $(TF_WEB_PORT)
+	@echo "前端: http://localhost:$(TF_WEB_PORT)  →  API http://127.0.0.1:$(TF_API_PORT)"
+	@cd $(WEB_DIR) && bun install && VITE_REACT_APP_SERVER_URL=http://127.0.0.1:$(TF_API_PORT) bun run dev -- --host 0.0.0.0 --port $(TF_WEB_PORT)
 
 dev: api web ## 一键开发：基础设施 + API + 前端（Ctrl-C 只停前端，API 用 make api-stop）
 
@@ -144,8 +150,9 @@ test: ## Go 单元测试（根模块 + relaykit + tokenkit，不依赖数据库�
 	@echo "Testing tokenkit Go module..."
 	@cd tokenkit && GOWORK=off go test ./...
 
-# 多个包共用同一 test schema，并行 AutoMigrate 会抢建表（SQLSTATE 23505/42P01），固定 -p 1 串行
-test-db: infra ## 需要 PostgreSQL 的 Go 测试，跑在 test schema / redis db 1（PKG=./model/... 可缩小范围）
+# 多个包共用同一 test schema，并行 AutoMigrate 会抢建表（SQLSTATE 23505/42P01），固定 -p 1 串行；
+# 不同 worktree 之间靠各自的 TF_TEST_SCHEMA / TF_TEST_REDIS_DB 隔离（make wt-init）
+test-db: infra ## 需要 PostgreSQL 的 Go 测试，跑在 TF_TEST_SCHEMA / TF_TEST_REDIS_DB（PKG=./model/... 可缩小范围）
 	@TEST_POSTGRES_DSN='$(TEST_SQL_DSN)' REDIS_CONN_STRING='$(TEST_REDIS)' GOWORK=off go test -p 1 $(PKG)
 
 test-web: ## 前端 vitest
@@ -153,6 +160,24 @@ test-web: ## 前端 vitest
 
 logarchive-import: infra ## 把 COS 归档导回 dev 库的回放表 tf_logs_archive（ARGS='-day 2026-07-01'，COS 凭据取 .env）
 	@SQL_DSN='$(DEV_SQL_DSN)' GOWORK=off go run ./cmd/logarchive-import $(ARGS)
+
+# ---------- worktree 并行开发（scripts/tokenfunc/worktree-env.sh） ----------
+# 每个 git worktree 领一个 slot：schema dev_<名> / test_<名>，redis db 2N / 2N+1，端口 3000+N / 5173+N，
+# 写进该 worktree 自己的 .env；主 checkout 固定 slot 0 不参与。注册表在主 checkout 的 .tmp/worktree-slots.tsv
+
+WT_SCRIPT := scripts/tokenfunc/worktree-env.sh
+
+wt-init: ## worktree 里执行：领 slot、生成本目录 .env、起库建 schema、bun install
+	@$(WT_SCRIPT) init
+
+wt-clean: ## 归还 worktree 环境：停 API、删 schema、清 redis db、释放 slot（主 checkout 上用 NAME= 清已删的）
+	@$(WT_SCRIPT) clean
+
+wt-list: ## 列出登记过的 worktree 及端口 / schema，标出目录已不存在的孤儿
+	@$(WT_SCRIPT) list
+
+wt-env: ## 打印本 worktree 的隔离参数
+	@$(WT_SCRIPT) env
 
 # ---------- 上游同步（QuantumNous/new-api） ----------
 # 只合上游 rc tag（v1.0.0-rc.N），不合 upstream/main HEAD；节奏、门禁与例外通道见 development.md §4.6，

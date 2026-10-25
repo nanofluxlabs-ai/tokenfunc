@@ -188,6 +188,22 @@ test('switching tab writes the tab key to the URL search', async () => {
   )
 })
 
+test('the settlements tab writes tab=settlements to the URL and requests the settlements for the applied range', async () => {
+  const { router, getSpy } = await renderPage({ scope: 'self' })
+  await userEvent.click(await screen.findByRole('tab', { name: 'Settlements' }))
+  await waitFor(() =>
+    expect(router.state.location.search).toMatchObject({ tab: 'settlements' })
+  )
+  await waitFor(() =>
+    expect(getSpy).toHaveBeenCalledWith(
+      '/api/promoter/center/settlements',
+      expect.objectContaining({
+        params: expect.objectContaining({ start: expect.any(String) }),
+      })
+    )
+  )
+})
+
 test('inspecting a bound user opens the usage sheet (regression: layout drops non-slot children)', async () => {
   await renderPage({ scope: 'self' })
   await userEvent.click(

@@ -10,6 +10,8 @@ import type {
   PromoterProfile,
   PromoterRangeParams,
   PromoterScope,
+  PromoterSettlementMonth,
+  PromoterSettlementParams,
 } from './types'
 
 export const PROMOTER_SELF_BASE = '/api/promoter'
@@ -71,5 +73,15 @@ export async function getPromoterUserUsage(
     promoterCenterUrl(scope, `/users/${userId}/usage`),
     { params: range }
   )
+  return res.data
+}
+
+export async function listPromoterSettlements(
+  scope: PromoterScope,
+  params: PromoterSettlementParams
+): Promise<ApiResponse<{ items: PromoterSettlementMonth[] }>> {
+  const res = await api.get(promoterCenterUrl(scope, '/settlements'), {
+    params,
+  })
   return res.data
 }

@@ -6,6 +6,7 @@ export const PROMOTER_CENTER_TABS: PromoterCenterTab[] = [
   'daily',
   'users',
   'models',
+  'settlements',
 ]
 
 export const PROMOTER_CENTER_TAB_TITLE_KEYS: Record<PromoterCenterTab, string> =
@@ -13,7 +14,11 @@ export const PROMOTER_CENTER_TAB_TITLE_KEYS: Record<PromoterCenterTab, string> =
     daily: 'Daily consumption',
     users: 'User consumption',
     models: 'Model consumption',
+    settlements: 'Settlements',
   }
 
 /** 名下用户 / 模型表本地分页每页行数 */
 export const PROMOTER_CENTER_PAGE_SIZE = 20
+
+/** 结算表每页月份数 */
+export const PROMOTER_SETTLEMENT_PAGE_SIZE = 12

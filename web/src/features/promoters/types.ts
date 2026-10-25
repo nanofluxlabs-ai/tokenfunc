@@ -45,7 +45,20 @@ export interface PromoterBindingsResponse {
   items: PromoterCenterUser[]
 }
 
-export type PromotersDialogType = 'create' | 'edit' | 'bindings' | 'remove'
+export type PromotersDialogType =
+  | 'create'
+  | 'edit'
+  | 'bindings'
+  | 'settlements'
+  | 'remove'
+
+/** 标记已结算：金额可选（只做记录），流水号 ≤128，备注 ≤255 */
+export interface MarkSettledPayload {
+  month: string
+  amount_usd?: number
+  reference: string
+  remark: string
+}
 
 /** 添加 / 编辑推广人共用的可编辑字段 */
 export interface PromoterEditableFields {

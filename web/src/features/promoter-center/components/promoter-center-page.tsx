@@ -36,6 +36,7 @@ import type {
 } from '../types'
 import { DailyTab } from './daily-tab'
 import { ModelsTab } from './models-tab'
+import { SettlementsTab } from './settlements-tab'
 import { UserUsageSheet } from './user-usage-sheet'
 import { UsersTab } from './users-tab'
 
@@ -232,6 +233,13 @@ export function PromoterCenterPage(props: PromoterCenterPageProps) {
                     items={models.data?.items ?? []}
                     loading={models.isLoading}
                     fetching={models.isFetching}
+                  />
+                )}
+                {tab === 'settlements' && (
+                  <SettlementsTab
+                    scope={props.scope}
+                    range={rangeParams}
+                    enabled={tab === 'settlements'}
                   />
                 )}
               </>

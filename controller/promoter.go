@@ -1,6 +1,8 @@
 package controller
 
 import (
+	"github.com/shopspring/decimal"
+
 	"errors"
 	"strconv"
 	"time"
@@ -287,4 +289,90 @@ func AdminUnbindPromoterUser(c *gin.Context) {
 		"username": username, "user_id": promoter.UserId, "target_username": targetUsername, "target_user_id": userId,
 	})
 	common.ApiSuccess(c, nil)
+}
+
+// ---------------------------------------------------------------------------
+// 结算（推广人 × 自然月）
+// ---------------------------------------------------------------------------
+
+// ListPromoterCenterSettlements 结算列表：缺省列出区间覆盖的自然月；all=true 列出推广人创建月至今全部月份。
+// 流水号 / 操作人 / 核销数只对管理员下发。
+func ListPromoterCenterSettlements(c *gin.Context) {
+	promoter := promoterFromContext(c)
+	now := time.Now()
+	var months []string
+	if c.Query("all") == "true" {
+		months = service.PromoterAllMonths(promoter.CreatedAt, now)
+	} else {
+		r, ok := promoterCenterRange(c)
+		if !ok {
+			return
+		}
+		months = service.PromoterMonthsInRange(r)
+	}
+	withOperator := c.GetInt("role") >= common.RoleAdminUser
+	items, err := service.ListPromoterSettlementMonths(promoter, months, now, withOperator)
+	if err != nil {
+		common.ApiError(c, err)
+		return
+	}
+	common.ApiSuccess(c, gin.H{"items": items})
+}
+
+type adminPromoterSettleRequest struct {
+	Month     string   `json:"month"`
+	AmountUSD *float64 `json:"amount_usd"`
+	Reference string   `json:"reference"`
+	Remark    string   `json:"remark"`
+}
+
+// AdminMarkPromoterSettled 标记某月已结算（金额可选，只做记录）
+func AdminMarkPromoterSettled(c *gin.Context) {
+	promoter := promoterFromContext(c)
+	var req adminPromoterSettleRequest
+	if err := c.ShouldBindJSON(&req); err != nil || req.Month == "" {
+		common.ApiErrorMsg(c, "invalid request")
+		return
+	}
+	amount := decimal.NullDecimal{}
+	if req.AmountUSD != nil {
+		amount = decimal.NewNullDecimal(decimal.NewFromFloat(*req.AmountUSD).Round(6))
+	}
+	settlement, err := service.MarkPromoterSettled(c.GetInt("id"), promoter, req.Month, amount, req.Reference, req.Remark, time.Now())
+	if err != nil {
+		common.ApiError(c, err)
+		return
+	}
+	username, _ := model.GetUsernameById(promoter.UserId, true)
+	recordManageAuditFor(c, promoter.UserId, "promoter.settle", map[string]any{
+		"username": username, "user_id": promoter.UserId, "month": settlement.Month,
+		"net_quota": settlement.NetQuotaSnapshot, "credit_unpaid_quota": settlement.CreditUnpaidSnapshot, "share_rate": settlement.ShareRateSnapshot,
+		"amount_usd": promoterSettlementAmountText(settlement.AmountUSD), "reference": settlement.Reference, "remark": settlement.Remark,
+	})
+	common.ApiSuccess(c, settlement)
+}
+
+// AdminRevertPromoterSettlement 撤销某月结算
+func AdminRevertPromoterSettlement(c *gin.Context) {
+	promoter := promoterFromContext(c)
+	month := c.Param("month")
+	previous, _ := model.GetActivePromoterSettlement(promoter.UserId, month)
+	if err := service.RevertPromoterSettlement(c.GetInt("id"), promoter, month, time.Now()); err != nil {
+		common.ApiError(c, err)
+		return
+	}
+	username, _ := model.GetUsernameById(promoter.UserId, true)
+	params := map[string]any{"username": username, "user_id": promoter.UserId, "month": month}
+	if previous != nil {
+		params["amount_usd"], params["reference"] = promoterSettlementAmountText(previous.AmountUSD), previous.Reference
+	}
+	recordManageAuditFor(c, promoter.UserId, "promoter.settle_revert", params)
+	common.ApiSuccess(c, nil)
+}
+
+func promoterSettlementAmountText(amount decimal.NullDecimal) string {
+	if !amount.Valid {
+		return "-"
+	}
+	return amount.Decimal.String()
 }

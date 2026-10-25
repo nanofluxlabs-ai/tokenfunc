@@ -1,5 +1,5 @@
 import { Link } from '@tanstack/react-router'
-import { BarChart3, Pencil, Trash2, Users2 } from 'lucide-react'
+import { BarChart3, Pencil, ReceiptText, Trash2, Users2 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
 import { Button } from '@/components/ui/button'
@@ -69,6 +69,24 @@ export function PromoterRowActions(props: { promoter: PromoterListItem }) {
           }
         />
         <TooltipContent>{t('Promoter Center')}</TooltipContent>
+      </Tooltip>
+      <Tooltip>
+        <TooltipTrigger
+          render={
+            <Button
+              variant='ghost'
+              size='icon-sm'
+              onClick={() => {
+                setCurrentRow(props.promoter)
+                setOpen('settlements')
+              }}
+              aria-label={t('Settlements')}
+            />
+          }
+        >
+          <ReceiptText />
+        </TooltipTrigger>
+        <TooltipContent>{t('Settlements')}</TooltipContent>
       </Tooltip>
       <Tooltip>
         <TooltipTrigger

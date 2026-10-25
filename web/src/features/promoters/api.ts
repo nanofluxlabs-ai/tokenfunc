@@ -4,6 +4,7 @@ import { api } from '@/lib/api'
 
 import type {
   ApiResponse,
+  MarkSettledPayload,
   PagedData,
   PromoterBindResult,
   PromoterBindingsResponse,
@@ -68,6 +69,27 @@ export async function unbindPromoterUser(
 ): Promise<ApiResponse> {
   const res = await api.delete(
     `${ADMIN_PROMOTER_BASE}/${id}/bindings/${userId}`
+  )
+  return res.data
+}
+
+export async function markPromoterSettled(
+  id: number,
+  payload: MarkSettledPayload
+): Promise<ApiResponse> {
+  const res = await api.post(
+    `${ADMIN_PROMOTER_BASE}/${id}/settlements`,
+    payload
+  )
+  return res.data
+}
+
+export async function revertPromoterSettlement(
+  id: number,
+  month: string
+): Promise<ApiResponse> {
+  const res = await api.delete(
+    `${ADMIN_PROMOTER_BASE}/${id}/settlements/${month}`
   )
   return res.data
 }

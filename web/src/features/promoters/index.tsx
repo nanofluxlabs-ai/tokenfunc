@@ -18,6 +18,7 @@ import {
   usePromoters,
 } from './components/promoters-provider'
 import { PromotersTable } from './components/promoters-table'
+import { SettlementsSheet } from './components/settlements-sheet'
 
 function PromotersContent() {
   const { t } = useTranslation()
@@ -73,6 +74,11 @@ function PromotersContent() {
         open={open === 'bindings'}
         onOpenChange={(isOpen) => !isOpen && setOpen(null)}
         promoter={open === 'bindings' ? currentRow : null}
+      />
+      <SettlementsSheet
+        open={open === 'settlements'}
+        onOpenChange={(isOpen) => !isOpen && setOpen(null)}
+        promoter={open === 'settlements' ? currentRow : null}
       />
       <ConfirmDialog
         open={open === 'remove'}

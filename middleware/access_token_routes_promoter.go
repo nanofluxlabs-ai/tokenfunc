@@ -10,6 +10,7 @@ func init() {
 		"GET /api/promoter/center/users":                accessTokenScopeRule("usage:read"),
 		"GET /api/promoter/center/models":               accessTokenScopeRule("usage:read"),
 		"GET /api/promoter/center/users/:user_id/usage": accessTokenScopeRule("usage:read"),
+		"GET /api/promoter/center/settlements":          accessTokenScopeRule("usage:read"),
 
 		// router/promoter-router.go: /api/admin/promoter
 		"GET /api/admin/promoter/promoters":                                 accessTokenScopeRule("user:read"),
@@ -23,6 +24,9 @@ func init() {
 		"GET /api/admin/promoter/promoters/:id/center/users":                accessTokenScopeRule("usage:read"),
 		"GET /api/admin/promoter/promoters/:id/center/models":               accessTokenScopeRule("usage:read"),
 		"GET /api/admin/promoter/promoters/:id/center/users/:user_id/usage": accessTokenScopeRule("usage:read"),
+		"GET /api/admin/promoter/promoters/:id/center/settlements":          accessTokenScopeRule("usage:read"),
+		"POST /api/admin/promoter/promoters/:id/settlements":                accessTokenScopeRule("billing:write"),
+		"DELETE /api/admin/promoter/promoters/:id/settlements/:month":       accessTokenScopeRule("billing:write"),
 	} {
 		accessTokenRouteRules[key] = rule
 	}

@@ -102,11 +102,8 @@ func TestAdminCreateEnterpriseAdjustment(t *testing.T) {
 	setupEnterpriseAdjustmentPostgres(t)
 	operator := &model.User{Username: "adjust-root", Password: "root-operator-hash", Role: common.RoleRootUser, Status: common.UserStatusEnabled, Group: "default", AuthVersion: 1, AffCode: "adjust-root"}
 	require.NoError(t, model.DB.Create(operator).Error)
-	require.NoError(t, model.PublishUserAuthCache(operator.Id))
-	bundle, err := service.CreateLoginSession(operator.Id, "password", "127.0.0.1", "enterprise-adjustment-test")
-	require.NoError(t, err)
-	identity, err := service.ParseAccessToken(bundle.AccessToken)
-	require.NoError(t, err)
+	// 直接落一条登录会话构造 step-up 身份（同 createAccessTokenTestSession），不经过登录流程的缓存与计数
+	identity, _ := createAccessTokenTestSession(t, operator.Id, "enterprise-adjustment-session")
 	router := newEnterpriseAdjustmentRouter(operator, identity)
 
 	owner := &model.User{Username: "adjust-owner", Password: "placeholder", Role: common.RoleCommonUser, Status: common.UserStatusEnabled, Group: "default", Quota: 5 * int(common.QuotaPerUnit), AuthVersion: 1, AffCode: "adjust-own"}
@@ -114,14 +111,17 @@ func TestAdminCreateEnterpriseAdjustment(t *testing.T) {
 	require.NoError(t, model.UpgradeUserToEnterprise(owner.Id, &model.Enterprise{Name: "Adjust Co"}))
 	enterprise, err := model.GetEnterpriseByUserId(owner.Id)
 	require.NoError(t, err)
-	model.InvalidateEnterpriseBillingInfo(owner.Id)
-	t.Cleanup(func() { model.InvalidateEnterpriseBillingInfo(owner.Id) })
 
 	otherOwner := &model.User{Username: "adjust-other", Password: "placeholder", Role: common.RoleCommonUser, Status: common.UserStatusEnabled, Group: "default", AuthVersion: 1, AffCode: "adjust-oth"}
 	require.NoError(t, model.DB.Create(otherOwner).Error)
 	require.NoError(t, model.UpgradeUserToEnterprise(otherOwner.Id, &model.Enterprise{Name: "Other Co"}))
 	other, err := model.GetEnterpriseByUserId(otherOwner.Id)
 	require.NoError(t, err)
+	// 企业计费信息按 user_id 做进程内缓存，用例结束必须清掉，否则后续 sqlite 用例里同 id 的用户会命中这里的企业态
+	for _, userId := range []int{operator.Id, owner.Id, otherOwner.Id} {
+		model.InvalidateEnterpriseBillingInfo(userId)
+		t.Cleanup(func() { model.InvalidateEnterpriseBillingInfo(userId) })
+	}
 	now := common.GetTimestamp()
 	foreignBill := &model.EnterpriseBill{EnterpriseId: other.Id, BillNo: "TF-OTHER-000001", BillType: model.EnterpriseBillTypeCredit, PeriodStart: now - 86400, PeriodEnd: now, AmountUSD: decimal.NewFromInt(10), TotalUSD: decimal.NewFromInt(10), Currency: "USD", Status: model.EnterpriseBillUnpaid, IssuedAt: now, CreatedAt: now, UpdatedAt: now}
 	require.NoError(t, model.DB.Create(foreignBill).Error)

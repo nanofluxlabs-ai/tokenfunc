@@ -34,7 +34,7 @@ allowed-tools:
 
 流程：`P1 前置检查 → P2 打 tag + 镜像构建（Actions，失败自动本机构建） → P3 kubectl 滚动部署 → P4 冒烟 → P5 事故响应（仅异常） → P6 部署后监控 → 发布报告`。
 
-单机 docker 版本见 `/release-standalone`；两者只能用一个：切到 TKE 后把 GitHub 仓库变量 `DEPLOY_TARGET` 设为 `tke`，`deploy-ghcr.yml` 就只构建镜像、不再 SSH 部署到单机。本 skill 开始前先确认这一点（P1 Step 1.1）。
+单机 docker 版本见 `/release-standalone`（SSH + docker compose）。两条路线互不触发：Actions 只构建镜像，部署都在本机完成，本 skill 固定走 TKE。
 
 ## 参数
 
@@ -94,7 +94,7 @@ P3 部署后或 P4 冒烟中出现以下任一情况，**立即回滚止血**（
 |----|-----|
 | GitHub repo | `nanofluxlabs-ai/tokenfunc`，分支 `main`；`gh` 一律带 `-R nanofluxlabs-ai/tokenfunc`（本地有 upstream remote 会解析错仓库） |
 | tag 格式 | `vYYYY.MM.DD.N` |
-| 构建 workflow | `.github/workflows/deploy-ghcr.yml`（名 `Build & Deploy (GHCR)`）：推 `v*` tag → build job 构建推 GHCR；`DEPLOY_TARGET=tke` 时 deploy job 跳过 |
+| 构建 workflow | `.github/workflows/deploy-ghcr.yml`（名 `Build & Deploy (GHCR)`）：推 `v*` tag → build job 构建推 GHCR 并移动 `:latest`；不部署 |
 | 镜像 | `ghcr.io/nanofluxlabs-ai/tokenfunc:<tag>`（发版同时移动 `:latest`） |
 | KUBECONFIG | `~/.kube/tokenfunc.config`（也可 `export KUBECONFIG=` 指定） |
 | Namespace | `tokenfunc` |
@@ -132,7 +132,6 @@ options:
 export KUBECONFIG=~/.kube/tokenfunc.config
 kubectl config current-context                                   # 必须是 tokenfunc 的 TKE 集群
 kubectl -n tokenfunc get deploy tokenfunc-api-master tokenfunc-api-slave -o custom-columns=NAME:.metadata.name,READY:.status.readyReplicas,IMAGE:.spec.template.spec.containers[0].image
-gh variable get DEPLOY_TARGET -R nanofluxlabs-ai/tokenfunc        # 必须是 tke，否则推 tag 会同时 SSH 部署到单机 docker → 停止，让用户先设置
 ```
 
 ### Step 1.2 — 代码预检
@@ -199,7 +198,7 @@ gh run view -R nanofluxlabs-ai/tokenfunc $RUN_ID --json status,conclusion,jobs \
   --jq '"\(.status) \(.conclusion) | " + ([.jobs[] | "\(.name)=\(.status)/\(.conclusion)"] | join(", "))'
 ```
 
-只看 `Build & push image` job（`DEPLOY_TARGET=tke` 时 deploy job 应为 skipped；若它跑了，说明变量没设，立即停下报告用户——单机已被部署）。
+只看 `Build & push image` job（workflow 只有这一个 job）。
 
 | 情况 | 处理 |
 |------|------|
@@ -450,7 +449,7 @@ CLS 主题接好后（`TOKENFUNC_CLS_TOPIC_ID` 非空）改用 `tccli cls Search
 ## 各阶段
 | 阶段 | 状态 | 详情 |
 |------|------|------|
-| 前置检查 | | 分支 / 测试包 / 结果 / DEPLOY_TARGET |
+| 前置检查 | | 分支 / 测试包 / 结果 / 集群 context |
 | 打 tag & push | | |
 | 镜像构建（Actions） | | run-id，耗时；失败时写明原因 |
 | 镜像构建（本机回退） | {{状态 / ⏭️ 未触发}} | scripts/tokenfunc/tke-local-image.sh，digest |
@@ -472,7 +471,6 @@ CLS 主题接好后（`TOKENFUNC_CLS_TOPIC_ID` 非空）改用 `tccli cls Search
 
 | 坑 | 正确做法 |
 |----|---------|
-| `DEPLOY_TARGET` 没设成 `tke` 就推 tag | Actions 会同时 SSH 部署到单机 docker。P1 用 `gh variable get` 校验，不是 `tke` 就停 |
 | 本地 tag 过时，版本号推算错 | P1 先 `git fetch --tags` |
 | 工作区不干净或本地 commit 未 push 就打 tag | P2 强制检查；tag 必须等于 origin/main HEAD |
 | `gh` 不带 `-R` 解析到上游 `QuantumNous/new-api` | 所有 `gh` 命令加 `-R nanofluxlabs-ai/tokenfunc` |

@@ -19,8 +19,8 @@
   - `terminationGracePeriodSeconds=1830` > `SHUTDOWN_TIMEOUT_SECONDS=1800` + preStop 15s；`/tmp` 挂 emptyDir 给归档临时文件；`LOG_DIR=""` 只打 stdout。
   - `deploy.sh <tag>`：set image master → slave，任一阶段失败自动 undo；`--undo` 回滚。
   - `env-to-k8s.sh`：一份应用变量名的 .env 按敏感键名单拆成 configmap.yaml / secret.yaml。
-- 发版技能 `/release-tke`（`.claude/skills/release-tke/SKILL.md`，参考 tokensolo 的 `/tke-release` 改成 tokenfunc 的仓库 / 镜像 / 主从 Deployment / 探针 / 冒烟接口）：P1 增加 `gh variable get DEPLOY_TARGET` 必须为 `tke` 的校验；P2 Actions 失败自动回退 `scripts/tokenfunc/tke-local-image.sh`（照 tokensolo 脚本移植：前端宿主机 rsbuild、Go 交叉编译复刻 Dockerfile 的 builder2 / 运行层、VERSION 写 tag、crane HTTP/1.1 推送、核验平台与版本号；退出码 0/1/2/3 语义相同）；P3 调 `deploy/k8s/scripts/deploy.sh`；P5 回滚 slave → master；P6 默认用 `kubectl logs --since-time` 聚合 slave 的 NDJSON 访问日志，CLS 主题接好后再切 tccli。
-- `deploy-ghcr.yml` 的单机 SSH 部署 job 加 `vars.DEPLOY_TARGET != 'tke'` 门控：切 TKE 时设仓库变量即可，不删单机路线。
+- 发版技能 `/release-tke`（`.claude/skills/release-tke/SKILL.md`，参考 tokensolo 的 `/tke-release` 改成 tokenfunc 的仓库 / 镜像 / 主从 Deployment / 探针 / 冒烟接口）：固定走 TKE，不读任何仓库变量；P2 Actions 失败自动回退 `scripts/tokenfunc/tke-local-image.sh`（照 tokensolo 脚本移植：前端宿主机 rsbuild、Go 交叉编译复刻 Dockerfile 的 builder2 / 运行层、VERSION 写 tag、crane HTTP/1.1 推送、核验平台与版本号；退出码 0/1/2/3 语义相同）；P3 调 `deploy/k8s/scripts/deploy.sh`；P5 回滚 slave → master；P6 默认用 `kubectl logs --since-time` 聚合 slave 的 NDJSON 访问日志，CLS 主题接好后再切 tccli。
+- 黑鹰拍板：两条发版路线各自独立、Actions 只构建镜像。`deploy-ghcr.yml` 删掉 SSH 部署 job 与 `skip_deploy` 输入；原 job 的四步（GHCR 登录、校验并同步 compose.yml、改写 `TF_API_IMAGE` 后 `pull` + `up -d --wait api`、等 healthy）搬进 `/release-standalone` 新增的 P2.5，在本机通过 `ssh tokenfunc` 执行。仓库 secrets `DEPLOY_HOST/USER/SSH_KEY/KNOWN_HOSTS` 不再被 workflow 使用，可删。
 - `.gitignore` 忽略 `deploy/k8s/manifests/ghcr-secret.yaml` 与 `**/secret.yaml`；`development.md` §6 加 k8s 指引与 master 约定；`/release-standalone` P3 加探针检查。
 
 ## 验证

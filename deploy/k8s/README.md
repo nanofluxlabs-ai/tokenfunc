@@ -49,7 +49,7 @@ deploy/k8s/
 ## 发版与回滚
 
 - 发版：在 Claude Code 里 `/release-tke`（技能 `.claude/skills/release-tke/`）：预检 → 打 tag → Actions 构建（失败自动用 `scripts/tokenfunc/tke-local-image.sh` 本机构建推 GHCR）→ `deploy/k8s/scripts/deploy.sh <tag>` 滚动 → 冒烟 → 监控 → 报告。
-- 切换到 TKE 时把 GitHub 仓库变量 `DEPLOY_TARGET` 设为 `tke`，`deploy-ghcr.yml` 就只构建镜像、不再 SSH 部署到单机。
+- Actions（`deploy-ghcr.yml`）只构建镜像；单机 docker 的发版走 `/release-standalone`（SSH + compose），两条路线互不触发。
 - 手动：`bash deploy/k8s/scripts/deploy.sh v2026.10.25.1`；回滚 `bash deploy/k8s/scripts/deploy.sh --undo`。
 - 探针：`/api/health/live`（进程活着）/ `/api/health/ready`（DB + Redis 可用），readiness 失败会把 Pod 摘出 Service。
 - `kubectl apply -f deployment-*.yaml` 之前先核对线上 tag，文件里的 `image:` 不会自动跟随发版。

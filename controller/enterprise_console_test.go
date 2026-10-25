@@ -198,7 +198,7 @@ func TestEnterpriseConsoleOverview(t *testing.T) {
 	setupAccessTokenAudit(t)
 	model.InitColumnNames()
 	require.NoError(t, model.DB.AutoMigrate(&model.Token{}, &model.Enterprise{}, &model.EnterpriseTeam{}, &model.EnterpriseMember{}, &model.EnterpriseTokenAssignment{},
-		&model.EnterpriseUsageDaily{}, &model.EnterpriseBill{}, &model.EnterpriseCreditPeriod{}, &model.EnterpriseTeamBudgetNotify{}))
+		&model.EnterpriseUsageDaily{}, &model.EnterpriseBill{}, &model.EnterpriseCreditPeriod{}, &model.EnterpriseTeamBudgetNotify{}, &model.EnterpriseTokenQuotaPolicy{}))
 	owner := &model.User{Username: "ov-owner", Password: "placeholder", Role: common.RoleCommonUser, Status: common.UserStatusEnabled, Group: "default", AuthVersion: 1, AffCode: "ov-own"}
 	require.NoError(t, model.DB.Create(owner).Error)
 	require.NoError(t, model.UpgradeUserToEnterprise(owner.Id, &model.Enterprise{Name: "Overview Co"}))

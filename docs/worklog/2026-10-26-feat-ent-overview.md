@@ -36,7 +36,8 @@
 - 浏览器（`make api` + `make web`，本 worktree 的 3003 / 5176，dev schema 新初始化后用脚本建 Acme Robotics 授信企业、3 个团队、3 个成员、7 把 key，再写 30 天用量 / 本期已用 $1,240 / 一张逾期账单）：
   - 企业主登录：四卡「$1,240 / $5,000 · Period #1 · 预警 80%」「$1,844 · +479.9% vs last month」「5 / 7 · 1 把 7 天内过期」「4 · 3 · 1 人可登录」；待办四条（逾期账单 → 账单、耗尽 key → `?status=4`、Research 预算 88% → 团队、即将过期 → `?expiring=true`）；柱图 30 根；账期 / 流水默认收起，展开后各自出表。截图 `.tmp/m6_overview_owner_credit.jpg`。
   - 研发 team_admin 登录：第一张卡变「Team spend this month $1,328 / $1,500 · Budget warning」，第四张卡「Research · Members 2」，待办只有本团队 key 与预算，没有账单条目，没有账期 / 流水区。截图 `.tmp/m6_overview_team_admin.jpg`。
-- 合并 `origin/main`（含 #53 M10、#54 M11、#55 M2、#56 M12）后重跑了上述 Go / vitest / typecheck。
+- 合并 `origin/main`（含 #53 M10、#54 M11、#55 M2、#56 M12、#57 M13）后重跑了上述 Go / vitest / typecheck。
+- #59 合入后再合 #58（M4）：`enterpriseTokenQuery` 新增 LEFT JOIN `ent_token_quota_policies`，概览用例夹具缺该表而失败（`no such table`），补上 `EnterpriseTokenQuotaPolicy` 后四包 ok（后续 PR）。
 
 ## 遗留
 

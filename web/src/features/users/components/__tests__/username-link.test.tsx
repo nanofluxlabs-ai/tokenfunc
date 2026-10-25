@@ -15,7 +15,7 @@ import { expect, test } from 'vitest'
 import type { User } from '../../types'
 import { useUsersColumns } from '../users-columns'
 
-function UsernameCell(props: { user: User }) {
+function ColumnCell(props: { user: User; columnId: string }) {
   const table = useReactTable({
     data: [props.user],
     columns: useUsersColumns(),
@@ -24,8 +24,12 @@ function UsernameCell(props: { user: User }) {
   const cell = table
     .getRowModel()
     .rows[0]?.getAllCells()
-    .find((item) => item.column.id === 'username')
+    .find((item) => item.column.id === props.columnId)
   return cell ? flexRender(cell.column.columnDef.cell, cell.getContext()) : null
+}
+
+function UsernameCell(props: { user: User }) {
+  return <ColumnCell user={props.user} columnId='username' />
 }
 
 test('username column links to the usage logs filtered by that username', async () => {
@@ -62,7 +66,7 @@ test('username column links to the usage logs filtered by that username', async 
   expect(screen.getByText('Alice')).toBeInTheDocument()
 })
 
-test('username column shows the email beside the username when present', async () => {
+test('email column shows the email when the user has one', async () => {
   const user = {
     id: 8,
     username: 'bob',
@@ -74,25 +78,12 @@ test('username column shows the email beside the username when present', async (
     request_count: 0,
     group: 'default',
   } as User
-  const rootRoute = createRootRoute({
-    component: () => <UsernameCell user={user} />,
-  })
-  const router = createRouter({
-    routeTree: rootRoute,
-    history: createMemoryHistory({ initialEntries: ['/'] }),
-  })
-  render(<RouterProvider router={router} />)
-  await router.load()
+  render(<ColumnCell user={user} columnId='email' />)
 
-  const link = await screen.findByRole('link', {
-    name: 'View usage logs of bob',
-  })
-  const email = screen.getByText('bob@example.com')
-  // 邮箱与用户名同一行，位于用户名右侧
-  expect(link.closest('.flex.items-center')).toContainElement(email)
+  expect(screen.getByText('bob@example.com')).toBeInTheDocument()
 })
 
-test('username column renders no email text when the user has none', async () => {
+test('email column shows a dash placeholder when the user has no email', async () => {
   const user = {
     id: 9,
     username: 'carol',
@@ -104,16 +95,8 @@ test('username column renders no email text when the user has none', async () =>
     request_count: 0,
     group: 'default',
   } as User
-  const rootRoute = createRootRoute({
-    component: () => <UsernameCell user={user} />,
-  })
-  const router = createRouter({
-    routeTree: rootRoute,
-    history: createMemoryHistory({ initialEntries: ['/'] }),
-  })
-  render(<RouterProvider router={router} />)
-  await router.load()
+  render(<ColumnCell user={user} columnId='email' />)
 
-  await screen.findByRole('link', { name: 'View usage logs of carol' })
+  expect(screen.getByText('—')).toBeInTheDocument()
   expect(screen.queryByText(/@/)).not.toBeInTheDocument()
 })

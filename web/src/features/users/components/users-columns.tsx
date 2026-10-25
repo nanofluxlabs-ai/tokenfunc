@@ -100,7 +100,6 @@ export function useUsersColumns(): ColumnDef<User>[] {
           const username = row.getValue('username') as string
           const displayName = row.original.display_name
           const remark = row.original.remark
-          const email = row.original.email
 
           return (
             <div className='flex min-w-[160px] flex-col gap-1'>
@@ -108,11 +107,6 @@ export function useUsersColumns(): ColumnDef<User>[] {
                 <LongText className='max-w-[140px] text-sm font-normal'>
                   <UsageLogsUserLink username={username} />
                 </LongText>
-                {email && (
-                  <LongText className='text-muted-foreground max-w-[180px] text-xs font-normal'>
-                    {email}
-                  </LongText>
-                )}
                 {remark && (
                   <Tooltip>
                     <TooltipTrigger
@@ -144,8 +138,22 @@ export function useUsersColumns(): ColumnDef<User>[] {
           )
         },
         enableHiding: false,
-        size: 300,
+        size: 220,
         meta: { mobileTitle: true },
+      },
+      {
+        accessorKey: 'email',
+        header: t('Email'),
+        cell: ({ row }) => {
+          const email = row.original.email
+          if (!email) {
+            return <span className='text-muted-foreground text-sm'>—</span>
+          }
+          return <LongText className='max-w-[200px] text-sm'>{email}</LongText>
+        },
+        enableSorting: false,
+        size: 220,
+        meta: { mobileOrder: 15 },
       },
       {
         accessorKey: 'status',

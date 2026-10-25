@@ -21,6 +21,7 @@ export type DocsGroupId =
   | 'quick-start'
   | 'model-access-api'
   | 'tool-integration'
+  | 'enterprise'
 
 export type DocsPageEntry = {
   /** URL slug rendered at /docs/$slug */

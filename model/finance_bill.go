@@ -14,6 +14,16 @@ const (
 	FinanceBillKindPeriod = "period"
 )
 
+// 账单详情逐条明细的数据来源（FinanceBillContext.UsageSource）
+const (
+	// FinanceUsageSourceLive 实时 logs：进行中账期、未归档账单、账期内 logs 尚未清理
+	FinanceUsageSourceLive = "live"
+	// FinanceUsageSourceArchive 账期内 logs 已清理且账期包带 JSON 旁路件：明细改读冻结件
+	FinanceUsageSourceArchive = "archive"
+	// FinanceUsageSourceArchiveUnavailable 账期内 logs 已清理但没有可读的冻结件（未归档或 v1 归档）：明细不完整
+	FinanceUsageSourceArchiveUnavailable = "archive_unavailable"
+)
+
 // FinanceBillSummary 账单列表 / 详情页头部共用的形状
 type FinanceBillSummary struct {
 	Kind           string `json:"kind"`
@@ -64,6 +74,8 @@ type FinanceBillContext struct {
 	UsageTsEnd   int64                   `json:"usage_ts_end"`
 	// LogsPurged 账期内已有原始日志被归档删除：明细区按实时 logs 计算会不完整，应以账期包冻结件为准
 	LogsPurged bool `json:"logs_purged"`
+	// UsageSource 逐条明细的数据来源：live | archive | archive_unavailable（见 FinanceUsageSource*）
+	UsageSource string `json:"usage_source"`
 }
 
 type financeEnterpriseBrief struct {
@@ -211,9 +223,13 @@ func GetFinanceBillContext(kind string, id int64) (*FinanceBillContext, error) {
 	} else {
 		context.Summary = financeBillSummaryFromPeriod(context.Period, brief)
 	}
+	context.UsageSource = FinanceUsageSourceLive
 	if context.Bill != nil {
 		if context.LogsPurged, err = BillPeriodLogsPurged(context.Bill); err != nil {
 			return nil, err
+		}
+		if context.LogsPurged {
+			context.UsageSource = BillUsageSource(context.Bill)
 		}
 	}
 	context.UsageTsStart = context.Summary.PeriodStart

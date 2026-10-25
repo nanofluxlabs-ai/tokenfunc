@@ -468,6 +468,11 @@ func TestFinanceTopupLedger(t *testing.T) {
 	_, err = RegisterEnterpriseTopup(enterprise.Id, 2_000_000, 1, "BANK-001", "首期款")
 	require.NoError(t, err)
 	require.NoError(t, DB.Model(&EnterpriseLedgerEntry{}).Where("enterprise_id = ?", enterprise.Id).Update("created_at", base+40).Error)
+	// 4b. 企业余额人工调账（负数）：进钱包流水；账单调账 / 作废（ref_type = bill）不动钱包，不进
+	_, err = AdjustEnterpriseWallet(enterprise.Id, -500_000, 1, "重复计费冲减")
+	require.NoError(t, err)
+	require.NoError(t, DB.Model(&EnterpriseLedgerEntry{}).Where("enterprise_id = ? AND ref_type = ?", enterprise.Id, EnterpriseLedgerRefWallet).Update("created_at", base+41).Error)
+	require.NoError(t, DB.Create(&EnterpriseLedgerEntry{EnterpriseId: enterprise.Id, Type: EnterpriseLedgerAdjustment, AmountQuota: -1, RefType: EnterpriseLedgerRefBill, Remark: "void", CreatedAt: base + 42}).Error)
 	// 5. 管理员调额（扣减 300000）与一条没有 op 的普通充值日志（不应重复计入）
 	adjust, err := common.Marshal(AuditOther{Op: &AuditOperation{Action: "user.quota_subtract", Params: AuditFields{"from": 900000, "to": 600000, "quota": 300000}}})
 	require.NoError(t, err)
@@ -483,12 +488,12 @@ func TestFinanceTopupLedger(t *testing.T) {
 	require.NoError(t, err)
 	entries, err := ListFinanceTopupEntries(owner.Id, r)
 	require.NoError(t, err)
-	require.Len(t, entries, 6)
+	require.Len(t, entries, 7)
 	sources := make([]string, 0, len(entries))
 	for _, entry := range entries {
 		sources = append(sources, entry.Source)
 	}
-	assert.Equal(t, []string{FinanceTopupSourceRefund, FinanceTopupSourceAdminAdjust, FinanceTopupSourceEnterpriseTopup, FinanceTopupSourceRedemption, FinanceTopupSourceSubscriptionBalance, FinanceTopupSourceOnline}, sources, "时间倒序")
+	assert.Equal(t, []string{FinanceTopupSourceRefund, FinanceTopupSourceAdminAdjust, FinanceTopupSourceEnterpriseAdjust, FinanceTopupSourceEnterpriseTopup, FinanceTopupSourceRedemption, FinanceTopupSourceSubscriptionBalance, FinanceTopupSourceOnline}, sources, "时间倒序")
 	bySource := make(map[string]FinanceTopupEntry)
 	for _, entry := range entries {
 		bySource[entry.Source] = entry
@@ -507,6 +512,9 @@ func TestFinanceTopupLedger(t *testing.T) {
 	assert.Equal(t, int64(2_000_000), bySource[FinanceTopupSourceEnterpriseTopup].Quota)
 	assert.Equal(t, "BANK-001", bySource[FinanceTopupSourceEnterpriseTopup].RefNo)
 	assert.Equal(t, "首期款", bySource[FinanceTopupSourceEnterpriseTopup].Content)
+	assert.Equal(t, int64(-500_000), bySource[FinanceTopupSourceEnterpriseAdjust].Quota)
+	assert.Equal(t, FinanceTopupTypeAdjust, bySource[FinanceTopupSourceEnterpriseAdjust].Type)
+	assert.Equal(t, "重复计费冲减", bySource[FinanceTopupSourceEnterpriseAdjust].Content)
 	assert.Equal(t, int64(-300000), bySource[FinanceTopupSourceAdminAdjust].Quota)
 	assert.Equal(t, FinanceTopupTypeAdjust, bySource[FinanceTopupSourceAdminAdjust].Type)
 	assert.Equal(t, "subtract", bySource[FinanceTopupSourceAdminAdjust].RefNo)
@@ -515,13 +523,13 @@ func TestFinanceTopupLedger(t *testing.T) {
 	assert.Equal(t, "任务失败", bySource[FinanceTopupSourceRefund].Content, "日志 content 为空时取 other.reason")
 
 	summary := SummarizeFinanceTopup(entries)
-	assert.Equal(t, int64(6), summary.TotalEntries)
-	expectedTotal := int64(10*common.QuotaPerUnit) - 15_000_000 + 250000 + 2_000_000 - 300000 + 1234
+	assert.Equal(t, int64(7), summary.TotalEntries)
+	expectedTotal := int64(10*common.QuotaPerUnit) - 15_000_000 + 250000 + 2_000_000 - 500_000 - 300000 + 1234
 	assert.Equal(t, expectedTotal, summary.TotalQuota)
 	assert.Equal(t, FinanceQuotaToUSD(expectedTotal), summary.TotalAmountUSD)
-	require.Len(t, summary.BySource, 6)
+	require.Len(t, summary.BySource, 7)
 	assert.Equal(t, FinanceTopupSourceOnline, summary.BySource[0].Source, "按金额倒序，在线充值最大")
-	assert.Equal(t, FinanceTopupSourceSubscriptionBalance, summary.BySource[5].Source)
+	assert.Equal(t, FinanceTopupSourceSubscriptionBalance, summary.BySource[6].Source)
 	assert.Equal(t, financePercentage(int64(10*common.QuotaPerUnit), expectedTotal), summary.BySource[0].Percentage)
 
 	otherEntries, err := ListFinanceTopupEntries(other.Id, r)

@@ -359,7 +359,7 @@ export function TokenMutateSheet(props: TokenMutateSheetProps) {
         memberName: props.member?.name,
         baseUrl,
         key: createdKey,
-        docsUrl: `${baseUrl}/docs`,
+        docsUrl: `${baseUrl}/docs/enterprise-integration`,
       })
     : ''
 

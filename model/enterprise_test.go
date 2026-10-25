@@ -532,6 +532,138 @@ func TestEnterpriseTrialLeadLifecycle(t *testing.T) {
 	require.ErrorIs(t, UpdateEnterpriseTrialLeadStatus(lead.Id+999, EnterpriseLeadStatusClosed, ""), gorm.ErrRecordNotFound)
 }
 
+// 人工调账：钱包调账只对预付企业、扣减不能把余额扣成负数、balance_after 正确；账单调账只对未结清的授信账单，
+// 调整后总额不能低于已付，调到恰好等于已付自动结清；每笔恰好一条 adjustment 流水，钱包与账单流水靠 ref_type 区分
+func TestEnterpriseManualAdjustments(t *testing.T) {
+	setupEnterprisePostgres(t)
+	owner := createEnterpriseTestUser(t, "adjowner", common.RoleCommonUser)
+	require.NoError(t, UpgradeUserToEnterprise(owner.Id, &Enterprise{Name: "Adjust Co"}))
+	ent, err := GetEnterpriseByUserId(owner.Id)
+	require.NoError(t, err)
+
+	// 钱包：正负皆可，备注不足 4 字 / 金额为 0 拒绝
+	_, err = AdjustEnterpriseWallet(ent.Id, 300, 7, " 短 ")
+	assert.ErrorIs(t, err, ErrEnterpriseAdjustmentRemark)
+	_, err = AdjustEnterpriseWallet(ent.Id, 0, 7, "zero amount")
+	assert.ErrorIs(t, err, ErrEnterpriseAdjustmentZero)
+	entry, err := AdjustEnterpriseWallet(ent.Id, 300, 7, "9 月重复计费补偿")
+	require.NoError(t, err)
+	assert.Equal(t, int64(1300), entry.BalanceAfterQuota)
+	assert.Equal(t, EnterpriseLedgerRefWallet, entry.RefType)
+	assert.Equal(t, "9 月重复计费补偿", entry.Remark)
+	entry, err = AdjustEnterpriseWallet(ent.Id, -1250, 7, "冲减多记余额")
+	require.NoError(t, err)
+	assert.Equal(t, int64(50), entry.BalanceAfterQuota)
+	quota, err := GetUserQuota(owner.Id, true)
+	require.NoError(t, err)
+	assert.Equal(t, 50, quota)
+	// 扣超余额拒绝，余额与流水都不变
+	_, err = AdjustEnterpriseWallet(ent.Id, -51, 7, "exceeds balance")
+	assert.ErrorIs(t, err, ErrEnterpriseAdjustmentExceedsBalance)
+	quota, _ = GetUserQuota(owner.Id, true)
+	assert.Equal(t, 50, quota)
+	_, total, err := ListEnterpriseLedger(ent.Id, EnterpriseLedgerAdjustment, 0, 10)
+	require.NoError(t, err)
+	assert.Equal(t, int64(2), total)
+	_, err = AdjustEnterpriseWallet(ent.Id+100, 1, 7, "missing enterprise")
+	assert.ErrorIs(t, err, ErrEnterpriseResourceNotFound)
+
+	// 授信企业的钱包不能调
+	require.NoError(t, ConfigureEnterpriseCredit(ent.Id, EnterpriseCreditConfig{CycleType: EnterpriseCreditCycleNaturalMonth, LimitQuota: 1_000_000}, 1))
+	_, err = AdjustEnterpriseWallet(ent.Id, 10, 7, "credit enterprise")
+	assert.ErrorIs(t, err, ErrEnterpriseNotPrepaid)
+
+	// 账单：手工造一张未结清的授信账单（amount 10 USD，已付 4）
+	now := common.GetTimestamp()
+	bill := &EnterpriseBill{
+		EnterpriseId: ent.Id, BillType: EnterpriseBillTypeCredit, PeriodStart: now - 86400, PeriodEnd: now,
+		AmountQuota: 5_000_000, AmountUSD: decimal.NewFromInt(10), TotalUSD: decimal.NewFromInt(10), PaidUSD: decimal.NewFromInt(4),
+		Currency: "USD", Status: EnterpriseBillPartiallyPaid, IssuedAt: now, DueAt: now + 86400, CreatedAt: now, UpdatedAt: now,
+	}
+	require.NoError(t, DB.Create(bill).Error)
+	bill.BillNo = enterpriseBillNo(now, bill.Id)
+	require.NoError(t, DB.Model(&EnterpriseBill{}).Where("id = ?", bill.Id).Update("bill_no", bill.BillNo).Error)
+
+	// 调到低于已付拒绝（10 − 7 = 3 < 4）
+	_, _, err = AdjustEnterpriseBill(bill.Id, decimal.NewFromInt(-7), 7, "too much credit")
+	assert.ErrorIs(t, err, ErrEnterpriseBillAdjustmentBelowPaid)
+	// 加 2.5：total 12.5，仍部分付款
+	adjusted, ledger, err := AdjustEnterpriseBill(bill.Id, decimal.NewFromFloat(2.5), 7, "补收 9 月漏计流量")
+	require.NoError(t, err)
+	assert.True(t, adjusted.AdjustmentUSD.Equal(decimal.NewFromFloat(2.5)), adjusted.AdjustmentUSD.String())
+	assert.True(t, adjusted.TotalUSD.Equal(decimal.NewFromFloat(12.5)), adjusted.TotalUSD.String())
+	assert.Equal(t, EnterpriseBillPartiallyPaid, adjusted.Status)
+	assert.Equal(t, EnterpriseLedgerRefBill, ledger.RefType)
+	assert.Equal(t, bill.Id, ledger.RefId)
+	assert.Equal(t, bill.BillNo, ledger.Reference)
+	assert.Equal(t, int64(1_250_000), ledger.AmountQuota)
+	// 减 8.5：total 恰好 = 已付 4，自动结清
+	adjusted, _, err = AdjustEnterpriseBill(bill.Id, decimal.NewFromFloat(-8.5), 7, "冲减重复计费")
+	require.NoError(t, err)
+	assert.True(t, adjusted.TotalUSD.Equal(decimal.NewFromInt(4)), adjusted.TotalUSD.String())
+	assert.True(t, adjusted.AdjustmentUSD.Equal(decimal.NewFromInt(-6)), adjusted.AdjustmentUSD.String())
+	assert.Equal(t, EnterpriseBillPaid, adjusted.Status)
+	assert.NotZero(t, adjusted.PaidAt)
+	stored, err := GetEnterpriseBill(bill.Id)
+	require.NoError(t, err)
+	assert.Equal(t, EnterpriseBillPaid, stored.Status)
+	assert.True(t, stored.TotalUSD.Equal(decimal.NewFromInt(4)))
+	// 已结清 / 作废的账单不能再调
+	_, _, err = AdjustEnterpriseBill(bill.Id, decimal.NewFromInt(1), 7, "already paid")
+	assert.ErrorIs(t, err, ErrEnterpriseBillNotPayable)
+	voided := &EnterpriseBill{EnterpriseId: ent.Id, BillNo: "TF-VOID-000001", BillType: EnterpriseBillTypeCredit, PeriodStart: now - 86400, PeriodEnd: now, AmountUSD: decimal.NewFromInt(1), TotalUSD: decimal.NewFromInt(1), Currency: "USD", Status: EnterpriseBillVoid, IssuedAt: now, CreatedAt: now, UpdatedAt: now}
+	require.NoError(t, DB.Create(voided).Error)
+	_, _, err = AdjustEnterpriseBill(voided.Id, decimal.NewFromInt(1), 7, "void bill")
+	assert.ErrorIs(t, err, ErrEnterpriseBillNotPayable)
+	_, _, err = AdjustEnterpriseBill(voided.Id+100, decimal.NewFromInt(1), 7, "missing bill")
+	assert.ErrorIs(t, err, ErrEnterpriseResourceNotFound)
+	// 两次账单调账各一条流水；钱包流水仍是 2 条
+	entries, total, err := ListEnterpriseLedger(ent.Id, EnterpriseLedgerAdjustment, 0, 10)
+	require.NoError(t, err)
+	assert.Equal(t, int64(4), total)
+	billEntries := 0
+	for _, item := range entries {
+		if item.RefType == EnterpriseLedgerRefBill {
+			billEntries++
+		}
+	}
+	assert.Equal(t, 2, billEntries)
+
+	// 额度信用 auto_reset=false：用满出账后待收款，账单被人工调账调到结清 → 与收款结清同语义，自动开下一期
+	require.NoError(t, ConfigureEnterpriseCredit(ent.Id, EnterpriseCreditConfig{CycleType: EnterpriseCreditCycleQuotaBased, LimitQuota: 1000, AutoReset: false}, 1))
+	open, err := GetOpenCreditPeriod(ent.Id)
+	require.NoError(t, err)
+	ok, err := AddCreditUsage(open.Id, 1000, 0, true)
+	require.NoError(t, err)
+	require.True(t, ok)
+	_, rolled, err := RolloverExhaustedCreditPeriod(ent.Id, open.Id)
+	require.NoError(t, err)
+	require.True(t, rolled)
+	_, err = GetOpenCreditPeriod(ent.Id)
+	require.ErrorIs(t, err, ErrEnterpriseCreditNoOpenPeriod)
+	awaiting, err := IssueCreditBill(open.Id)
+	require.NoError(t, err)
+	require.NotNil(t, awaiting)
+	// 先调一部分：仍未结清，不开期
+	partial, _, err := AdjustEnterpriseBill(awaiting.Id, awaiting.TotalUSD.Div(decimal.NewFromInt(2)).Neg(), 7, "商务让利一半")
+	require.NoError(t, err)
+	assert.Equal(t, EnterpriseBillUnpaid, partial.Status)
+	_, err = GetOpenCreditPeriod(ent.Id)
+	assert.ErrorIs(t, err, ErrEnterpriseCreditNoOpenPeriod)
+	// 调到 0（已付 0 = 新总额 0）即结清 → 开下一期
+	settled, _, err := AdjustEnterpriseBill(awaiting.Id, partial.TotalUSD.Neg(), 7, "全额冲减，视同结清")
+	require.NoError(t, err)
+	assert.Equal(t, EnterpriseBillPaid, settled.Status)
+	assert.True(t, settled.TotalUSD.IsZero(), settled.TotalUSD.String())
+	reopened, err := GetOpenCreditPeriod(ent.Id)
+	require.NoError(t, err)
+	assert.Equal(t, open.PeriodNo+1, reopened.PeriodNo)
+	assert.Zero(t, reopened.UsedQuota)
+	info, err := GetEnterpriseBillingInfo(owner.Id)
+	require.NoError(t, err)
+	assert.Equal(t, reopened.Id, info.OpenPeriodId, "settling by adjustment invalidates the billing info cache")
+}
+
 // 额度信用：账期没有截止（end_at=0），额度用满翻转；auto_reset=false 时用满后待收款
 func TestEnterpriseQuotaBasedCredit(t *testing.T) {
 	setupEnterprisePostgres(t)

@@ -36,6 +36,10 @@ export const TOKENFUNC_AUDIT_TEMPLATES: Record<string, string> = {
     'Voided bill {{bill_no}} (ID: {{bill_id}}): {{remark}}',
   'enterprise.bill.issue_now':
     'Issued bill {{bill_no}} immediately for credit period {{period_id}}',
+  'enterprise.adjustment.wallet':
+    'Adjusted balance of enterprise {{enterprise_id}} by {{amount_usd}} USD: {{remark}}',
+  'enterprise.adjustment.bill':
+    'Adjusted bill {{bill_no}} of enterprise {{enterprise_id}} by {{amount_usd}} USD: {{remark}}',
   'enterprise.seller_profile.update': 'Updated seller profile {{company_name}}',
   'enterprise.team.create': 'Created team {{team_name}} (ID: {{team_id}})',
   'enterprise.team.update': 'Updated team {{team_name}} (ID: {{team_id}})',

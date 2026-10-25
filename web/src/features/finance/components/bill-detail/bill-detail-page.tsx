@@ -54,6 +54,7 @@ function day(timestamp: number): string {
  * 账单详情正文：头部提示 + 汇总卡 + 明细。导出供页面与测试复用。
  * 已出账且快照为 v2 的账单直接渲染出账时冻结的快照（与企业侧同口径），不再实时扫 logs；
  * 进行中账期与旧快照账单维持实时聚合。
+ * 已出账账单的用量请求都带 bill_id：账期 logs 被清理且账期包有冻结件时，后端把逐条明细切到冻结件（usage_source=archive）。
  */
 export function BillDetailContent(props: {
   context: FinanceBillContext
@@ -73,9 +74,14 @@ export function BillDetailContent(props: {
   const usageParams: UsageRangeParams = {
     scope: 'admin',
     user_id: summary.user_id,
+    bill_id: context.bill?.id,
     ts_start: context.usage_ts_start,
     ts_end: context.usage_ts_end,
   }
+  const archivedDay = context.bill?.archived_at
+    ? day(context.bill.archived_at)
+    : ''
+  const usageSource = context.usage_source ?? 'live'
   const usage = useUsageSummary({ ...usageParams, enabled: frozen === null })
   const usagePercent = creditUsagePercent(
     summary.used_quota,
@@ -99,7 +105,17 @@ export function BillDetailContent(props: {
           </AlertDescription>
         </Alert>
       )}
-      {context.logs_purged && frozen === null && (
+      {usageSource === 'archive' && (
+        <Alert>
+          <AlertDescription>
+            {t(
+              'Raw logs of this period have been purged; the row-level detail below is read from the statement snapshot archived on {{date}}.',
+              { date: archivedDay }
+            )}
+          </AlertDescription>
+        </Alert>
+      )}
+      {context.logs_purged && usageSource !== 'archive' && (
         <Alert className='border-warning/40 bg-warning/10'>
           <AlertDescription>
             {t(

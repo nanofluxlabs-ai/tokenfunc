@@ -48,13 +48,15 @@ export type SecurityProofScope =
   | 'admin.user.binding.clear'
 
 /** ManageUser actions that change a user's status or role and need step-up;
- * `topup` is the manual wallet top-up (TokenFunc). */
+ * `topup` is the manual wallet top-up and `enterprise_adjust` the enterprise
+ * manual adjustment, bound to the enterprise owner (TokenFunc). */
 export type AdminUserManageAction =
   | 'disable'
   | 'enable'
   | 'promote'
   | 'demote'
   | 'topup'
+  | 'enterprise_adjust'
 
 export type VerificationOperation =
   | { scope: 'channel.key.read'; context: { channel_id: number } }

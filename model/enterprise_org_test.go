@@ -381,6 +381,11 @@ func TestEnterpriseUsageAggregationSnapshotsAttribution(t *testing.T) {
 	total, err := SumEnterpriseUsageTotal(ent.Id, from, to, EnterpriseUsageFilter{MemberId: &alice.Id})
 	require.NoError(t, err)
 	assert.Equal(t, int64(17), total.Quota)
+	// 成员列表的本月消耗按 member_id 快照汇总，与换团队无关
+	members, _, err := ListEnterpriseMembers(ent.Id, EnterpriseScope{}, EnterpriseMemberFilter{Keyword: "alice"}, 0, 20)
+	require.NoError(t, err)
+	require.Len(t, members, 1)
+	assert.Equal(t, int64(17), members[0].MonthQuota)
 	byToken, err := SumEnterpriseUsageByColumn(ent.Id, "token_id", []int{token.Id, 999}, from, to)
 	require.NoError(t, err)
 	assert.Equal(t, map[int]int64{token.Id: 17}, byToken)

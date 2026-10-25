@@ -83,6 +83,15 @@ func setLogArchiveStoreForTest(store ArchiveObjectStore) {
 	logArchiveStore, logArchiveStoreOverride = store, true
 }
 
+// SetLogArchiveStoreForTest 跨包测试（controller）替换对象存储；返回恢复函数
+func SetLogArchiveStoreForTest(store ArchiveObjectStore) func() {
+	setLogArchiveStoreForTest(store)
+	return func() {
+		resetLogArchiveStoreForTest()
+		resetBillStatementCacheForTest()
+	}
+}
+
 // resetLogArchiveStoreForTest 恢复按配置构建
 func resetLogArchiveStoreForTest() {
 	logArchiveStoreMu.Lock()

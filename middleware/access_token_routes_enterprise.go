@@ -12,6 +12,7 @@ func init() {
 		"DELETE /api/admin/enterprise/enterprises/:id/credit":            accessTokenScopeRule("billing:write"),
 		"PUT /api/admin/enterprise/enterprises/:id/status":               accessTokenScopeRule("user:write"),
 		"POST /api/admin/enterprise/enterprises/:id/topup":               accessTokenScopeRule("billing:write"),
+		"POST /api/admin/enterprise/enterprises/:id/adjustments":         accessTokenScopeRule("billing:write"),
 		"GET /api/admin/enterprise/enterprises/:id/ledger":               accessTokenScopeRule("billing:read"),
 		"GET /api/admin/enterprise/enterprises/:id/credit-periods":       accessTokenScopeRule("billing:read"),
 		"GET /api/admin/enterprise/enterprises/:id/usage/summary":        accessTokenScopeRule("billing:read"),

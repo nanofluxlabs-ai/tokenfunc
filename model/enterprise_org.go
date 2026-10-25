@@ -451,6 +451,8 @@ type EnterpriseMemberListItem struct {
 	TeamName   string `json:"team_name"`
 	Username   string `json:"username"`
 	TokenCount int    `json:"token_count"`
+	// MonthQuota 本月消耗（quota），按归属快照汇总 ent_usage_daily
+	MonthQuota int64 `json:"month_quota"`
 }
 
 type EnterpriseMemberFilter struct {
@@ -488,10 +490,13 @@ func ListEnterpriseMembers(enterpriseId int, scope EnterpriseScope, filter Enter
 		return nil, 0, err
 	}
 	items := make([]*EnterpriseMemberListItem, 0)
+	monthStart, _, _, _ := enterpriseMonthRange(time.Now())
 	err := query.
 		Select(`ent_members.*, COALESCE(tm.name, '') AS team_name, COALESCE(u.username, '') AS username,
 			(SELECT COUNT(*) FROM ent_token_assignments a JOIN tokens t ON t.id = a.token_id AND t.deleted_at IS NULL
-			 WHERE a.member_id = ent_members.id) AS token_count`).
+			 WHERE a.member_id = ent_members.id) AS token_count,
+			(SELECT COALESCE(SUM(ud.quota), 0) FROM ent_usage_daily ud
+			 WHERE ud.enterprise_id = ent_members.enterprise_id AND ud.member_id = ent_members.id AND ud.day >= ?) AS month_quota`, monthStart).
 		Joins("LEFT JOIN ent_teams tm ON tm.id = ent_members.team_id").
 		Joins("LEFT JOIN users u ON u.id = ent_members.user_id AND ent_members.user_id > 0").
 		Order("ent_members.id DESC").

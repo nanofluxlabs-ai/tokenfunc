@@ -176,7 +176,7 @@ func RollupLogDay(day string) (int, error) {
 	if err != nil {
 		return 0, fmt.Errorf("%w: %s", ErrLogRollupInvalidDay, day)
 	}
-	rows, err := scanLogDailyUsageFromLogs(r, nil)
+	rows, err := scanLogUsageFromLogs(r, nil, logUsageDimsFull)
 	if err != nil {
 		return 0, err
 	}
@@ -206,6 +206,43 @@ func RollupLogDay(day string) (int, error) {
 // 读取
 // ---------------------------------------------------------------------------
 
+// logUsageDims 读取粒度：全维度给推广中心（名下用户少）；按用户 / 按天在 SQL 侧聚合给财务中心（全站用户）
+type logUsageDims int
+
+const (
+	logUsageDimsFull logUsageDims = iota // (日, 用户, 类型, 分组, 模型)
+	logUsageDimsUser                     // (用户, 类型)
+	logUsageDimsDay                      // (日, 类型)
+)
+
+const logUsageSumsSQL = `COUNT(*)::bigint AS calls, COALESCE(SUM(l.prompt_tokens), 0)::bigint AS prompt_tokens, COALESCE(SUM(l.completion_tokens), 0)::bigint AS completion_tokens, COALESCE(SUM(l.quota), 0)::bigint AS quota`
+
+// logsSelect 实时段在 logs 上的 SELECT 与 GROUP BY
+func (d logUsageDims) logsSelect() (string, string) {
+	switch d {
+	case logUsageDimsUser:
+		return "l.user_id, l.type AS log_type, " + logUsageSumsSQL, "1, 2"
+	case logUsageDimsDay:
+		return financeDayBucketSQL + " AS day, l.type AS log_type, " + logUsageSumsSQL, "1, 2"
+	default:
+		return fmt.Sprintf("%s AS day, l.user_id, l.type AS log_type, COALESCE(l.%s, '') AS group_name, COALESCE(l.model_name, '') AS model_name, %s",
+			financeDayBucketSQL, logGroupCol, logUsageSumsSQL), "1, 2, 3, 4, 5"
+	}
+}
+
+// rollupSelect 预聚合段在 tf_log_daily_rollups 上的 SELECT 与 GROUP BY（全维度不再聚合）
+func (d logUsageDims) rollupSelect() (string, string) {
+	const sums = "SUM(calls) AS calls, SUM(prompt_tokens) AS prompt_tokens, SUM(completion_tokens) AS completion_tokens, SUM(quota) AS quota"
+	switch d {
+	case logUsageDimsUser:
+		return "user_id, log_type, " + sums, "user_id, log_type"
+	case logUsageDimsDay:
+		return "day, log_type, " + sums, "day, log_type"
+	default:
+		return "day, user_id, log_type, group_name, model_name, calls, prompt_tokens, completion_tokens, quota", ""
+	}
+}
+
 // ReadLogDailyUsage 读取若干用户在区间内按 (日, 用户, 类型, 分组, 模型) 的用量。
 // userIds 为 nil 表示不限用户；为空切片直接返回空。返回行不跨段合并，调用方用 FoldLogDailyUsage 按需折叠。
 //
@@ -213,6 +250,28 @@ func RollupLogDay(day string) (int, error) {
 //	[ 首个完整日, min(末个完整日+1, 今日零点, 游标+1) ) → tf_log_daily_rollups
 //	其余到 r.EndExcl                                  → logs 实时
 func ReadLogDailyUsage(userIds []int, r FinanceRange) ([]LogDailyUsageRow, error) {
+	return readLogUsage(userIds, r, logUsageDimsFull)
+}
+
+// ReadLogUsageByUser 按用户折叠的区间用量（SQL 侧聚合，适合全站用户）；键为 user_id
+func ReadLogUsageByUser(userIds []int, r FinanceRange) (map[int]*LogUsageTotals, error) {
+	rows, err := readLogUsage(userIds, r, logUsageDimsUser)
+	if err != nil {
+		return nil, err
+	}
+	return FoldLogDailyUsage(rows, func(row LogDailyUsageRow) int { return row.UserId }), nil
+}
+
+// ReadLogUsageByDay 按上海日折叠的区间用量（SQL 侧聚合）；键为 YYYY-MM-DD
+func ReadLogUsageByDay(userIds []int, r FinanceRange) (map[string]*LogUsageTotals, error) {
+	rows, err := readLogUsage(userIds, r, logUsageDimsDay)
+	if err != nil {
+		return nil, err
+	}
+	return FoldLogDailyUsage(rows, func(row LogDailyUsageRow) string { return row.Day }), nil
+}
+
+func readLogUsage(userIds []int, r FinanceRange, dims logUsageDims) ([]LogDailyUsageRow, error) {
 	if err := financeRequirePostgres(); err != nil {
 		return nil, err
 	}
@@ -249,7 +308,7 @@ func ReadLogDailyUsage(userIds []int, r FinanceRange) ([]LogDailyUsageRow, error
 	rows := make([]LogDailyUsageRow, 0, 64)
 	headEnd := min(fullStart.Unix(), r.EndExcl)
 	if r.Start < headEnd {
-		head, err := scanLogDailyUsageFromLogs(FinanceRange{Start: r.Start, EndExcl: headEnd}, userIds)
+		head, err := scanLogUsageFromLogs(FinanceRange{Start: r.Start, EndExcl: headEnd}, userIds, dims)
 		if err != nil {
 			return nil, err
 		}
@@ -257,7 +316,7 @@ func ReadLogDailyUsage(userIds []int, r FinanceRange) ([]LogDailyUsageRow, error
 	}
 	tailStart := headEnd
 	if rollupEnd.After(fullStart) {
-		rolled, err := scanLogDailyUsageFromRollups(fullStart.Format("2006-01-02"), rollupEnd.AddDate(0, 0, -1).Format("2006-01-02"), userIds)
+		rolled, err := scanLogUsageFromRollups(fullStart.Format("2006-01-02"), rollupEnd.AddDate(0, 0, -1).Format("2006-01-02"), userIds, dims)
 		if err != nil {
 			return nil, err
 		}
@@ -265,7 +324,7 @@ func ReadLogDailyUsage(userIds []int, r FinanceRange) ([]LogDailyUsageRow, error
 		tailStart = rollupEnd.Unix()
 	}
 	if tailStart < r.EndExcl {
-		tail, err := scanLogDailyUsageFromLogs(FinanceRange{Start: tailStart, EndExcl: r.EndExcl}, userIds)
+		tail, err := scanLogUsageFromLogs(FinanceRange{Start: tailStart, EndExcl: r.EndExcl}, userIds, dims)
 		if err != nil {
 			return nil, err
 		}
@@ -274,52 +333,44 @@ func ReadLogDailyUsage(userIds []int, r FinanceRange) ([]LogDailyUsageRow, error
 	return rows, nil
 }
 
-// scanLogDailyUsageFromLogs 在 LOG_DB 上按 (上海日, 用户, 类型, 分组, 模型) 实时聚合 logs
-func scanLogDailyUsageFromLogs(r FinanceRange, userIds []int) ([]LogDailyUsageRow, error) {
-	selectSQL := fmt.Sprintf(`%s AS day, l.user_id, l.type AS log_type, COALESCE(l.%s, '') AS group_name, COALESCE(l.model_name, '') AS model_name,
-	COUNT(*)::bigint AS calls, COALESCE(SUM(l.prompt_tokens), 0)::bigint AS prompt_tokens, COALESCE(SUM(l.completion_tokens), 0)::bigint AS completion_tokens, COALESCE(SUM(l.quota), 0)::bigint AS quota`,
-		financeDayBucketSQL, logGroupCol)
-	run := func(ids []int) ([]LogDailyUsageRow, error) {
+// scanLogUsageFromLogs 在 LOG_DB 上实时聚合 logs；userIds 按批 IN
+func scanLogUsageFromLogs(r FinanceRange, userIds []int, dims logUsageDims) ([]LogDailyUsageRow, error) {
+	selectSQL, groupBy := dims.logsSelect()
+	return scanLogUsageBatched(userIds, func(ids []int) ([]LogDailyUsageRow, error) {
 		query := LOG_DB.Table("logs l").Select(selectSQL).
 			Where("l.user_id > 0 AND l.type IN ? AND l.created_at >= ? AND l.created_at < ?", []int{LogTypeConsume, LogTypeRefund}, r.Start, r.EndExcl)
 		if ids != nil {
 			query = query.Where("l.user_id IN ?", ids)
 		}
 		batch := make([]LogDailyUsageRow, 0)
-		if err := query.Group("1, 2, 3, 4, 5").Scan(&batch).Error; err != nil {
+		if err := query.Group(groupBy).Scan(&batch).Error; err != nil {
 			return nil, err
 		}
 		return batch, nil
-	}
-	if userIds == nil {
-		return run(nil)
-	}
-	rows := make([]LogDailyUsageRow, 0)
-	for start := 0; start < len(userIds); start += logUsageUserIdBatch {
-		batch, err := run(userIds[start:min(start+logUsageUserIdBatch, len(userIds))])
-		if err != nil {
-			return nil, err
-		}
-		rows = append(rows, batch...)
-	}
-	return rows, nil
+	})
 }
 
-// scanLogDailyUsageFromRollups 读预聚合表的闭区间 [startDay, endDay]
-func scanLogDailyUsageFromRollups(startDay string, endDay string, userIds []int) ([]LogDailyUsageRow, error) {
-	run := func(ids []int) ([]LogDailyUsageRow, error) {
-		query := DB.Model(&LogDailyRollup{}).
-			Select("day, user_id, log_type, group_name, model_name, calls, prompt_tokens, completion_tokens, quota").
-			Where("day >= ? AND day <= ?", startDay, endDay)
+// scanLogUsageFromRollups 读预聚合表的闭区间 [startDay, endDay]
+func scanLogUsageFromRollups(startDay string, endDay string, userIds []int, dims logUsageDims) ([]LogDailyUsageRow, error) {
+	selectSQL, groupBy := dims.rollupSelect()
+	return scanLogUsageBatched(userIds, func(ids []int) ([]LogDailyUsageRow, error) {
+		query := DB.Model(&LogDailyRollup{}).Select(selectSQL).Where("day >= ? AND day <= ?", startDay, endDay)
 		if ids != nil {
 			query = query.Where("user_id IN ?", ids)
+		}
+		if groupBy != "" {
+			query = query.Group(groupBy)
 		}
 		batch := make([]LogDailyUsageRow, 0)
 		if err := query.Scan(&batch).Error; err != nil {
 			return nil, err
 		}
 		return batch, nil
-	}
+	})
+}
+
+// scanLogUsageBatched userIds 为 nil 时跑一次不过滤，否则按 logUsageUserIdBatch 分批 IN 后拼接
+func scanLogUsageBatched(userIds []int, run func(ids []int) ([]LogDailyUsageRow, error)) ([]LogDailyUsageRow, error) {
 	if userIds == nil {
 		return run(nil)
 	}

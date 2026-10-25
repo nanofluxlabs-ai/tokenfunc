@@ -2,6 +2,7 @@ package model
 
 import (
 	"fmt"
+	"slices"
 	"sort"
 	"strconv"
 
@@ -9,8 +10,9 @@ import (
 	"github.com/QuantumNous/new-api/setting"
 )
 
-// 用户消耗与模型消费：都在 logs 上按区间聚合（净额 = 消费 − 退款，次数与 token 只算消费）。
-// logs 可能在独立日志库，所以先在 LOG_DB 聚合，再按当前页 ID 到主库补用户 / 企业 / 授信 / 订阅信息，不跨库 JOIN。
+// 用户消耗与模型消费（净额 = 消费 − 退款，次数与 token 只算消费）。
+// 用户消耗基础列走 tf_log_daily_rollups + 实时补边（ReadLogUsageByUser），token 拆分 / 钱包订阅拆分 / 最后消耗时间只对当前页用户实时查 logs；
+// 模型消费按渠道维度聚合，预聚合表没有渠道列，仍全区间扫 logs。先在 LOG_DB 聚合，再按当前页 ID 到主库补用户 / 企业 / 授信 / 订阅信息，不跨库 JOIN。
 
 // FinanceUserConsumptionFilter 用户消耗筛选
 type FinanceUserConsumptionFilter struct {
@@ -102,40 +104,52 @@ type financeUserBreakdownScan struct {
 	AudioOutputTokens        int64
 	WalletConsumeQuota       int64
 	SubscriptionConsumeQuota int64
+	LastConsumeAt            int64
 }
 
-// ListFinanceUserConsumptions 用户消耗列表：logs 按用户聚合（不分页）→ 内存分页 → 只给当前页补充信息
+// ListFinanceUserConsumptions 用户消耗列表：读取器按用户聚合（预聚合 + 实时补边，不分页）→ 关键词过滤 → 内存分页 → 只给当前页补充信息。
+// 关键词在 users 表上匹配（用户名 / 数字 ID），而不是日志里写入时的用户名。
 func ListFinanceUserConsumptions(filter FinanceUserConsumptionFilter, startIdx int, num int) ([]*FinanceUserConsumptionItem, int64, error) {
 	if err := financeRequirePostgres(); err != nil {
 		return nil, 0, err
 	}
 	r := filter.Range
-	query := LOG_DB.Table("logs").
-		Select(fmt.Sprintf(`user_id, MAX(username) AS username,
-	SUM(CASE WHEN type = %[1]d THEN quota ELSE 0 END)::bigint AS consume_quota,
-	SUM(CASE WHEN type = %[2]d THEN quota ELSE 0 END)::bigint AS refund_quota,
-	SUM(CASE WHEN type = %[1]d THEN quota WHEN type = %[2]d THEN -quota ELSE 0 END)::bigint AS net_quota,
-	SUM(CASE WHEN type = %[1]d THEN 1 ELSE 0 END)::bigint AS consume_count,
-	SUM(CASE WHEN type = %[1]d THEN prompt_tokens ELSE 0 END)::bigint AS prompt_tokens,
-	SUM(CASE WHEN type = %[1]d THEN completion_tokens ELSE 0 END)::bigint AS completion_tokens,
-	SUM(CASE WHEN type = %[1]d THEN prompt_tokens + completion_tokens ELSE 0 END)::bigint AS total_tokens,
-	MAX(CASE WHEN type = %[1]d THEN created_at ELSE 0 END) AS last_consume_at`, LogTypeConsume, LogTypeRefund)).
-		Where("user_id > 0 AND type IN ? AND created_at >= ? AND created_at < ?", []int{LogTypeConsume, LogTypeRefund}, r.Start, r.EndExcl)
+	var scopeIds []int
 	if filter.UserId > 0 {
-		query = query.Where("user_id = ?", filter.UserId)
+		scopeIds = []int{filter.UserId}
 	}
 	if filter.Keyword != "" {
-		pattern := financeContainsPattern(filter.Keyword)
-		if keywordId, err := strconv.Atoi(filter.Keyword); err == nil && keywordId > 0 {
-			query = query.Where("(username ILIKE ? ESCAPE '!' OR user_id = ?)", pattern, keywordId)
-		} else {
-			query = query.Where("username ILIKE ? ESCAPE '!'", pattern)
+		matched, err := financeUserIdsByKeyword(filter.Keyword)
+		if err != nil {
+			return nil, 0, err
 		}
+		if filter.UserId > 0 && !slices.Contains(matched, filter.UserId) {
+			matched = []int{}
+		} else if filter.UserId > 0 {
+			matched = []int{filter.UserId}
+		}
+		scopeIds = matched
 	}
-	scans := make([]financeUserConsumeScan, 0)
-	if err := query.Group("user_id").Order("net_quota DESC, total_tokens DESC, user_id ASC").Limit(FinanceUserConsumptionMaxUsers + 1).Scan(&scans).Error; err != nil {
+	byUser, err := ReadLogUsageByUser(scopeIds, r)
+	if err != nil {
 		return nil, 0, err
 	}
+	scans := make([]financeUserConsumeScan, 0, len(byUser))
+	for userId, totals := range byUser {
+		scans = append(scans, financeUserConsumeScan{
+			UserId: userId, ConsumeQuota: totals.ConsumeQuota, RefundQuota: totals.RefundQuota, NetQuota: totals.NetQuota,
+			ConsumeCount: totals.Calls, PromptTokens: totals.PromptTokens, CompletionTokens: totals.CompletionTokens, TotalTokens: totals.TotalTokens(),
+		})
+	}
+	sort.Slice(scans, func(i, j int) bool {
+		if scans[i].NetQuota != scans[j].NetQuota {
+			return scans[i].NetQuota > scans[j].NetQuota
+		}
+		if scans[i].TotalTokens != scans[j].TotalTokens {
+			return scans[i].TotalTokens > scans[j].TotalTokens
+		}
+		return scans[i].UserId < scans[j].UserId
+	})
 	if len(scans) > FinanceUserConsumptionMaxUsers {
 		common.SysLog(fmt.Sprintf("finance user consumptions truncated at %d users for range [%d, %d)", FinanceUserConsumptionMaxUsers, r.Start, r.EndExcl))
 		scans = scans[:FinanceUserConsumptionMaxUsers]
@@ -147,23 +161,39 @@ func ListFinanceUserConsumptions(filter FinanceUserConsumptionFilter, startIdx i
 	page := scans[startIdx:min(startIdx+num, len(scans))]
 	items := make([]*FinanceUserConsumptionItem, 0, len(page))
 	userIds := make([]int, 0, len(page))
-	byUser := make(map[int]*FinanceUserConsumptionItem, len(page))
+	byUserItem := make(map[int]*FinanceUserConsumptionItem, len(page))
 	for _, scan := range page {
 		item := &FinanceUserConsumptionItem{
-			UserId: scan.UserId, Username: scan.Username, ConsumeQuota: scan.ConsumeQuota, RefundQuota: scan.RefundQuota, NetQuota: scan.NetQuota,
-			ConsumeCount: scan.ConsumeCount, PromptTokens: scan.PromptTokens, CompletionTokens: scan.CompletionTokens, TotalTokens: scan.TotalTokens, LastConsumeAt: scan.LastConsumeAt,
+			UserId: scan.UserId, ConsumeQuota: scan.ConsumeQuota, RefundQuota: scan.RefundQuota, NetQuota: scan.NetQuota,
+			ConsumeCount: scan.ConsumeCount, PromptTokens: scan.PromptTokens, CompletionTokens: scan.CompletionTokens, TotalTokens: scan.TotalTokens,
 		}
 		items = append(items, item)
 		userIds = append(userIds, scan.UserId)
-		byUser[scan.UserId] = item
+		byUserItem[scan.UserId] = item
 	}
-	if err := fillFinanceUserBreakdown(byUser, userIds, r); err != nil {
+	if err := fillFinanceUserBreakdown(byUserItem, userIds, r); err != nil {
 		return nil, 0, err
 	}
-	if err := fillFinanceUserProfiles(byUser, userIds, r.EndExcl); err != nil {
+	if err := fillFinanceUserProfiles(byUserItem, userIds, r.EndExcl); err != nil {
 		return nil, 0, err
 	}
 	return items, total, nil
+}
+
+// financeUserIdsByKeyword 关键词命中的用户 id（含软删用户，历史消耗仍归属）：用户名模糊匹配，纯数字同时匹配 id
+func financeUserIdsByKeyword(keyword string) ([]int, error) {
+	pattern := financeContainsPattern(keyword)
+	query := DB.Unscoped().Model(&User{})
+	if keywordId, err := strconv.Atoi(keyword); err == nil && keywordId > 0 {
+		query = query.Where("(username ILIKE ? ESCAPE '!' OR id = ?)", pattern, keywordId)
+	} else {
+		query = query.Where("username ILIKE ? ESCAPE '!'", pattern)
+	}
+	ids := make([]int, 0)
+	if err := query.Pluck("id", &ids).Error; err != nil {
+		return nil, err
+	}
+	return ids, nil
 }
 
 // fillFinanceUserBreakdown 当前页用户的 token 拆分与钱包 / 订阅拆分（LOG_DB，SQL 聚合）
@@ -176,7 +206,8 @@ func fillFinanceUserBreakdown(byUser map[int]*FinanceUserConsumptionItem, userId
 	SUM(d.cache_read)::bigint AS cache_read_tokens, SUM(d.cache_write)::bigint AS cache_write_tokens,
 	SUM(d.audio_in)::bigint AS audio_input_tokens, SUM(d.audio_out)::bigint AS audio_output_tokens,
 	SUM(CASE WHEN d.billing_source = 'subscription' THEN COALESCE(NULLIF(d.sub_consumed, 0), l.quota::bigint) ELSE 0 END)::bigint AS subscription_consume_quota,
-	SUM(CASE WHEN d.billing_source = 'subscription' THEN COALESCE(d.wallet_deducted, 0) ELSE l.quota::bigint END)::bigint AS wallet_consume_quota
+	SUM(CASE WHEN d.billing_source = 'subscription' THEN COALESCE(d.wallet_deducted, 0) ELSE l.quota::bigint END)::bigint AS wallet_consume_quota,
+	MAX(l.created_at) AS last_consume_at
 	%s WHERE l.user_id IN ? AND l.type = %d AND l.created_at >= %d AND l.created_at < %d GROUP BY l.user_id`, financeLogFromSQL, LogTypeConsume, r.Start, r.EndExcl)
 	scans := make([]financeUserBreakdownScan, 0)
 	if err := LOG_DB.Raw(query, userIds).Scan(&scans).Error; err != nil {
@@ -195,6 +226,7 @@ func fillFinanceUserBreakdown(byUser map[int]*FinanceUserConsumptionItem, userId
 		item.AudioOutputTokens = scan.AudioOutputTokens
 		item.WalletConsumeQuota = scan.WalletConsumeQuota
 		item.SubscriptionConsumeQuota = scan.SubscriptionConsumeQuota
+		item.LastConsumeAt = scan.LastConsumeAt
 	}
 	return nil
 }

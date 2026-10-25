@@ -76,6 +76,12 @@ var auditContentTemplates = map[string]string{
 	"enterprise.member.login_provision": "Provisioned account ${username} (ID: ${user_id}) for member ${member_id} as ${role}",
 	"enterprise.member.login_unbind":    "Unbound account ${user_id} from member ${member_id}",
 	"enterprise.member.role":            "Changed role of member ${member_id} from ${from} to ${to}",
+	"enterprise.token.create":           "Created enterprise API key ${name} (ID: ${token_id}) for team ${team_id}, member ${member_id}",
+	"enterprise.token.update":           "Updated enterprise API key ${token_id} (team ${team_id}, member ${member_id})",
+	"enterprise.token.status":           "Changed status of enterprise API key ${name} (ID: ${token_id}) from ${from} to ${to}",
+	"enterprise.token.delete":           "Deleted enterprise API key ${name} (ID: ${token_id})",
+	"enterprise.token.batch_status":     "Batch set ${count} enterprise API keys to status ${status} (${skipped} skipped)",
+	"enterprise.token.batch_delete":     "Batch deleted ${count} enterprise API keys",
 
 	"option.passkey_domains":           "Updated Passkey domains: removed ${domains}; affected ${known}; unknown ${unknown}",
 	"option.passkey_domains_confirmed": "Confirmed removal of Passkey domains: ${domains}; affected ${known}; unknown ${unknown}",

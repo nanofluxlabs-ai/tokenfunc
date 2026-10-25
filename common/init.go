@@ -96,6 +96,19 @@ func InitEnv() {
 	LogMaxSizeMB = max(GetEnvOrDefault("LOG_MAX_SIZE_MB", LogMaxSizeMB), 1)
 	LogMaxBackups = max(GetEnvOrDefault("LOG_MAX_BACKUPS", LogMaxBackups), 0)
 	LogRetentionDays = max(GetEnvOrDefault("LOG_RETENTION_DAYS", LogRetentionDays), 1)
+	// logs 表保留与归档（TokenFunc 二开）
+	DBLogRetentionDays = GetEnvOrDefault("DB_LOG_RETENTION_DAYS", DBLogRetentionDays)
+	DBLogRetentionRunAt = GetEnvOrDefaultString("DB_LOG_RETENTION_RUN_AT", DBLogRetentionRunAt)
+	DBLogRetentionMaxDaysPerRun = max(GetEnvOrDefault("DB_LOG_RETENTION_MAX_DAYS_PER_RUN", DBLogRetentionMaxDaysPerRun), 1)
+	DBLogRetentionBatchLimit = min(max(GetEnvOrDefault("DB_LOG_RETENTION_BATCH_LIMIT", DBLogRetentionBatchLimit), 100), 20000)
+	DBLogRetentionBatchPauseMs = min(max(GetEnvOrDefault("DB_LOG_RETENTION_BATCH_PAUSE_MS", DBLogRetentionBatchPauseMs), 0), 5000)
+	LogArchiveS3Endpoint = GetEnvOrDefaultString("LOG_ARCHIVE_S3_ENDPOINT", LogArchiveS3Endpoint)
+	LogArchiveS3Region = GetEnvOrDefaultString("LOG_ARCHIVE_S3_REGION", LogArchiveS3Region)
+	LogArchiveS3Bucket = GetEnvOrDefaultString("LOG_ARCHIVE_S3_BUCKET", LogArchiveS3Bucket)
+	LogArchiveS3Prefix = GetEnvOrDefaultString("LOG_ARCHIVE_S3_PREFIX", LogArchiveS3Prefix)
+	LogArchiveS3AccessKey = GetEnvOrDefaultString("LOG_ARCHIVE_S3_ACCESS_KEY", LogArchiveS3AccessKey)
+	LogArchiveS3SecretKey = GetEnvOrDefaultString("LOG_ARCHIVE_S3_SECRET_KEY", LogArchiveS3SecretKey)
+	LogArchiveS3PathStyle = GetEnvOrDefaultBool("LOG_ARCHIVE_S3_PATH_STYLE", LogArchiveS3PathStyle)
 	MemoryCacheEnabled = os.Getenv("MEMORY_CACHE_ENABLED") == "true"
 	IsMasterNode = os.Getenv("NODE_TYPE") != "slave"
 	PasswordLoginEncryptionEnabled = GetEnvOrDefaultBool("PASSWORD_LOGIN_ENCRYPTION_ENABLED", false)

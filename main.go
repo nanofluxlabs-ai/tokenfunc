@@ -139,6 +139,9 @@ func main() {
 	// logs 按天预聚合维护（TokenFunc 二开，仅 PostgreSQL）
 	service.StartLogDailyRollupTask()
 
+	// logs 表 90 天保留 + 归档到对象存储（TokenFunc 二开，DB_LOG_RETENTION_DAYS 为 0 时空转）
+	service.StartLogRetentionTask()
+
 	// 渠道消耗统计：批量 flush 循环 + 首次启动从 logs 回填历史（TokenFunc 二开）
 	common.LoadChannelUsageSetting()
 	go model.UpdateChannelUsageStats(context.Background())

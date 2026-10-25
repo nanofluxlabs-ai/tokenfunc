@@ -199,21 +199,6 @@ func AdminCreatePromoter(c *gin.Context) {
 	common.ApiSuccess(c, profile)
 }
 
-// AdminUpdatePromoter 改备注
-func AdminUpdatePromoter(c *gin.Context) {
-	promoter := promoterFromContext(c)
-	var req adminPromoterRequest
-	if err := c.ShouldBindJSON(&req); err != nil || len(req.Remark) > 255 {
-		common.ApiErrorMsg(c, "invalid request")
-		return
-	}
-	if err := model.UpdatePromoterRemark(promoter.Id, req.Remark, common.GetTimestamp()); err != nil {
-		common.ApiError(c, err)
-		return
-	}
-	common.ApiSuccess(c, nil)
-}
-
 // AdminRemovePromoter 移除推广人（级联解绑）
 func AdminRemovePromoter(c *gin.Context) {
 	promoter := promoterFromContext(c)

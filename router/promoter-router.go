@@ -30,7 +30,6 @@ func registerPromoterRoutes(apiRouter *gin.RouterGroup) {
 		oneRoute := adminRoute.Group("/promoters/:id")
 		oneRoute.Use(middleware.PromoterFromParam())
 		{
-			oneRoute.PUT("", controller.AdminUpdatePromoter)
 			oneRoute.DELETE("", controller.AdminRemovePromoter)
 			oneRoute.GET("/bindings", controller.ListPromoterCenterUsers)
 			oneRoute.POST("/bindings", controller.AdminBindPromoterUsers)

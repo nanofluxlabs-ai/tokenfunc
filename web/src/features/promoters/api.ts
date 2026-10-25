@@ -28,14 +28,6 @@ export async function createPromoter(payload: {
   return res.data
 }
 
-export async function updatePromoterRemark(
-  id: number,
-  remark: string
-): Promise<ApiResponse> {
-  const res = await api.put(`${ADMIN_PROMOTER_BASE}/${id}`, { remark })
-  return res.data
-}
-
 export async function removePromoter(
   id: number
 ): Promise<ApiResponse<{ unbound_count: number }>> {

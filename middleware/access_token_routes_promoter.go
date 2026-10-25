@@ -14,7 +14,6 @@ func init() {
 		// router/promoter-router.go: /api/admin/promoter
 		"GET /api/admin/promoter/promoters":                                 accessTokenScopeRule("user:read"),
 		"POST /api/admin/promoter/promoters":                                accessTokenScopeRule("user:write"),
-		"PUT /api/admin/promoter/promoters/:id":                             accessTokenScopeRule("user:write"),
 		"DELETE /api/admin/promoter/promoters/:id":                          accessTokenScopeRule("user:write"),
 		"GET /api/admin/promoter/promoters/:id/bindings":                    accessTokenScopeRule("user:read"),
 		"POST /api/admin/promoter/promoters/:id/bindings":                   accessTokenScopeRule("user:write"),

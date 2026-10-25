@@ -140,12 +140,6 @@ func RemovePromoterWithBindings(promoter *Promoter, operatorId int, now int64) (
 	return unbound, err
 }
 
-// UpdatePromoterRemark 改备注
-func UpdatePromoterRemark(id int, remark string, now int64) error {
-	return DB.Model(&Promoter{}).Where("id = ? AND removed_at IS NULL", id).
-		Updates(map[string]any{"remark": remark, "updated_at": now}).Error
-}
-
 // GetActiveBindingByUserId 用户当前的归属；没有则 gorm.ErrRecordNotFound
 func GetActiveBindingByUserId(userId int) (*PromoterBinding, error) {
 	var binding PromoterBinding

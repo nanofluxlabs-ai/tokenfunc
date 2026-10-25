@@ -2,8 +2,8 @@
 
 - 日期：2026-10-25
 - 分支：worktree-feat-worktree-env
-- PR：
-- 关键 commit：
+- PR：#46
+- 关键 commit：74c6b334d
 
 ## 背景
 

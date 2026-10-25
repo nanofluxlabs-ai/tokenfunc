@@ -22,5 +22,8 @@ func SetDashboardRouter(router *gin.Engine) {
 		// 授信企业额度查询（TokenFunc 二开），与上面两条共用 API key 鉴权
 		apiRouter.GET("/dashboard/billing/credit", controller.GetCreditBilling)
 		apiRouter.GET("/v1/dashboard/billing/credit", controller.GetCreditBilling)
+		// 员工凭自己的 API key 自查归属 / 额度 / 用量（TokenFunc 二开），不走 /api 下的访问令牌作用域规则
+		apiRouter.GET("/enterprise/employee/me", controller.GetEnterpriseEmployeeMe)
+		apiRouter.GET("/v1/enterprise/employee/me", controller.GetEnterpriseEmployeeMe)
 	}
 }

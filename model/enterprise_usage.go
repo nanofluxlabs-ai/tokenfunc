@@ -312,3 +312,102 @@ func SumEnterpriseUsageByPeriod(enterpriseId int, periodId int64) (int64, error)
 		Select("COALESCE(SUM(quota), 0)").Scan(&total).Error
 	return total, err
 }
+
+// ---------------------------------------------------------------------------
+// 员工凭自己的 API key 自查（GET /v1/enterprise/employee/me）
+// ---------------------------------------------------------------------------
+
+// EnterpriseTokenProfile 一把 key 在企业组织里的归属：团队 / 持有人按新三层契约命名，
+// 持有人可空（团队公共 key）。
+type EnterpriseTokenProfile struct {
+	Token        *Token
+	EnterpriseId int
+	TeamName     string
+	// HasMember 为 false 表示 key 无持有人，此时 Member* 字段无意义
+	HasMember        bool
+	MemberName       string
+	MemberEmployeeNo string
+	MemberStatus     string
+}
+
+// GetEnterpriseTokenProfile 读取 key 的组织归属；没有归属行（主账号在上游页面自建、未分配的 key）返回 ErrEnterpriseResourceNotFound。
+// M1 合并后改 JOIN ent_teams / ent_members：当前团队名取持有人所在部门名，持有人取 ent_employees。
+func GetEnterpriseTokenProfile(tokenId int) (*EnterpriseTokenProfile, error) {
+	token, err := GetTokenById(tokenId)
+	if err != nil {
+		return nil, err
+	}
+	var row struct {
+		EnterpriseId     int
+		EmployeeId       int
+		TeamName         string
+		MemberName       string
+		MemberEmployeeNo string
+		MemberStatus     string
+	}
+	result := DB.Table("ent_token_assignments a").
+		Select(`a.enterprise_id, a.employee_id, COALESCE(d.name, '') AS team_name,
+			COALESCE(m.name, '') AS member_name, COALESCE(m.employee_no, '') AS member_employee_no, COALESCE(m.status, '') AS member_status`).
+		Joins("LEFT JOIN ent_employees m ON m.id = a.employee_id AND m.deleted_at IS NULL").
+		Joins("LEFT JOIN ent_departments d ON d.id = m.department_id AND d.deleted_at IS NULL").
+		Where("a.token_id = ?", tokenId).
+		Limit(1).
+		Scan(&row)
+	if result.Error != nil {
+		return nil, result.Error
+	}
+	if result.RowsAffected == 0 {
+		return nil, ErrEnterpriseResourceNotFound
+	}
+	return &EnterpriseTokenProfile{
+		Token:            token,
+		EnterpriseId:     row.EnterpriseId,
+		TeamName:         row.TeamName,
+		HasMember:        row.EmployeeId != 0 && row.MemberStatus != "",
+		MemberName:       row.MemberName,
+		MemberEmployeeNo: row.MemberEmployeeNo,
+		MemberStatus:     row.MemberStatus,
+	}, nil
+}
+
+// EnterpriseUsageTotals 一段日期内某把 key 的合计
+type EnterpriseUsageTotals struct {
+	Quota        int64 `json:"quota"`
+	RequestCount int64 `json:"requests"`
+}
+
+// CurrentEnterpriseUsageDays 按账期时区返回今天与本月第一天（YYYY-MM-DD）
+func CurrentEnterpriseUsageDays() (today string, monthStart string) {
+	now := time.Now().In(enterpriseBillingLocation)
+	return now.Format("2006-01-02"), time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, enterpriseBillingLocation).Format("2006-01-02")
+}
+
+// SumTokenUsage 单把 key 在 [fromDay, toDay] 的合计：按 token_id 汇总，不区分账期 / 归属快照
+func SumTokenUsage(tokenId int, fromDay string, toDay string) (*EnterpriseUsageTotals, error) {
+	totals := &EnterpriseUsageTotals{}
+	err := DB.Model(&EnterpriseUsageDaily{}).
+		Select("COALESCE(SUM(quota), 0) AS quota, COALESCE(SUM(request_count), 0) AS request_count").
+		Where("token_id = ? AND day BETWEEN ? AND ?", tokenId, fromDay, toDay).
+		Scan(totals).Error
+	return totals, err
+}
+
+// EnterpriseTokenModelUsage 单把 key 按模型的合计
+type EnterpriseTokenModelUsage struct {
+	Model        string `json:"model"`
+	Quota        int64  `json:"quota"`
+	RequestCount int64  `json:"requests"`
+}
+
+// TopTokenModels 单把 key 在 [fromDay, toDay] 消耗最多的前 limit 个模型
+func TopTokenModels(tokenId int, fromDay string, toDay string, limit int) ([]*EnterpriseTokenModelUsage, error) {
+	items := make([]*EnterpriseTokenModelUsage, 0)
+	err := DB.Model(&EnterpriseUsageDaily{}).
+		Select("model_name AS model, SUM(quota) AS quota, SUM(request_count) AS request_count").
+		Where("token_id = ? AND day BETWEEN ? AND ?", tokenId, fromDay, toDay).
+		Group("model_name").
+		Order("quota DESC, model_name ASC").
+		Limit(limit).
+		Scan(&items).Error
+	return items, err
+}

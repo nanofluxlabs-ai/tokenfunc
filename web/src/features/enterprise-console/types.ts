@@ -123,6 +123,24 @@ export interface EnterpriseToken {
   /** 本月 / 上月消耗（quota），从 ent_usage_daily 回填 */
   month_quota: number
   prev_month_quota: number
+  /** 周期限额（M4）：没有策略时 reset_period 为空、其余为 0 */
+  reset_period: TokenQuotaResetPeriod | ''
+  period_quota: number
+  next_reset_at: number
+}
+
+export type TokenQuotaResetPeriod =
+  | 'never'
+  | 'daily'
+  | 'weekly'
+  | 'monthly'
+  | 'custom'
+
+/** 周期限额请求体：never 删除策略；custom 时 custom_seconds 为 1 小时～366 天 */
+export interface TokenQuotaPolicyPayload {
+  reset_period: TokenQuotaResetPeriod
+  custom_seconds: number
+  period_quota: number
 }
 
 /** 新建 / 编辑共用的请求体 */
@@ -136,6 +154,8 @@ export interface TokenMutatePayload {
   group: string
   model_limits: string[]
   allow_ips: string
+  /** 省略时不动现有周期限额 */
+  quota_policy?: TokenQuotaPolicyPayload
 }
 
 export interface TokenOptions {

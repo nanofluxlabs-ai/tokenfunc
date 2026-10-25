@@ -1283,6 +1283,23 @@
     "Usage is billed per credit period; a bill is issued as soon as the limit is used up.": "用量按授信帳期結算，額度用滿即出帳。",
     "When the limit is used up the period is billed and the next period starts automatically.": "額度用滿後本期出帳，下一期自動開始。",
     "When the limit is used up the period is billed; requests are rejected until the bill is paid.": "額度用滿後本期出帳，收款前拒絕請求。",
-    "Awaiting bill payment. Contact your account manager to open the next period.": "等待帳單收款。如需提前開啟下一期，請聯絡客戶經理。"
+    "Awaiting bill payment. Contact your account manager to open the next period.": "等待帳單收款。如需提前開啟下一期，請聯絡客戶經理。",
+    "Fixed quota": "固定額度",
+    "Periodic quota": "週期限額",
+    "A one-off amount. Raise it manually when it runs out.": "一次性額度，用完後需手動調高。",
+    "Restored to the period amount every day, week, month or custom interval.": "每日 / 每週 / 每月或自訂週期自動恢復到週期額度。",
+    "Reset period": "重置週期",
+    "No periodic quota": "不設週期限額",
+    "Custom period (hours)": "自訂週期（小時）",
+    "Period quota ({{currency}})": "週期額度（{{currency}}）",
+    "Next reset: {{time}}": "下次重置：{{time}}",
+    "Resets {{time}}": "{{time}} 重置",
+    "The remaining quota is set to the period amount immediately and restored at every reset.": "儲存後剩餘額度立即等於週期額度，之後每到重置時刻自動恢復。",
+    "Period quota must be greater than 0": "週期額度必須大於 0",
+    "Custom period must be between 1 and 8784 hours": "自訂週期須在 1～8784 小時之間",
+    "Set periodic quota": "設定週期限額",
+    "Set periodic quota for {{count}} keys": "為 {{count}} 把金鑰設定週期限額",
+    "Set periodic quota for selected": "為所選設定週期限額",
+    "Periodic quota saved": "週期限額已儲存"
   }
 }

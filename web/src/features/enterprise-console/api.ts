@@ -22,6 +22,7 @@ import type {
   TokenBatchResult,
   TokenMutatePayload,
   TokenOptions,
+  TokenQuotaPolicyPayload,
   UsageGroupBy,
   UsageSummary,
 } from './types'
@@ -207,6 +208,27 @@ export async function updateTokenAssignment(
   payload: TokenAssignmentPayload
 ): Promise<ApiResponse> {
   const res = await api.put(`${BASE}/tokens/${id}/assignment`, payload)
+  return res.data
+}
+
+/** 周期限额：写入即施行（剩余额度立刻等于周期额度）；reset_period=never 删除策略 */
+export async function setTokenQuotaPolicy(
+  id: number,
+  payload: TokenQuotaPolicyPayload
+): Promise<ApiResponse> {
+  const res = await api.put(`${BASE}/tokens/${id}/quota-policy`, payload)
+  return res.data
+}
+
+/** 批量周期限额（≤ 200，全成功或全失败） */
+export async function batchSetTokenQuotaPolicy(
+  tokenIds: number[],
+  payload: TokenQuotaPolicyPayload
+): Promise<ApiResponse<{ updated: number }>> {
+  const res = await api.post(`${BASE}/tokens/batch-quota-policy`, {
+    token_ids: tokenIds,
+    ...payload,
+  })
   return res.data
 }
 

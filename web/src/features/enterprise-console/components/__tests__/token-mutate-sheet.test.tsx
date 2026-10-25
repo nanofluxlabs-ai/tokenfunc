@@ -81,6 +81,9 @@ const existing: EnterpriseToken = {
   member_name: 'Alice',
   month_quota: 0,
   prev_month_quota: 0,
+  reset_period: '',
+  period_quota: 0,
+  next_reset_at: 0,
 }
 
 function renderSheet(props: Partial<Parameters<typeof TokenMutateSheet>[0]>) {
@@ -198,5 +201,74 @@ describe('TokenMutateSheet', () => {
       )
     )
     expect(onOpenChange).toHaveBeenCalledWith(false)
+  })
+
+  test('choosing a periodic quota sends the policy and uses the period amount as the remaining quota', async () => {
+    renderSheet({ member: alice })
+    expect(
+      await screen.findByText('Issue API Key to Alice')
+    ).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('radio', { name: /Periodic quota/ }))
+    expect(screen.getByLabelText('Reset period')).toHaveValue('daily')
+    expect(screen.getByText(/Next reset: /)).toBeInTheDocument()
+    fireEvent.change(screen.getByLabelText('Period quota (USD)'), {
+      target: { value: '1' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Create' }))
+
+    await waitFor(() =>
+      expect(apiMock.createEnterpriseToken).toHaveBeenCalledWith(
+        expect.objectContaining({
+          unlimited_quota: false,
+          remain_quota: 500_000,
+          quota_policy: {
+            reset_period: 'daily',
+            custom_seconds: 0,
+            period_quota: 500_000,
+          },
+        })
+      )
+    )
+  })
+
+  test('editing a periodic key preselects the periodic mode and clears the policy when switched to fixed', async () => {
+    renderSheet({
+      token: {
+        ...existing,
+        unlimited_quota: false,
+        remain_quota: 1_000_000,
+        reset_period: 'weekly',
+        period_quota: 2_500_000,
+        next_reset_at: 1_792_944_000,
+      },
+    })
+    expect(await screen.findByText('Edit API Key')).toBeInTheDocument()
+    await waitFor(() =>
+      expect(screen.getByLabelText('Reset period')).toHaveValue('weekly')
+    )
+    expect(screen.getByLabelText('Period quota (USD)')).toHaveValue(5)
+
+    fireEvent.click(screen.getByRole('radio', { name: /Fixed quota/ }))
+    expect(screen.queryByLabelText('Reset period')).toBeNull()
+    fireEvent.change(screen.getByLabelText('Quota (USD)'), {
+      target: { value: '3' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Save changes' }))
+
+    await waitFor(() =>
+      expect(apiMock.updateEnterpriseToken).toHaveBeenCalledWith(
+        3,
+        expect.objectContaining({
+          unlimited_quota: false,
+          remain_quota: 1_500_000,
+          quota_policy: {
+            reset_period: 'never',
+            custom_seconds: 0,
+            period_quota: 0,
+          },
+        })
+      )
+    )
   })
 })

@@ -1283,6 +1283,23 @@
     "Usage is billed per credit period; a bill is issued as soon as the limit is used up.": "L'usage est facturé par période de crédit ; une facture est émise dès que la limite est épuisée.",
     "When the limit is used up the period is billed and the next period starts automatically.": "Lorsque la limite est épuisée, la période est facturée et la suivante démarre automatiquement.",
     "When the limit is used up the period is billed; requests are rejected until the bill is paid.": "Lorsque la limite est épuisée, la période est facturée ; les requêtes sont refusées jusqu'au paiement.",
-    "Awaiting bill payment. Contact your account manager to open the next period.": "En attente du paiement de la facture. Contactez votre chargé de compte pour ouvrir la période suivante."
+    "Awaiting bill payment. Contact your account manager to open the next period.": "En attente du paiement de la facture. Contactez votre chargé de compte pour ouvrir la période suivante.",
+    "Fixed quota": "Quota fixe",
+    "Periodic quota": "Quota périodique",
+    "A one-off amount. Raise it manually when it runs out.": "Un montant unique. Augmentez-le manuellement lorsqu'il est épuisé.",
+    "Restored to the period amount every day, week, month or custom interval.": "Rétabli au montant de la période chaque jour, semaine, mois ou intervalle personnalisé.",
+    "Reset period": "Période de réinitialisation",
+    "No periodic quota": "Pas de quota périodique",
+    "Custom period (hours)": "Période personnalisée (heures)",
+    "Period quota ({{currency}})": "Quota de la période ({{currency}})",
+    "Next reset: {{time}}": "Prochaine réinitialisation : {{time}}",
+    "Resets {{time}}": "Réinitialisation le {{time}}",
+    "The remaining quota is set to the period amount immediately and restored at every reset.": "Le quota restant est immédiatement fixé au montant de la période et rétabli à chaque réinitialisation.",
+    "Period quota must be greater than 0": "Le quota de la période doit être supérieur à 0",
+    "Custom period must be between 1 and 8784 hours": "La période personnalisée doit être comprise entre 1 et 8784 heures",
+    "Set periodic quota": "Définir le quota périodique",
+    "Set periodic quota for {{count}} keys": "Définir le quota périodique pour {{count}} clés",
+    "Set periodic quota for selected": "Définir le quota périodique pour la sélection",
+    "Periodic quota saved": "Quota périodique enregistré"
   }
 }

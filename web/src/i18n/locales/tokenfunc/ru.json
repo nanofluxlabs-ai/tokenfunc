@@ -1283,6 +1283,23 @@
     "Usage is billed per credit period; a bill is issued as soon as the limit is used up.": "Использование оплачивается по кредитным периодам; счёт выставляется, как только лимит исчерпан.",
     "When the limit is used up the period is billed and the next period starts automatically.": "Когда лимит исчерпан, период закрывается счётом, и следующий начинается автоматически.",
     "When the limit is used up the period is billed; requests are rejected until the bill is paid.": "Когда лимит исчерпан, выставляется счёт; запросы отклоняются до его оплаты.",
-    "Awaiting bill payment. Contact your account manager to open the next period.": "Ожидается оплата счёта. Чтобы открыть следующий период, обратитесь к менеджеру."
+    "Awaiting bill payment. Contact your account manager to open the next period.": "Ожидается оплата счёта. Чтобы открыть следующий период, обратитесь к менеджеру.",
+    "Fixed quota": "Фиксированная квота",
+    "Periodic quota": "Периодическая квота",
+    "A one-off amount. Raise it manually when it runs out.": "Разовая сумма. Увеличьте вручную, когда она закончится.",
+    "Restored to the period amount every day, week, month or custom interval.": "Восстанавливается до суммы периода каждый день, неделю, месяц или через заданный интервал.",
+    "Reset period": "Период сброса",
+    "No periodic quota": "Без периодической квоты",
+    "Custom period (hours)": "Пользовательский период (часы)",
+    "Period quota ({{currency}})": "Квота периода ({{currency}})",
+    "Next reset: {{time}}": "Следующий сброс: {{time}}",
+    "Resets {{time}}": "Сброс {{time}}",
+    "The remaining quota is set to the period amount immediately and restored at every reset.": "Остаток квоты сразу устанавливается равным сумме периода и восстанавливается при каждом сбросе.",
+    "Period quota must be greater than 0": "Квота периода должна быть больше 0",
+    "Custom period must be between 1 and 8784 hours": "Пользовательский период должен быть от 1 до 8784 часов",
+    "Set periodic quota": "Задать периодическую квоту",
+    "Set periodic quota for {{count}} keys": "Задать периодическую квоту для {{count}} ключей",
+    "Set periodic quota for selected": "Задать периодическую квоту для выбранных",
+    "Periodic quota saved": "Периодическая квота сохранена"
   }
 }

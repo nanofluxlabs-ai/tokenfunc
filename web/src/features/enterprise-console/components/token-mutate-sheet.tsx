@@ -16,20 +16,19 @@ import {
   sideDrawerFooterClassName,
   sideDrawerFormClassName,
   sideDrawerHeaderClassName,
-  sideDrawerSwitchItemClassName,
 } from '@/components/drawer-layout'
 import { MultiSelect } from '@/components/multi-select'
 import { Button } from '@/components/ui/button'
 import {
   Form,
   FormControl,
-  FormDescription,
   FormField,
   FormItem,
   FormLabel,
   FormMessage,
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import {
   Sheet,
   SheetClose,
@@ -39,7 +38,6 @@ import {
   SheetHeader,
   SheetTitle,
 } from '@/components/ui/sheet'
-import { Switch } from '@/components/ui/switch'
 import { Textarea } from '@/components/ui/textarea'
 import {
   ApiKeyGroupCombobox,
@@ -64,9 +62,59 @@ import { useEnterpriseSelf } from '../hooks/use-enterprise-self'
 import { useTeamOptions } from '../hooks/use-team-options'
 import { buildKeyHandoverText } from '../lib/key-handover'
 import { isTeamScoped } from '../lib/member-roles'
+import {
+  DEFAULT_TOKEN_QUOTA_POLICY_DRAFT,
+  tokenQuotaPolicyDraftShape,
+  tokenQuotaPolicyIssues,
+  toTokenQuotaPolicyPayload,
+  type TokenQuotaPolicyDraft,
+} from '../lib/token-quota-policy'
 import type { EnterpriseToken, Member, TokenMutatePayload } from '../types'
 import { EntitySelect } from './entity-select'
 import { MemberPicker } from './member-picker'
+import { TokenQuotaPolicyFields } from './token-quota-policy-fields'
+
+/** 额度模式：不限 / 固定额度 / 周期限额（周期限额写入即施行，剩余额度立刻等于周期额度） */
+type QuotaMode = 'unlimited' | 'fixed' | 'periodic'
+const QUOTA_MODES: { value: QuotaMode; labelKey: string; descKey: string }[] = [
+  {
+    value: 'unlimited',
+    labelKey: 'Unlimited Quota',
+    descKey: 'Spending is still limited by the enterprise balance or credit.',
+  },
+  {
+    value: 'fixed',
+    labelKey: 'Fixed quota',
+    descKey: 'A one-off amount. Raise it manually when it runs out.',
+  },
+  {
+    value: 'periodic',
+    labelKey: 'Periodic quota',
+    descKey:
+      'Restored to the period amount every day, week, month or custom interval.',
+  },
+]
+
+/** 从列表行推断额度模式与周期草稿 */
+function quotaModeOf(token?: EnterpriseToken): {
+  mode: QuotaMode
+  draft: TokenQuotaPolicyDraft
+} {
+  if (token?.reset_period && token.reset_period !== 'never') {
+    return {
+      mode: 'periodic',
+      draft: {
+        reset_period: token.reset_period,
+        custom_hours: DEFAULT_TOKEN_QUOTA_POLICY_DRAFT.custom_hours,
+        period_quota_dollars: quotaUnitsToDollars(token.period_quota),
+      },
+    }
+  }
+  return {
+    mode: !token || token.unlimited_quota ? 'unlimited' : 'fixed',
+    draft: DEFAULT_TOKEN_QUOTA_POLICY_DRAFT,
+  }
+}
 
 export type TokenMutateSheetProps = {
   open: boolean
@@ -118,21 +166,34 @@ export function TokenMutateSheet(props: TokenMutateSheetProps) {
 
   const schema = useMemo(
     () =>
-      z.object({
-        name: z
-          .string()
-          .trim()
-          .min(1, t('Key name is required'))
-          .max(50, t('Name must be at most 50 characters')),
-        team_id: z.number().int().min(0),
-        member_id: z.number().int().min(0),
-        unlimited_quota: z.boolean(),
-        quota_dollars: z.number().min(0, t('Quota cannot be negative')),
-        expired_time: z.date().optional(),
-        group: z.string(),
-        model_limits: z.array(z.string()),
-        allow_ips: z.string(),
-      }),
+      z
+        .object({
+          name: z
+            .string()
+            .trim()
+            .min(1, t('Key name is required'))
+            .max(50, t('Name must be at most 50 characters')),
+          team_id: z.number().int().min(0),
+          member_id: z.number().int().min(0),
+          quota_mode: z.enum(['unlimited', 'fixed', 'periodic']),
+          quota_dollars: z.number().min(0, t('Quota cannot be negative')),
+          quota_policy: tokenQuotaPolicyDraftShape,
+          expired_time: z.date().optional(),
+          group: z.string(),
+          model_limits: z.array(z.string()),
+          allow_ips: z.string(),
+        })
+        .superRefine((values, ctx) => {
+          // 只有周期模式才校验周期字段
+          if (values.quota_mode !== 'periodic') return
+          for (const issue of tokenQuotaPolicyIssues(values.quota_policy, t)) {
+            ctx.addIssue({
+              code: 'custom',
+              path: ['quota_policy', issue.path],
+              message: issue.message,
+            })
+          }
+        }),
     [t]
   )
   type Values = z.infer<typeof schema>
@@ -142,15 +203,16 @@ export function TokenMutateSheet(props: TokenMutateSheetProps) {
       name: '',
       team_id: 0,
       member_id: 0,
-      unlimited_quota: true,
+      quota_mode: 'unlimited',
       quota_dollars: 0,
+      quota_policy: DEFAULT_TOKEN_QUOTA_POLICY_DRAFT,
       expired_time: undefined,
       group: '',
       model_limits: [],
       allow_ips: '',
     },
   })
-  const unlimited = useWatch({ control: form.control, name: 'unlimited_quota' })
+  const quotaMode = useWatch({ control: form.control, name: 'quota_mode' })
   const teamId = useWatch({ control: form.control, name: 'team_id' })
   const group = useWatch({ control: form.control, name: 'group' })
 
@@ -160,6 +222,7 @@ export function TokenMutateSheet(props: TokenMutateSheetProps) {
     if (!props.open) return
     setCreatedKey(null)
     const token = props.token
+    const quota = quotaModeOf(token)
     form.reset({
       name: token?.name ?? props.member?.name ?? '',
       team_id:
@@ -168,11 +231,12 @@ export function TokenMutateSheet(props: TokenMutateSheetProps) {
         props.defaultTeamId ??
         actorTeamId,
       member_id: token?.member_id ?? props.member?.id ?? 0,
-      unlimited_quota: token ? token.unlimited_quota : true,
+      quota_mode: quota.mode,
       quota_dollars:
-        token && !token.unlimited_quota
-          ? quotaUnitsToDollars(token.remain_quota)
+        quota.mode === 'fixed'
+          ? quotaUnitsToDollars(token?.remain_quota ?? 0)
           : 0,
+      quota_policy: quota.draft,
       expired_time:
         token && token.expired_time > 0
           ? new Date(token.expired_time * 1000)
@@ -226,14 +290,30 @@ export function TokenMutateSheet(props: TokenMutateSheetProps) {
   const onSubmit = async (values: Values) => {
     setIsSubmitting(true)
     try {
+      // 周期模式：剩余额度就是周期额度；其它模式显式传 never 以清掉旧策略
+      const quotaPolicy =
+        values.quota_mode === 'periodic'
+          ? toTokenQuotaPolicyPayload(
+              values.quota_policy,
+              parseQuotaFromDollars
+            )
+          : toTokenQuotaPolicyPayload(
+              { ...values.quota_policy, reset_period: 'never' },
+              parseQuotaFromDollars
+            )
+      let remainQuota = 0
+      if (values.quota_mode === 'fixed') {
+        remainQuota = parseQuotaFromDollars(values.quota_dollars)
+      } else if (values.quota_mode === 'periodic') {
+        remainQuota = quotaPolicy.period_quota
+      }
       const payload: TokenMutatePayload = {
         name: values.name,
         team_id: values.team_id,
         member_id: values.member_id,
-        unlimited_quota: values.unlimited_quota,
-        remain_quota: values.unlimited_quota
-          ? 0
-          : parseQuotaFromDollars(values.quota_dollars),
+        unlimited_quota: values.quota_mode === 'unlimited',
+        remain_quota: remainQuota,
+        quota_policy: quotaPolicy,
         expired_time: values.expired_time
           ? Math.floor(values.expired_time.getTime() / 1000)
           : -1,
@@ -450,29 +530,43 @@ export function TokenMutateSheet(props: TokenMutateSheetProps) {
                 />
                 <FormField
                   control={form.control}
-                  name='unlimited_quota'
+                  name='quota_mode'
                   render={({ field }) => (
-                    <FormItem className={sideDrawerSwitchItemClassName()}>
-                      <div className='flex flex-col gap-0.5'>
-                        <FormLabel className='text-sm'>
-                          {t('Unlimited Quota')}
-                        </FormLabel>
-                        <FormDescription className='text-xs'>
-                          {t(
-                            'Spending is still limited by the enterprise balance or credit.'
-                          )}
-                        </FormDescription>
-                      </div>
+                    <FormItem>
                       <FormControl>
-                        <Switch
-                          checked={field.value}
-                          onCheckedChange={field.onChange}
-                        />
+                        <RadioGroup
+                          value={field.value}
+                          onValueChange={(value) =>
+                            field.onChange(value as QuotaMode)
+                          }
+                          aria-label={t('Quota Settings')}
+                          className='flex flex-col gap-2'
+                        >
+                          {QUOTA_MODES.map((mode) => (
+                            <label
+                              key={mode.value}
+                              className='flex items-start gap-2 text-sm'
+                            >
+                              <RadioGroupItem
+                                value={mode.value}
+                                id={`token-quota-mode-${mode.value}`}
+                              />
+                              <span>
+                                <span className='font-medium'>
+                                  {t(mode.labelKey)}
+                                </span>
+                                <span className='text-muted-foreground block text-xs'>
+                                  {t(mode.descKey)}
+                                </span>
+                              </span>
+                            </label>
+                          ))}
+                        </RadioGroup>
                       </FormControl>
                     </FormItem>
                   )}
                 />
-                {!unlimited && (
+                {quotaMode === 'fixed' && (
                   <FormField
                     control={form.control}
                     name='quota_dollars'
@@ -497,6 +591,29 @@ export function TokenMutateSheet(props: TokenMutateSheetProps) {
                           />
                         </FormControl>
                         <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                )}
+                {quotaMode === 'periodic' && (
+                  <FormField
+                    control={form.control}
+                    name='quota_policy'
+                    render={({ field }) => (
+                      <FormItem>
+                        <TokenQuotaPolicyFields
+                          idPrefix='token-sheet-quota-policy'
+                          value={field.value}
+                          onChange={field.onChange}
+                          errors={{
+                            period_quota_dollars:
+                              form.formState.errors.quota_policy
+                                ?.period_quota_dollars?.message,
+                            custom_hours:
+                              form.formState.errors.quota_policy?.custom_hours
+                                ?.message,
+                          }}
+                        />
                       </FormItem>
                     )}
                   />

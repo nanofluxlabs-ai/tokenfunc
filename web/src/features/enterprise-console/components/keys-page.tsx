@@ -11,6 +11,7 @@ import {
   Plus,
   Power,
   PowerOff,
+  RotateCcw,
   Trash2,
 } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
@@ -38,9 +39,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { ApiKeyQuotaCell } from '@/features/keys/components/api-key-quota-cell'
 import { API_KEY_STATUS, API_KEY_STATUSES } from '@/features/keys/constants'
-import type { ApiKey } from '@/features/keys/types'
 import { useDebounce } from '@/hooks/use-debounce'
 import { useStatus } from '@/hooks/use-status'
 import { toIntlLocale } from '@/i18n/languages'
@@ -71,6 +70,8 @@ import { EnterpriseGuard } from './enterprise-guard'
 import { EntitySelect } from './entity-select'
 import { MEMBER_PICKER_ANY, MemberPicker } from './member-picker'
 import { TokenMutateSheet } from './token-mutate-sheet'
+import { TokenQuotaCell } from './token-quota-cell'
+import { TokenQuotaPolicyDialog } from './token-quota-policy-dialog'
 
 const PAGE_SIZE = 20
 // 筛选值：-1 不筛选，0 未指定持有人，正数为具体 id
@@ -80,29 +81,6 @@ const STATUS_ANY = '0'
 const LIMIT_WARN_RATIO = 0.9
 
 const route = getRouteApi('/_authenticated/enterprise/keys')
-
-/** 列表行映射成上游 ApiKey 形状，复用上游的额度单元格 */
-function toApiKey(row: EnterpriseToken): ApiKey {
-  return {
-    id: row.id,
-    name: row.name,
-    key: row.key,
-    status: row.status,
-    remain_quota: row.remain_quota,
-    used_quota: row.used_quota,
-    unlimited_quota: row.unlimited_quota,
-    expired_time: row.expired_time,
-    created_time: row.created_time,
-    accessed_time: row.accessed_time,
-    group: row.group,
-    auto_groups: null,
-    cross_group_retry: false,
-    model_limits_enabled: row.model_limits_enabled,
-    model_limits: row.model_limits,
-    allow_ips: row.allow_ips,
-    allow_user_quota_query: false,
-  }
-}
 
 /** 本月消耗 + 环比（上月为 0 时不显示环比） */
 function MonthQuotaCell(props: { row: EnterpriseToken }) {
@@ -155,7 +133,15 @@ function RestrictionsCell(props: { row: EnterpriseToken }) {
   )
 }
 
-function KeysTable(props: { onEdit: (token: EnterpriseToken) => void }) {
+type KeysTableProps = {
+  onEdit: (token: EnterpriseToken) => void
+  /** 行菜单单把 / 批量条多把：打开「设置周期限额」对话框 */
+  onQuotaPolicy: (tokenIds: number[], current?: EnterpriseToken) => void
+  /** 父组件完成批量操作后递增，用来清掉已选 */
+  selectionVersion: number
+}
+
+function KeysTable(props: KeysTableProps) {
   const { t, i18n } = useTranslation()
   const locale = toIntlLocale(i18n.resolvedLanguage || i18n.language)
   const queryClient = useQueryClient()
@@ -242,10 +228,18 @@ function KeysTable(props: { onEdit: (token: EnterpriseToken) => void }) {
   const nearLimit =
     limit > 0 && (options.data?.total ?? 0) >= limit * LIMIT_WARN_RATIO
 
-  // 翻页 / 筛选后清掉已选
+  // 翻页 / 筛选 / 父组件批量操作完成后清掉已选
   useEffect(() => {
     setSelected(new Set())
-  }, [search.q, teamId, memberId, search.status, search.expiring, page])
+  }, [
+    search.q,
+    teamId,
+    memberId,
+    search.status,
+    search.expiring,
+    page,
+    props.selectionVersion,
+  ])
 
   const refresh = () =>
     void queryClient.invalidateQueries({ queryKey: ['enterprise'] })
@@ -414,7 +408,7 @@ function KeysTable(props: { onEdit: (token: EnterpriseToken) => void }) {
     {
       id: 'quota',
       header: t('Quota'),
-      cell: (row) => <ApiKeyQuotaCell apiKey={toApiKey(row)} now={now} />,
+      cell: (row) => <TokenQuotaCell row={row} now={now} />,
     },
     {
       id: 'month',
@@ -520,6 +514,11 @@ function KeysTable(props: { onEdit: (token: EnterpriseToken) => void }) {
                 }}
               >
                 <Copy className='size-4' /> {t('Copy connection info')}
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => props.onQuotaPolicy([row.id], row)}
+              >
+                <RotateCcw className='size-4' /> {t('Set periodic quota')}
               </DropdownMenuItem>
               <DropdownMenuItem
                 variant='destructive'
@@ -648,6 +647,15 @@ function KeysTable(props: { onEdit: (token: EnterpriseToken) => void }) {
               {t('Disable')}
             </Button>
             <Button
+              variant='outline'
+              size='sm'
+              aria-label={t('Set periodic quota for selected')}
+              disabled={bulkBusy}
+              onClick={() => props.onQuotaPolicy([...selected])}
+            >
+              {t('Periodic quota')}
+            </Button>
+            <Button
               variant='destructive'
               size='sm'
               aria-label={t('Delete selected')}
@@ -720,6 +728,13 @@ export function EnterpriseKeys() {
   const search = route.useSearch()
   const { data: enterprise } = useEnterpriseSelf()
   const [sheet, setSheet] = useState<{ token?: EnterpriseToken } | null>(null)
+  const [quotaDialog, setQuotaDialog] = useState<{
+    tokenIds: number[]
+    current?: EnterpriseToken
+  } | null>(null)
+  const [selectionVersion, setSelectionVersion] = useState(0)
+  const refresh = () =>
+    void queryClient.invalidateQueries({ queryKey: ['enterprise'] })
   let roleLabel = ''
   if (enterprise?.actor?.is_owner) {
     roleLabel = t('Owner')
@@ -747,7 +762,13 @@ export function EnterpriseKeys() {
         </SectionPageLayout.Actions>
         <SectionPageLayout.Content>
           <EnterpriseGuard>
-            <KeysTable onEdit={(token) => setSheet({ token })} />
+            <KeysTable
+              onEdit={(token) => setSheet({ token })}
+              onQuotaPolicy={(tokenIds, current) =>
+                setQuotaDialog({ tokenIds, current })
+              }
+              selectionVersion={selectionVersion}
+            />
           </EnterpriseGuard>
         </SectionPageLayout.Content>
       </SectionPageLayout>
@@ -756,9 +777,17 @@ export function EnterpriseKeys() {
         onOpenChange={(open) => !open && setSheet(null)}
         token={sheet?.token}
         defaultTeamId={search.team_id}
-        onSaved={() =>
-          void queryClient.invalidateQueries({ queryKey: ['enterprise'] })
-        }
+        onSaved={refresh}
+      />
+      <TokenQuotaPolicyDialog
+        open={quotaDialog !== null}
+        onOpenChange={(open) => !open && setQuotaDialog(null)}
+        tokenIds={quotaDialog?.tokenIds ?? []}
+        current={quotaDialog?.current}
+        onSaved={() => {
+          setSelectionVersion((version) => version + 1)
+          refresh()
+        }}
       />
     </>
   )

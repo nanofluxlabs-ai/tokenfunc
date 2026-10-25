@@ -1283,6 +1283,23 @@
     "Usage is billed per credit period; a bill is issued as soon as the limit is used up.": "利用量は与信期間ごとに精算され、上限を使い切った時点で請求書が発行されます。",
     "When the limit is used up the period is billed and the next period starts automatically.": "上限を使い切ると当期が請求され、次の期間が自動的に始まります。",
     "When the limit is used up the period is billed; requests are rejected until the bill is paid.": "上限を使い切ると当期が請求され、支払いが完了するまでリクエストは拒否されます。",
-    "Awaiting bill payment. Contact your account manager to open the next period.": "請求書の入金待ちです。次の期間を開始するには担当者にご連絡ください。"
+    "Awaiting bill payment. Contact your account manager to open the next period.": "請求書の入金待ちです。次の期間を開始するには担当者にご連絡ください。",
+    "Fixed quota": "固定クォータ",
+    "Periodic quota": "定期クォータ",
+    "A one-off amount. Raise it manually when it runs out.": "一回限りの金額です。使い切ったら手動で引き上げてください。",
+    "Restored to the period amount every day, week, month or custom interval.": "毎日・毎週・毎月またはカスタム間隔で期間の金額に自動的に戻ります。",
+    "Reset period": "リセット周期",
+    "No periodic quota": "定期クォータなし",
+    "Custom period (hours)": "カスタム周期（時間）",
+    "Period quota ({{currency}})": "期間クォータ（{{currency}}）",
+    "Next reset: {{time}}": "次回リセット：{{time}}",
+    "Resets {{time}}": "{{time}} にリセット",
+    "The remaining quota is set to the period amount immediately and restored at every reset.": "保存すると残りクォータは直ちに期間の金額になり、リセットのたびに復元されます。",
+    "Period quota must be greater than 0": "期間クォータは 0 より大きくする必要があります",
+    "Custom period must be between 1 and 8784 hours": "カスタム周期は 1～8784 時間の範囲で指定してください",
+    "Set periodic quota": "定期クォータを設定",
+    "Set periodic quota for {{count}} keys": "{{count}} 個のキーに定期クォータを設定",
+    "Set periodic quota for selected": "選択したキーに定期クォータを設定",
+    "Periodic quota saved": "定期クォータを保存しました"
   }
 }

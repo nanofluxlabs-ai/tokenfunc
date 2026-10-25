@@ -85,6 +85,9 @@ function token(
     member_name: '',
     month_quota: 0,
     prev_month_quota: 0,
+    reset_period: '',
+    period_quota: 0,
+    next_reset_at: 0,
     ...partial,
   }
 }

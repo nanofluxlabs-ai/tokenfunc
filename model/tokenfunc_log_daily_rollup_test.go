@@ -1,6 +1,7 @@
 package model
 
 import (
+	"strconv"
 	"testing"
 	"time"
 
@@ -68,6 +69,17 @@ func TestLogDailyRollupReadSegments(t *testing.T) {
 	byModel := FoldLogDailyUsage(mixed, func(r LogDailyUsageRow) string { return r.ModelName })
 	assert.Equal(t, int64(300*3), byModel["claude-3"].NetQuota)
 	assert.Equal(t, int64(6000+1500-300), byModel["gpt-4o"].NetQuota)
+
+	// SQL 侧按用户 / 按天聚合（财务中心用）必须与全维度折叠一致，且同样跨三段
+	byUser, err := ReadLogUsageByUser(nil, fullRange)
+	require.NoError(t, err)
+	assert.Equal(t, realtimeByUser, byUser)
+	byDayAgg, err := ReadLogUsageByDay(nil, fullRange)
+	require.NoError(t, err)
+	assert.Equal(t, byDay, byDayAgg)
+	bobOnlyByUser, err := ReadLogUsageByUser([]int{bob.Id}, fullRange)
+	require.NoError(t, err)
+	assert.Equal(t, map[int]*LogUsageTotals{bob.Id: realtimeByUser[bob.Id]}, bobOnlyByUser)
 
 	// 只查部分用户
 	onlyBob, err := ReadLogDailyUsage([]int{bob.Id}, fullRange)
@@ -147,15 +159,38 @@ func TestLogDailyRollupMatchesFinanceUserConsumptions(t *testing.T) {
 	items, total, err := ListFinanceUserConsumptions(FinanceUserConsumptionFilter{Range: r}, 0, 10)
 	require.NoError(t, err)
 	require.Equal(t, int64(2), total)
-	for _, item := range items {
-		totals := folded[item.UserId]
-		require.NotNil(t, totals, item.Username)
-		assert.Equal(t, item.NetQuota, totals.NetQuota, item.Username)
-		assert.Equal(t, item.ConsumeQuota, totals.ConsumeQuota, item.Username)
-		assert.Equal(t, item.RefundQuota, totals.RefundQuota, item.Username)
-		assert.Equal(t, item.ConsumeCount, totals.Calls, item.Username)
-		assert.Equal(t, item.PromptTokens, totals.PromptTokens, item.Username)
-		assert.Equal(t, item.CompletionTokens, totals.CompletionTokens, item.Username)
-		assert.Equal(t, item.TotalTokens, totals.TotalTokens(), item.Username)
+	assert.Equal(t, "alice", items[0].Username, "用户名来自 users 表")
+	assert.Equal(t, financeTestDay.AddDate(0, 0, 2).Add(hourDuration(14)).Unix(), items[0].LastConsumeAt, "最后一条消费是 14 点的 claude-3")
+	checkAgainstFolded := func(items []*FinanceUserConsumptionItem) {
+		for _, item := range items {
+			totals := folded[item.UserId]
+			require.NotNil(t, totals, item.Username)
+			assert.Equal(t, totals.NetQuota, item.NetQuota, item.Username)
+			assert.Equal(t, totals.ConsumeQuota, item.ConsumeQuota, item.Username)
+			assert.Equal(t, totals.RefundQuota, item.RefundQuota, item.Username)
+			assert.Equal(t, totals.Calls, item.ConsumeCount, item.Username)
+			assert.Equal(t, totals.PromptTokens, item.PromptTokens, item.Username)
+			assert.Equal(t, totals.CompletionTokens, item.CompletionTokens, item.Username)
+			assert.Equal(t, totals.TotalTokens(), item.TotalTokens, item.Username)
+		}
 	}
+	checkAgainstFolded(items)
+
+	// 关键词在 users 表匹配：用户名模糊 / 数字 id
+	byKeyword, total, err := ListFinanceUserConsumptions(FinanceUserConsumptionFilter{Range: r, Keyword: "BOB"}, 0, 10)
+	require.NoError(t, err)
+	require.Equal(t, int64(1), total)
+	assert.Equal(t, "bob", byKeyword[0].Username)
+	byId, _, err := ListFinanceUserConsumptions(FinanceUserConsumptionFilter{Range: r, Keyword: strconv.Itoa(items[0].UserId)}, 0, 10)
+	require.NoError(t, err)
+	require.Len(t, byId, 1)
+	assert.Equal(t, items[0].UserId, byId[0].UserId)
+
+	// 原始日志归档删除后（模拟 PR-3），基础列仍由预聚合给出；拆分列与最后消耗时间只能来自仍存在的日志
+	require.NoError(t, LOG_DB.Where("created_at < ?", financeTestDay.AddDate(0, 0, 2).Unix()).Delete(&Log{}).Error)
+	afterArchive, total, err := ListFinanceUserConsumptions(FinanceUserConsumptionFilter{Range: r}, 0, 10)
+	require.NoError(t, err)
+	require.Equal(t, int64(2), total)
+	checkAgainstFolded(afterArchive)
+	assert.Equal(t, financeTestDay.AddDate(0, 0, 2).Add(hourDuration(14)).Unix(), afterArchive[0].LastConsumeAt, "第三天日志仍在")
 }

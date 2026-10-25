@@ -1,8 +1,6 @@
 package model
 
 import (
-	"fmt"
-
 	"github.com/QuantumNous/new-api/common"
 	"github.com/QuantumNous/new-api/setting/operation_setting"
 )
@@ -36,11 +34,6 @@ type FinanceOverview struct {
 type financeDayCount struct {
 	Day   string
 	Count int64
-}
-
-type financeDayQuota struct {
-	Day   string
-	Quota int64
 }
 
 // financeDisplayCurrency 站点展示币种：TOKENS 展示模式下金额按 USD 汇总
@@ -84,34 +77,16 @@ func financePaidUserIds(before int64) ([]int, error) {
 	return ids, err
 }
 
-// financeDailyNetConsume 按天净消耗（消费 − 退款）；userIds 为 nil 表示全体用户
+// financeDailyNetConsume 按天净消耗（消费 − 退款）；userIds 为 nil 表示全体用户。
+// 读 tf_log_daily_rollups + 实时补边（见 ReadLogUsageByDay），不再全区间扫 logs
 func financeDailyNetConsume(r FinanceRange, userIds []int) (map[string]int64, error) {
-	result := make(map[string]int64)
-	if userIds != nil && len(userIds) == 0 {
-		return result, nil
+	byDay, err := ReadLogUsageByDay(userIds, r)
+	if err != nil {
+		return nil, err
 	}
-	base := fmt.Sprintf("SELECT %s AS day, SUM(CASE WHEN l.type = %d THEN l.quota WHEN l.type = %d THEN -l.quota ELSE 0 END)::bigint AS quota FROM logs l WHERE l.user_id > 0 AND l.type IN (%d, %d) AND l.created_at >= %d AND l.created_at < %d",
-		financeDayBucketSQL, LogTypeConsume, LogTypeRefund, LogTypeConsume, LogTypeRefund, r.Start, r.EndExcl)
-	run := func(query string, args ...any) error {
-		rows := make([]financeDayQuota, 0)
-		if err := LOG_DB.Raw(query+" GROUP BY 1", args...).Scan(&rows).Error; err != nil {
-			return err
-		}
-		for _, row := range rows {
-			result[row.Day] += row.Quota
-		}
-		return nil
-	}
-	if userIds == nil {
-		return result, run(base)
-	}
-	// 用户集合可能很大，分块 IN 后在内存合并
-	const chunkSize = 5000
-	for start := 0; start < len(userIds); start += chunkSize {
-		end := min(start+chunkSize, len(userIds))
-		if err := run(base+" AND l.user_id IN ?", userIds[start:end]); err != nil {
-			return nil, err
-		}
+	result := make(map[string]int64, len(byDay))
+	for day, totals := range byDay {
+		result[day] = totals.NetQuota
 	}
 	return result, nil
 }

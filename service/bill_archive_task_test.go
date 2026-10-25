@@ -85,8 +85,40 @@ func TestBillArchiveProducesPeriodPackageAndGuardsRetention(t *testing.T) {
 	assert.Equal(t, "test/bills/B-TEST-0001/raw-logs.csv.gz", info.RawLogs.Key)
 	assert.Equal(t, int64(8), info.RawLogs.Rows, "用户 1 两天 × 4 条全部类型")
 	assert.Len(t, info.RawLogs.Sha256, 64)
-	assert.Equal(t, LogArchiveSchemaVersion, info.SchemaVersion)
+	assert.Equal(t, model.BillArchiveSchemaVersion, info.SchemaVersion)
 	assert.True(t, billArchiveReady(bill.Id, now), "成功后清退避")
+
+	// JSON 旁路件：与冻结件同一载荷，读回与 logs 实时装配的结果深度相等；同一账单第二次读命中进程内缓存不再下载
+	require.NotNil(t, info.StatementJSON)
+	assert.Equal(t, "test/bills/B-TEST-0001/statement.json.gz", info.StatementJSON.Key)
+	assert.Equal(t, int64(2), info.StatementJSON.Rows, "用户 1 两天各一条消费")
+	expected, err := BuildFinanceUsageCSVPayload(1, model.FinanceRange{Start: bill.PeriodStart, EndExcl: bill.PeriodEnd}, true)
+	require.NoError(t, err)
+	expected.Summary.Period = model.FinanceRange{}
+	resetBillStatementCacheForTest()
+	loaded, err := LoadBillStatementPayload(ctx, archived)
+	require.NoError(t, err)
+	assert.Equal(t, &expected, loaded)
+	jsonBytes := store.objects[info.StatementJSON.Key]
+	delete(store.objects, info.StatementJSON.Key)
+	cached, err := LoadBillStatementPayload(ctx, archived)
+	require.NoError(t, err)
+	assert.Same(t, loaded, cached, "缓存期内复用同一份载荷")
+	resetBillStatementCacheForTest()
+	_, err = LoadBillStatementPayload(ctx, archived)
+	require.Error(t, err, "缓存清空且对象缺失时报错而不是回落")
+	store.objects[info.StatementJSON.Key] = jsonBytes
+	// v1 归档（没有 JSON 件）：明确返回 ErrBillArchiveNotFound，调用方回落实时 logs
+	legacy := *archived
+	legacyInfo := info
+	legacyInfo.StatementJSON, legacyInfo.SchemaVersion = nil, 1
+	legacyRaw, err := common.Marshal(legacyInfo)
+	require.NoError(t, err)
+	legacy.ArchiveInfo = model.JSONValue(legacyRaw)
+	_, err = LoadBillStatementPayload(ctx, &legacy)
+	require.ErrorIs(t, err, model.ErrBillArchiveNotFound)
+	assert.Equal(t, model.FinanceUsageSourceArchiveUnavailable, model.BillUsageSource(&legacy))
+	assert.Equal(t, model.FinanceUsageSourceArchive, model.BillUsageSource(archived))
 
 	rawRecords := store.rows(t, info.RawLogs.Key)
 	require.Len(t, rawRecords, 9)
@@ -119,6 +151,11 @@ func TestBillArchiveProducesPeriodPackageAndGuardsRetention(t *testing.T) {
 	billContext, err := model.GetFinanceBillContext(model.FinanceBillKindBill, bill.Id)
 	require.NoError(t, err)
 	assert.True(t, billContext.LogsPurged)
+	assert.Equal(t, model.FinanceUsageSourceArchive, billContext.UsageSource)
+	// logs 已删，冻结件照常可读
+	afterPurge, err := LoadBillStatementPayload(ctx, archived)
+	require.NoError(t, err)
+	assert.Len(t, afterPurge.Details, 2)
 
 	// 作废账单不进任务队列；手动归档仍可用
 	require.NoError(t, model.DB.Model(&model.EnterpriseBill{}).Where("id = ?", bill.Id).Updates(map[string]any{"archived_at": 0, "status": model.EnterpriseBillVoid}).Error)

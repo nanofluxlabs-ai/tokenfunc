@@ -42,6 +42,7 @@
 - `go test ./middleware/ -run TestAccessTokenRouteRules -count=1` → `ok`（新路由已登记）。
 - 前端：`bunx oxlint -c .oxlintrc.json src/features/enterprise-console` 无 error；`bun run typecheck` 通过；`bunx vitest run src/features/enterprise-console src/i18n` → 14 个文件 52 个用例通过（新增 `token-quota-policy-dialog.test.tsx` 5 例、`token-quota-cell.test.tsx` 3 例，`token-mutate-sheet.test.tsx` 加 2 例，`locale-shape` 守卫通过）。
 - 本地演练（`make api`，slot 2，Redis 开启，`BATCH_UPDATE_ENABLED=true`）：`/api/setup` 建 root → 管理员新建企业 `M4 Acme` → 企业主创建 key → `PUT /tokens/1/quota-policy {daily, 500000}` → 列表立即 `remain_quota=500000, unlimited_quota=false, status=1, next_reset_at=1793030400（2026-10-27 00:00 CST）` → psql 把 `remain_quota=0, status=4`、`next_reset_at` 改到 60 秒前 → 15 秒后分钟任务恢复 `500000 / status 1 / next_reset_at=1793030400`，API 日志 `enterprise token periodic quotas reset: 1`。
+- 合并 `origin/main` 421947b05（#54～#57，含 M11 / M2 / M12 / M13）后：冲突只在七个 tokenfunc locale 与 `controller/audit.go` 的模板表（两边都在末尾追加），以 main 为底重加本模块的键 / 模板；随后 `make test-db PKG='./model/ ./service/ ./controller/ ./middleware/ ./router/ -count=1'` 五包全部 `ok`，`bun run typecheck` 通过，`oxlint` 无 error，`bunx vitest run src/features/enterprise-console src/i18n` 15 个文件 56 个用例通过。
 - 数据库：PostgreSQL 16（docker `tokenfunc-postgres`），schema `test_agent_aeadf44ece2982ecd` / `dev_agent_aeadf44ece2982ecd`；二开代码不做 SQLite / MySQL 兼容。
 
 ## 与方案的偏差

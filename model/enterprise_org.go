@@ -751,8 +751,47 @@ func ProvisionEnterpriseMemberLogin(enterpriseId int, memberId int, role string)
 		return nil, err
 	}
 	password := common.GetRandomString(16)
+	username := enterpriseProvisionedUsername(enterpriseId, memberId, member.Email)
+	// 之前开通过又解绑：账号被停用但仍占着用户名与邮箱，复用该账号并重置密码
+	var existing User
+	err = DB.Where("username = ?", username).First(&existing).Error
+	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+		return nil, err
+	}
+	if existing.Id != 0 {
+		if existing.Role != common.RoleCommonUser {
+			return nil, ErrEnterpriseLoginUserInvalid
+		}
+		hash, err := common.HashAccountPassword(password)
+		if err != nil {
+			return nil, err
+		}
+		email := NormalizeEmail(member.Email)
+		err = DB.Transaction(func(tx *gorm.DB) error {
+			if err := ensureEmailAvailableWithTx(tx, email, existing.Id); err != nil {
+				return err
+			}
+			if err := tx.Model(&User{}).Where("id = ?", existing.Id).Updates(map[string]any{
+				"password":     hash,
+				"status":       common.UserStatusEnabled,
+				"quota":        0,
+				"display_name": member.Name,
+				"email":        email,
+			}).Error; err != nil {
+				return err
+			}
+			return bindMemberLogin(tx, enterpriseId, memberId, existing.Id, role, true)
+		})
+		if err != nil {
+			return nil, err
+		}
+		if err := invalidateUserCache(existing.Id); err != nil {
+			common.SysLog("failed to invalidate member user cache: " + err.Error())
+		}
+		return &ProvisionedLogin{UserId: existing.Id, Username: username, Password: password}, nil
+	}
 	user := &User{
-		Username:    enterpriseProvisionedUsername(enterpriseId, memberId, member.Email),
+		Username:    username,
 		Password:    password,
 		DisplayName: member.Name,
 		Email:       member.Email,

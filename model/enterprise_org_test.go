@@ -245,6 +245,23 @@ func TestEnterpriseMemberLoginAndAccess(t *testing.T) {
 	assert.Equal(t, common.UserStatusDisabled, provisioned.Status, "provisioned account is disabled on unbind")
 	assert.ErrorIs(t, UnbindEnterpriseMemberLogin(ent.Id, carol.Id), ErrEnterpriseMemberNoLogin)
 
+	// 解绑后再次一键开通：复用被停用的旧账号（用户名 / 邮箱仍被它占着），重置密码并重新启用
+	relogin, err := ProvisionEnterpriseMemberLogin(ent.Id, carol.Id, EnterpriseMemberRoleTeamAdmin)
+	require.NoError(t, err)
+	assert.Equal(t, login.UserId, relogin.UserId)
+	assert.Equal(t, login.Username, relogin.Username)
+	assert.NotEqual(t, login.Password, relogin.Password)
+	provisioned, err = GetUserById(login.UserId, true)
+	require.NoError(t, err)
+	assert.Equal(t, common.UserStatusEnabled, provisioned.Status)
+	assert.True(t, common.ValidatePasswordAndHash(relogin.Password, provisioned.Password), "new password is usable")
+	assert.False(t, common.ValidatePasswordAndHash(login.Password, provisioned.Password), "old password is gone")
+	_, actor, err = GetEnterpriseAccess(login.UserId)
+	require.NoError(t, err)
+	assert.True(t, actor.Provisioned)
+	assert.Equal(t, EnterpriseMemberRoleTeamAdmin, actor.Role)
+	require.NoError(t, UnbindEnterpriseMemberLogin(ent.Id, carol.Id))
+
 	// 绑定的已有账号被解绑时不动账号本身；停用成员后其登录入口失效
 	require.NoError(t, UnbindEnterpriseMemberLogin(ent.Id, alice.Id))
 	devUser, err := GetUserById(dev.Id, true)

@@ -5,7 +5,7 @@ import {
 } from '@tanstack/react-query'
 import { getRouteApi, Link } from '@tanstack/react-router'
 import { Plus, UserCog } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import {
@@ -22,8 +22,9 @@ import { requireServerSuccess } from '@/lib/server-error-message'
 
 import { listEnterpriseTokens } from '../api'
 import { useEnterpriseSelf } from '../hooks/use-enterprise-self'
-import { useTeamOptions } from '../hooks/use-team-options'
+import { useTeamOptions, useTeams } from '../hooks/use-team-options'
 import { isTeamScoped } from '../lib/member-roles'
+import { isTeamBudgetBlocked } from '../lib/team-budget'
 import type { EnterpriseKeysSearch } from '../search-schema'
 import type { EnterpriseToken } from '../types'
 import { EnterpriseGuard } from './enterprise-guard'
@@ -45,6 +46,15 @@ function KeysTable() {
   const navigate = route.useNavigate()
   const { data: enterprise } = useEnterpriseSelf()
   const teamOptions = useTeamOptions()
+  const teams = useTeams()
+  // 已超预算且勾了拦截的团队：其 key 行在状态列标「预算拦截中」
+  const blockedTeamIds = useMemo(
+    () =>
+      new Set(
+        (teams.data ?? []).filter(isTeamBudgetBlocked).map((team) => team.id)
+      ),
+    [teams.data]
+  )
   const teamScoped = isTeamScoped(enterprise?.actor)
   const [keyword, setKeyword] = useState(search.q ?? '')
   const debouncedKeyword = useDebounce(keyword, 400)
@@ -119,11 +129,20 @@ function KeysTable() {
       id: 'status',
       header: t('Status'),
       cell: (row) => (
-        <StatusBadge
-          label={row.status === 1 ? t('Enabled') : t('Disabled')}
-          variant={row.status === 1 ? 'success' : 'neutral'}
-          copyable={false}
-        />
+        <div className='flex flex-wrap gap-1'>
+          <StatusBadge
+            label={row.status === 1 ? t('Enabled') : t('Disabled')}
+            variant={row.status === 1 ? 'success' : 'neutral'}
+            copyable={false}
+          />
+          {blockedTeamIds.has(row.team_id) && (
+            <StatusBadge
+              label={t('Blocked by budget')}
+              variant='danger'
+              copyable={false}
+            />
+          )}
+        </div>
       ),
     },
     {

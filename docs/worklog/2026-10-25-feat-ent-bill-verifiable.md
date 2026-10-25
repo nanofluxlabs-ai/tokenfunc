@@ -2,8 +2,8 @@
 
 - 日期：2026-10-25
 - 分支：feat/ent-bill-verifiable（worktree `agent-aa56ac2a2dd59a524`，slot 5）
-- PR：
-- 关键 commit：889c33f95（后端）、c878d2185（前端）
+- PR：#52
+- 关键 commit：889c33f95（后端）、c878d2185（前端）、4ecf84e40（合入 origin/main #47 / #48）
 
 ## 背景
 
@@ -36,6 +36,7 @@
 - `make test-db PKG='./model/ -run "TestIssueCreditBillSnapshotV2|TestEnterpriseBillRemindersAndStatements" -count=1 -v'`：两条均 `--- PASS`（真实 PG，未跳过）。`TestIssueCreditBillSnapshotV2` 断言：同一模型跨两个分组倍率 2.5（6000）/ 3（1000）折叠后主值 2.5 且 shares 完整；单价四列 5 / 0.5 / 6.25 / 25；无倍率的行单价 null；`Σby_day.quota == logs_total_quota == 7500` 而账单金额仍为计数器 7600；`LOG_DB=nil` 时出账照常且快照无 `snapshot_version`。
 - `make test-db PKG='./model/ ./service/ ./controller/ ./middleware/ ./router/ -count=1'`：五个包全部 `ok`（model 22.7s、controller 46.1s）。含 `TestEnterpriseConsoleBillExport`（sqlite，走现有 controller 夹具）：v2 账单导出 200、`text/csv`、BOM、含「汇总(按令牌分组-模型)」「汇总(按模型)」「汇总(按天)」与单价列 `5.0000`、不含「调用明细」；v1 账单 `success:false`；他企业账单 404。`router` 的 `TestAccessTokenRouteRulesCoverEveryDashboardRoute` 通过（两条新路由已登记）。
 - 前端：`bun run typecheck` 通过；`bunx oxfmt --write` 与 `bunx oxlint -c .oxlintrc.json` 对改动文件 / 目录无 error；`bunx vitest run src/features/enterprise-console src/features/finance src/i18n`：17 个文件 53 条通过，其中新增 `bill-detail-snapshot.test.tsx`（v1 显示「-」且无单价列、v2 渲染单价表头与按天表、logs 合计 ≠ 账单金额时出提示）、`invoice-html.test.ts` 补 v1 / v2 两条（单价列、`2.5*` 标注与表尾注释、按天表、按团队缓存列），`locale-shape.test.ts` 守卫七文件键集合一致。
+- 合入 origin/main（#47 M7、#48 M8）：10 个文件冲突均为「两侧各自追加」（导出 handler 与对账差异 handler、`BillsTable` 的导出按钮与对账差异列、七个翻译文件的新键），财务账单详情在 #48 版本上重新套用 v2 分流；合并后 `make test-db PKG='./model/ ./service/ ./controller/ ./middleware/ ./router/ -count=1'` 五包 `ok`，`bun run typecheck` 通过，`bunx vitest run src/features/enterprise-console src/features/finance src/features/enterprises src/i18n` 23 文件 79 条通过。
 - 未做浏览器验收：worktree 的 dev schema 为空库，没有 acme 企业与消费日志可出账；端到端链路（logs → 出账 → 快照 → 页面 / CSV）由上述 PG 测试覆盖。
 
 ## 遗留

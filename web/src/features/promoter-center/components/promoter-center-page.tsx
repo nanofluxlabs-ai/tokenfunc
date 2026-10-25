@@ -100,134 +100,137 @@ export function PromoterCenterPage(props: PromoterCenterPageProps) {
   }
 
   return (
-    <SectionPageLayout stackActionsOnMobile>
-      <SectionPageLayout.Title>
-        <span className='inline-flex items-baseline gap-2'>
-          {t('Promoter Center')}
-          {isAdmin && profile && (
-            <span className='text-muted-foreground text-sm font-normal'>
-              {profile.username}
-              <span className='ml-1 font-mono'>#{profile.user_id}</span>
-            </span>
-          )}
-        </span>
-      </SectionPageLayout.Title>
-      <SectionPageLayout.Actions>
-        <div className='flex flex-wrap items-center gap-2'>
-          {referralLink && (
-            <CopyButton
-              value={referralLink}
-              variant='outline'
-              size='sm'
-              tooltip={t('Copy referral link')}
-              aria-label={t('Copy referral link')}
-            >
-              {t('Referral link')}
-            </CopyButton>
-          )}
-          <DatePresetButtons
-            presets={['today', 'month', 'lastMonth', 'last30']}
-            onSelect={applyPreset}
-          />
-          <DayRangeControls
-            draft={range.draft}
-            onDraftChange={range.setDraft}
-            onApply={range.apply}
-            onReset={range.reset}
-          />
-          {props.onBack && (
-            <Button variant='outline' size='sm' onClick={props.onBack}>
-              <ArrowLeft className='h-4 w-4' />
-              {t('Back')}
-            </Button>
-          )}
-        </div>
-      </SectionPageLayout.Actions>
-      <SectionPageLayout.Content>
-        <div className='flex flex-col gap-4'>
-          <p className='text-muted-foreground -mt-1 text-sm'>
-            {t(
-              'Consumption of users bound to this promoter, net of refunds. Users who signed up through the referral link are bound automatically.'
+    <>
+      <SectionPageLayout stackActionsOnMobile>
+        <SectionPageLayout.Title>
+          <span className='inline-flex items-baseline gap-2'>
+            {t('Promoter Center')}
+            {isAdmin && profile && (
+              <span className='text-muted-foreground text-sm font-normal'>
+                {profile.username}
+                <span className='ml-1 font-mono'>#{profile.user_id}</span>
+              </span>
             )}
-          </p>
-          <div className='grid gap-3 sm:grid-cols-2 lg:grid-cols-4'>
-            <MetricCard
-              label={t('Bound users')}
-              value={formatCompactNumber(
-                summary?.bound_user_count ?? 0,
-                locale
-              )}
-              hint={t('{{count}} active in range', {
-                count: summary?.active_user_count ?? 0,
-              })}
-              loading={overview.isLoading}
+          </span>
+        </SectionPageLayout.Title>
+        <SectionPageLayout.Actions>
+          <div className='flex flex-wrap items-center gap-2'>
+            {referralLink && (
+              <CopyButton
+                value={referralLink}
+                variant='outline'
+                size='sm'
+                tooltip={t('Copy referral link')}
+                aria-label={t('Copy referral link')}
+              >
+                {t('Referral link')}
+              </CopyButton>
+            )}
+            <DatePresetButtons
+              presets={['today', 'month', 'lastMonth', 'last30']}
+              onSelect={applyPreset}
             />
-            <MetricCard
-              label={t('Consumption in range')}
-              value={formatQuota(summary?.net_quota ?? 0)}
-              hint={t('Refunds {{amount}}', {
-                amount: formatQuota(summary?.refund_quota ?? 0),
-              })}
-              loading={overview.isLoading}
+            <DayRangeControls
+              draft={range.draft}
+              onDraftChange={range.setDraft}
+              onApply={range.apply}
+              onReset={range.reset}
             />
-            <MetricCard
-              label={t('Requests')}
-              value={formatCompactNumber(summary?.request_count ?? 0, locale)}
-              loading={overview.isLoading}
-            />
-            <MetricCard
-              label={t('Tokens')}
-              value={formatCompactNumber(summary?.total_tokens ?? 0, locale)}
-              hint={`${t('Input')} ${formatCompactNumber(summary?.prompt_tokens ?? 0, locale)} · ${t('Output')} ${formatCompactNumber(summary?.completion_tokens ?? 0, locale)}`}
-              loading={overview.isLoading}
-            />
+            {props.onBack && (
+              <Button variant='outline' size='sm' onClick={props.onBack}>
+                <ArrowLeft className='h-4 w-4' />
+                {t('Back')}
+              </Button>
+            )}
           </div>
-          {noUsers ? (
-            <EmptyState
-              icon={Megaphone}
-              title={t('No bound users yet')}
-              description={t(
-                'Share the referral link; users who sign up through it are bound to this promoter automatically.'
+        </SectionPageLayout.Actions>
+        <SectionPageLayout.Content>
+          <div className='flex flex-col gap-4'>
+            <p className='text-muted-foreground -mt-1 text-sm'>
+              {t(
+                'Consumption of users bound to this promoter, net of refunds. Users who signed up through the referral link are bound automatically.'
               )}
-              bordered
-            />
-          ) : (
-            <>
-              <Tabs value={tab} onValueChange={setTab}>
-                <TabsList variant='line'>
-                  {PROMOTER_CENTER_TABS.map((id) => (
-                    <TabsTrigger key={id} value={id}>
-                      {t(PROMOTER_CENTER_TAB_TITLE_KEYS[id])}
-                    </TabsTrigger>
-                  ))}
-                </TabsList>
-              </Tabs>
-              {tab === 'daily' && (
-                <DailyTab
-                  daily={overview.data?.daily ?? []}
-                  loading={overview.isLoading}
-                />
-              )}
-              {tab === 'users' && (
-                <UsersTab
-                  users={users.data ?? []}
-                  loading={users.isLoading}
-                  fetching={users.isFetching}
-                  showContact={isAdmin}
-                  onInspect={setInspecting}
-                />
-              )}
-              {tab === 'models' && (
-                <ModelsTab
-                  items={models.data?.items ?? []}
-                  loading={models.isLoading}
-                  fetching={models.isFetching}
-                />
-              )}
-            </>
-          )}
-        </div>
-      </SectionPageLayout.Content>
+            </p>
+            <div className='grid gap-3 sm:grid-cols-2 lg:grid-cols-4'>
+              <MetricCard
+                label={t('Bound users')}
+                value={formatCompactNumber(
+                  summary?.bound_user_count ?? 0,
+                  locale
+                )}
+                hint={t('{{count}} active in range', {
+                  count: summary?.active_user_count ?? 0,
+                })}
+                loading={overview.isLoading}
+              />
+              <MetricCard
+                label={t('Consumption in range')}
+                value={formatQuota(summary?.net_quota ?? 0)}
+                hint={t('Refunds {{amount}}', {
+                  amount: formatQuota(summary?.refund_quota ?? 0),
+                })}
+                loading={overview.isLoading}
+              />
+              <MetricCard
+                label={t('Requests')}
+                value={formatCompactNumber(summary?.request_count ?? 0, locale)}
+                loading={overview.isLoading}
+              />
+              <MetricCard
+                label={t('Tokens')}
+                value={formatCompactNumber(summary?.total_tokens ?? 0, locale)}
+                hint={`${t('Input')} ${formatCompactNumber(summary?.prompt_tokens ?? 0, locale)} · ${t('Output')} ${formatCompactNumber(summary?.completion_tokens ?? 0, locale)}`}
+                loading={overview.isLoading}
+              />
+            </div>
+            {noUsers ? (
+              <EmptyState
+                icon={Megaphone}
+                title={t('No bound users yet')}
+                description={t(
+                  'Share the referral link; users who sign up through it are bound to this promoter automatically.'
+                )}
+                bordered
+              />
+            ) : (
+              <>
+                <Tabs value={tab} onValueChange={setTab}>
+                  <TabsList variant='line'>
+                    {PROMOTER_CENTER_TABS.map((id) => (
+                      <TabsTrigger key={id} value={id}>
+                        {t(PROMOTER_CENTER_TAB_TITLE_KEYS[id])}
+                      </TabsTrigger>
+                    ))}
+                  </TabsList>
+                </Tabs>
+                {tab === 'daily' && (
+                  <DailyTab
+                    daily={overview.data?.daily ?? []}
+                    loading={overview.isLoading}
+                  />
+                )}
+                {tab === 'users' && (
+                  <UsersTab
+                    users={users.data ?? []}
+                    loading={users.isLoading}
+                    fetching={users.isFetching}
+                    showContact={isAdmin}
+                    onInspect={setInspecting}
+                  />
+                )}
+                {tab === 'models' && (
+                  <ModelsTab
+                    items={models.data?.items ?? []}
+                    loading={models.isLoading}
+                    fetching={models.isFetching}
+                  />
+                )}
+              </>
+            )}
+          </div>
+        </SectionPageLayout.Content>
+      </SectionPageLayout>
+      {/* SectionPageLayout 只渲染槽位子节点，Sheet 必须放在布局之外 */}
       <UserUsageSheet
         scope={props.scope}
         range={rangeParams}
@@ -235,6 +238,6 @@ export function PromoterCenterPage(props: PromoterCenterPageProps) {
         open={inspecting !== null}
         onOpenChange={(open) => !open && setInspecting(null)}
       />
-    </SectionPageLayout>
+    </>
   )
 }

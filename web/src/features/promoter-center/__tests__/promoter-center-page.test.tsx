@@ -57,7 +57,43 @@ async function renderPage(scope: PromoterScope, boundUserCount = 2) {
       return { data: { success: true, data: overviewPayload(boundUserCount) } }
     }
     if (url.endsWith('/users')) {
-      return { data: { success: true, data: { range: {}, items: [] } } }
+      return {
+        data: {
+          success: true,
+          data: {
+            range: {},
+            items: [
+              {
+                user_id: 41,
+                username: 'alice',
+                display_name: 'Alice',
+                is_enterprise: false,
+                deleted: false,
+                source: 'admin',
+                bound_at: 1_700_000_000,
+                usage_since: 0,
+                net_quota: 500,
+                request_count: 2,
+                total_tokens: 30,
+                last_consume_day: '2026-03-10',
+              },
+            ],
+          },
+        },
+      }
+    }
+    if (url.includes('/users/41/usage')) {
+      return {
+        data: {
+          success: true,
+          data: {
+            user: { user_id: 41, username: 'alice', usage_since: 0 },
+            summary: { net_quota: 500, request_count: 2, total_tokens: 30 },
+            daily: [],
+            models: [],
+          },
+        },
+      }
     }
     return { data: { success: true, data: { summary: {}, items: [] } } }
   })
@@ -139,4 +175,17 @@ test('switching tab writes the tab key to the URL search', async () => {
   await waitFor(() =>
     expect(router.state.location.search).toMatchObject({ tab: 'users' })
   )
+})
+
+test('inspecting a bound user opens the usage sheet (regression: layout drops non-slot children)', async () => {
+  await renderPage({ scope: 'self' })
+  await userEvent.click(
+    await screen.findByRole('tab', { name: 'User consumption' })
+  )
+  await userEvent.click(
+    await screen.findByRole('button', { name: 'View details' })
+  )
+  const sheet = await screen.findByRole('dialog')
+  expect(sheet).toHaveTextContent('alice')
+  expect(sheet).toHaveTextContent('#41')
 })

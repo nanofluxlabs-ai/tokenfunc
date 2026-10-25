@@ -28,6 +28,8 @@
 
 隔离方式是 PostgreSQL schema（DSN 带 `?search_path=`）而不是多库，所以本地永远只有一个 PG 实例、一个 Redis 实例。测试 DSN 是 `search_path=test,public`：上游部分用例会用它新建临时库再连入，临时库里只有 `public`。
 
+并行开发多个功能时，每个 worktree 在同一对实例上再领一组 schema / Redis db / 端口（见 §4.7），主 checkout 永远是上表这套默认值。
+
 ## 2. 一分钟上手
 
 前置：Docker Desktop、Go 1.26、Bun 1.4。
@@ -55,6 +57,9 @@ make dev          # 自动生成 .env → 起 postgres/redis → 编译并后台
 | `make test-web` | 前端 vitest |
 | `make up-build` / `make up` / `make up-down` / `make up-logs` | 全栈 docker（从源码构建 / 用 `.env` 指定镜像 / 停 / 日志） |
 | `make reset-setup` | 清掉初始化向导状态，重新走 setup |
+| `make wt-init` | **worktree 里执行**：领 slot，生成本目录 `.env`（schema `dev_<名>` / `test_<名>`、Redis db、端口），建 schema，`bun install` |
+| `make wt-clean [NAME=<名>]` | 归还 worktree 环境：停 API、删 schema、清 Redis db、释放 slot；主 checkout 上用 `NAME=` 清已删掉的 |
+| `make wt-list` / `make wt-env` | 列出所有登记的 worktree 及端口 / schema（标出孤儿）/ 打印本 worktree 的参数 |
 | `make upstream-status` | 当前已合入的上游 rc 基线、落后 commit 数、可合的 rc 列表 |
 | `make upstream-diff REF=v1.0.0-rc.N` | 生成同步评估清单到 `.tmp/upstream/<REF>.md`（冲突 / 高风险 / 二开热点重叠 / commit 表） |
 | `make upstream-merge REF=v1.0.0-rc.N [BASE=main]` | 建 `sync/upstream-<REF>` 分支并合并该 rc，有冲突即停，不 push |
@@ -79,6 +84,7 @@ make dev          # 自动生成 .env → 起 postgres/redis → 编译并后台
 ### 4.1 分支与提交
 - `main` 只接受 PR，CI（`.github/workflows/ci.yml`：`make test` + 前端 typecheck/test）必须通过；推到 `main` 只构建 `main-<date>-<sha>` 镜像，**发版用 `/release-standalone` 打 `vYYYY.MM.DD.N` tag**，tag 才触发部署。
 - 功能分支 `feat/<模块>`、修复分支 `fix/<问题>`；每个模块验证通过后立即 commit，提交信息用 Conventional Commits（`feat(landing): …`），正文中英文均可。
+- 走 worktree 开发时分支名由工具固定为 `worktree-<名>`，worktree 名用 `<type>-<slug>`（如 `feat-user-list-email`）；PR 标题与 commit 仍按 Conventional Commits。见 §4.7。
 - 与上游 new-api 同步见 §4.6。
 
 ### 4.2 代码与测试
@@ -110,6 +116,36 @@ make dev          # 自动生成 .env → 起 postgres/redis → 编译并后台
 - **门禁**：CI（`make test` + 前端 typecheck/test）、本地 `make test-db`、迁移幂等（`make up-build` 启动两次，日志无重复 `ALTER`）、二开关键路径冒烟（企业 / 授信 / 报价 / 财务导出 / 手工充值）。
 - **减少冲突的结构约定**：二开内容放独立文件，上游文件只留一两行接线——翻译在 `web/src/i18n/locales/tokenfunc/` 与 `i18n/locales/tokenfunc.*.yaml`；品牌主题在 `web/src/lib/tokenfunc-theme.ts`、`web/src/lib/tokenfunc-site-theme.ts`、`web/src/styles/tokenfunc-theme.css`；二开全局变量在 `common/tokenfunc_constants.go`；服务端日志中文文案的覆盖在 `common/log_text.tokenfunc.zh-CN.json`。新增二开翻译 key 必须同时写进 `tokenfunc/en.json` 与 `tokenfunc/zh.json`，否则 `bun run i18n:sync` 会把孤立 key 挪进 `_extras`。
 - 基线不另记文件：`make upstream-status` 用 `git describe` 从 merge-base 算出当前 rc。
+
+### 4.7 worktree 并行开发（环境完全隔离）
+
+**何时用**：多个会话 / 多个功能同时开发。同一个 checkout 里并行会撞 `index.lock`、互踩 stash、把提交落到别人的分支；git worktree 给每条线独立目录、分支和索引。**每次代码变更前先选**：worktree / 新建分支 / 直接在 main。后两者沿用上面的默认环境，只有 worktree 走本节的隔离。
+
+**隔离模型**：PG / Redis 仍是同一对容器，每个 worktree 领一个 slot `N ≥ 1`（主 checkout 固定 0），全部参数由 slot 和 worktree 名派生并写进该 worktree 自己的 `.env`（以主 checkout 的 `.env` 为底，COS 凭据等一并带过去）：
+
+| 参数 | 主 checkout | worktree `<名>`，slot N |
+|---|---|---|
+| PG schema | `dev` / `test` | `dev_<slug>` / `test_<slug>`（`<slug>` = 名字小写、非字母数字换 `_`） |
+| Redis db | 0 / 1 | 2N / 2N+1（redis 配 `--databases 64`，最多 31 个 worktree） |
+| API / 前端端口 | 3000 / 5173 | 3000+N / 5173+N（端口被无关进程占着的 slot 自动跳过） |
+| `NODE_NAME` | `tokenfunc-dev` | `tokenfunc-dev-<名>` |
+
+slot 注册表在主 checkout 的 `.tmp/worktree-slots.tsv`；`make` 的 compose 调用固定以主 checkout 为项目目录，否则 worktree 里 bind mount 路径不同会让 compose 重建容器、打断所有并行会话。
+
+**流程**：
+
+```
+EnterWorktree <type>-<slug>      # Claude Code 内置：建 .claude/worktrees/<名>，分支 worktree-<名>，基于 origin/main
+make wt-init                     # 第一条命令：领 slot、生成 .env、建 schema、bun install，并打印本 worktree 的环境卡
+make dev / make test-db / ...    # 全部跑在自己的端口 / schema / redis db，与主 checkout 和其它 worktree 互不干扰
+开发 → commit → push → PR → 用户确认合并 main
+make wt-clean                    # 退出前：停 API、删 schema、清 redis db、释放 slot
+ExitWorktree remove              # 删目录和分支
+```
+
+- 忘了 `wt-clean` 就删了目录：`make wt-list` 会把它标成「孤儿」，在主 checkout `make wt-clean NAME=<名>` 补清。
+- 合并 main 后，其它进行中的 worktree 立即 `git rebase origin/main`；两条线改同一文件的语义冲突 worktree 不解决，靠小 PR、先合先得。
+- 全栈 docker（`make up*`）、`make reset` 只在主 checkout 执行。
 
 ## 5. 数据与重置
 

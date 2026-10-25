@@ -1,7 +1,10 @@
 package controller
 
 import (
+	"compress/gzip"
 	"errors"
+	"fmt"
+	"io"
 	"net/http"
 	"strconv"
 
@@ -156,6 +159,57 @@ func AdminIssueBillNow(c *gin.Context) {
 	common.ApiSuccess(c, bill)
 }
 
+// AdminExportEnterpriseBill GET /api/admin/enterprise/bills/:id/export
+func AdminExportEnterpriseBill(c *gin.Context) {
+	id, ok := paramBillId(c)
+	if !ok {
+		return
+	}
+	bill, err := model.GetEnterpriseBill(id)
+	if err != nil {
+		enterpriseApiError(c, err)
+		return
+	}
+	writeEnterpriseBillExport(c, bill)
+}
+
+// writeEnterpriseBillExport 账单 CSV（企业控制台与管理员共用）：已归档的账单透传账期包冻结件（gzip 解压，含逐条明细）；
+// 未归档的用快照 v2 还原财务汇总（无逐条明细）。两条路径都是 service.WriteFinanceUsageCSV 的产物，与详情页、Invoice 同口径
+func writeEnterpriseBillExport(c *gin.Context, bill *model.EnterpriseBill) {
+	filename := fmt.Sprintf("%s_%s_%s.csv", bill.BillNo, model.FinanceDay(bill.PeriodStart), model.FinanceDay(bill.PeriodEnd-1))
+	if bill.ArchivedAt > 0 {
+		body, _, _, err := service.OpenBillArchiveObject(c.Request.Context(), bill, model.BillArchiveFileStatement)
+		if err == nil {
+			defer body.Close()
+			var reader *gzip.Reader
+			if reader, err = gzip.NewReader(body); err == nil {
+				financeCSVHeaders(c, filename)
+				if _, err := io.Copy(c.Writer, reader); err != nil {
+					common.SysError("bill export: stream archived statement failed: " + err.Error())
+				}
+				return
+			}
+		}
+		common.SysError(fmt.Sprintf("bill export %s: archived statement unavailable, falling back to snapshot: %s", bill.BillNo, err.Error()))
+	}
+	snapshot := bill.UsageSnapshotV2()
+	if snapshot == nil {
+		common.ApiErrorT(c, "This bill was issued without a usage breakdown snapshot and cannot be exported")
+		return
+	}
+	payload := service.FinanceUsageCSVPayload{
+		StartDay: model.FinanceDay(bill.PeriodStart), EndDay: model.FinanceDay(bill.PeriodEnd - 1),
+		Summary: snapshot.FinanceSummary(), Daily: snapshot.FinanceDaily(),
+	}
+	if enterprise, err := model.GetEnterpriseById(bill.EnterpriseId); err == nil {
+		payload.AccountLabel, payload.EnterpriseName = service.FinanceExportSubject(enterprise.UserId)
+	}
+	financeCSVHeaders(c, filename)
+	if err := service.WriteFinanceUsageCSV(c.Writer, payload); err != nil {
+		common.SysError("bill export: write snapshot csv failed: " + err.Error())
+	}
+}
+
 // AdminListReconcileAlerts 对账差异列表：出账时计数器与明细不一致的授信账单（state=pending|acked|all）
 func AdminListReconcileAlerts(c *gin.Context) {
 	pageInfo := common.GetPageQuery(c)
@@ -236,15 +290,29 @@ func ListEnterpriseBillsSelf(c *gin.Context) {
 	writeEnterpriseBills(c, currentEnterprise(c).Id)
 }
 
-func GetEnterpriseBillSelf(c *gin.Context) {
+// currentEnterpriseBill 路径里的账单，且必须属于当前企业；越权一律 404
+func currentEnterpriseBill(c *gin.Context) (*model.EnterpriseBill, bool) {
 	id, ok := paramBillId(c)
 	if !ok {
-		return
+		return nil, false
 	}
 	bill, err := model.GetEnterpriseBill(id)
 	if err != nil || bill.EnterpriseId != currentEnterprise(c).Id {
 		c.JSON(http.StatusNotFound, gin.H{"success": false, "message": "bill not found"})
-		return
+		return nil, false
 	}
-	common.ApiSuccess(c, bill)
+	return bill, true
+}
+
+func GetEnterpriseBillSelf(c *gin.Context) {
+	if bill, ok := currentEnterpriseBill(c); ok {
+		common.ApiSuccess(c, bill)
+	}
+}
+
+// ExportEnterpriseBillSelf GET /api/enterprise/bills/:id/export
+func ExportEnterpriseBillSelf(c *gin.Context) {
+	if bill, ok := currentEnterpriseBill(c); ok {
+		writeEnterpriseBillExport(c, bill)
+	}
 }

@@ -272,7 +272,6 @@ export async function downloadUsageCsv(
 export const USAGE_EXPORT_URL = `${BASE}/usage/export`
 
 export async function listBills(params: {
-  bill_type?: string
   status?: string
   p?: number
   page_size?: number
@@ -284,4 +283,19 @@ export async function listBills(params: {
 export async function getBill(id: number): Promise<ApiResponse<Bill>> {
   const res = await api.get(`${BASE}/bills/${id}`)
   return res.data
+}
+
+/** 账单 CSV 的主体：企业控制台看自己的账单，管理员财务中心走 admin 路由 */
+export type BillExportScope = 'enterprise' | 'admin'
+
+/** 下载账单 CSV（已归档透传冻结件，否则由快照还原）；业务失败时返回 JSON blob，调用方按 content-type 区分 */
+export async function downloadBillCsv(
+  id: number,
+  scope: BillExportScope
+): Promise<Blob> {
+  const base = scope === 'admin' ? '/api/admin/enterprise' : BASE
+  const res = await api.get(`${base}/bills/${id}/export`, {
+    responseType: 'blob',
+  })
+  return res.data as Blob
 }

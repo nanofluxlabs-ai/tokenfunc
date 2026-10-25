@@ -27,6 +27,7 @@ func registerEnterpriseRoutes(apiRouter *gin.RouterGroup) {
 		adminRoute.GET("/enterprises/:id/usage/export", controller.AdminExportEnterpriseUsage)
 		adminRoute.GET("/bills", controller.AdminListEnterpriseBills)
 		adminRoute.GET("/bills/:id", controller.AdminGetEnterpriseBill)
+		adminRoute.GET("/bills/:id/export", controller.AdminExportEnterpriseBill)
 		adminRoute.POST("/bills/:id/payments", controller.AdminRegisterBillPayment)
 		adminRoute.POST("/bills/:id/void", controller.AdminVoidEnterpriseBill)
 		adminRoute.POST("/credit-periods/:id/issue", controller.AdminIssueBillNow)
@@ -61,6 +62,7 @@ func registerEnterpriseRoutes(apiRouter *gin.RouterGroup) {
 			financeRoute.GET("/credit-periods", controller.ListEnterpriseCreditPeriodsSelf)
 			financeRoute.GET("/bills", controller.ListEnterpriseBillsSelf)
 			financeRoute.GET("/bills/:id", controller.GetEnterpriseBillSelf)
+			financeRoute.GET("/bills/:id/export", controller.ExportEnterpriseBillSelf)
 		}
 
 		consoleRoute.GET("/teams", controller.ListEnterpriseTeams)

@@ -238,6 +238,52 @@ export interface UsageSnapshotGroup {
   quota: number
 }
 
+/** 预付月度对账单的余额变动（两种快照版本都有） */
+export interface StatementBalanceSnapshot {
+  opening_quota?: number
+  topup_quota?: number
+  consumption_quota?: number
+  adjustment_quota?: number
+  closing_quota?: number
+}
+
+/** 归因块：来自 ent_usage_daily；旧快照用 by_department / by_employee / by_project 键 */
+export interface UsageAttributionSnapshot {
+  by_team?: UsageSnapshotGroup[]
+  by_member?: UsageSnapshotGroup[]
+  by_department?: UsageSnapshotGroup[]
+  by_employee?: UsageSnapshotGroup[]
+  by_project?: UsageSnapshotGroup[]
+  detail_total_quota?: number
+}
+
+/** v1 快照：只有金额级的按模型块 */
+export interface BillUsageSnapshotV1
+  extends StatementBalanceSnapshot, UsageAttributionSnapshot {
+  snapshot_version?: undefined
+  by_model?: UsageSnapshotGroup[]
+}
+
+/** v2 快照：财务中心口径，按分组-模型 / 按模型折叠（含四项 token、单价四列、倍率分布）/ 按天 */
+export interface BillUsageSnapshotV2
+  extends StatementBalanceSnapshot, UsageAttributionSnapshot {
+  snapshot_version: number
+  logs_total_calls: number
+  logs_total_quota: number
+  by_group_model: import('@/features/finance/types').UsageGroupModelRow[]
+  by_model: import('@/features/finance/types').UsageGroupModelRow[]
+  by_day: import('@/features/finance/types').UsageDailyRow[]
+}
+
+export type BillUsageSnapshot = BillUsageSnapshotV1 | BillUsageSnapshotV2
+
+/** v2 快照才有单价与按天块；旧账单按 v1 兼容渲染，新列显示「-」 */
+export function isBillSnapshotV2(
+  snapshot: BillUsageSnapshot | null | undefined
+): snapshot is BillUsageSnapshotV2 {
+  return (snapshot?.snapshot_version ?? 0) >= 2
+}
+
 /** 账期包里单个对象的登记 */
 export interface BillArchiveObject {
   key: string
@@ -281,7 +327,7 @@ export interface Bill {
   reconcile_ack_note: string
   archive_info: BillArchiveInfo | null
   archived_at: number
-  usage_snapshot: Record<string, unknown> | null
+  usage_snapshot: BillUsageSnapshot | null
   seller_snapshot: SellerProfile | null
   buyer_snapshot: {
     enterprise_name?: string

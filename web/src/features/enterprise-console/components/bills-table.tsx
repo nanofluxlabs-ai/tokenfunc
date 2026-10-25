@@ -1,5 +1,5 @@
-import { Check, Printer } from 'lucide-react'
-import type { ReactNode } from 'react'
+import { Check, Download, FileText } from 'lucide-react'
+import { useState, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 
@@ -9,9 +9,12 @@ import {
 } from '@/components/data-table'
 import { StatusBadge } from '@/components/status-badge'
 import { Button } from '@/components/ui/button'
+import { readBlobError, saveBlob } from '@/features/finance/lib/csv'
 import { formatQuotaWithCurrency } from '@/lib/currency'
 import { formatTimestampToDate } from '@/lib/format'
+import { handleServerError } from '@/lib/handle-server-error'
 
+import { downloadBillCsv, type BillExportScope } from '../api'
 import { BILL_STATUSES, BILL_TYPES } from '../constants'
 import { isBillOverdue } from '../lib/bill-utils'
 import { openInvoicePrintWindow } from '../lib/invoice-html'
@@ -34,7 +37,7 @@ export function BillStatusBadge(props: { bill: Bill }) {
   )
 }
 
-/** 打开 Invoice 打印窗口的按钮（控制台与管理员共用） */
+/** 「导出发票」：新窗口打开 Invoice 并调起打印，用户在打印对话框另存为 PDF（控制台与管理员共用） */
 export function InvoiceButton(props: { bill: Bill; size?: 'sm' | 'icon-sm' }) {
   const { t } = useTranslation()
   const handleClick = () => {
@@ -45,8 +48,8 @@ export function InvoiceButton(props: { bill: Bill; size?: 'sm' | 'icon-sm' }) {
   if (props.size === 'sm') {
     return (
       <Button variant='outline' size='sm' onClick={handleClick}>
-        <Printer className='h-4 w-4' />
-        {t('Print / Save PDF')}
+        <FileText className='h-4 w-4' />
+        {t('Export invoice')}
       </Button>
     )
   }
@@ -54,10 +57,60 @@ export function InvoiceButton(props: { bill: Bill; size?: 'sm' | 'icon-sm' }) {
     <Button
       variant='ghost'
       size='icon-sm'
-      aria-label={t('Print / Save PDF')}
+      aria-label={t('Export invoice')}
       onClick={handleClick}
     >
-      <Printer />
+      <FileText />
+    </Button>
+  )
+}
+
+/** 「导出 CSV」：服务端生成（已归档透传冻结件，否则由快照 v2 还原），与详情页、Invoice 同口径 */
+export function BillExportCsvButton(props: {
+  bill: Bill
+  scope: BillExportScope
+  size?: 'sm' | 'icon-sm'
+}) {
+  const { t } = useTranslation()
+  const [exporting, setExporting] = useState(false)
+  const handleClick = async () => {
+    setExporting(true)
+    try {
+      const blob = await downloadBillCsv(props.bill.id, props.scope)
+      const message = await readBlobError(blob)
+      if (message) {
+        toast.error(message)
+        return
+      }
+      saveBlob(blob, `${props.bill.bill_no}.csv`)
+    } catch (error) {
+      handleServerError(error, t('Download failed'))
+    } finally {
+      setExporting(false)
+    }
+  }
+  if (props.size === 'sm') {
+    return (
+      <Button
+        variant='outline'
+        size='sm'
+        disabled={exporting}
+        onClick={() => void handleClick()}
+      >
+        <Download className='h-4 w-4' />
+        {exporting ? t('Exporting...') : t('Export CSV')}
+      </Button>
+    )
+  }
+  return (
+    <Button
+      variant='ghost'
+      size='icon-sm'
+      aria-label={t('Export CSV')}
+      disabled={exporting}
+      onClick={() => void handleClick()}
+    >
+      <Download />
     </Button>
   )
 }
@@ -65,6 +118,8 @@ export function InvoiceButton(props: { bill: Bill; size?: 'sm' | 'icon-sm' }) {
 type BillsTableProps = {
   bills: Bill[]
   isLoading?: boolean
+  /** 账单 CSV 走哪条路由：企业控制台 / 管理员财务中心 */
+  exportScope: BillExportScope
   /** 额外的行操作（管理员：收款、作废） */
   renderActions?: (bill: Bill) => ReactNode
   /** 账单号的渲染（控制台：链接到详情） */
@@ -106,6 +161,7 @@ export function ReconcileDiffCell(props: { bill: Bill }) {
   )
 }
 
+/** 账单列表：企业控制台与管理员财务中心共用，类型作独立列，行操作固定为导出发票 + 导出 CSV */
 export function BillsTable(props: BillsTableProps) {
   const { t } = useTranslation()
   const columns: StaticDataTableColumn<Bill>[] = [
@@ -113,15 +169,15 @@ export function BillsTable(props: BillsTableProps) {
       id: 'bill_no',
       header: t('Bill No.'),
       cell: (row) => (
-        <div className='flex flex-col'>
-          <span className='font-mono font-medium'>
-            {props.renderBillNo ? props.renderBillNo(row) : row.bill_no}
-          </span>
-          <span className='text-muted-foreground text-xs'>
-            {t(BILL_TYPES[row.bill_type]?.labelKey ?? row.bill_type)}
-          </span>
-        </div>
+        <span className='font-mono font-medium'>
+          {props.renderBillNo ? props.renderBillNo(row) : row.bill_no}
+        </span>
       ),
+    },
+    {
+      id: 'type',
+      header: t('Type'),
+      cell: (row) => t(BILL_TYPES[row.bill_type]?.labelKey ?? row.bill_type),
     },
     ...(props.showEnterprise
       ? [
@@ -186,6 +242,7 @@ export function BillsTable(props: BillsTableProps) {
       cell: (row) => (
         <div className='flex items-center gap-1'>
           <InvoiceButton bill={row} />
+          <BillExportCsvButton bill={row} scope={props.exportScope} />
           {props.renderActions?.(row)}
         </div>
       ),

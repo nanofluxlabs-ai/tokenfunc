@@ -49,6 +49,9 @@ describe('docs registry', () => {
   it('resolves valid slugs unchanged and falls back for anything else', () => {
     expect(resolveDocSlug('api-models')).toBe('api-models')
     expect(resolveDocSlug('tools-claude-code')).toBe('tools-claude-code')
+    expect(resolveDocSlug('enterprise-integration')).toBe(
+      'enterprise-integration'
+    )
     expect(resolveDocSlug('nope')).toBe(DOCS_DEFAULT_SLUG)
     expect(resolveDocSlug(undefined)).toBe(DOCS_DEFAULT_SLUG)
     expect(resolveDocSlug('')).toBe(DOCS_DEFAULT_SLUG)

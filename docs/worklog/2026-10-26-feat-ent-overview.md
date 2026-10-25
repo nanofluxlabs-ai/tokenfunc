@@ -2,7 +2,7 @@
 
 - 日期：2026-10-26
 - 分支：feat/ent-overview（worktree `agent-abaac5dbe5e05f7cf`，slot 3）
-- PR：
+- PR：#59
 - 关键 commit：b43d8103f（后端）、3227d3d24（前端）
 
 ## 背景

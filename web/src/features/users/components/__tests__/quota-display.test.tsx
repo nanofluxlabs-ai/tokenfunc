@@ -374,7 +374,12 @@ it('combines creation and last login into one column with full dates visible dir
   const row = screen.getByRole('row', {
     name: /long-user-name-for-table-layout/,
   })
-  expect(within(row).getByText('—')).toBeInTheDocument()
+  // tokenfunc 用户列表多了邮箱列，fixture 无邮箱时同样渲染「—」，所以按列定位断言
+  const inviteCell = row.querySelector<HTMLElement>(
+    'td[data-column-id="invite_info"]'
+  )
+  if (!inviteCell) throw new Error('The row must have an invite_info cell')
+  expect(within(inviteCell).getByText('—')).toBeInTheDocument()
   const times = within(row).getAllByRole('time')
   expect(times).toHaveLength(2)
   expect(times[0]).toHaveTextContent(

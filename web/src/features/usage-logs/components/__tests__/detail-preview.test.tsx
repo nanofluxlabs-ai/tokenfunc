@@ -430,9 +430,10 @@ test('task log prices use localized unit labels from pricing metadata', async ()
     matched_tier: 'images',
   })
   expect(preview).toHaveTextContent('images · images $0.25/image')
-  await act(() => i18n.changeLanguage('zh-CN'))
+  // 不用 act 包语言切换：全文件顺序跑时 act 会在此挂起到超时，改为等待界面出现切换后的文案
+  await i18n.changeLanguage('zh-CN')
   expect(
-    screen.getByRole('button', { name: /images · images/ })
+    await screen.findByRole('button', { name: /images · images/ })
   ).toHaveTextContent('images · images $0.25/张')
 })
 

@@ -26,6 +26,9 @@ func SetApiRouter(router *gin.Engine) {
 		apiRouter.GET("/setup", controller.GetSetup)
 		apiRouter.POST("/setup", anonymousRequestBodyLimit, controller.PostSetup)
 		apiRouter.GET("/status", controller.GetStatus)
+		// 健康探针（TokenFunc 二开，k8s probe / compose healthcheck）
+		apiRouter.GET("/health/live", controller.GetLiveHealth)
+		apiRouter.GET("/health/ready", controller.GetReadyHealth)
 		apiRouter.GET("/uptime/status", controller.GetUptimeKumaStatus)
 		apiRouter.GET("/models", middleware.UserAuth(), controller.DashboardListModels)
 		apiRouter.GET("/status/test", middleware.AdminAuth(), controller.TestStatus)

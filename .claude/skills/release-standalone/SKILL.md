@@ -13,6 +13,7 @@ allowed-tools:
   - Bash(git *)
   - Bash(gh *)
   - Bash(ssh *)
+  - Bash(scp *)
   - Bash(curl *)
   - Bash(make *)
   - Bash(go *)
@@ -29,7 +30,9 @@ allowed-tools:
 
 # tokenfunc 单机 docker 一键发版
 
-流程：`P1 前置检查 → P2 打 tag 触发构建+部署（Actions） → P3 部署验证 → P4 冒烟测试 → P5 事故响应（仅异常） → P6 部署后监控 → 发布报告`。
+流程：`P1 前置检查 → P2 打 tag 等 Actions 构建镜像 → P2.5 SSH 部署到生产机（docker compose） → P3 部署验证 → P4 冒烟测试 → P5 事故响应（仅异常） → P6 部署后监控 → 发布报告`。
+
+TKE 集群发版走 `/release-tke`；两条路线互不触发，Actions 只构建镜像。
 
 ## 参数
 
@@ -70,7 +73,8 @@ P3 部署验证或 P4 冒烟中出现以下任一情况，**立即回滚止血**
  tokenfunc 发版进度  <tag>  [prod · docker]
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
  ✅ P1  前置检查        完成
- 🔄 P2  构建 + 部署     进行中（约 7 分钟）
+ 🔄 P2  镜像构建        进行中（约 6 分钟）
+ ⬜ P2.5 SSH 部署       等待
  ⬜ P3  部署验证        等待
  ⬜ P4  功能冒烟测试    必做
  ⬜ P5  事故响应        仅异常时触发
@@ -88,11 +92,11 @@ P3 部署验证或 P4 冒烟中出现以下任一情况，**立即回滚止血**
 |----|-----|
 | GitHub repo | `nanofluxlabs-ai/tokenfunc`，分支 `main` |
 | tag 格式 | `vYYYY.MM.DD.N` |
-| 构建/部署 workflow | `.github/workflows/deploy-ghcr.yml`（名 `Build & Deploy (GHCR)`）：推 `v*` tag → 构建并部署；推 main → 只构建 `main-<date>-<sha>` 镜像 |
+| 构建 workflow | `.github/workflows/deploy-ghcr.yml`（名 `Build & Deploy (GHCR)`）：推 `v*` tag → 构建推 GHCR 并移动 `:latest`；推 main → 只构建 `main-<date>-<sha>` 镜像。**不部署**，部署由本 skill P2.5 通过 SSH 完成 |
 | 镜像 | `ghcr.io/nanofluxlabs-ai/tokenfunc:<tag>`（发版同时移动 `:latest`） |
 | 生产机 | `ssh tokenfunc`（用户 ubuntu），目录 `/opt/tokenfunc`，文件 `compose.yml` + `.env` + `compose.override.yml`（后者不在仓库） |
 | 容器 | `tokenfunc-api`（profile `app`）、`tokenfunc-postgres`、`tokenfunc-redis` |
-| 当前镜像 | `ssh tokenfunc "docker inspect -f '{{.Config.Image}}' tokenfunc-api"`，与 `.env` 里 `TF_API_IMAGE` 一致（部署流程会改写） |
+| 当前镜像 | `ssh tokenfunc "docker inspect -f '{{.Config.Image}}' tokenfunc-api"`，与 `.env` 里 `TF_API_IMAGE` 一致（P2.5 会改写） |
 | 健康 URL | `https://tokenfunc.com/api/status`（`success:true`，`data.version` 即镜像 tag） |
 | 容器访问日志 | `docker logs tokenfunc-api` 的 `[GIN]` 行：`\| 状态码 \| 耗时 \| 客户端 IP \| 方法 路径`；panic 行含 `new_api_panic` |
 | 冒烟 token 环境变量 | `TOKENFUNC_SMOKE_API_KEY`（`sk-` 开头的 API 令牌，可在 `.claude/settings.local.json` 的 env 预配置） |
@@ -162,7 +166,7 @@ ssh tokenfunc "docker inspect -f '{{.Config.Image}}' tokenfunc-api; grep '^TF_AP
 
 ---
 
-## Phase 2 — 打 tag，Actions 构建 + 部署
+## Phase 2 — 打 tag，Actions 构建镜像
 
 **开始时**输出进度面板。
 
@@ -172,7 +176,7 @@ ssh tokenfunc "docker inspect -f '{{.Config.Image}}' tokenfunc-api; grep '^TF_AP
 [ "$(git rev-parse HEAD)" = "$(git rev-parse origin/main)" ] || git push origin main
 
 git tag <tag>
-git push origin <tag>              # 触发 Build & Deploy (GHCR)：build → deploy
+git push origin <tag>              # 触发 Build & Deploy (GHCR) 的 build job（只构建推 GHCR）
 ```
 
 找到由该 tag 触发的 run 并**轮询**到结束（不要 `gh run watch | tail`，管道会吞掉 gh 的网络错误变假成功）：
@@ -188,9 +192,48 @@ gh run view -R nanofluxlabs-ai/tokenfunc $RUN_ID --json status,conclusion,jobs \
 > 查询偶发 `Post ... EOF`（网络抖动）：重试即可，不要当失败。`gh pr merge` 也会这样，合并后要用 `gh pr view --json state` 确认。
 
 - `Build & push image` 失败 → 停止，报告构建日志（`gh run view -R nanofluxlabs-ai/tokenfunc $RUN_ID --log-failed`），不部署。
-- `Deploy to production` 失败（`up --wait` 超时 / 容器不健康）→ 直接进入 P3 判断是否要回滚：此时旧容器可能已被替换。
+- `completed/success` 后隔 15 秒再查一次双确认，再进 P2.5。
 
-构建约 5-6 分钟，部署约 1 分钟。**完成后**输出进度面板（P1-P2 ✅，P3 🔄）。
+构建约 5-6 分钟。**完成后**输出进度面板（P1-P2 ✅，P2.5 🔄）。
+
+---
+
+## Phase 2.5 — SSH 部署到生产机
+
+**开始时**输出进度面板。以下即原 Actions deploy job 的步骤，改在本机执行（`ssh tokenfunc` 已配好别名与密钥）：
+
+```bash
+IMAGE=ghcr.io/nanofluxlabs-ai/tokenfunc:<tag>
+
+# 1. 生产机登录 GHCR（镜像私有时才需要；令牌经 stdin，不落命令行）
+gh auth token | ssh tokenfunc "docker login ghcr.io -u $(gh api user --jq .login) --password-stdin"
+
+# 2. 同步 compose.yml：先与生产机的 .env / override 一起校验，通过才替换，旧文件留 compose.yml.prev
+scp compose.yml tokenfunc:/opt/tokenfunc/compose.yml.new
+ssh tokenfunc 'cd /opt/tokenfunc || exit 1
+  files=compose.yml.new
+  [ -f compose.override.yml ] && files="$files:compose.override.yml"
+  COMPOSE_FILE="$files" docker compose --profile app config -q \
+    && cp compose.yml compose.yml.prev && mv compose.yml.new compose.yml && echo "compose.yml synced"'
+
+# 3. 钉住新 tag 并滚动 api 容器（只动 api，postgres / redis 不动）
+ssh tokenfunc "cd /opt/tokenfunc \
+  && echo \"previous image: \$(docker inspect -f '{{.Config.Image}}' tokenfunc-api 2>/dev/null || echo none)\" \
+  && sed -i 's#^TF_API_IMAGE=.*#TF_API_IMAGE=$IMAGE#' .env && grep -q '^TF_API_IMAGE=' .env \
+  && docker compose --profile app pull api \
+  && docker compose --profile app up -d --wait api \
+  && docker image prune -f"
+
+# 4. 等 healthy（最多 5 分钟）
+ssh tokenfunc 'for i in $(seq 1 30); do
+  s=$(docker inspect -f "{{.State.Health.Status}}" tokenfunc-api 2>/dev/null || echo missing); echo "attempt $i: $s"
+  [ "$s" = healthy ] && exit 0; sleep 10; done; docker logs --tail 80 tokenfunc-api; exit 1'
+```
+
+- 步骤 2 校验失败 → 停止，compose.yml 不替换，不部署；把 `docker compose config` 的报错给用户。
+- 步骤 3/4 失败（`up --wait` 超时 / 不 healthy）→ 直接进入 P3 判断是否要回滚：此时旧容器可能已被替换。
+
+**完成后**输出进度面板（P1-P2.5 ✅，P3 🔄）。
 
 ---
 
@@ -201,6 +244,7 @@ gh run view -R nanofluxlabs-ai/tokenfunc $RUN_ID --json status,conclusion,jobs \
 ```bash
 # 1. 线上版本必须等于 tag
 curl -fsS https://tokenfunc.com/api/status | jq -r '"\(.success) \(.data.version)"'
+curl -fsS https://tokenfunc.com/api/health/ready | jq -r '"ready=\(.data.ready) db=\(.data.db) redis=\(.data.redis)"'   # 2026-10-25 起镜像带探针；旧镜像 404 可忽略
 
 # 2. 容器状态与镜像、.env 已固化
 ssh tokenfunc "cd /opt/tokenfunc && docker ps --format '{{.Names}}\t{{.Image}}\t{{.Status}}' | grep tokenfunc; grep '^TF_API_IMAGE=' .env"
@@ -387,7 +431,8 @@ ssh tokenfunc "docker logs --since '<SINCE>' tokenfunc-api 2>&1 | grep -c '^\[GI
 |------|------|------|
 | 前置检查 | | 分支 / 测试包 / 结果 |
 | 打 tag & push | | |
-| Actions 构建 + 部署 | | run-id，构建耗时，部署耗时 |
+| Actions 镜像构建 | | run-id，构建耗时 |
+| SSH 部署 | | compose.yml 校验与同步 / pull / up --wait / healthy 耗时 |
 | 部署验证 | | /api/status 版本、容器状态、panic 巡检 |
 | 冒烟测试 | | 覆盖接口 / 跳过原因 |
 | 部署后监控 | | 6 轮汇总 |
@@ -407,7 +452,7 @@ ssh tokenfunc "docker logs --since '<SINCE>' tokenfunc-api 2>&1 | grep -c '^\[GI
 |----|---------|
 | 本地 tag 过时，版本号推算错 | P1 先 `git fetch --tags` |
 | 工作区不干净或本地 commit 未 push 就打 tag | P2 强制检查；未 push 先 push main，tag 必须等于 origin/main HEAD |
-| 推 main 以为会部署 | 推 main 只构建 `main-*` 镜像；**只有 `v*` tag 才部署**。合并 PR 后仍需本 skill 打 tag |
+| 以为推 tag 会自动部署 | Actions 只构建镜像，**部署由本 skill P2.5 通过 SSH 完成**；合并 PR 后仍需本 skill 打 tag |
 | `gh` 不带 `-R` 解析到上游 `QuantumNous/new-api`（本地有 upstream remote），报 `workflow deploy-ghcr.yml not found` | 所有 `gh run` / `gh pr` 命令加 `-R nanofluxlabs-ai/tokenfunc` |
 | `gh run watch … \| tail` 把网络错误吞成成功 | 轮询 `gh run view --json status,conclusion`，以 conclusion 为准 |
 | `gh pr merge` / `gh api` 报 `Post … EOF` | 网络抖动，重试并用 `gh pr view --json state` 确认真实状态 |

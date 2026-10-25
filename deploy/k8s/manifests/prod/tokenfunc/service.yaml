@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: tokenfunc-api
+  namespace: tokenfunc
+spec:
+  # 只匹配 slave：master 跑后台任务，不混打 API 流量
+  selector:
+    app: tokenfunc-api
+    role: slave
+  ports:
+  - name: http
+    port: 3000
+    targetPort: http
+  type: ClusterIP

@@ -1,0 +1,84 @@
+# master：单副本，跑上游定时任务（渠道更新、订阅重置、系统任务、认证清理）与二开后台任务（授信账期、预聚合、归档）。
+# 不接 Service 流量（见 service.yaml），探针由 kubelet 直接打。
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: tokenfunc-api-master
+  namespace: tokenfunc
+  labels:
+    app: tokenfunc-api
+    role: master
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: tokenfunc-api
+      role: master
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 0
+      maxSurge: 1
+  template:
+    metadata:
+      labels:
+        app: tokenfunc-api
+        role: master
+    spec:
+      imagePullSecrets:
+      - name: ghcr-secret
+      # 必须 > SHUTDOWN_TIMEOUT_SECONDS(1800) + preStop(15)
+      terminationGracePeriodSeconds: 1830
+      containers:
+      - name: tokenfunc-api
+        # 发版由 scripts/deploy.sh <tag> 用 kubectl set image 滚动；apply 本文件前先核对线上 tag，否则会意外回滚：
+        #   kubectl -n tokenfunc get deploy tokenfunc-api-master -o jsonpath='{.spec.template.spec.containers[0].image}'
+        image: ghcr.io/nanofluxlabs-ai/tokenfunc:latest
+        ports:
+        - containerPort: 3000
+          name: http
+        envFrom:
+        - configMapRef:
+            name: tokenfunc-api-config
+        - secretRef:
+            name: tokenfunc-api
+        env:
+        - name: NODE_TYPE
+          value: "master"
+        - name: NODE_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        volumeMounts:
+        # 归档导出的临时 csv.gz 落在 /tmp，按单日最大日志量预留
+        - name: tmp
+          mountPath: /tmp
+        readinessProbe:
+          httpGet:
+            path: /api/health/ready
+            port: http
+          initialDelaySeconds: 10
+          periodSeconds: 5
+          failureThreshold: 3
+        livenessProbe:
+          httpGet:
+            path: /api/health/live
+            port: http
+          initialDelaySeconds: 30
+          periodSeconds: 30
+          failureThreshold: 3
+        lifecycle:
+          preStop:
+            exec:
+              command: ["/bin/sh", "-c", "sleep 15"]
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "100m"
+          limits:
+            memory: "1Gi"
+            cpu: "1000m"
+      volumes:
+      - name: tmp
+        emptyDir:
+          sizeLimit: 2Gi

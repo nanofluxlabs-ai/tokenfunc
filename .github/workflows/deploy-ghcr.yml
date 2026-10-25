@@ -1,20 +1,12 @@
 name: Build & Deploy (GHCR)
 
 # Builds the image from source and pushes it to GHCR under this repository's
-# namespace. Pushing a release tag (v*) additionally deploys it to the production
-# host over SSH; pushes to main only build a `main-<date>-<sha>` image.
-# The host keeps a production .env (and an optional compose.override.yml) in
-# /opt/tokenfunc; every release copies the repo's compose.yml there after
-# validating it against those files, so compose changes ship with the tag.
-# TF_API_IMAGE in that .env is rewritten to the deployed tag so a plain
-# `docker compose --profile app up -d` (or a rollback) always knows the image.
-# Release entry point: the `/release-standalone` skill in .claude/skills.
-#
-# Required repository secrets:
-#   DEPLOY_HOST         production host address
-#   DEPLOY_USER         SSH user on the production host
-#   DEPLOY_SSH_KEY      private key whose public half is in the host's authorized_keys
-#   DEPLOY_KNOWN_HOSTS  host key line, pinned to avoid trust-on-first-use
+# namespace. Pushing a release tag (v*) builds `<tag>` and moves `:latest`;
+# pushes to main only build a `main-<date>-<sha>` image.
+# This workflow never deploys. Deployment is done from the operator's machine:
+#   - single host (docker compose over SSH): the `/release-standalone` skill
+#   - TKE cluster (kubectl rolling update):  the `/release-tke` skill
+# Both skills wait for the build job of the tag's run before deploying.
 
 on:
   push:
@@ -23,15 +15,8 @@ on:
     tags:
       - 'v*'
   workflow_dispatch:
-    inputs:
-      skip_deploy:
-        description: 'Build and push only, do not deploy'
-        required: false
-        default: false
-        type: boolean
 
-# Builds run per ref so a main build never queues a release; only the deploy
-# step is serialised (see the deploy job).
+# Builds run per ref so a main build never queues a release.
 concurrency:
   group: deploy-ghcr-${{ github.ref }}
   cancel-in-progress: false
@@ -91,90 +76,3 @@ jobs:
             ${{ steps.version.outputs.release == 'true' && format('{0}:latest', env.IMAGE) || '' }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
-
-  deploy:
-    name: Deploy to production
-    needs: [build]
-    if: ${{ needs.build.outputs.release == 'true' && !inputs.skip_deploy }}
-    concurrency:
-      group: deploy-production
-      cancel-in-progress: false
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      packages: read
-    steps:
-      - name: Check out compose.yml
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
-        with:
-          fetch-depth: 1
-          sparse-checkout: compose.yml
-          sparse-checkout-cone-mode: false
-
-      - name: Configure SSH
-        run: |
-          mkdir -p ~/.ssh
-          printf '%s\n' "${{ secrets.DEPLOY_SSH_KEY }}" > ~/.ssh/deploy_key
-          chmod 600 ~/.ssh/deploy_key
-          printf '%s\n' "${{ secrets.DEPLOY_KNOWN_HOSTS }}" > ~/.ssh/known_hosts
-          chmod 644 ~/.ssh/known_hosts
-
-      - name: Authenticate host to GHCR
-        # Piped through stdin so the token never lands in the remote process list.
-        run: |
-          printf '%s' "${{ secrets.GITHUB_TOKEN }}" | ssh -i ~/.ssh/deploy_key \
-            "${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}" \
-            "docker login ghcr.io -u ${{ github.actor }} --password-stdin"
-
-      - name: Sync compose.yml
-        # Validates the new file together with the host's .env and override before
-        # replacing the live one; the previous copy stays as compose.yml.prev.
-        run: |
-          scp -i ~/.ssh/deploy_key compose.yml \
-            "${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}:/opt/tokenfunc/compose.yml.new"
-          ssh -i ~/.ssh/deploy_key \
-            "${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}" \
-            'cd /opt/tokenfunc || exit 1
-             files=compose.yml.new
-             [ -f compose.override.yml ] && files="$files:compose.override.yml"
-             COMPOSE_FILE="$files" docker compose --profile app config -q \
-               && cp compose.yml compose.yml.prev \
-               && mv compose.yml.new compose.yml \
-               && echo "compose.yml synced"'
-
-      - name: Pull & restart
-        # Records the previously running image in the job log (rollback target),
-        # pins the new tag into .env, then rolls the api container.
-        run: |
-          ssh -i ~/.ssh/deploy_key \
-            "${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}" \
-            "cd /opt/tokenfunc \
-             && echo \"previous image: \$(docker inspect -f '{{.Config.Image}}' tokenfunc-api 2>/dev/null || echo none)\" \
-             && sed -i 's#^TF_API_IMAGE=.*#TF_API_IMAGE=${{ env.IMAGE }}:${{ needs.build.outputs.version }}#' .env \
-             && grep -q '^TF_API_IMAGE=' .env \
-             && docker compose --profile app pull api \
-             && docker compose --profile app up -d --wait \
-             && docker image prune -f"
-
-      - name: Wait for healthy status
-        run: |
-          ssh -i ~/.ssh/deploy_key \
-            "${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}" \
-            'for i in $(seq 1 30); do
-               status=$(docker inspect -f "{{.State.Health.Status}}" tokenfunc-api 2>/dev/null || echo missing)
-               echo "attempt $i: $status"
-               [ "$status" = "healthy" ] && exit 0
-               sleep 10
-             done
-             echo "service did not become healthy"
-             docker logs --tail 80 tokenfunc-api
-             exit 1'
-
-      - name: Summary
-        run: |
-          {
-            echo "### Deployed"
-            echo '```'
-            echo "${{ env.IMAGE }}:${{ needs.build.outputs.version }}"
-            echo '```'
-          } >> "$GITHUB_STEP_SUMMARY"

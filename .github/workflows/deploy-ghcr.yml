@@ -8,7 +8,8 @@ name: Build & Deploy (GHCR)
 # validating it against those files, so compose changes ship with the tag.
 # TF_API_IMAGE in that .env is rewritten to the deployed tag so a plain
 # `docker compose --profile app up -d` (or a rollback) always knows the image.
-# Release entry point: the `/release-standalone` skill in .claude/skills.
+# Release entry point: the `/release-standalone` skill in .claude/skills (single host),
+# or `/release-tke` once the repository variable DEPLOY_TARGET=tke disables the SSH deploy job.
 #
 # Required repository secrets:
 #   DEPLOY_HOST         production host address
@@ -95,7 +96,8 @@ jobs:
   deploy:
     name: Deploy to production
     needs: [build]
-    if: ${{ needs.build.outputs.release == 'true' && !inputs.skip_deploy }}
+    # 切到 TKE 后把仓库变量 DEPLOY_TARGET 设为 tke，这里就只构建不再 SSH 部署到单机；集群滚动由 /release-tke 用 kubectl 完成
+    if: ${{ needs.build.outputs.release == 'true' && !inputs.skip_deploy && vars.DEPLOY_TARGET != 'tke' }}
     concurrency:
       group: deploy-production
       cancel-in-progress: false

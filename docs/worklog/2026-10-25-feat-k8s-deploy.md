@@ -19,6 +19,8 @@
   - `terminationGracePeriodSeconds=1830` > `SHUTDOWN_TIMEOUT_SECONDS=1800` + preStop 15s；`/tmp` 挂 emptyDir 给归档临时文件；`LOG_DIR=""` 只打 stdout。
   - `deploy.sh <tag>`：set image master → slave，任一阶段失败自动 undo；`--undo` 回滚。
   - `env-to-k8s.sh`：一份应用变量名的 .env 按敏感键名单拆成 configmap.yaml / secret.yaml。
+- 发版技能 `/release-tke`（`.claude/skills/release-tke/SKILL.md`，参考 tokensolo 的 `/tke-release` 改成 tokenfunc 的仓库 / 镜像 / 主从 Deployment / 探针 / 冒烟接口）：P1 增加 `gh variable get DEPLOY_TARGET` 必须为 `tke` 的校验；P2 Actions 失败自动回退 `scripts/tokenfunc/tke-local-image.sh`（照 tokensolo 脚本移植：前端宿主机 rsbuild、Go 交叉编译复刻 Dockerfile 的 builder2 / 运行层、VERSION 写 tag、crane HTTP/1.1 推送、核验平台与版本号；退出码 0/1/2/3 语义相同）；P3 调 `deploy/k8s/scripts/deploy.sh`；P5 回滚 slave → master；P6 默认用 `kubectl logs --since-time` 聚合 slave 的 NDJSON 访问日志，CLS 主题接好后再切 tccli。
+- `deploy-ghcr.yml` 的单机 SSH 部署 job 加 `vars.DEPLOY_TARGET != 'tke'` 门控：切 TKE 时设仓库变量即可，不删单机路线。
 - `.gitignore` 忽略 `deploy/k8s/manifests/ghcr-secret.yaml` 与 `**/secret.yaml`；`development.md` §6 加 k8s 指引与 master 约定；`/release-standalone` P3 加探针检查。
 
 ## 验证
@@ -28,7 +30,8 @@
 - `make api` 后 `curl /api/health/live` → 200 `live=true`；`/api/health/ready` → 200 `ready=true db=true redis=true`。
 - `kubeconform -strict`：7 个资源 Valid 6 / Invalid 0 / Skipped 1（ClusterIssuer 为 CRD 无内置 schema）；本机 kubectl 没有可用集群，未做 server 端 dry-run。
 - `bash -n` 四个脚本通过；`env-to-k8s.sh` 用临时 env 验证：注释跳过、成对引号去除、含引号值正确转义、带数字的密钥键进 Secret。
-- 未在真实 TKE 上 apply（集群未建）。
+- `tke-local-image.sh <latest-tag> --no-push` 本机自检：第一次失败：仓库 `.dockerignore` 排除 `/web/dist`，宿主机编好的前端进不了构建上下文，`test -f` 静默退出（tokensolo 仓库没这条规则所以它的脚本没踩到）；脚本改为构建前删掉检出副本里的这一行并显式报错后重跑，exit 0，`ghcr.io/nanofluxlabs-ai/tokenfunc:v2026.10.22.1` linux/amd64 238MB、二进制含版本号，worktree 已清理（完整日志 `.tmp/logs/tke-local-image-selftest.log`）。
+- 未在真实 TKE 上 apply（集群未建）；`/release-tke` 未实跑（无集群）。
 
 ## 遗留
 

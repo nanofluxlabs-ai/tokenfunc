@@ -1183,6 +1183,18 @@
     "The billing email and administrators are notified when period usage reaches this percentage, and again when the limit is exhausted. 0 disables alerts.": "L'e-mail de facturation et les administrateurs sont prévenus lorsque l'utilisation de la période atteint ce pourcentage, puis à nouveau lorsque la limite est épuisée. 0 désactive les alertes.",
     "Alert threshold {{percent}}% · billing email is notified when reached": "Seuil d'alerte {{percent}}% · l'e-mail de facturation est prévenu une fois atteint",
     "Alert threshold reached": "Seuil d'alerte atteint",
-    "Limit exhausted": "Limite épuisée"
+    "Limit exhausted": "Limite épuisée",
+    "Reconciliation diff": "Écart de rapprochement",
+    "Reconciled": "Rapproché",
+    "by #{{id}}": "par #{{id}}",
+    "Diff": "Écart",
+    "Reconciliation difference": "Écart de rapprochement",
+    "The period counter ({{counter}}) and the usage details ({{detail}}) differ by {{diff}}. The bill was issued from the counter.": "Le compteur de la période ({{counter}}) et le détail d'utilisation ({{detail}}) diffèrent de {{diff}}. La facture a été émise d'après le compteur.",
+    "Reconciled by #{{id}} on {{date}}": "Rapproché par #{{id}} le {{date}}",
+    "Mark as reconciled": "Marquer comme rapproché",
+    "Reconciliation difference marked as reviewed": "Écart de rapprochement marqué comme vérifié",
+    "Failed to mark as reconciled": "Échec du marquage comme rapproché",
+    "Confirm that the difference has been reviewed. The bill amount stays as issued.": "Confirmez que l'écart a été vérifié. Le montant de la facture reste celui émis.",
+    "Note (optional)": "Remarque (facultatif)"
   }
 }

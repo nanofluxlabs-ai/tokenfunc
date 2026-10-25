@@ -1183,6 +1183,18 @@
     "The billing email and administrators are notified when period usage reaches this percentage, and again when the limit is exhausted. 0 disables alerts.": "期間内の使用量がこの割合に達したとき、請求先メールと管理者に通知し、上限を使い切ったときに再度通知します。0 でアラートを無効化します。",
     "Alert threshold {{percent}}% · billing email is notified when reached": "アラートしきい値 {{percent}}% · 到達時に請求先メールへ通知",
     "Alert threshold reached": "アラートしきい値に到達",
-    "Limit exhausted": "上限を使い切りました"
+    "Limit exhausted": "上限を使い切りました",
+    "Reconciliation diff": "照合差異",
+    "Reconciled": "照合済み",
+    "by #{{id}}": "#{{id}} による",
+    "Diff": "差額",
+    "Reconciliation difference": "照合差異があります",
+    "The period counter ({{counter}}) and the usage details ({{detail}}) differ by {{diff}}. The bill was issued from the counter.": "期間カウンター（{{counter}}）と使用明細（{{detail}}）に {{diff}} の差があります。請求はカウンターに基づいて発行されました。",
+    "Reconciled by #{{id}} on {{date}}": "{{date}} に #{{id}} が照合済み",
+    "Mark as reconciled": "照合済みにする",
+    "Reconciliation difference marked as reviewed": "照合差異を確認済みにしました",
+    "Failed to mark as reconciled": "照合済みにできませんでした",
+    "Confirm that the difference has been reviewed. The bill amount stays as issued.": "差異を確認済みであることを確定します。請求金額は発行時のまま変わりません。",
+    "Note (optional)": "メモ（任意）"
   }
 }

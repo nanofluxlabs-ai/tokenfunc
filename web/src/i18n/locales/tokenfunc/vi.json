@@ -1183,6 +1183,18 @@
     "The billing email and administrators are notified when period usage reaches this percentage, and again when the limit is exhausted. 0 disables alerts.": "Email thanh toán và quản trị viên sẽ được thông báo khi mức sử dụng trong kỳ đạt tỷ lệ này, và một lần nữa khi hạn mức cạn kiệt. 0 để tắt cảnh báo.",
     "Alert threshold {{percent}}% · billing email is notified when reached": "Ngưỡng cảnh báo {{percent}}% · thông báo tới email thanh toán khi đạt",
     "Alert threshold reached": "Đã đạt ngưỡng cảnh báo",
-    "Limit exhausted": "Hạn mức đã cạn"
+    "Limit exhausted": "Hạn mức đã cạn",
+    "Reconciliation diff": "Chênh lệch đối soát",
+    "Reconciled": "Đã đối soát",
+    "by #{{id}}": "bởi #{{id}}",
+    "Diff": "Chênh lệch",
+    "Reconciliation difference": "Chênh lệch đối soát",
+    "The period counter ({{counter}}) and the usage details ({{detail}}) differ by {{diff}}. The bill was issued from the counter.": "Bộ đếm kỳ ({{counter}}) và chi tiết sử dụng ({{detail}}) chênh lệch {{diff}}. Hóa đơn được phát hành theo bộ đếm.",
+    "Reconciled by #{{id}} on {{date}}": "Đã đối soát bởi #{{id}} vào {{date}}",
+    "Mark as reconciled": "Đánh dấu đã đối soát",
+    "Reconciliation difference marked as reviewed": "Đã đánh dấu chênh lệch đối soát là đã kiểm tra",
+    "Failed to mark as reconciled": "Không thể đánh dấu đã đối soát",
+    "Confirm that the difference has been reviewed. The bill amount stays as issued.": "Xác nhận chênh lệch đã được kiểm tra. Số tiền hóa đơn giữ nguyên như khi phát hành.",
+    "Note (optional)": "Ghi chú (tùy chọn)"
   }
 }

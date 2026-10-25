@@ -282,6 +282,10 @@ export function useSidebarData(): SidebarData {
                 title: t('Task Plugins'),
                 url: '/task-plugins',
               },
+              {
+                title: t('Log Archive'),
+                url: '/log-archive',
+              },
             ],
           },
           {

@@ -52,6 +52,7 @@ import { Route as AuthenticatedErrorsErrorRouteImport } from './routes/_authenti
 import { Route as AuthenticatedFinanceIndexRouteImport } from './routes/_authenticated/finance/index'
 import { Route as AuthenticatedFinanceSectionRouteImport } from './routes/_authenticated/finance/$section'
 import { Route as AuthenticatedKeysIndexRouteImport } from './routes/_authenticated/keys/index'
+import { Route as AuthenticatedLogArchiveIndexRouteImport } from './routes/_authenticated/log-archive/index'
 import { Route as AuthenticatedModelsIndexRouteImport } from './routes/_authenticated/models/index'
 import { Route as AuthenticatedModelsSectionRouteImport } from './routes/_authenticated/models/$section'
 import { Route as AuthenticatedPlaygroundIndexRouteImport } from './routes/_authenticated/playground/index'
@@ -322,6 +323,12 @@ const AuthenticatedKeysIndexRoute = AuthenticatedKeysIndexRouteImport.update({
   path: '/keys/',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedLogArchiveIndexRoute =
+  AuthenticatedLogArchiveIndexRouteImport.update({
+    id: '/log-archive/',
+    path: '/log-archive/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedModelsIndexRoute =
   AuthenticatedModelsIndexRouteImport.update({
     id: '/models/',
@@ -612,6 +619,7 @@ export interface FileRoutesByFullPath {
   '/enterprise-leads/': typeof AuthenticatedEnterpriseLeadsIndexRoute
   '/finance/': typeof AuthenticatedFinanceIndexRoute
   '/keys/': typeof AuthenticatedKeysIndexRoute
+  '/log-archive/': typeof AuthenticatedLogArchiveIndexRoute
   '/models/': typeof AuthenticatedModelsIndexRoute
   '/playground/': typeof AuthenticatedPlaygroundIndexRoute
   '/profile/': typeof AuthenticatedProfileIndexRoute
@@ -695,6 +703,7 @@ export interface FileRoutesByTo {
   '/enterprise-leads': typeof AuthenticatedEnterpriseLeadsIndexRoute
   '/finance': typeof AuthenticatedFinanceIndexRoute
   '/keys': typeof AuthenticatedKeysIndexRoute
+  '/log-archive': typeof AuthenticatedLogArchiveIndexRoute
   '/models': typeof AuthenticatedModelsIndexRoute
   '/playground': typeof AuthenticatedPlaygroundIndexRoute
   '/profile': typeof AuthenticatedProfileIndexRoute
@@ -782,6 +791,7 @@ export interface FileRoutesById {
   '/_authenticated/enterprise-leads/': typeof AuthenticatedEnterpriseLeadsIndexRoute
   '/_authenticated/finance/': typeof AuthenticatedFinanceIndexRoute
   '/_authenticated/keys/': typeof AuthenticatedKeysIndexRoute
+  '/_authenticated/log-archive/': typeof AuthenticatedLogArchiveIndexRoute
   '/_authenticated/models/': typeof AuthenticatedModelsIndexRoute
   '/_authenticated/playground/': typeof AuthenticatedPlaygroundIndexRoute
   '/_authenticated/profile/': typeof AuthenticatedProfileIndexRoute
@@ -868,6 +878,7 @@ export interface FileRouteTypes {
     | '/enterprise-leads/'
     | '/finance/'
     | '/keys/'
+    | '/log-archive/'
     | '/models/'
     | '/playground/'
     | '/profile/'
@@ -951,6 +962,7 @@ export interface FileRouteTypes {
     | '/enterprise-leads'
     | '/finance'
     | '/keys'
+    | '/log-archive'
     | '/models'
     | '/playground'
     | '/profile'
@@ -1037,6 +1049,7 @@ export interface FileRouteTypes {
     | '/_authenticated/enterprise-leads/'
     | '/_authenticated/finance/'
     | '/_authenticated/keys/'
+    | '/_authenticated/log-archive/'
     | '/_authenticated/models/'
     | '/_authenticated/playground/'
     | '/_authenticated/profile/'
@@ -1399,6 +1412,13 @@ declare module '@tanstack/react-router' {
       path: '/keys'
       fullPath: '/keys/'
       preLoaderRoute: typeof AuthenticatedKeysIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/log-archive/': {
+      id: '/_authenticated/log-archive/'
+      path: '/log-archive'
+      fullPath: '/log-archive/'
+      preLoaderRoute: typeof AuthenticatedLogArchiveIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/models/': {
@@ -1802,6 +1822,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedEnterpriseLeadsIndexRoute: typeof AuthenticatedEnterpriseLeadsIndexRoute
   AuthenticatedFinanceIndexRoute: typeof AuthenticatedFinanceIndexRoute
   AuthenticatedKeysIndexRoute: typeof AuthenticatedKeysIndexRoute
+  AuthenticatedLogArchiveIndexRoute: typeof AuthenticatedLogArchiveIndexRoute
   AuthenticatedModelsIndexRoute: typeof AuthenticatedModelsIndexRoute
   AuthenticatedPlaygroundIndexRoute: typeof AuthenticatedPlaygroundIndexRoute
   AuthenticatedProfileIndexRoute: typeof AuthenticatedProfileIndexRoute
@@ -1850,6 +1871,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
     AuthenticatedEnterpriseLeadsIndexRoute,
   AuthenticatedFinanceIndexRoute: AuthenticatedFinanceIndexRoute,
   AuthenticatedKeysIndexRoute: AuthenticatedKeysIndexRoute,
+  AuthenticatedLogArchiveIndexRoute: AuthenticatedLogArchiveIndexRoute,
   AuthenticatedModelsIndexRoute: AuthenticatedModelsIndexRoute,
   AuthenticatedPlaygroundIndexRoute: AuthenticatedPlaygroundIndexRoute,
   AuthenticatedProfileIndexRoute: AuthenticatedProfileIndexRoute,

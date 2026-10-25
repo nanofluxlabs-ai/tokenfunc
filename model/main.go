@@ -394,6 +394,7 @@ func migrateDB() error {
 		&LogDailyRollup{},
 		&Promoter{},
 		&PromoterBinding{},
+		&LogArchiveManifest{},
 	)
 	if err != nil {
 		return err

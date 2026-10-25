@@ -128,6 +128,12 @@ func SetLogRollupYesterdayDone(day string) error {
 	return writeTokenfuncOption(LogRollupYesterdayDoneOptionKey, day)
 }
 
+// GetTokenfuncOption 读二开自用的 options 键；没有记录返回 ""
+func GetTokenfuncOption(key string) (string, error) { return readTokenfuncOption(key) }
+
+// SetTokenfuncOption upsert 二开自用的 options 键
+func SetTokenfuncOption(key string, value string) error { return writeTokenfuncOption(key, value) }
+
 // readTokenfuncOption 直接读 options 表。不走 common.OptionMap：游标由单个节点推进，其他副本的内存快照不会同步，读库才是事实
 func readTokenfuncOption(key string) (string, error) {
 	var option Option

@@ -938,6 +938,8 @@ type EnterpriseTokenListItem struct {
 	ResetPeriod string `json:"reset_period"`
 	PeriodQuota int64  `json:"period_quota"`
 	NextResetAt int64  `json:"next_reset_at"`
+	// EffectiveStatus 派生四态（见 enterpriseTokenEffectiveStatusSQL）；Status 仍是 tokens.status 原值
+	EffectiveStatus int `json:"effective_status"`
 }
 
 // EnterpriseTokenExpiringWindow 「即将过期」筛选的窗口：7 天内
@@ -946,10 +948,29 @@ const EnterpriseTokenExpiringWindow = 7 * 24 * 3600
 type EnterpriseTokenFilter struct {
 	TeamId   *int
 	MemberId *int
-	Status   *int
-	// Expiring 只看 7 天内到期的 key
+	// Status 按派生四态过滤（1 启用 / 2 停用 / 3 过期 / 4 耗尽），与概览口径一致
+	Status *int
+	// Expiring 只看仍在启用、7 天内到期的 key
 	Expiring bool
 	Keyword  string
+}
+
+// enterpriseTokenEffectiveStatusSQL 企业 key 的派生四态表达式，概览计数与密钥页筛选 / 列表共用。
+// Redis 模式下上游不会把耗尽 / 过期回写到 tokens.status，这里按余额与到期时间派生：
+// 过期 > 耗尽 > 停用 > 启用，一把 key 只归一档；停用的 key 即使到期 / 余额为 0 仍算停用。
+// 只有编译期常量与时间戳参与拼接，不含用户输入。
+func enterpriseTokenEffectiveStatusSQL(now int64) string {
+	return fmt.Sprintf("(CASE WHEN tokens.status = %d OR (tokens.status = %d AND tokens.expired_time > 0 AND tokens.expired_time < %d) THEN %d "+
+		"WHEN tokens.status = %d OR (tokens.status = %d AND NOT tokens.unlimited_quota AND tokens.remain_quota <= 0) THEN %d "+
+		"ELSE tokens.status END)",
+		common.TokenStatusExpired, common.TokenStatusEnabled, now, common.TokenStatusExpired,
+		common.TokenStatusExhausted, common.TokenStatusEnabled, common.TokenStatusExhausted)
+}
+
+// enterpriseTokenExpiringSQL 「即将过期」谓词：仍在启用、且 (now, now+7d] 内到期
+func enterpriseTokenExpiringSQL(now int64) string {
+	return fmt.Sprintf("(tokens.status = %d AND tokens.expired_time > %d AND tokens.expired_time <= %d)",
+		common.TokenStatusEnabled, now, now+EnterpriseTokenExpiringWindow)
 }
 
 // enterpriseMonthRange 本月与上月的起止日（账期时区），列表页环比用
@@ -980,9 +1001,12 @@ const enterpriseTokenSelect = `tokens.id, tokens.name, tokens.` + "%s" + ` AS to
 	COALESCE(tokens.allow_ips, '') AS allow_ips,
 	COALESCE(a.team_id, 0) AS team_id, COALESCE(tm.name, '') AS team_name, COALESCE(tm.status, '') AS team_status,
 	COALESCE(a.member_id, 0) AS member_id, COALESCE(m.name, '') AS member_name,
-	COALESCE(qp.reset_period, '') AS reset_period, COALESCE(qp.period_quota, 0) AS period_quota, COALESCE(qp.next_reset_at, 0) AS next_reset_at`
+	COALESCE(qp.reset_period, '') AS reset_period, COALESCE(qp.period_quota, 0) AS period_quota, COALESCE(qp.next_reset_at, 0) AS next_reset_at,
+	%s AS effective_status`
 
 func ListEnterpriseTokens(enterpriseId int, ownerUserId int, scope EnterpriseScope, filter EnterpriseTokenFilter, startIdx int, num int) ([]*EnterpriseTokenListItem, int64, error) {
+	now := common.GetTimestamp()
+	effectiveStatus := enterpriseTokenEffectiveStatusSQL(now)
 	query := enterpriseTokenQuery(enterpriseId, ownerUserId, scope)
 	if filter.TeamId != nil {
 		query = query.Where("COALESCE(a.team_id, 0) = ?", *filter.TeamId)
@@ -991,11 +1015,10 @@ func ListEnterpriseTokens(enterpriseId int, ownerUserId int, scope EnterpriseSco
 		query = query.Where("COALESCE(a.member_id, 0) = ?", *filter.MemberId)
 	}
 	if filter.Status != nil {
-		query = query.Where("tokens.status = ?", *filter.Status)
+		query = query.Where(effectiveStatus+" = ?", *filter.Status)
 	}
 	if filter.Expiring {
-		now := common.GetTimestamp()
-		query = query.Where("tokens.expired_time > 0 AND tokens.expired_time <= ?", now+EnterpriseTokenExpiringWindow)
+		query = query.Where(enterpriseTokenExpiringSQL(now))
 	}
 	if keyword := strings.TrimSpace(filter.Keyword); keyword != "" {
 		like := "%" + keyword + "%"
@@ -1007,7 +1030,7 @@ func ListEnterpriseTokens(enterpriseId int, ownerUserId int, scope EnterpriseSco
 	}
 	items := make([]*EnterpriseTokenListItem, 0)
 	err := query.
-		Select(fmt.Sprintf(enterpriseTokenSelect, commonKeyCol, commonGroupCol)).
+		Select(fmt.Sprintf(enterpriseTokenSelect, commonKeyCol, commonGroupCol, effectiveStatus)).
 		Order("tokens.id DESC").
 		Limit(num).Offset(startIdx).
 		Scan(&items).Error

@@ -32,6 +32,7 @@ const monthlyKey: EnterpriseToken = {
   member_name: '',
   month_quota: 0,
   prev_month_quota: 0,
+  effective_status: 1,
   reset_period: 'monthly',
   period_quota: 2_500_000,
   next_reset_at: 1_792_944_000,

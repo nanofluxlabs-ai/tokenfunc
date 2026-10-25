@@ -273,6 +273,23 @@ func TestEnterpriseConsoleOverview(t *testing.T) {
 	assert.Equal(t, float64(2), keys["exhausted"], "status=4 plus remain_quota<=0")
 	assert.Equal(t, float64(1), keys["expired"], "derived from expired_time")
 	assert.Equal(t, float64(1), keys["expiring_7d"])
+	// 密钥页按派生状态 / 即将过期筛选出的条数必须等于概览的计数（同一谓词）
+	listTotal := func(query string) float64 {
+		response := accessTokenRequest(router, "GET", "/api/enterprise/tokens"+query, ownerToken, "", "")
+		require.Equal(t, http.StatusOK, response.Code, response.Body.String())
+		var parsed struct {
+			Data struct {
+				Total float64 `json:"total"`
+			} `json:"data"`
+		}
+		require.NoError(t, common.Unmarshal(response.Body.Bytes(), &parsed), response.Body.String())
+		return parsed.Data.Total
+	}
+	assert.Equal(t, keys["active"], listTotal("?status=1"))
+	assert.Equal(t, keys["disabled"], listTotal("?status=2"))
+	assert.Equal(t, keys["expired"], listTotal("?status=3"))
+	assert.Equal(t, keys["exhausted"], listTotal("?status=4"))
+	assert.Equal(t, keys["expiring_7d"], listTotal("?expiring=true"))
 	org := section(data, "org")
 	assert.Equal(t, float64(3), org["teams"], "Default + Research + QA")
 	assert.Equal(t, float64(2), org["members"])
@@ -323,7 +340,7 @@ func TestEnterpriseConsoleOverview(t *testing.T) {
 	assert.Equal(t, float64(0), data["balance_quota"])
 }
 
-// 企业密钥页：访问限制校验、编辑含归属、启停校验、删除清归属、批量范围、成员取明文、本月消耗回填、key 上限按企业覆盖
+// 企业密钥页：访问限制校验、编辑含归属、启停校验、删除清归属、批量范围、成员取明文、本月消耗回填、key 上限按企业覆盖、派生四态筛选
 func TestEnterpriseConsoleTokenManagement(t *testing.T) {
 	setupAccessTokenAudit(t)
 	// GetUserGroup / 列表 SELECT 用到带引号的 group / key 列名
@@ -515,6 +532,40 @@ func TestEnterpriseConsoleTokenManagement(t *testing.T) {
 	code, body = call("POST", "/api/enterprise/tokens", ownerToken, `{"name":"two","unlimited_quota":true}`)
 	require.Equal(t, http.StatusOK, code)
 	assert.Equal(t, true, body["success"], "enterprise limit overrides site limit")
+
+	// 派生四态：Redis 模式下 tokens.status 不回写，筛选与行上状态按余额 / 到期时间派生，与概览同口径
+	now := common.GetTimestamp()
+	derived := func(name string, token model.Token) {
+		token.UserId, token.Name, token.Key, token.Status = owner.Id, name, name, common.TokenStatusEnabled
+		require.NoError(t, model.CreateEnterpriseToken(ent.Id, model.EnterpriseScope{}, &token, qa.Id, 0))
+	}
+	derived("derived-exhausted", model.Token{RemainQuota: 0, ExpiredTime: -1})
+	derived("derived-expired", model.Token{UnlimitedQuota: true, ExpiredTime: now - 60})
+	derived("derived-expiring", model.Token{UnlimitedQuota: true, ExpiredTime: now + 3600})
+	listRows := func(query string) map[string]map[string]any {
+		code, body := call("GET", "/api/enterprise/tokens"+query, ownerToken, "")
+		require.Equal(t, http.StatusOK, code)
+		rows := map[string]map[string]any{}
+		for _, item := range dataOf(body)["items"].([]any) {
+			row := item.(map[string]any)
+			rows[row["name"].(string)] = row
+		}
+		return rows
+	}
+	exhausted := listRows("?status=4")
+	require.Len(t, exhausted, 1, "status=4 is derived from remain_quota, not tokens.status")
+	assert.Equal(t, float64(common.TokenStatusEnabled), exhausted["derived-exhausted"]["status"], "tokens.status is left untouched")
+	assert.Equal(t, float64(common.TokenStatusExhausted), exhausted["derived-exhausted"]["effective_status"])
+	expired := listRows("?status=3")
+	require.Len(t, expired, 1)
+	assert.Equal(t, float64(common.TokenStatusExpired), expired["derived-expired"]["effective_status"])
+	enabled := listRows("?status=1")
+	assert.NotContains(t, enabled, "derived-exhausted", "status=1 excludes keys exhausted by balance")
+	assert.NotContains(t, enabled, "derived-expired", "status=1 excludes keys past their expiry")
+	assert.Contains(t, enabled, "derived-expiring")
+	expiring := listRows("?expiring=true")
+	require.Len(t, expiring, 1, "expiring uses the same 7-day window as the overview and excludes already expired keys")
+	assert.Equal(t, float64(common.TokenStatusEnabled), expiring["derived-expiring"]["effective_status"])
 }
 
 // 企业主账号（预付 / 授信）在线充值入口一律 403，普通用户放行；升级为企业后负缓存立即失效

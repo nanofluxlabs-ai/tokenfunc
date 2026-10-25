@@ -82,6 +82,7 @@ const existing: EnterpriseToken = {
   member_name: 'Alice',
   month_quota: 0,
   prev_month_quota: 0,
+  effective_status: 1,
   reset_period: '',
   period_quota: 0,
   next_reset_at: 0,

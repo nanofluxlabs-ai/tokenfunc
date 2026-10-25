@@ -142,6 +142,18 @@ func TestEnterpriseScopeIsolation(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, int64(1), total)
 	assert.Equal(t, rdKey.Id, keys[0].Id)
+	// 概览计数与密钥页筛选同一派生口径：QA 的 key 余额归零但 tokens.status 仍为启用，既计入耗尽、也能按耗尽筛出
+	require.NoError(t, DB.Model(&Token{}).Where("id = ?", qaKey.Id).Updates(map[string]any{"unlimited_quota": false, "remain_quota": 0}).Error)
+	counts, err := CountEnterpriseTokens(ent.Id, owner.Id, EnterpriseScope{}, common.GetTimestamp())
+	require.NoError(t, err)
+	assert.Equal(t, &EnterpriseTokenCounts{Total: 2, Active: 1, Exhausted: 1}, counts)
+	exhaustedStatus := common.TokenStatusExhausted
+	keys, total, err = ListEnterpriseTokens(ent.Id, owner.Id, EnterpriseScope{}, EnterpriseTokenFilter{Status: &exhaustedStatus}, 0, 20)
+	require.NoError(t, err)
+	assert.Equal(t, int64(1), total)
+	assert.Equal(t, qaKey.Id, keys[0].Id)
+	assert.Equal(t, common.TokenStatusEnabled, keys[0].Status)
+	assert.Equal(t, common.TokenStatusExhausted, keys[0].EffectiveStatus)
 	// 范围内不能把 key 挪到别的团队，也不能动别的团队的 key，更不能在别的团队建 key
 	assert.ErrorIs(t, AssignEnterpriseToken(ent.Id, owner.Id, rdScope, rdKey.Id, qa.Id, 0), ErrEnterpriseResourceNotFound)
 	assert.ErrorIs(t, AssignEnterpriseToken(ent.Id, owner.Id, rdScope, qaKey.Id, rd.Id, 0), ErrEnterpriseResourceNotFound)

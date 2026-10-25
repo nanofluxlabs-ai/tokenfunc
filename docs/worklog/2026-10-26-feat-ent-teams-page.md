@@ -2,8 +2,8 @@
 
 - 日期：2026-10-26
 - 分支：feat/ent-teams-page
-- PR：
-- 关键 commit：
+- PR：#55
+- 关键 commit：aa97f0211
 
 ## 背景
 

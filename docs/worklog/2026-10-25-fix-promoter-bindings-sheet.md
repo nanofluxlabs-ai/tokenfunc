@@ -17,6 +17,7 @@
   - 提示行：「不可绑定：自己、管理员、已归属其他推广人的用户」，`text-muted-foreground text-xs`。tokensolo 原文里的「员工账号（请绑定其老板）」没有照搬：tokenfunc 企业员工没有登录账号（`EnterpriseEmployee` 不对应 `users` 行），搜索不到也绑不上，消耗天然落在主账号。
   - 名下用户表列顺序：用户 / 分组（`StatusBadge`）/ 来源 + 口径 / 绑定时间 / 操作人 / 本月消耗 / 解绑；表格加 `min-w-[760px]`，由 `Table` 外层的 `overflow-x-auto` 容器横向滚动。
 - i18n：新增 3 个 key（提示语、「Month consumption」、搜索框占位），7 种语言手写；「本月消耗」不复用上游的 `This month`（中文译文是「本月获得」）。
+- 追加修复：首版把 3 个新 key 写到了 locale JSON 顶层而不是 `translation` 对象里，`withTokenfunc` 只合并 `translation`，中文环境直接显示英文 key；`i18n:sync` 与组件测试（i18next 返回 key）都拦不住。已挪回 `translation`，并新增 `src/i18n/tokenfunc/__tests__/locale-shape.test.ts` 守卫：二开 locale 文件顶层只能有 `translation`，七个文件 key 集合必须一致（反向验证：挪回前失败、挪回后通过）。
 - 测试 `__tests__/bindings-sheet.test.tsx`：新增「批量区默认收起、点按钮展开」「列头含分组 / 操作人 / 本月消耗且表格有保底宽度」；原批量用例改为先展开再输入，勾选框改按 role 定位。
 
 ## 验证

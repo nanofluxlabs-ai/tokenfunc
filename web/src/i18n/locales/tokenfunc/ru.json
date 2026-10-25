@@ -1130,9 +1130,9 @@
     "— the env_key variable is not exported in the shell where codex runs, or the key value is wrong.": "— переменная env_key не экспортирована в shell, где запущен codex, либо значение ключа неверно.",
     "— the key is wrong or exhausted. Check the key value and its quota on the keys page.": "— ключ неверен или исчерпан. Проверьте его значение и квоту на странице ключей.",
     "— the key may not include the model you selected. Compare /model entries with the models endpoint or Model Square.": "— ключ может не включать выбранную модель. Сверьте записи /model с эндпоинтом models или Model Square.",
-    "— verify the apiKey value and that the model id in the models array exists on this site (compare with the models endpoint).": "— проверьте значение apiKey и что id модели из массива models существует на этом сайте (сверьте с эндпоинтом models)."
-  },
-  "Cannot bind: the promoter themselves, admins, or users already assigned to another promoter": "Нельзя привязать: самого промоутера, администраторов и пользователей, уже закреплённых за другим промоутером",
-  "Month consumption": "Расход за месяц",
-  "Search by username / ID / email to add": "Найдите по имени пользователя / ID / email, чтобы добавить"
+    "— verify the apiKey value and that the model id in the models array exists on this site (compare with the models endpoint).": "— проверьте значение apiKey и что id модели из массива models существует на этом сайте (сверьте с эндпоинтом models).",
+    "Cannot bind: the promoter themselves, admins, or users already assigned to another promoter": "Нельзя привязать: самого промоутера, администраторов и пользователей, уже закреплённых за другим промоутером",
+    "Month consumption": "Расход за месяц",
+    "Search by username / ID / email to add": "Найдите по имени пользователя / ID / email, чтобы добавить"
+  }
 }

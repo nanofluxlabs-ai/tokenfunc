@@ -1130,9 +1130,9 @@
     "— the env_key variable is not exported in the shell where codex runs, or the key value is wrong.": "—— codex を実行するシェルで env_key の変数がエクスポートされていないか、キーの値が間違っています。",
     "— the key is wrong or exhausted. Check the key value and its quota on the keys page.": "—— キーが間違っているか、使い切られています。キーページで値とクォータを確認してください。",
     "— the key may not include the model you selected. Compare /model entries with the models endpoint or Model Square.": "—— キーに選択したモデルが含まれていない可能性があります。/model の項目を models エンドポイントやモデル広場と照合してください。",
-    "— verify the apiKey value and that the model id in the models array exists on this site (compare with the models endpoint).": "—— apiKey の値と、models 配列のモデル id がこのサイトに存在することを確認してください（models エンドポイントと照合）。"
-  },
-  "Cannot bind: the promoter themselves, admins, or users already assigned to another promoter": "バインド不可：本人、管理者、既に他のプロモーターに紐付いているユーザー",
-  "Month consumption": "今月の消費",
-  "Search by username / ID / email to add": "ユーザー名 / ID / メールで検索して追加"
+    "— verify the apiKey value and that the model id in the models array exists on this site (compare with the models endpoint).": "—— apiKey の値と、models 配列のモデル id がこのサイトに存在することを確認してください（models エンドポイントと照合）。",
+    "Cannot bind: the promoter themselves, admins, or users already assigned to another promoter": "バインド不可：本人、管理者、既に他のプロモーターに紐付いているユーザー",
+    "Month consumption": "今月の消費",
+    "Search by username / ID / email to add": "ユーザー名 / ID / メールで検索して追加"
+  }
 }

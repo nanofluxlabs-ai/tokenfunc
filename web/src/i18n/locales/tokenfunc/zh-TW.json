@@ -1130,9 +1130,9 @@
     "— the env_key variable is not exported in the shell where codex runs, or the key value is wrong.": "—— 執行 codex 的 shell 中未匯出 env_key 指定的變數，或金鑰值有誤。",
     "— the key is wrong or exhausted. Check the key value and its quota on the keys page.": "—— 金鑰有誤或已耗盡。請在金鑰頁核對金鑰值與配額。",
     "— the key may not include the model you selected. Compare /model entries with the models endpoint or Model Square.": "—— 金鑰可能未包含所選模型。請將 /model 清單與模型端點或模型廣場對照。",
-    "— verify the apiKey value and that the model id in the models array exists on this site (compare with the models endpoint).": "—— 核對 apiKey 的值，並確認 models 陣列中的模型 id 在本站存在（可與模型端點對照）。"
-  },
-  "Cannot bind: the promoter themselves, admins, or users already assigned to another promoter": "不可綁定：自己、管理員、已歸屬其他推廣人的使用者",
-  "Month consumption": "本月消耗",
-  "Search by username / ID / email to add": "搜尋使用者名稱 / ID / 信箱後新增"
+    "— verify the apiKey value and that the model id in the models array exists on this site (compare with the models endpoint).": "—— 核對 apiKey 的值，並確認 models 陣列中的模型 id 在本站存在（可與模型端點對照）。",
+    "Cannot bind: the promoter themselves, admins, or users already assigned to another promoter": "不可綁定：自己、管理員、已歸屬其他推廣人的使用者",
+    "Month consumption": "本月消耗",
+    "Search by username / ID / email to add": "搜尋使用者名稱 / ID / 信箱後新增"
+  }
 }

@@ -2,8 +2,8 @@
 
 - 日期：2026-10-25
 - 分支：feat/logarchive-import
-- PR：
-- 关键 commit：
+- PR：#40
+- 关键 commit：e73174ecd
 
 ## 背景
 

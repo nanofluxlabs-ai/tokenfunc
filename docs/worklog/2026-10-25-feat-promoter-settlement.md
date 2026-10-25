@@ -39,4 +39,4 @@
 - 管理端 `all=true` 对跨多年 × 数百用户的推广人会一次读取全维度行；推广人模块刚上线、月份少，一期可接受。升级路径：`tokenfunc_log_daily_rollup.go` 加 `(day, user_id, log_type)` 维度预设。
 - 固定天数账期边界在一天中间时有半天归属误差；精确方案是用 `ent_usage_daily(day, period_id)` 分摊，二期再做。
 - 推广人移除后结算记录按 `promoter_user_id` 保留；重新设为推广人后创建月变新，旧月份不再出现在抽屉里（如需历史再加开关）。
-- 本次 PR：待补。
+- 本次 PR：#44（https://github.com/nanofluxlabs-ai/tokenfunc/pull/44）。

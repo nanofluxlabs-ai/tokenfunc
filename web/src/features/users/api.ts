@@ -16,10 +16,8 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import type { AxiosRequestConfig } from 'axios'
-
 import type { PermissionCatalog } from '@/lib/admin-permissions'
-import { api } from '@/lib/api'
+import { api, securityProofConfig } from '@/lib/api'
 import type { CustomOAuthBinding } from '@/lib/oauth'
 import { requireServerSuccess } from '@/lib/server-error-message'
 
@@ -34,16 +32,6 @@ import type {
   ManualTopupPayload,
   ApiResponse,
 } from './types'
-
-// A step-up proof is single-use, so the request carrying it must never be
-// replayed by the auth-refresh interceptor; it refreshes first instead.
-function securityProofConfig(proofToken?: string): AxiosRequestConfig {
-  if (!proofToken) return {}
-  return {
-    headers: { 'X-Security-Proof': proofToken },
-    singleUseAuthorization: true,
-  }
-}
 
 // ============================================================================
 // User Management APIs

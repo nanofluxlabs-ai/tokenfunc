@@ -177,6 +177,8 @@ export interface LedgerEntry {
   type: string
   amount_quota: number
   balance_after_quota: number
+  /** adjustment 流水区分对象：wallet（动余额）/ bill（只改账单） */
+  ref_type: string
   reference: string
   remark: string
   operator_id: number

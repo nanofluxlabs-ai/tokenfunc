@@ -1283,6 +1283,25 @@
     "Usage is billed per credit period; a bill is issued as soon as the limit is used up.": "利用量は与信期間ごとに精算され、上限を使い切った時点で請求書が発行されます。",
     "When the limit is used up the period is billed and the next period starts automatically.": "上限を使い切ると当期が請求され、次の期間が自動的に始まります。",
     "When the limit is used up the period is billed; requests are rejected until the bill is paid.": "上限を使い切ると当期が請求され、支払いが完了するまでリクエストは拒否されます。",
-    "Awaiting bill payment. Contact your account manager to open the next period.": "請求書の入金待ちです。次の期間を開始するには担当者にご連絡ください。"
+    "Awaiting bill payment. Contact your account manager to open the next period.": "請求書の入金待ちです。次の期間を開始するには担当者にご連絡ください。",
+    "Adjust balance": "残高を調整",
+    "Adjust bill": "請求書を調整",
+    "Adjustment amount (USD)": "調整金額（USD）",
+    "Adjustment amount cannot be zero": "調整金額は 0 にできません",
+    "Adjustment amount is out of range": "調整金額が範囲外です",
+    "Adjusted total cannot be below the amount already paid": "調整後の合計は支払済み金額を下回れません",
+    "Remark must be at least {{count}} characters": "備考は {{count}} 文字以上必要です",
+    "Remark must be at most {{count}} characters": "備考は {{count}} 文字以内で入力してください",
+    "New total: {{amount}}": "調整後の合計：{{amount}}",
+    "Positive adds to the balance, negative deducts. Every adjustment is written to the ledger with your remark.": "正の値は残高を増やし、負の値は減らします。すべての調整は備考とともに台帳に記録されます。",
+    "Remark (required)": "備考（必須）",
+    "Why this adjustment is made": "この調整を行う理由",
+    "Verify to adjust enterprise billing": "企業の請求を調整するには本人確認が必要です",
+    "Confirm your identity before adjusting {{name}}.": "{{name}} を調整する前に本人確認を行ってください。",
+    "Failed to register adjustment": "調整の登録に失敗しました",
+    "Adjustment registered": "調整を登録しました",
+    "Register adjustment": "調整を登録",
+    "Current balance: {{amount}}": "現在の残高：{{amount}}",
+    "Enterprise balance adjustment": "企業残高の調整"
   }
 }

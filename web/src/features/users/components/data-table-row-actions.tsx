@@ -65,7 +65,11 @@ import { UserBindingDialog } from './dialogs/user-binding-dialog'
 import { UserTopupDialog } from './dialogs/user-topup-dialog'
 import { useUsers } from './users-provider'
 
-const MANAGE_ACTION_TITLES: Record<AdminUserManageAction, string> = {
+// enterprise_adjust is requested from the enterprise billing pages, not here
+const MANAGE_ACTION_TITLES: Record<
+  Exclude<AdminUserManageAction, 'enterprise_adjust'>,
+  string
+> = {
   disable: 'Verify to disable user',
   enable: 'Verify to enable user',
   promote: 'Verify to promote user',
@@ -104,7 +108,7 @@ export function DataTableRowActions({ row }: DataTableRowActionsProps) {
   }
 
   const handleManage = async (
-    action: Exclude<AdminUserManageAction, 'topup'>
+    action: Exclude<AdminUserManageAction, 'topup' | 'enterprise_adjust'>
   ) => {
     try {
       const proof = await requestVerification({

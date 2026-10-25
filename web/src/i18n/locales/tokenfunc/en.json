@@ -1221,6 +1221,8 @@
     "This bill was issued before unit prices were snapshotted; price and daily breakdowns are not available.": "This bill was issued before unit prices were snapshotted; price and daily breakdowns are not available.",
     "Settled bill: the breakdown below is the usage snapshot frozen at issue time.": "Settled bill: the breakdown below is the usage snapshot frozen at issue time.",
     "Row-level detail for settled bills follows the archived statement snapshot.": "Row-level detail for settled bills follows the archived statement snapshot.",
+    "Raw logs of this period have been purged; the row-level detail below is read from the statement snapshot archived on {{date}}.": "Raw logs of this period have been purged; the row-level detail below is read from the statement snapshot archived on {{date}}.",
+    "Archived detail rows exceed the inline limit; download the statement snapshot instead": "Archived detail rows exceed the inline limit; download the statement snapshot instead",
     "This bill was issued without a usage breakdown snapshot and cannot be exported": "This bill was issued without a usage breakdown snapshot and cannot be exported",
     "Usage alert threshold (%)": "Usage alert threshold (%)",
     "The billing email and administrators are notified when period usage reaches this percentage, and again when the limit is exhausted. 0 disables alerts.": "The billing email and administrators are notified when period usage reaches this percentage, and again when the limit is exhausted. 0 disables alerts.",

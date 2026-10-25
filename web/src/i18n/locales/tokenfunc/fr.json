@@ -1221,6 +1221,8 @@
     "This bill was issued before unit prices were snapshotted; price and daily breakdowns are not available.": "Cette facture a été émise avant l'instantané des prix unitaires ; les détails par prix et par jour ne sont pas disponibles.",
     "Settled bill: the breakdown below is the usage snapshot frozen at issue time.": "Facture réglée : le détail ci-dessous est l'instantané d'usage figé à l'émission.",
     "Row-level detail for settled bills follows the archived statement snapshot.": "Le détail ligne par ligne des factures réglées suit l'instantané de relevé archivé.",
+    "Raw logs of this period have been purged; the row-level detail below is read from the statement snapshot archived on {{date}}.": "Les journaux bruts de cette période ont été purgés ; le détail ligne par ligne ci-dessous est lu depuis le relevé figé archivé le {{date}}.",
+    "Archived detail rows exceed the inline limit; download the statement snapshot instead": "Les lignes de détail archivées dépassent la limite d'affichage en ligne ; téléchargez plutôt le relevé figé",
     "This bill was issued without a usage breakdown snapshot and cannot be exported": "Cette facture a été émise sans instantané du détail d'usage et ne peut pas être exportée",
     "Usage alert threshold (%)": "Seuil d'alerte d'utilisation (%)",
     "The billing email and administrators are notified when period usage reaches this percentage, and again when the limit is exhausted. 0 disables alerts.": "L'e-mail de facturation et les administrateurs sont prévenus lorsque l'utilisation de la période atteint ce pourcentage, puis à nouveau lorsque la limite est épuisée. 0 désactive les alertes.",

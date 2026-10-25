@@ -1,6 +1,7 @@
 import { useTranslation } from 'react-i18next'
 
 import {
+  usageScopeOf,
   useUsageDaily,
   useUsageSummary,
 } from '../../hooks/use-usage-breakdown-queries'
@@ -38,9 +39,7 @@ export function UsageBreakdownSection(props: UsageBreakdownSectionProps) {
       <Block title={t('Usage detail')}>
         <div className='p-2'>
           <UsageDetailTable
-            {...(props.scope === 'admin'
-              ? { scope: 'admin', user_id: props.user_id }
-              : { scope: 'self' })}
+            {...usageScopeOf(props)}
             ts_start={props.ts_start}
             ts_end={props.ts_end}
           />

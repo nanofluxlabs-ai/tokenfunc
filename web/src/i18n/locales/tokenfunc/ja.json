@@ -1221,6 +1221,8 @@
     "This bill was issued before unit prices were snapshotted; price and daily breakdowns are not available.": "この請求書は単価スナップショット導入前に発行されたため、単価と日別の内訳はありません。",
     "Settled bill: the breakdown below is the usage snapshot frozen at issue time.": "確定済み請求書：以下の内訳は発行時に凍結した利用スナップショットです。",
     "Row-level detail for settled bills follows the archived statement snapshot.": "確定済み請求書の明細行はアーカイブ済み明細スナップショットに従います。",
+    "Raw logs of this period have been purged; the row-level detail below is read from the statement snapshot archived on {{date}}.": "この期間の生ログは削除されています。以下の明細行は {{date}} にアーカイブした明細書スナップショットから読み込んでいます。",
+    "Archived detail rows exceed the inline limit; download the statement snapshot instead": "アーカイブ済み明細の行数がインライン表示の上限を超えています。明細書スナップショットをダウンロードしてください",
     "This bill was issued without a usage breakdown snapshot and cannot be exported": "この請求書は利用内訳スナップショットなしで発行されたため出力できません",
     "Usage alert threshold (%)": "使用量アラートしきい値（%）",
     "The billing email and administrators are notified when period usage reaches this percentage, and again when the limit is exhausted. 0 disables alerts.": "期間内の使用量がこの割合に達したとき、請求先メールと管理者に通知し、上限を使い切ったときに再度通知します。0 でアラートを無効化します。",

@@ -1221,6 +1221,8 @@
     "This bill was issued before unit prices were snapshotted; price and daily breakdowns are not available.": "該帳單出帳時尚未凍結單價快照，沒有單價與按日明細。",
     "Settled bill: the breakdown below is the usage snapshot frozen at issue time.": "已結算帳單：下方明細為出帳時凍結的用量快照。",
     "Row-level detail for settled bills follows the archived statement snapshot.": "已結算帳單的逐條明細以歸檔凍結件為準。",
+    "Raw logs of this period have been purged; the row-level detail below is read from the statement snapshot archived on {{date}}.": "本帳期的原始日誌已清理，下方逐條明細改讀 {{date}} 歸檔的對帳單凍結件。",
+    "Archived detail rows exceed the inline limit; download the statement snapshot instead": "歸檔明細行數超過線上顯示上限，請下載對帳單凍結件查看",
     "This bill was issued without a usage breakdown snapshot and cannot be exported": "該帳單出帳時沒有用量明細快照，無法匯出",
     "Usage alert threshold (%)": "用量預警閾值（%）",
     "The billing email and administrators are notified when period usage reaches this percentage, and again when the limit is exhausted. 0 disables alerts.": "本期已用達到該百分比時通知帳單信箱與管理員，額度用盡時再通知一次。0 表示關閉預警。",

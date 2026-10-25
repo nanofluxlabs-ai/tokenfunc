@@ -22,6 +22,8 @@ func init() {
 		"POST /api/admin/enterprise/bills/:id/payments":            accessTokenScopeRule("billing:write"),
 		"POST /api/admin/enterprise/bills/:id/void":                accessTokenScopeRule("billing:write"),
 		"POST /api/admin/enterprise/credit-periods/:id/issue":      accessTokenScopeRule("billing:write"),
+		"GET /api/admin/enterprise/reconcile/alerts":               accessTokenScopeRule("billing:read"),
+		"POST /api/admin/enterprise/reconcile/alerts/:bill_id/ack": accessTokenScopeRule("billing:write"),
 		"GET /api/admin/enterprise/settings/seller":                accessTokenScopeRule("billing:read"),
 		"PUT /api/admin/enterprise/settings/seller":                accessTokenScopeRule("billing:write"),
 		"GET /api/admin/enterprise/quotes/config":                  accessTokenScopeRule("billing:read"),

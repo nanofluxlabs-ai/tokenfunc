@@ -3,6 +3,7 @@ package service
 import (
 	"net/http/httptest"
 	"os"
+	"sync"
 	"testing"
 
 	"github.com/QuantumNous/new-api/common"
@@ -28,7 +29,12 @@ func setupCreditFundingPostgres(t *testing.T) {
 	require.NoError(t, err)
 	sqlDB, err := db.DB()
 	require.NoError(t, err)
-	tables := []any{&model.User{}, &model.Token{}, &model.Enterprise{}, &model.EnterpriseTeam{}, &model.EnterpriseCreditPeriod{}, &model.EnterpriseLedgerEntry{}}
+	tables := []any{
+		&model.User{}, &model.Token{}, &model.Enterprise{}, &model.EnterpriseTeam{}, &model.EnterpriseMember{},
+		&model.EnterpriseCreditPeriod{}, &model.EnterpriseCreditNotifyRecord{}, &model.EnterpriseLedgerEntry{},
+		// 出账测试需要明细聚合与账单表
+		&model.EnterpriseUsageDaily{}, &model.EnterpriseBill{},
+	}
 	previousDB := model.DB
 	previousMain, previousLog := common.MainDatabaseType(), common.LogDatabaseType()
 	model.DB = db
@@ -57,7 +63,9 @@ func newCreditEnterprise(t *testing.T, username string, mode string) (*model.Use
 	if mode == model.EnterpriseBillingModeCredit {
 		require.NoError(t, model.ConfigureEnterpriseCredit(mustEnterprise(t, user.Id).Id, model.EnterpriseCreditConfig{CycleType: model.EnterpriseCreditCycleNaturalMonth, LimitQuota: 1000}, 1))
 	}
+	// 企业计费信息按 user_id 做进程内缓存（15s）：用例结束必须清掉，否则同包后续 sqlite 用例里同 id 的用户会命中这里的授信态
 	model.InvalidateEnterpriseBillingInfo(user.Id)
+	t.Cleanup(func() { model.InvalidateEnterpriseBillingInfo(user.Id) })
 	return user, mustEnterprise(t, user.Id)
 }
 
@@ -114,7 +122,8 @@ func TestBillingSessionCreditLifecycle(t *testing.T) {
 	require.NoError(t, session.funding.Refund())
 	used, _ = creditPeriodState(t, ent.Id)
 	assert.Equal(t, int64(550), used)
-	require.NoError(t, model.ApplyCreditSettlement(ent.Id, info.CreditPeriodId, 0, 0))
+	_, err := model.ApplyCreditSettlement(ent.Id, info.CreditPeriodId, 0, 0)
+	require.NoError(t, err)
 
 	// 超出本期额度：403 额度不足，不产生任何扣减
 	info = relayInfo()
@@ -152,4 +161,117 @@ func TestBillingSessionPrepaidEnterpriseUsesWallet(t *testing.T) {
 	quota, err := model.GetUserQuota(owner.Id, true)
 	require.NoError(t, err)
 	assert.Equal(t, 180, quota)
+}
+
+// creditAlertRecorder 把预警发送换成同步记录，用例结束后恢复并清掉进程内已发标记
+type creditAlertRecorder struct {
+	mu    sync.Mutex
+	kinds []string
+}
+
+func (r *creditAlertRecorder) install(t *testing.T) {
+	t.Helper()
+	previousNotify, previousDispatch := creditAlertNotify, creditAlertDispatch
+	creditAlertDispatch = func(task func()) { task() }
+	creditAlertNotify = func(_ int, _ model.CreditUsageState, kind string, _ int) {
+		r.mu.Lock()
+		defer r.mu.Unlock()
+		r.kinds = append(r.kinds, kind)
+	}
+	t.Cleanup(func() {
+		creditAlertNotify, creditAlertDispatch = previousNotify, previousDispatch
+		creditAlertSent.Range(func(key, _ any) bool {
+			creditAlertSent.Delete(key)
+			return true
+		})
+	})
+}
+
+func (r *creditAlertRecorder) snapshot() []string {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	return append([]string(nil), r.kinds...)
+}
+
+func TestCreditFundingAlerts(t *testing.T) {
+	setupCreditFundingPostgres(t)
+	recorder := &creditAlertRecorder{}
+	recorder.install(t)
+	owner, ent := newCreditEnterprise(t, "alertflow", model.EnterpriseBillingModeCredit)
+	configure := func(limit int64, percent int) {
+		t.Helper()
+		require.NoError(t, model.ConfigureEnterpriseCredit(ent.Id, model.EnterpriseCreditConfig{CycleType: model.EnterpriseCreditCycleNaturalMonth, LimitQuota: limit, AlertPercent: percent}, 1))
+		model.InvalidateEnterpriseBillingInfo(owner.Id)
+	}
+	configure(1000, 80)
+	relayInfo := func() *relaycommon.RelayInfo {
+		return &relaycommon.RelayInfo{UserId: owner.Id, IsPlayground: true, RequestId: "req"}
+	}
+	notifyRecords := func(kind string) int64 {
+		t.Helper()
+		var count int64
+		require.NoError(t, model.DB.Model(&model.EnterpriseCreditNotifyRecord{}).Where("kind = ?", kind).Count(&count).Error)
+		return count
+	}
+
+	// 70% 不预警；结算到 85% 触发一次 warn；之后继续消费不再重复
+	session, apiErr := NewBillingSession(newCreditTestContext(), relayInfo(), 700)
+	require.Nil(t, apiErr)
+	assert.Empty(t, recorder.snapshot())
+	require.NoError(t, session.Settle(850))
+	assert.Equal(t, []string{model.CreditNotifyKindWarn}, recorder.snapshot())
+	session, apiErr = NewBillingSession(newCreditTestContext(), relayInfo(), 50)
+	require.Nil(t, apiErr)
+	require.NoError(t, session.Settle(50))
+	assert.Equal(t, []string{model.CreditNotifyKindWarn}, recorder.snapshot(), "warn is sent once per period")
+	assert.Equal(t, int64(1), notifyRecords(model.CreditNotifyKindWarn))
+
+	// 预扣被拒（403）直接触发 exhausted，再次被拒不重复
+	_, apiErr = NewBillingSession(newCreditTestContext(), relayInfo(), 500)
+	require.NotNil(t, apiErr)
+	assert.Equal(t, 403, apiErr.StatusCode)
+	_, apiErr = NewBillingSession(newCreditTestContext(), relayInfo(), 500)
+	require.NotNil(t, apiErr)
+	assert.Equal(t, []string{model.CreditNotifyKindWarn, model.CreditNotifyKindExhausted}, recorder.snapshot())
+	assert.Equal(t, int64(1), notifyRecords(model.CreditNotifyKindExhausted))
+
+	// 额度上调后 warn 记录被清，阈值重新有效；两路并发只有一方抢到发送权
+	configure(2000, 80)
+	assert.Equal(t, int64(0), notifyRecords(model.CreditNotifyKindWarn))
+	period, err := model.GetOpenCreditPeriod(ent.Id)
+	require.NoError(t, err)
+	funding := &CreditFunding{enterpriseId: ent.Id, periodId: period.Id, alertPercent: 80}
+	state := model.CreditUsageState{PeriodId: period.Id, UsedQuota: 1700, LimitQuota: 2000}
+	var wg sync.WaitGroup
+	for range 2 {
+		wg.Go(func() { funding.checkCreditAlert(state, false) })
+	}
+	wg.Wait()
+	assert.Equal(t, []string{model.CreditNotifyKindWarn, model.CreditNotifyKindExhausted, model.CreditNotifyKindWarn}, recorder.snapshot())
+	assert.Equal(t, int64(1), notifyRecords(model.CreditNotifyKindWarn))
+
+	// 阈值 0 关闭预警：即便 403 也不发
+	configure(2000, 0)
+	_, apiErr = NewBillingSession(newCreditTestContext(), relayInfo(), 5000)
+	require.NotNil(t, apiErr)
+	assert.Equal(t, 403, apiErr.StatusCode)
+	assert.Len(t, recorder.snapshot(), 3)
+
+	// 滚入新期：按 period_id 隔离，新期达到阈值重新触发
+	configure(2000, 80)
+	const shift = int64(40 * 86400)
+	require.NoError(t, model.DB.Model(&model.Enterprise{}).Where("id = ?", ent.Id).Update("credit_anchor_at", gorm.Expr("credit_anchor_at - ?", shift)).Error)
+	require.NoError(t, model.DB.Model(&model.EnterpriseCreditPeriod{}).Where("id = ?", period.Id).Updates(map[string]any{
+		"start_at": gorm.Expr("start_at - ?", shift), "end_at": gorm.Expr("end_at - ?", shift),
+	}).Error)
+	rolled, err := model.RolloverDueCreditPeriods(common.GetTimestamp())
+	require.NoError(t, err)
+	require.Equal(t, 1, rolled)
+	model.InvalidateEnterpriseBillingInfo(owner.Id)
+	session, apiErr = NewBillingSession(newCreditTestContext(), relayInfo(), 1600)
+	require.Nil(t, apiErr)
+	assert.Len(t, recorder.snapshot(), 4)
+	assert.Equal(t, model.CreditNotifyKindWarn, recorder.snapshot()[3])
+	require.NoError(t, session.Settle(1600))
+	assert.Len(t, recorder.snapshot(), 4)
 }

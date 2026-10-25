@@ -22,7 +22,7 @@ import { BillPaymentDialog } from './bill-payment-dialog'
 import { SellerProfileDialog } from './seller-profile-dialog'
 
 const PAGE_SIZE = 20
-type Filter = 'all' | 'unpaid' | 'overdue' | 'paid' | 'statement'
+type Filter = 'all' | 'unpaid' | 'overdue' | 'paid' | 'statement' | 'reconcile'
 
 /** 企业账单管理（列表 + 收款 / 作废 + 开票方设置）；在财务中心的「企业账单」tab 内渲染 */
 export function BillsAdminContent(props: {
@@ -44,6 +44,7 @@ export function BillsAdminContent(props: {
     overdue: { overdue: 'true' as const },
     paid: { status: 'paid' },
     statement: { bill_type: 'statement' },
+    reconcile: { reconcile: 'diff' as const },
   }[filter]
   const { data, isLoading } = useQuery({
     queryKey: ['admin-enterprise', 'bills', filter, page],
@@ -92,6 +93,9 @@ export function BillsAdminContent(props: {
             <TabsTrigger value='statement'>
               {t('Monthly statement')}
             </TabsTrigger>
+            <TabsTrigger value='reconcile'>
+              {t('Reconciliation diff')}
+            </TabsTrigger>
             <TabsTrigger value='all'>{t('All')}</TabsTrigger>
           </TabsList>
         </Tabs>
@@ -106,6 +110,7 @@ export function BillsAdminContent(props: {
         isLoading={isLoading}
         exportScope='admin'
         showEnterprise
+        showReconcile
         renderBillNo={props.renderBillNo}
         renderActions={(bill) =>
           bill.bill_type === 'credit' &&

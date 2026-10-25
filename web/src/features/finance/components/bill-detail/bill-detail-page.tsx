@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { getRouteApi, Link } from '@tanstack/react-router'
 import { ArrowLeft } from 'lucide-react'
+import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { EmptyState } from '@/components/empty-state'
@@ -41,6 +42,7 @@ import { ExportCsvControl } from '../usage-breakdown/export-csv-control'
 import { UsageBreakdownSection } from '../usage-breakdown/usage-breakdown-section'
 import { UsageDetailTable } from '../usage-breakdown/usage-detail-table'
 import { BillArchiveControl } from './bill-archive-control'
+import { ReconcileAckDialog, ReconcileDiffAlert } from './reconcile-diff-alert'
 
 const route = getRouteApi('/_authenticated/finance/bills/$billId')
 
@@ -53,7 +55,11 @@ function day(timestamp: number): string {
  * 已出账且快照为 v2 的账单直接渲染出账时冻结的快照（与企业侧同口径），不再实时扫 logs；
  * 进行中账期与旧快照账单维持实时聚合。
  */
-export function BillDetailContent(props: { context: FinanceBillContext }) {
+export function BillDetailContent(props: {
+  context: FinanceBillContext
+  /** 点击「标记已核对」：由页面在布局槽位外打开确认框 */
+  onAckReconcile?: () => void
+}) {
   const { t, i18n } = useTranslation()
   const locale = toIntlLocale(i18n.resolvedLanguage || i18n.language)
   const context = props.context
@@ -110,6 +116,12 @@ export function BillDetailContent(props: { context: FinanceBillContext }) {
             )}
           </AlertDescription>
         </Alert>
+      )}
+      {context.bill && (
+        <ReconcileDiffAlert
+          bill={context.bill}
+          onAck={props.onAckReconcile ?? (() => {})}
+        />
       )}
       <div className='grid gap-3 sm:grid-cols-2 xl:grid-cols-5'>
         <MetricCard
@@ -189,11 +201,18 @@ export function BillDetailPage() {
     ? summary.bill_no || t('Period #{{no}}', { no: summary.period_no })
     : t('Bill')
 
+  const [ackOpen, setAckOpen] = useState(false)
+
   let content = <LoadingState />
   if (!ref || (!isLoading && (isError || !data))) {
     content = <EmptyState title={t('Bill not found')} />
   } else if (data) {
-    content = <BillDetailContent context={data} />
+    content = (
+      <BillDetailContent
+        context={data}
+        onAckReconcile={() => setAckOpen(true)}
+      />
+    )
   }
 
   let statusBadge: React.ReactNode = null
@@ -215,55 +234,62 @@ export function BillDetailPage() {
   }
 
   return (
-    <SectionPageLayout stackActionsOnMobile>
-      <SectionPageLayout.Title>
-        <span className='inline-flex flex-wrap items-center gap-2'>
-          <span className='font-mono'>{title}</span>
-          {summary && (
-            <span className='text-muted-foreground text-sm font-normal'>
-              {summary.enterprise_name}
-            </span>
-          )}
-          {statusBadge}
-        </span>
-      </SectionPageLayout.Title>
-      <SectionPageLayout.Actions>
-        <div className='flex flex-wrap items-center gap-2'>
-          {data?.bill && <InvoiceButton bill={data.bill} size='sm' />}
-          {data?.bill && (
-            <BillExportCsvButton bill={data.bill} scope='admin' size='sm' />
-          )}
-          {data?.bill && <BillArchiveControl bill={data.bill} />}
-          {data && summary && data.kind === 'period' && (
-            <ExportCsvControl
-              scope='admin'
-              user_id={summary.user_id}
-              ts_start={data.usage_ts_start}
-              ts_end={data.usage_ts_end}
-              filename={buildUsageCsvFilename(
-                summary.enterprise_name,
-                day(summary.period_start),
-                day(summary.period_end - 1),
-                t('statement')
-              )}
-            />
-          )}
-          <Button
-            variant='outline'
-            size='sm'
-            render={
-              <Link
-                to='/finance/$section'
-                params={{ section: 'enterprise-bills' }}
+    <>
+      <SectionPageLayout stackActionsOnMobile>
+        <SectionPageLayout.Title>
+          <span className='inline-flex flex-wrap items-center gap-2'>
+            <span className='font-mono'>{title}</span>
+            {summary && (
+              <span className='text-muted-foreground text-sm font-normal'>
+                {summary.enterprise_name}
+              </span>
+            )}
+            {statusBadge}
+          </span>
+        </SectionPageLayout.Title>
+        <SectionPageLayout.Actions>
+          <div className='flex flex-wrap items-center gap-2'>
+            {data?.bill && <InvoiceButton bill={data.bill} size='sm' />}
+            {data?.bill && (
+              <BillExportCsvButton bill={data.bill} scope='admin' size='sm' />
+            )}
+            {data?.bill && <BillArchiveControl bill={data.bill} />}
+            {data && summary && data.kind === 'period' && (
+              <ExportCsvControl
+                scope='admin'
+                user_id={summary.user_id}
+                ts_start={data.usage_ts_start}
+                ts_end={data.usage_ts_end}
+                filename={buildUsageCsvFilename(
+                  summary.enterprise_name,
+                  day(summary.period_start),
+                  day(summary.period_end - 1),
+                  t('statement')
+                )}
               />
-            }
-          >
-            <ArrowLeft className='h-4 w-4' />
-            {t('Back to bills')}
-          </Button>
-        </div>
-      </SectionPageLayout.Actions>
-      <SectionPageLayout.Content>{content}</SectionPageLayout.Content>
-    </SectionPageLayout>
+            )}
+            <Button
+              variant='outline'
+              size='sm'
+              render={
+                <Link
+                  to='/finance/$section'
+                  params={{ section: 'enterprise-bills' }}
+                />
+              }
+            >
+              <ArrowLeft className='h-4 w-4' />
+              {t('Back to bills')}
+            </Button>
+          </div>
+        </SectionPageLayout.Actions>
+        <SectionPageLayout.Content>{content}</SectionPageLayout.Content>
+      </SectionPageLayout>
+      <ReconcileAckDialog
+        bill={data?.bill ?? null}
+        open={ackOpen}
+        onOpenChange={setAckOpen}
+      />
+    </>
   )
 }

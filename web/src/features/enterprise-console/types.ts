@@ -165,6 +165,7 @@ export interface EnterpriseOverview {
     credit_cycle_type: string
     credit_cycle_days: number
     credit_limit_quota: number
+    credit_alert_percent: number
     payment_terms_days: number
   }
   balance_quota: number
@@ -286,7 +287,12 @@ export interface Bill {
   due_at: number
   paid_at: number
   reminder_count: number
+  /** 出账时计数器 − 明细聚合的差额（quota），0 表示一致 */
   reconcile_diff_quota: number
+  /** 管理员标记差异已核对的时间 / 操作人 / 备注；未核对时为 0 / 0 / '' */
+  reconcile_acked_at: number
+  reconcile_acked_by: number
+  reconcile_ack_note: string
   archive_info: BillArchiveInfo | null
   archived_at: number
   usage_snapshot: BillUsageSnapshot | null

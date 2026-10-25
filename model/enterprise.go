@@ -82,24 +82,26 @@ func (p *EnterpriseBillingProfile) Scan(value any) error {
 // Enterprise 企业资料，与企业主账号（users 行）1:1。
 // 是否企业账号只由本表决定，不在 users 表上加字段，以减少与上游的合并冲突。
 type Enterprise struct {
-	Id               int                      `json:"id"`
-	UserId           int                      `json:"user_id" gorm:"uniqueIndex;not null"`
-	Name             string                   `json:"name" gorm:"type:varchar(128);not null;index"`
-	ContactName      string                   `json:"contact_name" gorm:"type:varchar(64);not null;default:''"`
-	ContactEmail     string                   `json:"contact_email" gorm:"type:varchar(128);not null;default:''"`
-	ContactPhone     string                   `json:"contact_phone" gorm:"type:varchar(32);not null;default:''"`
-	BillingMode      string                   `json:"billing_mode" gorm:"type:varchar(16);not null;index"`
-	CreditCycleType  string                   `json:"credit_cycle_type" gorm:"type:varchar(16);not null;default:''"`
-	CreditCycleDays  int                      `json:"credit_cycle_days" gorm:"not null;default:0"`
-	CreditLimitQuota int64                    `json:"credit_limit_quota" gorm:"not null;default:0"`
-	CreditAnchorAt   int64                    `json:"credit_anchor_at" gorm:"not null;default:0"`
-	PaymentTermsDays int                      `json:"payment_terms_days" gorm:"not null;default:15"`
-	Currency         string                   `json:"currency" gorm:"type:varchar(8);not null;default:'USD'"`
-	BillingProfile   EnterpriseBillingProfile `json:"billing_profile" gorm:"type:jsonb"`
-	Status           string                   `json:"status" gorm:"type:varchar(16);not null;index"`
-	Remark           string                   `json:"remark" gorm:"type:text"`
-	CreatedAt        int64                    `json:"created_at" gorm:"not null"`
-	UpdatedAt        int64                    `json:"updated_at" gorm:"not null"`
+	Id               int    `json:"id"`
+	UserId           int    `json:"user_id" gorm:"uniqueIndex;not null"`
+	Name             string `json:"name" gorm:"type:varchar(128);not null;index"`
+	ContactName      string `json:"contact_name" gorm:"type:varchar(64);not null;default:''"`
+	ContactEmail     string `json:"contact_email" gorm:"type:varchar(128);not null;default:''"`
+	ContactPhone     string `json:"contact_phone" gorm:"type:varchar(32);not null;default:''"`
+	BillingMode      string `json:"billing_mode" gorm:"type:varchar(16);not null;index"`
+	CreditCycleType  string `json:"credit_cycle_type" gorm:"type:varchar(16);not null;default:''"`
+	CreditCycleDays  int    `json:"credit_cycle_days" gorm:"not null;default:0"`
+	CreditLimitQuota int64  `json:"credit_limit_quota" gorm:"not null;default:0"`
+	CreditAnchorAt   int64  `json:"credit_anchor_at" gorm:"not null;default:0"`
+	// CreditAlertPercent 授信预警阈值（已用占额度的百分比，0..99，0 关闭；达到后通知账单邮箱与 root）
+	CreditAlertPercent int                      `json:"credit_alert_percent" gorm:"not null;default:80"`
+	PaymentTermsDays   int                      `json:"payment_terms_days" gorm:"not null;default:15"`
+	Currency           string                   `json:"currency" gorm:"type:varchar(8);not null;default:'USD'"`
+	BillingProfile     EnterpriseBillingProfile `json:"billing_profile" gorm:"type:jsonb"`
+	Status             string                   `json:"status" gorm:"type:varchar(16);not null;index"`
+	Remark             string                   `json:"remark" gorm:"type:text"`
+	CreatedAt          int64                    `json:"created_at" gorm:"not null"`
+	UpdatedAt          int64                    `json:"updated_at" gorm:"not null"`
 }
 
 // EnterpriseListItem 管理员企业客户列表行：企业资料 + 主账号摘要 + 授信企业的当前账期额度（预付企业为 0）
@@ -252,6 +254,8 @@ func CreateEnterpriseWithNewUser(user *User, enterprise *Enterprise) error {
 		return err
 	}
 	user.FinishInsert(0)
+	// 该 user_id 可能已被按"非企业"负缓存，立刻失效让充值拦截与企业计费路径即时生效
+	InvalidateEnterpriseBillingInfo(user.Id)
 	return nil
 }
 
@@ -260,7 +264,7 @@ func UpgradeUserToEnterprise(userId int, enterprise *Enterprise) error {
 	if err := enterprise.Normalize(); err != nil {
 		return err
 	}
-	return DB.Transaction(func(tx *gorm.DB) error {
+	err := DB.Transaction(func(tx *gorm.DB) error {
 		var user User
 		if err := lockForUpdate(tx).First(&user, "id = ?", userId).Error; err != nil {
 			return err
@@ -286,6 +290,12 @@ func UpgradeUserToEnterprise(userId int, enterprise *Enterprise) error {
 		_, err := ensureDefaultTeam(tx, enterprise.Id)
 		return err
 	})
+	if err != nil {
+		return err
+	}
+	// 升级前该用户一定被当作非企业用户缓存过（负缓存），立刻失效消除 15s 内仍可在线充值的窗口
+	InvalidateEnterpriseBillingInfo(userId)
+	return nil
 }
 
 // UpdateEnterpriseProfile 更新企业资料（不含计费模式与授信配置，授信由专门接口维护）

@@ -28,10 +28,11 @@ func paramBillId(c *gin.Context) (int64, bool) {
 func writeEnterpriseBills(c *gin.Context, enterpriseId int) {
 	pageInfo := common.GetPageQuery(c)
 	filter := model.EnterpriseBillFilter{
-		EnterpriseId: enterpriseId,
-		BillType:     c.Query("bill_type"),
-		Status:       c.Query("status"),
-		OverdueOnly:  c.Query("overdue") == "true",
+		EnterpriseId:      enterpriseId,
+		BillType:          c.Query("bill_type"),
+		Status:            c.Query("status"),
+		OverdueOnly:       c.Query("overdue") == "true",
+		ReconcileDiffOnly: c.Query("reconcile") == "diff",
 	}
 	if filter.EnterpriseId == 0 {
 		if id, err := strconv.Atoi(c.Query("enterprise_id")); err == nil && id > 0 {
@@ -145,7 +146,7 @@ func AdminIssueBillNow(c *gin.Context) {
 		common.ApiErrorMsg(c, "invalid period id")
 		return
 	}
-	bill, err := model.IssueCreditBill(periodId)
+	bill, err := service.IssueCreditBillAndNotify(periodId)
 	if err != nil {
 		if errors.Is(err, model.ErrEnterprisePeriodNotReady) {
 			common.ApiErrorMsg(c, err.Error())
@@ -207,6 +208,60 @@ func writeEnterpriseBillExport(c *gin.Context, bill *model.EnterpriseBill) {
 	if err := service.WriteFinanceUsageCSV(c.Writer, payload); err != nil {
 		common.SysError("bill export: write snapshot csv failed: " + err.Error())
 	}
+}
+
+// AdminListReconcileAlerts 对账差异列表：出账时计数器与明细不一致的授信账单（state=pending|acked|all）
+func AdminListReconcileAlerts(c *gin.Context) {
+	pageInfo := common.GetPageQuery(c)
+	enterpriseId, _ := strconv.Atoi(c.Query("enterprise_id"))
+	alerts, total, err := model.ListReconcileAlerts(c.DefaultQuery("state", model.ReconcileAlertStatePending), enterpriseId, pageInfo.GetStartIdx(), pageInfo.GetPageSize())
+	if err != nil {
+		if errors.Is(err, model.ErrReconcileAlertState) {
+			common.ApiErrorMsg(c, err.Error())
+			return
+		}
+		common.ApiError(c, err)
+		return
+	}
+	pageInfo.SetTotal(int(total))
+	pageInfo.SetItems(alerts)
+	common.ApiSuccess(c, pageInfo)
+}
+
+type adminReconcileAckRequest struct {
+	Note string `json:"note"`
+}
+
+// AdminAckReconcileAlert 标记对账差异已人工核对（幂等）
+func AdminAckReconcileAlert(c *gin.Context) {
+	billId, err := strconv.ParseInt(c.Param("bill_id"), 10, 64)
+	if err != nil || billId <= 0 {
+		common.ApiErrorMsg(c, "invalid bill id")
+		return
+	}
+	var req adminReconcileAckRequest
+	if err := common.DecodeJson(c.Request.Body, &req); err != nil {
+		common.ApiErrorMsg(c, "invalid request body")
+		return
+	}
+	if len(req.Note) > 1000 {
+		common.ApiErrorMsg(c, "note is too long")
+		return
+	}
+	bill, err := model.AckReconcileAlert(billId, c.GetInt("id"), req.Note)
+	if err != nil {
+		if errors.Is(err, model.ErrEnterpriseBillNoReconcileDiff) {
+			common.ApiErrorMsg(c, err.Error())
+			return
+		}
+		enterpriseApiError(c, err)
+		return
+	}
+	enterprise, _ := model.GetEnterpriseById(bill.EnterpriseId)
+	recordManageAuditFor(c, enterpriseOwnerId(enterprise), "enterprise.reconcile.ack", map[string]any{
+		"bill_id": bill.Id, "bill_no": bill.BillNo, "reconcile_diff_quota": bill.ReconcileDiffQuota, "note": req.Note,
+	})
+	common.ApiSuccess(c, bill)
 }
 
 func AdminGetSellerProfile(c *gin.Context) {

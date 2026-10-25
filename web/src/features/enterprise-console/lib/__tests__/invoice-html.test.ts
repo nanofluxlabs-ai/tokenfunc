@@ -26,6 +26,9 @@ const baseBill: Bill = {
   paid_at: 0,
   reminder_count: 0,
   reconcile_diff_quota: 0,
+  reconcile_acked_at: 0,
+  reconcile_acked_by: 0,
+  reconcile_ack_note: '',
   usage_snapshot: {
     by_model: [
       {

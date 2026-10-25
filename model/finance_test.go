@@ -49,7 +49,7 @@ func setupFinancePostgres(t *testing.T) {
 var financeTestTables = []any{
 	&User{}, &Token{}, &Log{}, &TopUp{}, &SubscriptionPlan{}, &SubscriptionOrder{}, &UserSubscription{}, &Channel{}, &Redemption{},
 	&Enterprise{}, &EnterpriseTeam{}, &EnterpriseMember{}, &EnterpriseTokenAssignment{},
-	&EnterpriseCreditPeriod{}, &EnterpriseLedgerEntry{}, &EnterpriseUsageDaily{}, &EnterpriseBill{},
+	&EnterpriseCreditPeriod{}, &EnterpriseCreditNotifyRecord{}, &EnterpriseLedgerEntry{}, &EnterpriseUsageDaily{}, &EnterpriseBill{},
 	&LogDailyRollup{}, &LogArchiveManifest{}, &Option{},
 }
 

@@ -29,8 +29,7 @@
 - 迁移幂等：`make api TF_API_PORT=3003` → `make api-stop` → `DEBUG=true make api TF_API_PORT=3003`，第二次 `grep -c 'ALTER TABLE' .tmp/logs/api.out` = 0（SQL 行 1367 > 0，panic 0）；dev 库 `pg_indexes` 确认两个部分唯一索引 `WHERE removed_at IS NULL` / `WHERE unbound_at IS NULL` 已建。
 - 修复记录：管理页首开崩溃 `DataTableToolbar` 读 `columnFilters.length`（`useDataTable` 没传列筛选状态），补 `promoters-table.test.tsx` 先复现再修。
 - 前端：`bun run typecheck` 通过；`oxlint` 对新改文件无 error；`bunx vitest run src/features/promoters src/features/promoter-center` 5 文件 14 用例通过（批量解析、选择器禁用项与选中、绑定 Sheet 请求体 `include_history` 与逐条结果、页面 admin/self 前缀与空态与 tab 写 URL、钱包摘要行显隐）；全量 `bun run test` 仅 `usage-logs/.../detail-preview.test.tsx` 的 20s 超时用例失败，该用例在 main 上同样超时，非本次引入；`bun run i18n:sync` 两次后上游 locale 无 diff、`_extras` 为空。
-- 接口冒烟：本地无可输入的管理员凭据（dev 库 root 密码已变、acme 密码不入仓），控制台接口的 403 / 404 / 绑定契约 / 月度口径由 controller 与 service 的 PG 测试覆盖；浏览器核对清单交黑鹰。
-
+- 接口冒烟（`make dev` 本地 API，用环境变量里的本地管理员 API 令牌，值不落盘）：`/api/promoter/self` 非推广人返回 `data=null`；非推广人 `/api/promoter/center/overview` 403；不存在的推广人 id 404；在 dev 库把 topup-demo(5) 设为推广人，绑定 acme(2) 含历史、kuguarai(4) 不含历史（usage_since 非 0），同一批里 root 返回「管理员不可绑」、nobody 返回「用户不存在」；`center/overview?start=2026-10-01&end=2026-10-25`（10-09 落在预聚合范围内，游标 10-24）净额 15000 / 4 次 / 6000 tokens，与 `/api/admin/finance/user-consumptions` 同用户同区间实时聚合逐项相等；模型列表 gpt-4o 100%。首次冒烟发现新路由未登记访问令牌作用域（`ACCESS_TOKEN_ROUTE_UNDECLARED`），已补 `middleware/access_token_routes_promoter.go`。dev 库保留了这组推广人数据供浏览器核对。
 ## 遗留
 
 - 浏览器核对（黑鹰）：管理员添加推广人 → 管理绑定（单个 + 批量 + 勾选历史）→ 推广中心三个 Tab 与下钻 → 移除；推广人账号登录看到「推广中心」菜单与钱包卡摘要行，非推广人直达 `/promoter-center` 看到空态；暗色主题与手机宽度。

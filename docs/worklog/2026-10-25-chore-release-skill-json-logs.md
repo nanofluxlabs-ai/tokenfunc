@@ -2,8 +2,8 @@
 
 - 日期：2026-10-25
 - 分支：chore/release-skill-json-logs
-- PR：
-- 关键 commit：
+- PR：#43
+- 关键 commit：a8d48b844
 
 ## 背景
 

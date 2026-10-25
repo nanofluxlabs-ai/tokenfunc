@@ -29,7 +29,12 @@ func setupCreditFundingPostgres(t *testing.T) {
 	require.NoError(t, err)
 	sqlDB, err := db.DB()
 	require.NoError(t, err)
-	tables := []any{&model.User{}, &model.Token{}, &model.Enterprise{}, &model.EnterpriseCreditPeriod{}, &model.EnterpriseCreditNotifyRecord{}, &model.EnterpriseLedgerEntry{}}
+	tables := []any{
+		&model.User{}, &model.Token{}, &model.Enterprise{}, &model.EnterpriseCreditPeriod{}, &model.EnterpriseCreditNotifyRecord{},
+		&model.EnterpriseLedgerEntry{}, &model.EnterpriseUsageDaily{}, &model.EnterpriseBill{},
+		// 出账快照按部门 / 项目汇总，需要这两张表存在
+		&model.EnterpriseDepartment{}, &model.EnterpriseProject{},
+	}
 	previousDB := model.DB
 	previousMain, previousLog := common.MainDatabaseType(), common.LogDatabaseType()
 	model.DB = db

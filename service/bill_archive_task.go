@@ -16,22 +16,23 @@ import (
 	"github.com/bytedance/gopkg/util/gopool"
 )
 
-// 账单账期包归档任务（TokenFunc 二开，仅 PostgreSQL）。每 5 分钟一轮，对每张已出账、未作废、未归档的账单：
-//  1. 生成 bills/{bill_no}/statement.csv.gz：对账单冻结件，与账单详情页「导出 CSV（含明细）」同一装配函数；
-//  2. 生成 bills/{bill_no}/raw-logs.csv.gz：企业主账号本账期的原始日志全列；
-//  3. 两个对象上传并核对后，把登记写进 ent_bills.archive_info 并置 archived_at。
+// 账单账期包归档（TokenFunc 二开，仅 PostgreSQL）。事件驱动 + 低频兜底：
+//   - 出账成功后立即异步归档（ArchiveBillAsync）：生成 bills/{bill_no}/statement.csv.gz（对账单冻结件，与账单详情页
+//     「导出 CSV（含明细）」同一装配函数）与 raw-logs.csv.gz（企业主账号本账期的原始日志全列），上传核对后把登记写进
+//     ent_bills.archive_info 并置 archived_at；
+//   - 每小时一轮兜底任务，只扫 archived_at = 0 的漏网账单（出账时对象存储抖动、进程重启、存量回填），每轮最多 10 张。
 //
-// 存量账单按出账时间顺序回填；对象存储未配置时只记一次日志不归档。失败的账单按指数退避重试，连续 3 次起通知管理员。
+// 对象存储未配置时只记一次日志不归档。失败的账单按指数退避重试（1 小时起、封顶 24 小时），连续 3 次起通知管理员。
 // logs 保留任务不删「仍有未归档账单」的账期内的天（见 logRetentionBillGuardDay），所以归档必须先于清理完成。
-// 多副本下用 Redis 锁保证同一时刻只有一个实例执行；未启用 Redis 时只在 master 节点运行。
+// 多副本下用 Redis 锁保证同一时刻只有一个实例跑兜底任务；未启用 Redis 时只在 master 节点运行。即时归档在出账的那个节点上执行。
 
 const (
-	billArchiveTickInterval       = 5 * time.Minute
+	billArchiveTickInterval       = time.Hour
 	billArchiveStartDelay         = 2 * time.Minute
 	billArchiveLockKey            = "tokenfunc:bill_archive"
 	billArchiveBatchPerTick       = 10
-	billArchiveRetryBase          = 5 * time.Minute
-	billArchiveRetryMax           = 6 * time.Hour
+	billArchiveRetryBase          = time.Hour
+	billArchiveRetryMax           = 24 * time.Hour
 	billArchiveAlertAfterFailures = 3
 )
 
@@ -50,7 +51,7 @@ type billArchiveAttempt struct {
 	nextAt   time.Time
 }
 
-// StartBillArchiveTask 启动账单归档任务；只支持 PostgreSQL，其他数据库直接不启动
+// StartBillArchiveTask 启动每小时的兜底归档任务；只支持 PostgreSQL，其他数据库直接不启动
 func StartBillArchiveTask() {
 	billArchiveTaskOnce.Do(func() {
 		if !common.RedisEnabled && !common.IsMasterNode {
@@ -60,7 +61,7 @@ func StartBillArchiveTask() {
 			return
 		}
 		gopool.Go(func() {
-			logger.LogInfo(context.Background(), fmt.Sprintf("bill archive task started: tick=%s first_run_in=%s store_configured=%t",
+			logger.LogInfo(context.Background(), fmt.Sprintf("bill archive sweep started: tick=%s first_run_in=%s store_configured=%t",
 				billArchiveTickInterval, billArchiveStartDelay, LogArchiveStoreConfig().Enabled()))
 			time.Sleep(billArchiveStartDelay)
 			runBillArchiveTick()
@@ -92,7 +93,7 @@ func runBillArchiveTick() {
 	runBillArchiveOnce(ctx, time.Now())
 }
 
-// runBillArchiveOnce 处理一批待归档账单；now 便于测试控制退避
+// runBillArchiveOnce 兜底：处理一批待归档账单；now 便于测试控制退避
 func runBillArchiveOnce(ctx context.Context, now time.Time) {
 	bills, err := model.ListBillsPendingArchive(billArchiveBatchPerTick)
 	if err != nil {
@@ -106,23 +107,41 @@ func runBillArchiveOnce(ctx context.Context, now time.Time) {
 		if !billArchiveReady(bill.Id, now) {
 			continue
 		}
-		if _, err := ArchiveBill(ctx, bill); err != nil {
-			if errors.Is(err, ErrLogArchiveStoreDisabled) {
-				if billArchiveStoreWarned.CompareAndSwap(false, true) {
-					logger.LogWarn(ctx, "bill archive: object store not configured (LOG_ARCHIVE_S3_*), bills stay unarchived")
-				}
-				return
-			}
-			failures, delay := billArchiveFail(bill.Id, now)
-			logger.LogWarn(ctx, fmt.Sprintf("bill archive %s failed (%d in a row, retry in %s): %v", bill.BillNo, failures, delay, err))
-			if failures >= billArchiveAlertAfterFailures {
-				logArchiveAlert("bill_archive_fail:"+bill.BillNo, "Bill archive keeps failing",
-					fmt.Sprintf("Bill %s (id=%d) failed to archive %d times in a row; next retry in %s.\nerror: %v", bill.BillNo, bill.Id, failures, delay, err))
-			}
-			continue
+		if !archiveIssuedBill(ctx, bill, now) {
+			return
 		}
-		billArchiveSucceed(bill.Id)
 	}
+}
+
+// ArchiveBillAsync 出账成功后立即在后台归档；对象存储未配置时静默交给兜底任务（它会记一次日志）
+func ArchiveBillAsync(bill *model.EnterpriseBill) {
+	if bill == nil || bill.BillNo == "" || !LogArchiveStoreConfig().Enabled() {
+		return
+	}
+	gopool.Go(func() {
+		archiveIssuedBill(context.Background(), bill, time.Now())
+	})
+}
+
+// archiveIssuedBill 归档一张账单并维护退避 / 告警；返回 false 表示对象存储未配置，调用方不必再试同批其他账单
+func archiveIssuedBill(ctx context.Context, bill *model.EnterpriseBill, now time.Time) bool {
+	if _, err := ArchiveBill(ctx, bill); err != nil {
+		if errors.Is(err, ErrLogArchiveStoreDisabled) {
+			if billArchiveStoreWarned.CompareAndSwap(false, true) {
+				logger.LogWarn(ctx, "bill archive: object store not configured (LOG_ARCHIVE_S3_*), bills stay unarchived")
+			}
+			return false
+		}
+		failures, delay := billArchiveFail(bill.Id, now)
+		logger.LogWarn(ctx, fmt.Sprintf("bill archive %s failed (%d in a row, retry in %s): %v", bill.BillNo, failures, delay, err))
+		if failures >= billArchiveAlertAfterFailures {
+			logArchiveAlert("bill_archive_fail:"+bill.BillNo, "Bill archive keeps failing",
+				fmt.Sprintf("Bill %s (id=%d) failed to archive %d times in a row; next retry in %s.\nerror: %v", bill.BillNo, bill.Id, failures, delay, err))
+		}
+		return true
+	}
+	billArchiveSucceed(bill.Id)
+	return true
 }
 
 func billArchiveReady(billId int64, now time.Time) bool {

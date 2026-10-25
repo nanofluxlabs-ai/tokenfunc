@@ -66,13 +66,14 @@ func TestBillArchiveProducesPeriodPackageAndGuardsRetention(t *testing.T) {
 		runBillArchiveOnce(ctx, now.Add(time.Duration(i)*24*time.Hour))
 	}
 	assert.Equal(t, 1, alerts, "第三次失败才告警，且去重")
-	assert.False(t, billArchiveReady(bill.Id, now.Add(48*time.Hour+time.Minute)), "退避期内不重试")
+	assert.False(t, billArchiveReady(bill.Id, now.Add(48*time.Hour+time.Minute)), "退避期内不重试（第三次失败后退避 4 小时）")
 	unarchived, err := model.GetEnterpriseBill(bill.Id)
 	require.NoError(t, err)
 	assert.Equal(t, int64(0), unarchived.ArchivedAt)
 
-	// 恢复后由任务归档
+	// 恢复后：出账即时归档走的同一条路径（退避期内由调用方直接触发也允许），兜底任务此时已无事可做
 	store.failPut = nil
+	assert.True(t, archiveIssuedBill(ctx, bill, now.Add(30*24*time.Hour)))
 	runBillArchiveOnce(ctx, now.Add(30*24*time.Hour))
 	archived, err := model.GetEnterpriseBill(bill.Id)
 	require.NoError(t, err)

@@ -13,7 +13,7 @@
 
 - 后端
   - `ent_bills` 加 `archive_info`（jsonb）与 `archived_at`；`model/tokenfunc_bill_archive.go` 定义登记结构、`bills/{bill_no}/{statement|raw-logs}.csv.gz` 对象路径、待归档查询、`MinUnarchivedBillPeriodStart`、`BillPeriodLogsPurged`。
-  - `service/bill_archive_task.go`：后台任务（Redis 锁 `tokenfunc:bill_archive`，无 Redis 时 master-only，5 分钟一轮，每轮 10 张，指数退避，连续 3 次失败告警）；`ArchiveBill` 生成两个对象：对账单冻结件复用新抽出的 `service.BuildFinanceUsageCSVPayload`（HTTP 导出与冻结件同一装配函数，含逐条明细），原始日志用 `WriteLogsArchiveCSV` + 新增的 `LogArchiveFilter.UserIds`；上传后登记。对象存储未配置时任务只记一次日志。
+  - `service/bill_archive_task.go`：事件驱动 + 兜底。出账成功后（授信自动出账、管理员手动出账、预付月度对账单生成）立即异步 `ArchiveBillAsync`；每小时一轮兜底任务只扫 `archived_at = 0` 的漏网账单（Redis 锁 `tokenfunc:bill_archive`，无 Redis 时 master-only，每轮 10 张），失败指数退避（1 小时起、封顶 24 小时），连续 3 次失败告警。黑鹰指出 5 分钟轮询相对月级账期过密，改为此方案；tokensolo 仍是 5 分钟轮询。`ArchiveBill` 生成两个对象：对账单冻结件复用新抽出的 `service.BuildFinanceUsageCSVPayload`（HTTP 导出与冻结件同一装配函数，含逐条明细），原始日志用 `WriteLogsArchiveCSV` + 新增的 `LogArchiveFilter.UserIds`；上传后登记。对象存储未配置时任务只记一次日志。
   - logs 保留任务新增红线：有未归档（且未作废）账单时，其最早账期开始日前一天起的天不清理（`PurgeArchivedLogsBefore` 与 `RetryLogArchiveDay` 都受约束）。
   - 接口：`POST /api/admin/finance/bill-archives/:id` 手动（重新）归档，审计 `bill.archive`；`GET /api/admin/finance/bill-archives/:id/:file` 从 COS 透传下载（桶私有、不签 URL）。scope `billing:write` / `billing:read`。
   - 账单详情上下文加 `logs_purged`（账期内已有天被清理）。

@@ -7,6 +7,7 @@ import (
 
 	"github.com/QuantumNous/new-api/common"
 	"github.com/QuantumNous/new-api/model"
+	"github.com/QuantumNous/new-api/service"
 
 	"github.com/gin-gonic/gin"
 	"github.com/shopspring/decimal"
@@ -150,6 +151,7 @@ func AdminIssueBillNow(c *gin.Context) {
 		enterpriseApiError(c, err)
 		return
 	}
+	service.ArchiveBillAsync(bill)
 	common.ApiSuccess(c, bill)
 }
 

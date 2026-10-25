@@ -402,6 +402,9 @@ func migrateDB() error {
 	if err := InitializeUserAuthVersions(); err != nil {
 		return err
 	}
+	if err := MigrateLogDailyRollupV2(); err != nil {
+		return fmt.Errorf("migrate log daily rollup schema: %w", err)
+	}
 	if err := dropLegacyEnterpriseQuoteTable(); err != nil {
 		return err
 	}

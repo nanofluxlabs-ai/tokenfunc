@@ -59,7 +59,7 @@ var auditContentTemplates = map[string]string{
 	"bill.archive":           "Archived bill ${bill_no} to object storage (${detail_rows} statement rows, ${raw_rows} raw logs)",
 
 	"enterprise.create":                   "Created enterprise ${enterprise_name} (ID: ${enterprise_id}, mode ${mode})",
-	"enterprise.update":                   "Updated enterprise ${enterprise_name} (ID: ${enterprise_id})",
+	"enterprise.update":                   "Updated enterprise ${enterprise_name} (ID: ${enterprise_id}, max keys ${max_tokens})",
 	"enterprise.credit.configure":         "Configured credit for enterprise ${enterprise_id}: ${cycle_type}, limit ${limit_usd} USD",
 	"enterprise.credit.disable":           "Switched enterprise ${enterprise_id} back to prepaid",
 	"enterprise.credit.period_open":       "Opened credit period #${period_no} (ID: ${period_id}) for enterprise ${enterprise_id}",

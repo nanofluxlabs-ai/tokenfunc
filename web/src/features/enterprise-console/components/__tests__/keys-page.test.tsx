@@ -1,5 +1,11 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import {
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest'
 
 import type { EnterpriseActor, EnterpriseToken } from '../../types'
@@ -85,6 +91,7 @@ function token(
     member_name: '',
     month_quota: 0,
     prev_month_quota: 0,
+    effective_status: 1,
     reset_period: '',
     period_quota: 0,
     next_reset_at: 0,
@@ -111,7 +118,13 @@ beforeEach(() => {
     data: {
       items: [
         token({ id: 1, name: 'alpha', member_id: 8, member_name: 'Alice' }),
-        token({ id: 2, name: 'beta', status: 4, unlimited_quota: false }),
+        token({
+          id: 2,
+          name: 'beta',
+          status: 4,
+          effective_status: 4,
+          unlimited_quota: false,
+        }),
       ],
       total: 2,
     },
@@ -162,6 +175,36 @@ describe('EnterpriseKeys', () => {
     expect(screen.getAllByText('Exhausted').length).toBeGreaterThan(0)
     expect(
       screen.getByRole('combobox', { name: 'Filter by team' })
+    ).toBeInTheDocument()
+  })
+
+  test('a key still enabled in the database but exhausted by balance shows the derived status and keeps the disable action', async () => {
+    apiMock.listEnterpriseTokens.mockResolvedValue({
+      success: true,
+      data: {
+        items: [
+          token({
+            id: 3,
+            name: 'gamma',
+            status: 1,
+            effective_status: 4,
+            unlimited_quota: false,
+          }),
+        ],
+        total: 1,
+      },
+    })
+    renderPage()
+    const row = (await screen.findByText('gamma')).closest('tr')
+    expect(row).not.toBeNull()
+
+    expect(
+      within(row as HTMLElement).getByText('Exhausted')
+    ).toBeInTheDocument()
+    expect(within(row as HTMLElement).queryByText('Enabled')).toBeNull()
+    // tokens.status 仍是启用，动作按钮依旧是「停用」
+    expect(
+      within(row as HTMLElement).getByRole('button', { name: 'Disable' })
     ).toBeInTheDocument()
   })
 

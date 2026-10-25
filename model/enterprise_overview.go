@@ -9,8 +9,7 @@ import (
 // 企业概览（TokenFunc 二开，M6）：四张 KPI 卡与待办全部来自小表（tokens / ent_* / ent_usage_daily），不扫 logs。
 // 范围由调用方传入：企业主 / 企业管理员看全企业，团队角色只看本团队。
 
-// EnterpriseTokenCounts 企业 key 的四态计数。
-// Redis 模式下耗尽 / 过期不会回写 tokens.status，这里按余额与到期时间派生：过期 > 耗尽 > 停用 > 启用，一把 key 只归一档。
+// EnterpriseTokenCounts 企业 key 的四态计数，口径与密钥页筛选相同（enterpriseTokenEffectiveStatusSQL）。
 type EnterpriseTokenCounts struct {
 	Total     int `json:"total"`
 	Active    int `json:"active"`
@@ -21,39 +20,37 @@ type EnterpriseTokenCounts struct {
 	Expiring7d int `json:"expiring_7d"`
 }
 
-// CountEnterpriseTokens 一条 SQL 统计范围内的 key 四态（范围限定团队时只数该团队的 key）
+// CountEnterpriseTokens 一条 SQL 按派生四态分组统计范围内的 key（范围限定团队时只数该团队的 key）
 func CountEnterpriseTokens(enterpriseId int, ownerUserId int, scope EnterpriseScope, now int64) (*EnterpriseTokenCounts, error) {
-	const expired = "(tokens.status = ? OR (tokens.status = ? AND tokens.expired_time > 0 AND tokens.expired_time < ?))"
-	const exhausted = "(tokens.status = ? OR (tokens.status = ? AND NOT tokens.unlimited_quota AND tokens.remain_quota <= 0))"
-	var row struct {
-		Total      int
-		Disabled   int
-		Exhausted  int
-		Expired    int
-		Expiring7d int
+	var rows []struct {
+		EffectiveStatus int
+		KeyCount        int
+		ExpiringCount   int
 	}
 	err := enterpriseTokenQuery(enterpriseId, ownerUserId, scope).
-		Select("COUNT(*) AS total, "+
-			"COUNT(*) FILTER (WHERE tokens.status = ?) AS disabled, "+
-			"COUNT(*) FILTER (WHERE "+expired+") AS expired, "+
-			"COUNT(*) FILTER (WHERE "+exhausted+" AND NOT "+expired+") AS exhausted, "+
-			"COUNT(*) FILTER (WHERE tokens.status = ? AND tokens.expired_time > ? AND tokens.expired_time <= ?) AS expiring7d",
-			common.TokenStatusDisabled,
-			common.TokenStatusExpired, common.TokenStatusEnabled, now,
-			common.TokenStatusExhausted, common.TokenStatusEnabled, common.TokenStatusExpired, common.TokenStatusEnabled, now,
-			common.TokenStatusEnabled, now, now+EnterpriseTokenExpiringWindow).
-		Scan(&row).Error
+		Select(enterpriseTokenEffectiveStatusSQL(now) + " AS effective_status, COUNT(*) AS key_count, " +
+			"COUNT(*) FILTER (WHERE " + enterpriseTokenExpiringSQL(now) + ") AS expiring_count").
+		Group("effective_status").
+		Scan(&rows).Error
 	if err != nil {
 		return nil, err
 	}
-	return &EnterpriseTokenCounts{
-		Total:      row.Total,
-		Active:     row.Total - row.Disabled - row.Exhausted - row.Expired,
-		Disabled:   row.Disabled,
-		Exhausted:  row.Exhausted,
-		Expired:    row.Expired,
-		Expiring7d: row.Expiring7d,
-	}, nil
+	counts := &EnterpriseTokenCounts{}
+	for _, row := range rows {
+		counts.Total += row.KeyCount
+		counts.Expiring7d += row.ExpiringCount
+		switch row.EffectiveStatus {
+		case common.TokenStatusEnabled:
+			counts.Active += row.KeyCount
+		case common.TokenStatusDisabled:
+			counts.Disabled += row.KeyCount
+		case common.TokenStatusExpired:
+			counts.Expired += row.KeyCount
+		case common.TokenStatusExhausted:
+			counts.Exhausted += row.KeyCount
+		}
+	}
+	return counts, nil
 }
 
 // EnterpriseOrgCounts 组织规模：在用团队数、成员数、其中可登录控制台的成员数

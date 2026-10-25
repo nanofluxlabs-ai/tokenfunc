@@ -27,6 +27,8 @@ type enterpriseProfileRequest struct {
 	PaymentTermsDays int                            `json:"payment_terms_days"`
 	BillingProfile   model.EnterpriseBillingProfile `json:"billing_profile"`
 	Remark           string                         `json:"remark"`
+	// MaxTokens 企业 key 总数上限；0 沿用站点每用户上限
+	MaxTokens int `json:"max_tokens"`
 }
 
 type adminCreateEnterpriseRequest struct {
@@ -47,6 +49,7 @@ func (r enterpriseProfileRequest) toEnterprise() *model.Enterprise {
 		PaymentTermsDays: r.PaymentTermsDays,
 		BillingProfile:   r.BillingProfile,
 		Remark:           r.Remark,
+		MaxTokens:        r.MaxTokens,
 	}
 }
 
@@ -160,6 +163,7 @@ func AdminUpdateEnterprise(c *gin.Context) {
 	recordManageAuditFor(c, existing.UserId, "enterprise.update", map[string]any{
 		"enterprise_id":   existing.Id,
 		"enterprise_name": enterprise.Name,
+		"max_tokens":      enterprise.MaxTokens,
 	})
 	common.ApiSuccess(c, nil)
 }

@@ -424,11 +424,12 @@ function KeysTable(props: KeysTableProps) {
       id: 'status',
       header: t('Status'),
       cell: (row) => {
-        const config = API_KEY_STATUSES[row.status]
+        // 行上状态用后端派生的四态，与状态筛选、概览待办同口径
+        const config = API_KEY_STATUSES[row.effective_status]
         return (
           <div className='flex flex-wrap gap-1'>
             <StatusBadge
-              label={config ? t(config.label) : String(row.status)}
+              label={config ? t(config.label) : String(row.effective_status)}
               variant={config?.variant ?? 'neutral'}
               copyable={false}
             />

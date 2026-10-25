@@ -194,6 +194,20 @@ export function useEnterprisesColumns(): ColumnDef<EnterpriseListItem>[] {
       size: 120,
     },
     {
+      accessorKey: 'max_tokens',
+      header: t('Max Keys'),
+      meta: { mobileHidden: true },
+      // 0 表示沿用站点的每用户上限
+      cell: ({ row }) =>
+        row.original.max_tokens > 0 ? (
+          <span className='font-mono text-sm'>{row.original.max_tokens}</span>
+        ) : (
+          <span className='text-muted-foreground'>{t('Site default')}</span>
+        ),
+      enableSorting: false,
+      size: 100,
+    },
+    {
       accessorKey: 'created_at',
       header: t('Created'),
       meta: { mobileHidden: true },

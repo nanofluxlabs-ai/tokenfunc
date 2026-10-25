@@ -129,6 +129,8 @@ export interface EnterpriseToken {
   reset_period: TokenQuotaResetPeriod | ''
   period_quota: number
   next_reset_at: number
+  /** 派生四态（过期 > 耗尽 > 停用 > 启用），筛选与行上状态都按它；status 仍是 tokens.status 原值 */
+  effective_status: number
 }
 
 export type TokenQuotaResetPeriod =

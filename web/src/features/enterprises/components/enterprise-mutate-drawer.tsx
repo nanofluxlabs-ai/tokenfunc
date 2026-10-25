@@ -45,7 +45,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { handleServerError } from '@/lib/handle-server-error'
 
 import { createEnterprise, updateEnterprise } from '../api'
-import { SUCCESS_MESSAGES } from '../constants'
+import { MAX_ENTERPRISE_TOKENS, SUCCESS_MESSAGES } from '../constants'
 import {
   ENTERPRISE_FORM_DEFAULT_VALUES,
   type EnterpriseFormValues,
@@ -59,7 +59,7 @@ import { useEnterprises } from './enterprises-provider'
 
 type TextFieldName = Exclude<
   keyof EnterpriseFormValues,
-  'mode' | 'payment_terms_days'
+  'mode' | 'payment_terms_days' | 'max_tokens'
 >
 
 function TextField(props: {
@@ -307,6 +307,32 @@ export function EnterpriseMutateDrawer(props: EnterpriseMutateDrawerProps) {
                       </FormControl>
                       <FormDescription>
                         {t('Bills are due this many days after issue.')}
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name='max_tokens'
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>{t('Max API Keys')}</FormLabel>
+                      <FormControl>
+                        <Input
+                          type='number'
+                          min={0}
+                          max={MAX_ENTERPRISE_TOKENS}
+                          value={field.value}
+                          onChange={(event) =>
+                            field.onChange(
+                              Number.parseInt(event.target.value, 10) || 0
+                            )
+                          }
+                        />
+                      </FormControl>
+                      <FormDescription>
+                        {t('0 means the site-wide per-user limit applies.')}
                       </FormDescription>
                       <FormMessage />
                     </FormItem>

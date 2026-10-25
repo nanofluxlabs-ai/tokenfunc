@@ -25,7 +25,8 @@ function toApiKey(row: EnterpriseToken): ApiKey {
     id: row.id,
     name: row.name,
     key: row.key,
-    status: row.status,
+    // 上游额度单元格按状态灰显，这里给派生四态，余额归零 / 已到期但未回写状态的 key 也能灰显
+    status: row.effective_status,
     remain_quota: row.remain_quota,
     used_quota: row.used_quota,
     unlimited_quota: row.unlimited_quota,
@@ -59,7 +60,8 @@ export function TokenQuotaCell(props: TokenQuotaCellProps) {
     periodQuota > 0
       ? Math.min(100, Math.max(0, (remaining / periodQuota) * 100))
       : 0
-  const inactive = row.status !== API_KEY_STATUS.ENABLED || remaining <= 0
+  const inactive =
+    row.effective_status !== API_KEY_STATUS.ENABLED || remaining <= 0
   let progressColor = 'text-emerald-500'
   if (inactive) {
     progressColor = 'text-muted-foreground/60'

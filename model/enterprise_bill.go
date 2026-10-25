@@ -458,7 +458,8 @@ func GenerateMonthlyStatements(now int64) (int, error) {
 		if err := ledgerRange.Where("type = ?", EnterpriseLedgerTopup).Select("COALESCE(SUM(amount_quota), 0)").Scan(&topups).Error; err != nil {
 			return created, err
 		}
-		if err := DB.Model(&EnterpriseLedgerEntry{}).Where("enterprise_id = ? AND created_at >= ? AND created_at < ? AND type = ?", enterprise.Id, periodStart.Unix(), periodEnd.Unix(), EnterpriseLedgerAdjustment).
+		// 只有钱包调账（ref_type = wallet）动余额；账单调账 / 作废同为 adjustment 类型但 ref_type = bill，不进余额口径
+		if err := DB.Model(&EnterpriseLedgerEntry{}).Where("enterprise_id = ? AND created_at >= ? AND created_at < ? AND type = ? AND ref_type = ?", enterprise.Id, periodStart.Unix(), periodEnd.Unix(), EnterpriseLedgerAdjustment, EnterpriseLedgerRefWallet).
 			Select("COALESCE(SUM(amount_quota), 0)").Scan(&adjustments).Error; err != nil {
 			return created, err
 		}

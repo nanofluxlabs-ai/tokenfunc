@@ -14,7 +14,8 @@ import (
 // 上游写充值 / 调额日志时不写 quota，金额不能从 logs 取，按来源回到各自的事实表：
 //   - online：top_ups 成功单（含管理员补单与管理员手动充值 provider=admin，remark 取参考号），额度推导复用订单中心的 financeOrderItem；订阅镜像行用 NOT EXISTS 剔除
 //   - redemption：redemptions.used_user_id（兑换后被删除的码也算，raw SQL 不受软删影响）
-//   - enterprise_topup：ent_ledger.topup（预付企业主的线下充值；credit 模式的 adjustment 不动钱包，不算）
+//   - enterprise_topup：ent_ledger.topup（预付企业主的线下充值）
+//   - enterprise_adjust：ent_ledger.adjustment 且 ref_type = wallet（预付企业余额人工调账，可负；账单调账 / 作废不动钱包，不算）
 //   - subscription_balance：余额购买订阅，钱包扣减记负数
 //   - admin_adjust：logs type=1 且 other.op.action = user.quota_*，金额 = to − from（可负）
 //   - refund：logs type=6（任务退款 / 差额结算退回）
@@ -25,6 +26,7 @@ const (
 	FinanceTopupSourceOnline              = "online"
 	FinanceTopupSourceRedemption          = "redemption"
 	FinanceTopupSourceEnterpriseTopup     = "enterprise_topup"
+	FinanceTopupSourceEnterpriseAdjust    = "enterprise_adjust"
 	FinanceTopupSourceSubscriptionBalance = "subscription_balance"
 	FinanceTopupSourceAdminAdjust         = "admin_adjust"
 	FinanceTopupSourceRefund              = "refund"
@@ -74,7 +76,7 @@ type FinanceTopupSummary struct {
 // FinanceTopupTypeOf 来源 → 类型
 func FinanceTopupTypeOf(source string) string {
 	switch source {
-	case FinanceTopupSourceAdminAdjust:
+	case FinanceTopupSourceAdminAdjust, FinanceTopupSourceEnterpriseAdjust:
 		return FinanceTopupTypeAdjust
 	case FinanceTopupSourceRefund:
 		return FinanceTopupTypeRefund
@@ -99,6 +101,10 @@ UNION ALL
 SELECT 'enterprise_topup', l.id, l.created_at, '', '', 0::bigint, 0::double precision, l.amount_quota, l.reference, l.remark, ''
 FROM ent_ledger l JOIN enterprises e ON e.id = l.enterprise_id
 WHERE e.user_id = @uid AND l.type = 'topup' AND l.created_at >= @start AND l.created_at < @end
+UNION ALL
+SELECT 'enterprise_adjust', l.id, l.created_at, '', '', 0::bigint, 0::double precision, l.amount_quota, l.reference, l.remark, ''
+FROM ent_ledger l JOIN enterprises e ON e.id = l.enterprise_id
+WHERE e.user_id = @uid AND l.type = 'adjustment' AND l.ref_type = 'wallet' AND l.created_at >= @start AND l.created_at < @end
 UNION ALL
 SELECT 'subscription_balance', s.id::bigint, s.complete_time, s.payment_method, s.payment_provider, 0::bigint, s.money, 0::bigint, s.trade_no, COALESCE(p.title, ''), COALESCE(s.provider_payload, '')
 FROM subscription_orders s LEFT JOIN subscription_plans p ON p.id = s.plan_id

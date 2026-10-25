@@ -1,0 +1,223 @@
+package controller
+
+import (
+	"fmt"
+	"net/http"
+	"net/http/httptest"
+	"os"
+	"strings"
+	"testing"
+
+	"github.com/QuantumNous/new-api/common"
+	"github.com/QuantumNous/new-api/i18n"
+	"github.com/QuantumNous/new-api/model"
+	"github.com/QuantumNous/new-api/service"
+
+	"github.com/gin-gonic/gin"
+	"github.com/shopspring/decimal"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+	"gorm.io/driver/postgres"
+	"gorm.io/gorm"
+)
+
+// 人工调账只支持 PostgreSQL（企业模块二开约定），测试跑在真实 PG 上，未配置 DSN 时跳过
+func setupEnterpriseAdjustmentPostgres(t *testing.T) {
+	t.Helper()
+	dsn := os.Getenv("TEST_POSTGRES_DSN")
+	if dsn == "" {
+		t.Skip("TEST_POSTGRES_DSN is not configured")
+	}
+	db, err := gorm.Open(postgres.New(postgres.Config{DSN: dsn, PreferSimpleProtocol: true}), &gorm.Config{})
+	require.NoError(t, err)
+	sqlDB, err := db.DB()
+	require.NoError(t, err)
+	require.NoError(t, i18n.Init())
+	tables := []any{
+		&model.User{}, &model.UserSession{}, &model.AuthFlow{}, &model.TwoFA{}, &model.PasskeyCredential{}, &model.Log{}, &model.AuditLog{}, &model.Option{},
+		&model.Enterprise{}, &model.EnterpriseTeam{}, &model.EnterpriseMember{}, &model.EnterpriseTokenAssignment{},
+		&model.EnterpriseCreditPeriod{}, &model.EnterpriseCreditNotifyRecord{}, &model.EnterpriseLedgerEntry{}, &model.EnterpriseBill{},
+	}
+	previousDB, previousLogDB := model.DB, model.LOG_DB
+	previousMain, previousLog := common.MainDatabaseType(), common.LogDatabaseType()
+	previousRedis, previousSecret := common.RedisEnabled, common.SessionSecret
+	// 审计日志与会话校验会走用户缓存，测试进程没有 Redis 连接
+	common.RedisEnabled = false
+	common.SessionSecret = "enterprise-adjustment-test-secret"
+	model.DB, model.LOG_DB = db, db
+	common.SetDatabaseTypes(common.DatabaseTypePostgreSQL, common.DatabaseTypePostgreSQL)
+	model.InitColumnNames()
+	t.Cleanup(func() {
+		require.NoError(t, db.Migrator().DropTable(tables...))
+		require.NoError(t, sqlDB.Close())
+		model.DB, model.LOG_DB = previousDB, previousLogDB
+		common.SetDatabaseTypes(previousMain, previousLog)
+		common.RedisEnabled, common.SessionSecret = previousRedis, previousSecret
+		model.InitColumnNames()
+	})
+	require.NoError(t, db.Migrator().DropTable(tables...))
+	require.NoError(t, db.AutoMigrate(tables...))
+}
+
+// newEnterpriseAdjustmentRouter 与 router/enterprise-router.go 同形；登录态由 identity 注入（UserAuth 写入的同一组键）
+func newEnterpriseAdjustmentRouter(operator *model.User, identity service.AuthIdentity) *gin.Engine {
+	gin.SetMode(gin.TestMode)
+	engine := gin.New()
+	asOperator := func(c *gin.Context) {
+		c.Set("id", operator.Id)
+		c.Set("role", operator.Role)
+		c.Set("username", operator.Username)
+		c.Set("session_id", identity.SessionID)
+		c.Set("auth_version", identity.UserAuthVersion)
+		c.Set("session_version", identity.SessionVersion)
+		c.Set(common.RequestIdKey, "enterprise-adjustment-test")
+		c.Next()
+	}
+	engine.POST("/api/admin/enterprise/enterprises/:id/adjustments", asOperator, AdminCreateEnterpriseAdjustment)
+	return engine
+}
+
+func enterpriseAdjustmentRequest(router http.Handler, enterpriseId int, proof string, body string) *httptest.ResponseRecorder {
+	request := httptest.NewRequest(http.MethodPost, fmt.Sprintf("/api/admin/enterprise/enterprises/%d/adjustments", enterpriseId), strings.NewReader(body))
+	request.Header.Set("Content-Type", "application/json")
+	if proof != "" {
+		request.Header.Set("X-Security-Proof", proof)
+	}
+	request.RemoteAddr = "192.0.2.8:4567"
+	response := httptest.NewRecorder()
+	router.ServeHTTP(response, request)
+	return response
+}
+
+// enterpriseAdjustProof 为 root 操作员签发一张密码方式、绑定到「企业主 user_id + enterprise_adjust」的二次验证凭证
+func enterpriseAdjustProof(t *testing.T, identity service.AuthIdentity, ownerId int, action string) string {
+	t.Helper()
+	return issueSecurityEnrollmentProof(t, identity, service.VerificationOperation{
+		Scope: service.VerificationScopeAdminUserManage, Context: []byte(fmt.Sprintf(`{"user_id":%d,"action":%q}`, ownerId, action)),
+	}, service.VerificationMethodPassword)
+}
+
+// 参数校验在二次验证之前；没有 / 不匹配的凭证不动任何余额；凭证正确时钱包与账单各调一次并留审计
+func TestAdminCreateEnterpriseAdjustment(t *testing.T) {
+	setupEnterpriseAdjustmentPostgres(t)
+	operator := &model.User{Username: "adjust-root", Password: "root-operator-hash", Role: common.RoleRootUser, Status: common.UserStatusEnabled, Group: "default", AuthVersion: 1, AffCode: "adjust-root"}
+	require.NoError(t, model.DB.Create(operator).Error)
+	require.NoError(t, model.PublishUserAuthCache(operator.Id))
+	bundle, err := service.CreateLoginSession(operator.Id, "password", "127.0.0.1", "enterprise-adjustment-test")
+	require.NoError(t, err)
+	identity, err := service.ParseAccessToken(bundle.AccessToken)
+	require.NoError(t, err)
+	router := newEnterpriseAdjustmentRouter(operator, identity)
+
+	owner := &model.User{Username: "adjust-owner", Password: "placeholder", Role: common.RoleCommonUser, Status: common.UserStatusEnabled, Group: "default", Quota: 5 * int(common.QuotaPerUnit), AuthVersion: 1, AffCode: "adjust-own"}
+	require.NoError(t, model.DB.Create(owner).Error)
+	require.NoError(t, model.UpgradeUserToEnterprise(owner.Id, &model.Enterprise{Name: "Adjust Co"}))
+	enterprise, err := model.GetEnterpriseByUserId(owner.Id)
+	require.NoError(t, err)
+	model.InvalidateEnterpriseBillingInfo(owner.Id)
+	t.Cleanup(func() { model.InvalidateEnterpriseBillingInfo(owner.Id) })
+
+	otherOwner := &model.User{Username: "adjust-other", Password: "placeholder", Role: common.RoleCommonUser, Status: common.UserStatusEnabled, Group: "default", AuthVersion: 1, AffCode: "adjust-oth"}
+	require.NoError(t, model.DB.Create(otherOwner).Error)
+	require.NoError(t, model.UpgradeUserToEnterprise(otherOwner.Id, &model.Enterprise{Name: "Other Co"}))
+	other, err := model.GetEnterpriseByUserId(otherOwner.Id)
+	require.NoError(t, err)
+	now := common.GetTimestamp()
+	foreignBill := &model.EnterpriseBill{EnterpriseId: other.Id, BillNo: "TF-OTHER-000001", BillType: model.EnterpriseBillTypeCredit, PeriodStart: now - 86400, PeriodEnd: now, AmountUSD: decimal.NewFromInt(10), TotalUSD: decimal.NewFromInt(10), Currency: "USD", Status: model.EnterpriseBillUnpaid, IssuedAt: now, CreatedAt: now, UpdatedAt: now}
+	require.NoError(t, model.DB.Create(foreignBill).Error)
+	ownBill := &model.EnterpriseBill{EnterpriseId: enterprise.Id, BillNo: "TF-OWN-000001", BillType: model.EnterpriseBillTypeCredit, PeriodStart: now - 86400, PeriodEnd: now, AmountUSD: decimal.NewFromInt(10), TotalUSD: decimal.NewFromInt(10), PaidUSD: decimal.NewFromInt(4), Currency: "USD", Status: model.EnterpriseBillPartiallyPaid, IssuedAt: now, CreatedAt: now, UpdatedAt: now}
+	require.NoError(t, model.DB.Create(ownBill).Error)
+
+	ledgerCount := func() int64 {
+		var count int64
+		require.NoError(t, model.DB.Model(&model.EnterpriseLedgerEntry{}).Where("enterprise_id = ?", enterprise.Id).Count(&count).Error)
+		return count
+	}
+	ownerQuota := func() int {
+		quota, err := model.GetUserQuota(owner.Id, true)
+		require.NoError(t, err)
+		return quota
+	}
+
+	t.Run("validation runs before verification", func(t *testing.T) {
+		for name, body := range map[string]string{
+			"short remark":  `{"kind":"wallet","amount_usd":-1,"remark":"abc"}`,
+			"zero amount":   `{"kind":"wallet","amount_usd":0,"remark":"zero amount"}`,
+			"unknown kind":  `{"kind":"credit","amount_usd":1,"remark":"unknown kind"}`,
+			"bill id empty": `{"kind":"bill","amount_usd":1,"remark":"missing bill id"}`,
+			"too large":     `{"kind":"wallet","amount_usd":2000000000,"remark":"too large amount"}`,
+		} {
+			response := enterpriseAdjustmentRequest(router, enterprise.Id, "", body)
+			assert.Equal(t, http.StatusOK, response.Code, name)
+			assert.Contains(t, response.Body.String(), `"success":false`, name)
+			assert.NotContains(t, response.Body.String(), "SECURITY_PROOF", name+": validation must answer before asking for a proof")
+		}
+		assert.Equal(t, int64(0), ledgerCount())
+	})
+
+	t.Run("missing or mismatched proof does not touch the balance", func(t *testing.T) {
+		body := `{"kind":"wallet","amount_usd":-2,"remark":"duplicate charge refund"}`
+		response := enterpriseAdjustmentRequest(router, enterprise.Id, "", body)
+		assert.Equal(t, http.StatusForbidden, response.Code)
+		assert.Contains(t, response.Body.String(), "SECURITY_PROOF_REQUIRED")
+		// 同一作用域、不同动作（手工充值）的凭证不能复用到调账
+		response = enterpriseAdjustmentRequest(router, enterprise.Id, enterpriseAdjustProof(t, identity, owner.Id, "topup"), body)
+		assert.Equal(t, http.StatusForbidden, response.Code)
+		assert.Contains(t, response.Body.String(), "SECURITY_PROOF_CONTEXT_MISMATCH")
+		// 绑定到别的企业主的凭证也不能用
+		response = enterpriseAdjustmentRequest(router, enterprise.Id, enterpriseAdjustProof(t, identity, otherOwner.Id, "enterprise_adjust"), body)
+		assert.Equal(t, http.StatusForbidden, response.Code)
+		assert.Contains(t, response.Body.String(), "SECURITY_PROOF_CONTEXT_MISMATCH")
+		assert.Equal(t, 5*int(common.QuotaPerUnit), ownerQuota())
+		assert.Equal(t, int64(0), ledgerCount())
+	})
+
+	t.Run("wallet adjustment with proof", func(t *testing.T) {
+		response := enterpriseAdjustmentRequest(router, enterprise.Id, enterpriseAdjustProof(t, identity, owner.Id, "enterprise_adjust"), `{"kind":"wallet","amount_usd":-2,"remark":"duplicate charge refund"}`)
+		require.Equal(t, http.StatusOK, response.Code, response.Body.String())
+		assert.Contains(t, response.Body.String(), `"success":true`)
+		assert.Contains(t, response.Body.String(), `"ref_type":"wallet"`)
+		assert.Equal(t, 3*int(common.QuotaPerUnit), ownerQuota())
+		assert.Equal(t, int64(1), ledgerCount())
+		var audit model.AuditLog
+		require.NoError(t, model.LOG_DB.Where("action = ?", "enterprise.adjustment.wallet").First(&audit).Error)
+		assert.Equal(t, fmt.Sprintf("Adjusted balance of enterprise %d by -2 USD: duplicate charge refund", enterprise.Id), audit.Content)
+		method, _ := common.Marshal(audit.Other.Op.Params["verification_method"])
+		assert.JSONEq(t, `"password"`, string(method))
+		// 凭证一次性：重放同一张被拒绝
+		response = enterpriseAdjustmentRequest(router, enterprise.Id, "", `{"kind":"wallet","amount_usd":-100,"remark":"exceeds the balance"}`)
+		assert.Equal(t, http.StatusForbidden, response.Code)
+		response = enterpriseAdjustmentRequest(router, enterprise.Id, enterpriseAdjustProof(t, identity, owner.Id, "enterprise_adjust"), `{"kind":"wallet","amount_usd":-100,"remark":"exceeds the balance"}`)
+		assert.Equal(t, http.StatusOK, response.Code)
+		assert.Contains(t, response.Body.String(), model.ErrEnterpriseAdjustmentExceedsBalance.Error())
+		assert.Equal(t, 3*int(common.QuotaPerUnit), ownerQuota())
+		assert.Equal(t, int64(1), ledgerCount())
+	})
+
+	t.Run("bill of another enterprise is not found", func(t *testing.T) {
+		response := enterpriseAdjustmentRequest(router, enterprise.Id, "", fmt.Sprintf(`{"kind":"bill","bill_id":%d,"amount_usd":-1,"remark":"cross enterprise"}`, foreignBill.Id))
+		assert.Equal(t, http.StatusNotFound, response.Code)
+		response = enterpriseAdjustmentRequest(router, enterprise.Id+100, "", `{"kind":"wallet","amount_usd":-1,"remark":"missing enterprise"}`)
+		assert.Equal(t, http.StatusNotFound, response.Code)
+	})
+
+	t.Run("bill adjustment with proof", func(t *testing.T) {
+		body := fmt.Sprintf(`{"kind":"bill","bill_id":%d,"amount_usd":-6,"remark":"September double billing"}`, ownBill.Id)
+		response := enterpriseAdjustmentRequest(router, enterprise.Id, "", body)
+		assert.Equal(t, http.StatusForbidden, response.Code)
+		response = enterpriseAdjustmentRequest(router, enterprise.Id, enterpriseAdjustProof(t, identity, owner.Id, "enterprise_adjust"), body)
+		require.Equal(t, http.StatusOK, response.Code, response.Body.String())
+		assert.Contains(t, response.Body.String(), `"status":"paid"`)
+		assert.Contains(t, response.Body.String(), `"ref_type":"bill"`)
+		stored, err := model.GetEnterpriseBill(ownBill.Id)
+		require.NoError(t, err)
+		assert.True(t, stored.TotalUSD.Equal(decimal.NewFromInt(4)), stored.TotalUSD.String())
+		assert.True(t, stored.AdjustmentUSD.Equal(decimal.NewFromInt(-6)), stored.AdjustmentUSD.String())
+		assert.Equal(t, model.EnterpriseBillPaid, stored.Status)
+		assert.Equal(t, 3*int(common.QuotaPerUnit), ownerQuota(), "bill adjustments never touch the wallet")
+		assert.Equal(t, int64(2), ledgerCount())
+		var audit model.AuditLog
+		require.NoError(t, model.LOG_DB.Where("action = ?", "enterprise.adjustment.bill").First(&audit).Error)
+		assert.Equal(t, fmt.Sprintf("Adjusted bill TF-OWN-000001 of enterprise %d by -6 USD: September double billing", enterprise.Id), audit.Content)
+	})
+}

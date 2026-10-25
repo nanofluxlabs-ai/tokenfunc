@@ -242,6 +242,10 @@ func CreateEnterpriseToken(c *gin.Context) {
 		enterpriseApiError(c, err)
 		return
 	}
+	// 审计记录解析后的归属（team_id 为 0 时落到了默认团队）
+	if assignment, err := model.GetEnterpriseTokenAssignment(token.Id); err == nil && assignment != nil {
+		teamId = assignment.TeamId
+	}
 	recordEnterpriseConsoleAudit(c, "enterprise.token.create", map[string]any{"token_id": token.Id, "name": token.Name, "team_id": teamId, "member_id": req.MemberId})
 	// 与上游一致：创建时只返回 id，明文 key 通过「查看 key」接口获取
 	common.ApiSuccess(c, gin.H{"id": token.Id})

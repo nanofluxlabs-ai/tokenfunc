@@ -26,9 +26,10 @@
 - 后端：`make test-db PKG='./controller/ -run TestEnterpriseConsole -count=1'` ok；新增 `TestEnterpriseConsoleTokenManagement`（非法 CIDR / 越权分组 / 模型不在分组 / 持有人不属团队 → 400；创建落白名单与 CIDR；本月消耗回填；编辑改名 + 挪团队 + 清白名单；耗尽 key 不能启用；团队管理员对别的团队 404；成员取明文 200；批量混入范围外 id 404；批量启用跳过耗尽；删除清归属；站点上限 1 → 企业上限 5 覆盖）。五包全量回归见下。
 - 前端：`bun run typecheck` 通过；改动文件 `oxlint` 0 error；`vitest run src/features/enterprise-console src/i18n src/hooks src/components/layout src/features/wallet` → 18 文件 67 用例通过（新增 `keys-page.test.tsx` 4 例、`token-mutate-sheet.test.tsx` 2 例、`key-handover.test.ts` 2 例）。
 - 五包回归：`make test-db PKG='./model/ ./service/ ./controller/ ./middleware/ ./router/ -count=1'`（PG）全部 ok（model 43.7s / service 8.0s / controller 73.8s / middleware 0.8s / router 0.8s）。
+- 浏览器冒烟（worktree `make dev`，API 3007 / 前端 5180，schema 克隆主 dev 旧数据后首启迁移 6 条日志）：acme 登录后常规分组已无「API 密钥」、企业分组显示「API Keys」+ Owner 徽标；新建抽屉选 gpt-4o 白名单 + 两行 IP/CIDR → 成功态显示明文与交付文案 → 表格限制列「Follow enterprise group · 1 models · 2 IPs」、`?q=smoke` 筛选生效 → 编辑抽屉预填名称 / 团队 / 持有人 / 模型芯片 → 停用后状态 Disabled → 菜单删除确认后列表为空；库里 tokens 软删、归属行 0 条、`model_limits = gpt-4o`、`allow_ips` 两行；审计 `enterprise.token.create / status / delete` 三条。发现创建审计的 `team_id` 记成 0（未解析默认团队），已改为记录解析后的归属。
 
 ## 遗留
 
 - `enterprises.max_tokens` 只有列与读取，管理员企业编辑表单未加输入框（需要时后台 SQL 或后续小 PR）。
 - 周期限额（M4）、团队预算拦截提示（M14）在本页的列与抽屉段位后续补入；「复制交付文案」的文档链接暂指 `/docs`，M12 做企业接入指南后改为专页。
-- 密钥页浏览器验收未做（worktree 内未起 `make dev`）；合并前建议用 acme 走一遍新建（带模型白名单 + CIDR）→ 明文 → 编辑改团队 → 停用 → 删除后团队页密钥数减 1。
+- 浏览器未点的：批量启停 / 删除、持有人下拉、成员行「发放密钥」入口（均有 vitest / Go 用例覆盖）。

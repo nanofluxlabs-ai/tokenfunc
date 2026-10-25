@@ -381,6 +381,43 @@ func SumEnterpriseUsageByColumn(enterpriseId int, column string, ids []int, from
 	return result, nil
 }
 
+// EnterpriseUsageDayItem 按天汇总（概览柱图用）；区间内没有用量的日期补零
+type EnterpriseUsageDayItem struct {
+	Day          string `json:"day"`
+	Quota        int64  `json:"quota"`
+	RequestCount int64  `json:"request_count"`
+}
+
+// SummarizeEnterpriseUsageByDay [fromDay, toDay] 内每一天的消耗，按日期升序、缺的日期补零
+func SummarizeEnterpriseUsageByDay(enterpriseId int, fromDay string, toDay string, filter EnterpriseUsageFilter) ([]*EnterpriseUsageDayItem, error) {
+	start, err := time.ParseInLocation("2006-01-02", fromDay, enterpriseBillingLocation)
+	if err != nil {
+		return nil, err
+	}
+	end, err := time.ParseInLocation("2006-01-02", toDay, enterpriseBillingLocation)
+	if err != nil {
+		return nil, err
+	}
+	items, err := SummarizeEnterpriseUsage(enterpriseId, EnterpriseUsageGroupDay, fromDay, toDay, filter)
+	if err != nil {
+		return nil, err
+	}
+	byDay := make(map[string]*EnterpriseUsageSummaryItem, len(items))
+	for _, item := range items {
+		byDay[item.KeyName] = item
+	}
+	days := make([]*EnterpriseUsageDayItem, 0, 31)
+	for day := start; !day.After(end); day = day.AddDate(0, 0, 1) {
+		row := &EnterpriseUsageDayItem{Day: day.Format("2006-01-02")}
+		if item, ok := byDay[row.Day]; ok {
+			row.Quota = item.Quota
+			row.RequestCount = item.RequestCount
+		}
+		days = append(days, row)
+	}
+	return days, nil
+}
+
 // EnterpriseUsageExportRow 导出明细（最细粒度：日 × key × 模型）
 type EnterpriseUsageExportRow struct {
 	Day                 string `json:"day"`

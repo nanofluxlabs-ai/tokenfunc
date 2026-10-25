@@ -23,6 +23,7 @@ function member(partial: Partial<Member> & { id: number }): Member {
     status: 'active',
     remark: '',
     token_count: 0,
+    month_quota: 0,
     created_at: 0,
     ...partial,
   }

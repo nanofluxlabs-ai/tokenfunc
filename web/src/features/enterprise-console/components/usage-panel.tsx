@@ -40,6 +40,8 @@ type UsagePanelProps = {
   exportUrl: string
   /** 固定筛选（团队角色只看本团队；管理员侧按需传） */
   filter?: Pick<UsageQuery, 'team_id' | 'member_id'>
+  /** 初始维度（深链进入时由 URL 指定） */
+  initialGroupBy?: UsageGroupBy
 }
 
 function defaultRange(): { from: Date; to: Date } {
@@ -54,7 +56,9 @@ export function UsagePanel(props: UsagePanelProps) {
   const { t, i18n } = useTranslation()
   const locale = toIntlLocale(i18n.resolvedLanguage || i18n.language)
   const [range, setRange] = useState(defaultRange)
-  const [groupBy, setGroupBy] = useState<UsageGroupBy>('team')
+  const [groupBy, setGroupBy] = useState<UsageGroupBy>(
+    props.initialGroupBy ?? 'team'
+  )
   const filter = props.filter ?? {}
   const [exporting, setExporting] = useState(false)
   const from = formatDateStr(range.from)

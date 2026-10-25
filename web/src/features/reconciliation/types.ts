@@ -10,6 +10,7 @@ export type TopupSource =
   | 'online'
   | 'redemption'
   | 'enterprise_topup'
+  | 'enterprise_adjust'
   | 'subscription_balance'
   | 'admin_adjust'
   | 'refund'

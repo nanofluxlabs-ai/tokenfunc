@@ -4,7 +4,14 @@ import {
   useQueryClient,
 } from '@tanstack/react-query'
 import { Link } from '@tanstack/react-router'
-import { KeyRound, Pencil, Power, PowerOff, Trash2, UserCog } from 'lucide-react'
+import {
+  KeyRound,
+  Pencil,
+  Power,
+  PowerOff,
+  Trash2,
+  UserCog,
+} from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'

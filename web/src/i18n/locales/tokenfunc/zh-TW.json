@@ -1302,6 +1302,15 @@
     "Adjustment registered": "調帳已登記",
     "Register adjustment": "登記調帳",
     "Current balance: {{amount}}": "目前餘額：{{amount}}",
-    "Enterprise balance adjustment": "企業餘額調帳"
+    "Enterprise balance adjustment": "企業餘額調帳",
+    "All members": "全部成員",
+    "Can sign in": "可登入",
+    "Filter by console access": "依登入狀態篩選",
+    "Key only": "僅金鑰",
+    "Member disabled": "成員已停用",
+    "Member enabled": "成員已啟用",
+    "Only members who already have console access can be made team admins. Grant access from the member row first.": "只有已開通主控台登入的成員才能設為團隊管理員，請先在成員列開通登入。",
+    "Select a member": "選擇成員",
+    "Set team admin": "設團隊管理員"
   }
 }

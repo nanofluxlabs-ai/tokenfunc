@@ -77,8 +77,9 @@ test('renders the toolbar search and the promoter rows with bound count and mont
   expect(
     screen.getByPlaceholderText('Search by username, ID, email or remark...')
   ).toBeInTheDocument()
+  // 绑定数单元格与行操作都叫「管理绑定」，绑定数在前
   expect(
-    screen.getByRole('button', { name: 'Manage bindings' })
+    screen.getAllByRole('button', { name: 'Manage bindings' })[0]
   ).toHaveTextContent('4')
   expect(apiMock.listPromoters).toHaveBeenCalledWith({
     keyword: undefined,

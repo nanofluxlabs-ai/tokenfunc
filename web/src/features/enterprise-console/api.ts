@@ -4,22 +4,24 @@ import type {
   ApiResponse,
   Bill,
   CreditPeriod,
-  Department,
-  Employee,
-  EmployeeImportResult,
-  EmployeeImportRow,
-  EmployeePayload,
   EnterpriseOverview,
   EnterpriseSelf,
   EnterpriseToken,
   LedgerEntry,
-  UsageGroupBy,
-  UsageSummary,
+  Member,
+  MemberImportResult,
+  MemberImportRow,
+  MemberLoginPayload,
+  MemberPayload,
+  MemberRole,
   PageData,
-  Project,
-  ProjectPayload,
+  ProvisionedLogin,
+  Team,
+  TeamPayload,
   TokenAssignmentPayload,
   TokenCreatePayload,
+  UsageGroupBy,
+  UsageSummary,
 } from './types'
 
 const BASE = '/api/enterprise'
@@ -31,100 +33,113 @@ export async function getEnterpriseSelf(): Promise<
   return res.data
 }
 
-export async function listDepartments(): Promise<ApiResponse<Department[]>> {
-  const res = await api.get(`${BASE}/departments`)
+// ---------------------------------------------------------------------------
+// 团队
+// ---------------------------------------------------------------------------
+
+export async function listTeams(): Promise<ApiResponse<Team[]>> {
+  const res = await api.get(`${BASE}/teams`)
   return res.data
 }
 
-export async function createDepartment(
-  payload: Pick<Department, 'name' | 'parent_id' | 'sort'>
-): Promise<ApiResponse<Department>> {
-  const res = await api.post(`${BASE}/departments`, payload)
+export async function createTeam(
+  payload: TeamPayload
+): Promise<ApiResponse<Team>> {
+  const res = await api.post(`${BASE}/teams`, payload)
   return res.data
 }
 
-export async function updateDepartment(
+export async function updateTeam(
   id: number,
-  payload: Pick<Department, 'name' | 'parent_id' | 'sort'>
+  payload: TeamPayload
 ): Promise<ApiResponse> {
-  const res = await api.put(`${BASE}/departments/${id}`, payload)
+  const res = await api.put(`${BASE}/teams/${id}`, payload)
   return res.data
 }
 
-export async function deleteDepartment(id: number): Promise<ApiResponse> {
-  const res = await api.delete(`${BASE}/departments/${id}`)
+export async function archiveTeam(id: number): Promise<ApiResponse> {
+  const res = await api.post(`${BASE}/teams/${id}/archive`)
   return res.data
 }
 
-export async function listEmployees(params: {
-  department_id?: number
+export async function deleteTeam(id: number): Promise<ApiResponse> {
+  const res = await api.delete(`${BASE}/teams/${id}`)
+  return res.data
+}
+
+// ---------------------------------------------------------------------------
+// 成员
+// ---------------------------------------------------------------------------
+
+export async function listMembers(params: {
+  team_id?: number
   keyword?: string
   status?: string
+  has_login?: boolean
   p?: number
   page_size?: number
-}): Promise<ApiResponse<PageData<Employee>>> {
-  const res = await api.get(`${BASE}/employees`, { params })
+}): Promise<ApiResponse<PageData<Member>>> {
+  const res = await api.get(`${BASE}/members`, { params })
   return res.data
 }
 
-export async function createEmployee(
-  payload: EmployeePayload
-): Promise<ApiResponse<Employee>> {
-  const res = await api.post(`${BASE}/employees`, payload)
+export async function createMember(
+  payload: MemberPayload
+): Promise<ApiResponse<Member>> {
+  const res = await api.post(`${BASE}/members`, payload)
   return res.data
 }
 
-export async function importEmployees(
-  rows: EmployeeImportRow[]
-): Promise<ApiResponse<EmployeeImportResult>> {
-  const res = await api.post(`${BASE}/employees/import`, { rows })
+export async function importMembers(
+  rows: MemberImportRow[]
+): Promise<ApiResponse<MemberImportResult>> {
+  const res = await api.post(`${BASE}/members/import`, { rows })
   return res.data
 }
 
-export async function updateEmployee(
+export async function updateMember(
   id: number,
-  payload: EmployeePayload
+  payload: MemberPayload
 ): Promise<ApiResponse> {
-  const res = await api.put(`${BASE}/employees/${id}`, payload)
+  const res = await api.put(`${BASE}/members/${id}`, payload)
   return res.data
 }
 
-export async function deleteEmployee(id: number): Promise<ApiResponse> {
-  const res = await api.delete(`${BASE}/employees/${id}`)
+export async function deleteMember(id: number): Promise<ApiResponse> {
+  const res = await api.delete(`${BASE}/members/${id}`)
   return res.data
 }
 
-export async function listProjects(params: {
-  keyword?: string
-  status?: string
-}): Promise<ApiResponse<Project[]>> {
-  const res = await api.get(`${BASE}/projects`, { params })
-  return res.data
-}
-
-export async function createProject(
-  payload: ProjectPayload
-): Promise<ApiResponse<Project>> {
-  const res = await api.post(`${BASE}/projects`, payload)
-  return res.data
-}
-
-export async function updateProject(
+/** 给成员开通控制台登录：绑定已有账号或一键开通新账号 */
+export async function setMemberLogin(
   id: number,
-  payload: ProjectPayload
-): Promise<ApiResponse> {
-  const res = await api.put(`${BASE}/projects/${id}`, payload)
+  payload: MemberLoginPayload
+): Promise<ApiResponse<ProvisionedLogin>> {
+  const res = await api.post(`${BASE}/members/${id}/login`, payload)
   return res.data
 }
 
-export async function deleteProject(id: number): Promise<ApiResponse> {
-  const res = await api.delete(`${BASE}/projects/${id}`)
+export async function removeMemberLogin(id: number): Promise<ApiResponse> {
+  const res = await api.delete(`${BASE}/members/${id}/login`)
   return res.data
 }
+
+export async function setMemberRole(
+  id: number,
+  role: MemberRole
+): Promise<ApiResponse> {
+  const res = await api.put(`${BASE}/members/${id}/role`, { role })
+  return res.data
+}
+
+// ---------------------------------------------------------------------------
+// API Key
+// ---------------------------------------------------------------------------
 
 export async function listEnterpriseTokens(params: {
-  employee_id?: number
-  project_id?: number
+  team_id?: number
+  member_id?: number
+  status?: number
   keyword?: string
   p?: number
   page_size?: number
@@ -147,6 +162,18 @@ export async function updateTokenAssignment(
   const res = await api.put(`${BASE}/tokens/${id}/assignment`, payload)
   return res.data
 }
+
+/** 企业 key 的明文（上游 /api/token/:id/key 按登录者查，成员账号拿不到主账号的 key） */
+export async function fetchEnterpriseTokenKey(
+  id: number
+): Promise<ApiResponse<{ key: string }>> {
+  const res = await api.post(`${BASE}/tokens/${id}/key`)
+  return res.data
+}
+
+// ---------------------------------------------------------------------------
+// 概览 / 财务 / 用量
+// ---------------------------------------------------------------------------
 
 export async function getEnterpriseOverview(): Promise<
   ApiResponse<EnterpriseOverview>
@@ -171,7 +198,13 @@ export async function listCreditPeriods(params: {
   return res.data
 }
 
-export type UsageQuery = { group_by: UsageGroupBy; from: string; to: string }
+export type UsageQuery = {
+  group_by: UsageGroupBy
+  from: string
+  to: string
+  team_id?: number
+  member_id?: number
+}
 
 export async function getUsageSummary(
   params: UsageQuery
@@ -183,7 +216,7 @@ export async function getUsageSummary(
 /** 下载用量 CSV（服务端生成，带 BOM） */
 export async function downloadUsageCsv(
   url: string,
-  params: { from: string; to: string }
+  params: { from: string; to: string; team_id?: number; member_id?: number }
 ): Promise<Blob> {
   const res = await api.get(url, { params, responseType: 'blob' })
   return res.data as Blob

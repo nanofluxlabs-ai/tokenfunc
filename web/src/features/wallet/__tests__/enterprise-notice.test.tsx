@@ -53,9 +53,13 @@ vi.mock('@/hooks/use-system-config', () => ({
 }))
 
 type EnterpriseSelfState = {
-  data: { id: number; name: string } | null
+  data: { id: number; name: string; actor: { is_owner: boolean } } | null
   isLoading: boolean
 }
+
+const ownerSelf = { id: 7, name: 'Acme', actor: { is_owner: true } }
+// 绑定了登录账号的成员：有企业身份但不是主账号，钱包与普通用户一致
+const memberSelf = { id: 7, name: 'Acme', actor: { is_owner: false } }
 
 async function renderWallet(state: EnterpriseSelfState) {
   useEnterpriseSelfMock.mockReturnValue(state)
@@ -120,7 +124,7 @@ afterEach(() => {
 })
 
 test('enterprise owner sees the offline top-up notice instead of recharge, subscription and referral cards', async () => {
-  await renderWallet({ data: { id: 7, name: 'Acme' }, isLoading: false })
+  await renderWallet({ data: ownerSelf, isLoading: false })
 
   expect(
     await screen.findByText('Enterprise accounts are topped up offline')
@@ -137,6 +141,15 @@ test('non-enterprise user keeps the recharge card and never sees the notice', as
 
   expect(await screen.findByText('Add Funds')).toBeInTheDocument()
   expect(document.querySelector('#wallet-add-funds')).not.toBeNull()
+  expect(
+    screen.queryByText('Enterprise accounts are topped up offline')
+  ).not.toBeInTheDocument()
+})
+
+test('enterprise member account keeps the recharge card like a personal user', async () => {
+  await renderWallet({ data: memberSelf, isLoading: false })
+
+  expect(await screen.findByText('Add Funds')).toBeInTheDocument()
   expect(
     screen.queryByText('Enterprise accounts are topped up offline')
   ).not.toBeInTheDocument()

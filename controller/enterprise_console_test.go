@@ -17,22 +17,31 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// 企业控制台通过访问令牌（PAT）自动化访问：必须带 enterprise:* 作用域，且令牌所属用户必须是企业主账号
-func TestEnterpriseConsoleAccessTokenScopes(t *testing.T) {
-	admin, _ := setupAccessTokenAudit(t)
-	require.NoError(t, model.DB.AutoMigrate(&model.Enterprise{}, &model.EnterpriseDepartment{}))
-	owner := &model.User{Username: "ent-owner", Password: "placeholder", Role: common.RoleCommonUser, Status: common.UserStatusEnabled, Group: "default", AuthVersion: 1, AffCode: "ent-owner"}
-	require.NoError(t, model.DB.Create(owner).Error)
-	require.NoError(t, model.UpgradeUserToEnterprise(owner.Id, &model.Enterprise{Name: "Owner Co"}))
-
+func newEnterpriseConsoleRouter() *gin.Engine {
 	router := gin.New()
 	router.Use(middleware.RequestId(), middleware.AccessTokenAudit())
 	api := router.Group("/api")
 	api.GET("/enterprise/self", middleware.UserAuth(), GetEnterpriseSelf)
-	console := api.Group("/enterprise", middleware.UserAuth(), middleware.EnterpriseOwnerAuth())
-	console.GET("/departments", ListEnterpriseDepartments)
-	console.POST("/departments", CreateEnterpriseDepartment)
+	console := api.Group("/enterprise", middleware.UserAuth(), middleware.EnterpriseAuth())
+	console.GET("/teams", ListEnterpriseTeams)
+	console.POST("/teams", middleware.RequireEnterpriseRole(model.EnterpriseMemberRoleEnterpriseAdmin), CreateEnterpriseTeam)
+	console.GET("/members", ListEnterpriseMembers)
+	console.POST("/members", middleware.RequireEnterpriseRole(model.EnterpriseMemberRoleTeamAdmin), CreateEnterpriseMember)
+	console.PUT("/members/:id/role", middleware.RequireEnterpriseRole(model.EnterpriseMemberRoleTeamAdmin), SetEnterpriseMemberRole)
+	console.GET("/bills", middleware.RequireEnterpriseRole(model.EnterpriseMemberRoleEnterpriseAdmin), ListEnterpriseBillsSelf)
+	console.POST("/tokens", CreateEnterpriseToken)
+	return router
+}
 
+// 企业控制台通过访问令牌（PAT）自动化访问：必须带 enterprise:* 作用域，且令牌所属用户必须是企业主账号或已绑定登录的成员
+func TestEnterpriseConsoleAccessTokenScopes(t *testing.T) {
+	admin, _ := setupAccessTokenAudit(t)
+	require.NoError(t, model.DB.AutoMigrate(&model.Token{}, &model.Enterprise{}, &model.EnterpriseTeam{}, &model.EnterpriseMember{}, &model.EnterpriseTokenAssignment{}))
+	owner := &model.User{Username: "ent-owner", Password: "placeholder", Role: common.RoleCommonUser, Status: common.UserStatusEnabled, Group: "default", AuthVersion: 1, AffCode: "ent-owner"}
+	require.NoError(t, model.DB.Create(owner).Error)
+	require.NoError(t, model.UpgradeUserToEnterprise(owner.Id, &model.Enterprise{Name: "Owner Co"}))
+
+	router := newEnterpriseConsoleRouter()
 	readToken, _ := createScopedAccessToken(t, owner.Id, 0, "enterprise:read")
 	writeToken, _ := createScopedAccessToken(t, owner.Id, 0, "enterprise:write")
 	profileToken, _ := createScopedAccessToken(t, owner.Id, 0, "profile:read")
@@ -42,21 +51,78 @@ func TestEnterpriseConsoleAccessTokenScopes(t *testing.T) {
 		name, method, path, token string
 		status                    int
 	}{
-		{"read scope lists departments", "GET", "/api/enterprise/departments", readToken, http.StatusOK},
-		{"read scope cannot create", "POST", "/api/enterprise/departments", readToken, http.StatusForbidden},
-		{"write scope creates", "POST", "/api/enterprise/departments", writeToken, http.StatusOK},
-		{"unrelated scope is rejected", "GET", "/api/enterprise/departments", profileToken, http.StatusForbidden},
-		{"non-enterprise user is rejected even with scope", "GET", "/api/enterprise/departments", nonOwnerToken, http.StatusForbidden},
+		{"read scope lists teams", "GET", "/api/enterprise/teams", readToken, http.StatusOK},
+		{"read scope cannot create", "POST", "/api/enterprise/teams", readToken, http.StatusForbidden},
+		{"write scope creates", "POST", "/api/enterprise/teams", writeToken, http.StatusOK},
+		{"unrelated scope is rejected", "GET", "/api/enterprise/teams", profileToken, http.StatusForbidden},
+		{"non-enterprise user is rejected even with scope", "GET", "/api/enterprise/teams", nonOwnerToken, http.StatusForbidden},
 		{"self returns null for non-enterprise user", "GET", "/api/enterprise/self", nonOwnerToken, http.StatusOK},
 	} {
 		t.Run(test.name, func(t *testing.T) {
-			response := accessTokenRequest(router, test.method, test.path, test.token, "", `{"name":"R&D","parent_id":0,"sort":0}`)
+			response := accessTokenRequest(router, test.method, test.path, test.token, "", `{"name":"R&D","sort":0}`)
 			assert.Equal(t, test.status, response.Code, response.Body.String())
 		})
 	}
 	var count int64
-	require.NoError(t, model.DB.Model(&model.EnterpriseDepartment{}).Count(&count).Error)
-	assert.Equal(t, int64(1), count, "only the write-scoped request may create a department")
+	require.NoError(t, model.DB.Model(&model.EnterpriseTeam{}).Where("is_default = ?", false).Count(&count).Error)
+	assert.Equal(t, int64(1), count, "only the write-scoped request may create a team")
+}
+
+// 成员角色的范围：团队管理员只看本团队、不能建团队、不能看账单、不能授予高于自己的角色；企业管理员看全企业
+func TestEnterpriseConsoleMemberRoles(t *testing.T) {
+	setupAccessTokenAudit(t)
+	require.NoError(t, model.DB.AutoMigrate(&model.Token{}, &model.Enterprise{}, &model.EnterpriseTeam{}, &model.EnterpriseMember{}, &model.EnterpriseTokenAssignment{}, &model.EnterpriseBill{}))
+	owner := &model.User{Username: "role-owner", Password: "placeholder", Role: common.RoleCommonUser, Status: common.UserStatusEnabled, Group: "default", AuthVersion: 1, AffCode: "role-own"}
+	require.NoError(t, model.DB.Create(owner).Error)
+	require.NoError(t, model.UpgradeUserToEnterprise(owner.Id, &model.Enterprise{Name: "Role Co"}))
+	ent, err := model.GetEnterpriseByUserId(owner.Id)
+	require.NoError(t, err)
+	rd := &model.EnterpriseTeam{EnterpriseId: ent.Id, Name: "Research"}
+	require.NoError(t, model.CreateEnterpriseTeam(rd))
+	qa := &model.EnterpriseTeam{EnterpriseId: ent.Id, Name: "QA"}
+	require.NoError(t, model.CreateEnterpriseTeam(qa))
+	lead := &model.EnterpriseMember{EnterpriseId: ent.Id, TeamId: rd.Id, Name: "Lead"}
+	require.NoError(t, model.CreateEnterpriseMember(lead))
+	require.NoError(t, model.CreateEnterpriseMember(&model.EnterpriseMember{EnterpriseId: ent.Id, TeamId: qa.Id, Name: "Tester"}))
+	leadUser := &model.User{Username: "role-lead", Password: "placeholder", Role: common.RoleCommonUser, Status: common.UserStatusEnabled, Group: "default", AuthVersion: 1, AffCode: "role-ld"}
+	require.NoError(t, model.DB.Create(leadUser).Error)
+	require.NoError(t, model.BindEnterpriseMemberLogin(ent.Id, lead.Id, leadUser, model.EnterpriseMemberRoleTeamAdmin))
+
+	router := newEnterpriseConsoleRouter()
+	leadToken, _ := createScopedAccessToken(t, leadUser.Id, 0, "enterprise:read", "enterprise:write")
+
+	response := accessTokenRequest(router, "GET", "/api/enterprise/self", leadToken, "", "")
+	require.Equal(t, http.StatusOK, response.Code, response.Body.String())
+	assert.Contains(t, response.Body.String(), `"role":"team_admin"`)
+	assert.Contains(t, response.Body.String(), `"is_owner":false`)
+
+	response = accessTokenRequest(router, "GET", "/api/enterprise/teams", leadToken, "", "")
+	require.Equal(t, http.StatusOK, response.Code, response.Body.String())
+	assert.Contains(t, response.Body.String(), `"name":"Research"`)
+	assert.NotContains(t, response.Body.String(), `"name":"QA"`)
+	response = accessTokenRequest(router, "GET", "/api/enterprise/members", leadToken, "", "")
+	require.Equal(t, http.StatusOK, response.Code, response.Body.String())
+	assert.Contains(t, response.Body.String(), `"name":"Lead"`)
+	assert.NotContains(t, response.Body.String(), `"name":"Tester"`)
+
+	assert.Equal(t, http.StatusForbidden, accessTokenRequest(router, "POST", "/api/enterprise/teams", leadToken, "", `{"name":"Ops"}`).Code, "team admins cannot create teams")
+	assert.Equal(t, http.StatusForbidden, accessTokenRequest(router, "GET", "/api/enterprise/bills", leadToken, "", "").Code, "team admins cannot see bills")
+	// 建成员：不传团队落本团队；指定别的团队按不存在处理
+	response = accessTokenRequest(router, "POST", "/api/enterprise/members", leadToken, "", `{"name":"NewDev"}`)
+	require.Equal(t, http.StatusOK, response.Code, response.Body.String())
+	assert.Equal(t, http.StatusNotFound, accessTokenRequest(router, "POST", "/api/enterprise/members", leadToken, "", `{"name":"Intruder","team_id":`+itoa(qa.Id)+`}`).Code)
+	// key 落本团队
+	response = accessTokenRequest(router, "POST", "/api/enterprise/tokens", leadToken, "", `{"name":"lead-key","unlimited_quota":true}`)
+	require.Equal(t, http.StatusOK, response.Code, response.Body.String())
+	var keyCount int64
+	require.NoError(t, model.DB.Model(&model.EnterpriseTokenAssignment{}).Where("team_id = ?", rd.Id).Count(&keyCount).Error)
+	assert.Equal(t, int64(1), keyCount)
+	// 团队管理员不能把人提成企业管理员
+	assert.Equal(t, http.StatusForbidden, accessTokenRequest(router, "PUT", "/api/enterprise/members/"+itoa(lead.Id)+"/role", leadToken, "", `{"role":"enterprise_admin"}`).Code)
+}
+
+func itoa(value int) string {
+	return strconv.Itoa(value)
 }
 
 // 企业主账号（预付 / 授信）在线充值入口一律 403，普通用户放行；升级为企业后负缓存立即失效
@@ -124,17 +190,17 @@ func TestEnterpriseEmployeeMe(t *testing.T) {
 	}
 
 	owner, enterprise := newCreditBillingEnterprise(t, "me-owner", model.EnterpriseBillingModeCredit)
-	department := &model.EnterpriseDepartment{EnterpriseId: enterprise.Id, Name: "R&D"}
-	require.NoError(t, model.CreateEnterpriseDepartment(department))
-	alice := &model.EnterpriseEmployee{EnterpriseId: enterprise.Id, DepartmentId: department.Id, Name: "Alice", EmployeeNo: "R001"}
-	require.NoError(t, model.CreateEnterpriseEmployee(alice))
-	project := &model.EnterpriseProject{EnterpriseId: enterprise.Id, Name: "Bot"}
-	require.NoError(t, model.CreateEnterpriseProject(project))
-	// 员工 key 只允许 gpt-4o；项目公共 key 不限模型
+	team := &model.EnterpriseTeam{EnterpriseId: enterprise.Id, Name: "R&D"}
+	require.NoError(t, model.CreateEnterpriseTeam(team))
+	alice := &model.EnterpriseMember{EnterpriseId: enterprise.Id, TeamId: team.Id, Name: "Alice", EmployeeNo: "R001"}
+	require.NoError(t, model.CreateEnterpriseMember(alice))
+	// 成员 key 只允许 gpt-4o；团队公共 key（无持有人）不限模型
 	aliceKey := &model.Token{UserId: owner.Id, Key: "meemployeekey", Name: "Alice-Codex", Status: common.TokenStatusEnabled, ExpiredTime: -1, RemainQuota: 6200, UsedQuota: 300, ModelLimitsEnabled: true, ModelLimits: "gpt-4o"}
-	require.NoError(t, model.CreateEnterpriseToken(enterprise.Id, aliceKey, alice.Id, 0))
-	projectKey := newCreditBillingKey(t, owner, enterprise, "meprojectkey", 0, project.Id)
-	newCreditBillingKey(t, owner, enterprise, "meownerkey", 0, 0)
+	require.NoError(t, model.CreateEnterpriseToken(enterprise.Id, model.EnterpriseScope{}, aliceKey, team.Id, alice.Id))
+	teamKey := newCreditBillingKey(t, owner, enterprise, "meteamkey", team.Id, 0)
+	// 主账号在上游 /keys 页自建的 key：没有归属行
+	ownerKey := &model.Token{UserId: owner.Id, Key: "meownerkey", Name: "meownerkey", Status: common.TokenStatusEnabled, ExpiredTime: -1, UnlimitedQuota: true}
+	require.NoError(t, model.DB.Create(ownerKey).Error)
 	period, err := model.GetOpenCreditPeriod(enterprise.Id)
 	require.NoError(t, err)
 	now := common.GetTimestamp()
@@ -142,12 +208,12 @@ func TestEnterpriseEmployeeMe(t *testing.T) {
 		{UserId: owner.Id, TokenId: aliceKey.Id, ModelName: "gpt-4o", Quota: 120, PromptTokens: 10, CreatedAt: now, CreditPeriodId: period.Id},
 		{UserId: owner.Id, TokenId: aliceKey.Id, ModelName: "gpt-4o", Quota: 80, PromptTokens: 10, CreatedAt: now, CreditPeriodId: period.Id},
 		{UserId: owner.Id, TokenId: aliceKey.Id, ModelName: "gpt-4o-mini", Quota: 5, PromptTokens: 1, CreatedAt: now, CreditPeriodId: period.Id},
-		{UserId: owner.Id, TokenId: projectKey.Id, ModelName: "gpt-4o", Quota: 999, PromptTokens: 1, CreatedAt: now, CreditPeriodId: period.Id},
+		{UserId: owner.Id, TokenId: teamKey.Id, ModelName: "gpt-4o", Quota: 999, PromptTokens: 1, CreatedAt: now, CreditPeriodId: period.Id},
 	} {
 		require.NoError(t, model.RecordEnterpriseUsage(event))
 	}
 
-	t.Run("employee key sees its team, holder, key quota and usage", func(t *testing.T) {
+	t.Run("member key sees its team, holder, key quota and usage", func(t *testing.T) {
 		status, body := me("meemployeekey")
 		require.Equal(t, http.StatusOK, status, body)
 		assert.Equal(t, "enterprise_employee", body["object"])
@@ -174,14 +240,26 @@ func TestEnterpriseEmployeeMe(t *testing.T) {
 		}
 	})
 
-	t.Run("project key without a holder is allowed with a null member", func(t *testing.T) {
-		status, body := me("meprojectkey")
+	t.Run("team key without a holder is allowed with a null member", func(t *testing.T) {
+		status, body := me("meteamkey")
 		require.Equal(t, http.StatusOK, status, body)
 		assert.Nil(t, body["member"])
-		assert.Equal(t, map[string]any{"name": "", "budget_state": nil}, body["team"])
+		assert.Equal(t, map[string]any{"name": "R&D", "budget_state": nil}, body["team"])
 		assert.Equal(t, []any{"gpt-4o", "gpt-4o-mini"}, body["models"])
 		usage, _ := body["usage"].(map[string]any)
 		assert.Equal(t, map[string]any{"quota": float64(999), "requests": float64(1)}, usage["today"])
+	})
+
+	t.Run("archived team is rejected even if the key was re-enabled", func(t *testing.T) {
+		archived := &model.EnterpriseTeam{EnterpriseId: enterprise.Id, Name: "Legacy"}
+		require.NoError(t, model.CreateEnterpriseTeam(archived))
+		legacyKey := newCreditBillingKey(t, owner, enterprise, "melegacykey", archived.Id, 0)
+		require.NoError(t, model.ArchiveEnterpriseTeam(enterprise.Id, archived.Id))
+		// 归档会停用 key（TokenAuth 直接拒绝）；手工重新启用后仍由本接口按团队状态拦截
+		require.NoError(t, model.DB.Model(&model.Token{}).Where("id = ?", legacyKey.Id).Update("status", common.TokenStatusEnabled).Error)
+		status, body := me("melegacykey")
+		assert.Equal(t, http.StatusForbidden, status, body)
+		assert.Equal(t, "access_denied", creditBillingErrorCode(body))
 	})
 
 	t.Run("unassigned owner key and personal key are rejected", func(t *testing.T) {

@@ -39,8 +39,13 @@ func GetEnterpriseEmployeeMe(c *gin.Context) {
 		writeBillingError(c, http.StatusInternalServerError, string(types.ErrorCodeQueryDataError), err.Error())
 		return
 	}
-	if profile.HasMember && profile.MemberStatus != model.EnterpriseEmployeeStatusActive {
-		writeBillingError(c, http.StatusForbidden, string(types.ErrorCodeAccessDenied), "the employee holding this API key is disabled")
+	// 归档团队会停用其全部 key，这里兜底状态漂移（例如 key 被手工重新启用）
+	if profile.TeamStatus != model.EnterpriseTeamStatusActive {
+		writeBillingError(c, http.StatusForbidden, string(types.ErrorCodeAccessDenied), "the team owning this API key is archived")
+		return
+	}
+	if profile.HasMember && profile.MemberStatus != model.EnterpriseMemberStatusActive {
+		writeBillingError(c, http.StatusForbidden, string(types.ErrorCodeAccessDenied), "the member holding this API key is disabled")
 		return
 	}
 	enterprise, err := model.GetEnterpriseById(info.EnterpriseId)

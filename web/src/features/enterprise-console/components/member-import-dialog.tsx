@@ -13,39 +13,36 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { handleServerError } from '@/lib/handle-server-error'
 
-import { importEmployees } from '../api'
-import {
-  EMPLOYEE_CSV_TEMPLATE,
-  parseEmployeeCsv,
-} from '../lib/parse-employee-csv'
-import type { EmployeeImportResult, EmployeeImportRow } from '../types'
+import { importMembers } from '../api'
+import { MEMBER_CSV_TEMPLATE, parseMemberCsv } from '../lib/parse-member-csv'
+import type { MemberImportResult, MemberImportRow } from '../types'
 
 const PREVIEW_ROWS = 5
 const MAX_ROWS = 1000
 
-type EmployeeImportDialogProps = {
+type MemberImportDialogProps = {
   open: boolean
   onOpenChange: (open: boolean) => void
   onImported: () => void
 }
 
 function downloadTemplate() {
-  const blob = new Blob([`\ufeff${EMPLOYEE_CSV_TEMPLATE}`], {
+  const blob = new Blob([`﻿${MEMBER_CSV_TEMPLATE}`], {
     type: 'text/csv;charset=utf-8',
   })
   const url = URL.createObjectURL(blob)
   const link = document.createElement('a')
   link.href = url
-  link.download = 'employees-template.csv'
+  link.download = 'members-template.csv'
   link.click()
   URL.revokeObjectURL(url)
 }
 
-export function EmployeeImportDialog(props: EmployeeImportDialogProps) {
+export function MemberImportDialog(props: MemberImportDialogProps) {
   const { t } = useTranslation()
-  const [rows, setRows] = useState<EmployeeImportRow[]>([])
+  const [rows, setRows] = useState<MemberImportRow[]>([])
   const [parseError, setParseError] = useState<string | null>(null)
-  const [result, setResult] = useState<EmployeeImportResult | null>(null)
+  const [result, setResult] = useState<MemberImportResult | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
 
   useEffect(() => {
@@ -59,7 +56,7 @@ export function EmployeeImportDialog(props: EmployeeImportDialogProps) {
     const file = event.target.files?.[0]
     setResult(null)
     if (!file) return
-    const parsed = parseEmployeeCsv(await file.text())
+    const parsed = parseMemberCsv(await file.text())
     if (parsed.error === 'missing_name_column') {
       setParseError(t('The CSV must contain a "name" column.'))
       setRows([])
@@ -84,7 +81,7 @@ export function EmployeeImportDialog(props: EmployeeImportDialogProps) {
   const handleImport = async () => {
     setIsSubmitting(true)
     try {
-      const response = await importEmployees(rows)
+      const response = await importMembers(rows)
       if (!response.success || !response.data) {
         handleServerError(response)
         return
@@ -92,7 +89,7 @@ export function EmployeeImportDialog(props: EmployeeImportDialogProps) {
       setResult(response.data)
       if (response.data.errors.length === 0) {
         toast.success(
-          t('Imported {{count}} employees', { count: response.data.created })
+          t('Imported {{count}} members', { count: response.data.created })
         )
         props.onImported()
         props.onOpenChange(false)
@@ -104,7 +101,7 @@ export function EmployeeImportDialog(props: EmployeeImportDialogProps) {
     }
   }
 
-  const previewColumns: StaticDataTableColumn<EmployeeImportRow>[] = [
+  const previewColumns: StaticDataTableColumn<MemberImportRow>[] = [
     { id: 'name', header: t('Name'), cell: (row) => row.name },
     { id: 'email', header: t('Email'), cell: (row) => row.email || '—' },
     {
@@ -112,11 +109,7 @@ export function EmployeeImportDialog(props: EmployeeImportDialogProps) {
       header: t('Employee No.'),
       cell: (row) => row.employee_no || '—',
     },
-    {
-      id: 'department',
-      header: t('Department'),
-      cell: (row) => row.department || '—',
-    },
+    { id: 'team', header: t('Team'), cell: (row) => row.team || '—' },
   ]
   const errorColumns: StaticDataTableColumn<{
     row: number
@@ -130,9 +123,9 @@ export function EmployeeImportDialog(props: EmployeeImportDialogProps) {
     <Dialog
       open={props.open}
       onOpenChange={props.onOpenChange}
-      title={t('Import Employees')}
+      title={t('Import Members')}
       description={t(
-        'Upload a CSV with columns name, email, employee_no and department. Unknown departments are created at the top level. If any row is invalid, nothing is imported.'
+        'Upload a CSV with columns name, email, employee_no and team. Unknown teams are created; an empty team means the default team. If any row is invalid, nothing is imported.'
       )}
       contentClassName='sm:max-w-2xl'
       footer={

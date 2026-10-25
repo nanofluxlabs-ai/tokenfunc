@@ -104,7 +104,13 @@ export async function listEnterpriseCreditPeriods(
 
 export async function getEnterpriseUsageSummary(
   id: number,
-  params: { group_by: UsageGroupBy; from: string; to: string }
+  params: {
+    group_by: UsageGroupBy
+    from: string
+    to: string
+    team_id?: number
+    member_id?: number
+  }
 ): Promise<ApiResponse<UsageSummary>> {
   const res = await api.get(`${ADMIN_ENTERPRISE_BASE}/${id}/usage/summary`, {
     params,

@@ -89,9 +89,10 @@ export function Wallet(props: WalletProps) {
   const { status } = useStatus()
   const { currency } = useSystemConfig()
   const { topupInfo, presetAmounts, loading: topupLoading } = useTopupInfo()
-  // 企业主账号由客户经理线下充值：隐藏充值 / 订阅 / 邀请划转，后端同样拦截这些入口
+  // 企业主账号由客户经理线下充值：隐藏充值 / 订阅 / 邀请划转，后端同样拦截这些入口；
+  // 绑定了登录账号的成员仍是普通钱包，不受影响
   const { data: enterprise, isLoading: enterpriseLoading } = useEnterpriseSelf()
-  const isEnterpriseOwner = Boolean(enterprise)
+  const isEnterpriseOwner = enterprise?.actor?.is_owner === true
 
   // Calculate effective exchange rate - when display type is USD, use rate of 1
   const effectiveUsdExchangeRate = useMemo(() => {

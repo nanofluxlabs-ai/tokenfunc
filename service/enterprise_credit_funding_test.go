@@ -28,7 +28,7 @@ func setupCreditFundingPostgres(t *testing.T) {
 	require.NoError(t, err)
 	sqlDB, err := db.DB()
 	require.NoError(t, err)
-	tables := []any{&model.User{}, &model.Token{}, &model.Enterprise{}, &model.EnterpriseCreditPeriod{}, &model.EnterpriseLedgerEntry{}}
+	tables := []any{&model.User{}, &model.Token{}, &model.Enterprise{}, &model.EnterpriseTeam{}, &model.EnterpriseCreditPeriod{}, &model.EnterpriseLedgerEntry{}}
 	previousDB := model.DB
 	previousMain, previousLog := common.MainDatabaseType(), common.LogDatabaseType()
 	model.DB = db

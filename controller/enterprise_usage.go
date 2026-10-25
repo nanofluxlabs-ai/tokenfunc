@@ -36,13 +36,21 @@ func usageRange(c *gin.Context) (string, string, bool) {
 	return from, to, true
 }
 
-func writeEnterpriseUsageSummary(c *gin.Context, enterpriseId int) {
+// usageFilter 解析下钻过滤（团队 / 成员），并把当前身份的范围并进去
+func usageFilter(c *gin.Context, scope model.EnterpriseScope) model.EnterpriseUsageFilter {
+	return model.EnterpriseUsageFilter{
+		TeamId:   optionalIntQuery(c, "team_id"),
+		MemberId: optionalIntQuery(c, "member_id"),
+	}.WithScope(scope)
+}
+
+func writeEnterpriseUsageSummary(c *gin.Context, enterpriseId int, scope model.EnterpriseScope) {
 	from, to, ok := usageRange(c)
 	if !ok {
 		return
 	}
-	groupBy := c.DefaultQuery("group_by", model.EnterpriseUsageGroupDepartment)
-	items, err := model.SummarizeEnterpriseUsage(enterpriseId, groupBy, from, to)
+	groupBy := c.DefaultQuery("group_by", model.EnterpriseUsageGroupTeam)
+	items, err := model.SummarizeEnterpriseUsage(enterpriseId, groupBy, from, to, usageFilter(c, scope))
 	if errors.Is(err, model.ErrEnterpriseUsageGroup) {
 		common.ApiErrorMsg(c, err.Error())
 		return
@@ -55,12 +63,12 @@ func writeEnterpriseUsageSummary(c *gin.Context, enterpriseId int) {
 }
 
 // writeEnterpriseUsageExport 导出 CSV（带 BOM，Excel 直接打开不乱码），金额列为 USD
-func writeEnterpriseUsageExport(c *gin.Context, enterpriseId int) {
+func writeEnterpriseUsageExport(c *gin.Context, enterpriseId int, scope model.EnterpriseScope) {
 	from, to, ok := usageRange(c)
 	if !ok {
 		return
 	}
-	rows, err := model.ExportEnterpriseUsage(enterpriseId, from, to)
+	rows, err := model.ExportEnterpriseUsage(enterpriseId, from, to, usageFilter(c, scope))
 	if err != nil {
 		common.ApiError(c, err)
 		return
@@ -68,11 +76,13 @@ func writeEnterpriseUsageExport(c *gin.Context, enterpriseId int) {
 	var buffer bytes.Buffer
 	buffer.WriteString("\uFEFF")
 	writer := csv.NewWriter(&buffer)
-	_ = writer.Write([]string{"day", "department", "employee", "project", "api_key", "model", "requests", "prompt_tokens", "completion_tokens", "amount_usd"})
+	_ = writer.Write([]string{"day", "team", "member", "api_key", "model", "requests", "prompt_tokens", "cache_tokens", "cache_creation_tokens", "completion_tokens", "amount_usd"})
 	for _, row := range rows {
 		_ = writer.Write([]string{
-			row.Day, row.DepartmentName, row.EmployeeName, row.ProjectName, row.TokenName, row.ModelName,
-			strconv.FormatInt(row.RequestCount, 10), strconv.FormatInt(row.PromptTokens, 10), strconv.FormatInt(row.CompletionTokens, 10),
+			row.Day, row.TeamName, row.MemberName, row.TokenName, row.ModelName,
+			strconv.FormatInt(row.RequestCount, 10), strconv.FormatInt(row.PromptTokens, 10),
+			strconv.FormatInt(row.CacheTokens, 10), strconv.FormatInt(row.CacheCreationTokens, 10),
+			strconv.FormatInt(row.CompletionTokens, 10),
 			strconv.FormatFloat(float64(row.Quota)/common.QuotaPerUnit, 'f', 6, 64),
 		})
 	}
@@ -82,11 +92,11 @@ func writeEnterpriseUsageExport(c *gin.Context, enterpriseId int) {
 }
 
 func GetEnterpriseUsageSummary(c *gin.Context) {
-	writeEnterpriseUsageSummary(c, currentEnterprise(c).Id)
+	writeEnterpriseUsageSummary(c, currentEnterprise(c).Id, currentScope(c))
 }
 
 func ExportEnterpriseUsageSelf(c *gin.Context) {
-	writeEnterpriseUsageExport(c, currentEnterprise(c).Id)
+	writeEnterpriseUsageExport(c, currentEnterprise(c).Id, currentScope(c))
 }
 
 func AdminGetEnterpriseUsageSummary(c *gin.Context) {
@@ -94,7 +104,7 @@ func AdminGetEnterpriseUsageSummary(c *gin.Context) {
 	if !ok {
 		return
 	}
-	writeEnterpriseUsageSummary(c, id)
+	writeEnterpriseUsageSummary(c, id, model.EnterpriseScope{})
 }
 
 func AdminExportEnterpriseUsage(c *gin.Context) {
@@ -102,5 +112,5 @@ func AdminExportEnterpriseUsage(c *gin.Context) {
 	if !ok {
 		return
 	}
-	writeEnterpriseUsageExport(c, id)
+	writeEnterpriseUsageExport(c, id, model.EnterpriseScope{})
 }

@@ -242,7 +242,11 @@ func CreateEnterpriseWithNewUser(user *User, enterprise *Enterprise) error {
 		enterprise.UserId = user.Id
 		enterprise.CreatedAt = now
 		enterprise.UpdatedAt = now
-		return tx.Create(enterprise).Error
+		if err := tx.Create(enterprise).Error; err != nil {
+			return err
+		}
+		_, err := ensureDefaultTeam(tx, enterprise.Id)
+		return err
 	})
 	if err != nil {
 		return err
@@ -278,7 +282,11 @@ func UpgradeUserToEnterprise(userId int, enterprise *Enterprise) error {
 		enterprise.UserId = userId
 		enterprise.CreatedAt = now
 		enterprise.UpdatedAt = now
-		return tx.Create(enterprise).Error
+		if err := tx.Create(enterprise).Error; err != nil {
+			return err
+		}
+		_, err := ensureDefaultTeam(tx, enterprise.Id)
+		return err
 	})
 	if err != nil {
 		return err

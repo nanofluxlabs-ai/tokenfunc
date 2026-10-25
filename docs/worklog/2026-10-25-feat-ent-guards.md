@@ -58,9 +58,14 @@ ok  	github.com/QuantumNous/new-api/controller	46.840s
 ok  	github.com/QuantumNous/new-api/model	16.300s
 ```
 
+## M1 适配（PR #49 合入 main 后）
+
+已按 M1 适配：合并 `origin/main`（`a68a3a4b4`）并把组织关联切到三层模型。`GetEnterpriseTokenProfile` 改 JOIN `ent_teams t` / `ent_members m`（`a.member_id = 0` 为团队公共 key，`member` 返回 `null`），新增 `TeamStatus`；`GetEnterpriseEmployeeMe` 对 `status = archived` 的团队返回 403 `access_denied`（归档本身会停用 key，这里兜底手工重新启用的漂移），持有人停用判断改用 `EnterpriseMemberStatusActive`。`RejectEnterpriseOwner` 仍按 `enterprises.user_id` 判定，只拦企业主账号，绑定登录的成员不拦。钱包页 `isEnterpriseOwner` 改读 `enterprise?.actor?.is_owner`，vitest 补「成员账号与普通用户一致」用例。测试夹具表清单换成 `EnterpriseTeam{} / EnterpriseMember{} / EnterpriseTokenAssignment{}`，「项目公共 key」用例改为「团队公共 key」，新增「归档团队 403」用例。
+
+验证（PostgreSQL 17.11）：`go build ./...`（web/dist 占位后）通过；`make test-db PKG='./model/ ./service/ ./controller/ ./middleware/ ./router/ -count=1'` → `ok model 37.204s / ok service 14.224s / ok controller 49.946s / ok middleware 0.790s / ok router 0.820s`；`cd web && bun run typecheck` 通过；`bunx vitest run` 钱包页 + copy + locale-shape → 3 files / 9 tests passed。
+
 ## 遗留
 
-- 当前表结构下没有「团队已归档」概念（部门是软删且有员工时不可删），M7 文件里的「团队已归档 403」未实现，改为「持有人已停用 403」；M1 落地 `ent_teams.status` 后在 `GetEnterpriseEmployeeMe` 补一条判断。
 - `team.budget_state`（M14）与 `key.quota_policy`（M4）暂为 `null`，契约字段已占位。
-- M1 合并后需要改的位置：`model/enterprise_usage.go` 的 `GetEnterpriseTokenProfile`（JOIN 改 `ent_teams` / `ent_members`，`HasMember` 改按 `member_id`）；`web/src/features/wallet/index.tsx` 的 `isEnterpriseOwner` 改为 `data?.role === 'owner'`；`controller/enterprise_console_test.go` 的夹具（`EnterpriseDepartment` / `EnterpriseEmployee` / `EnterpriseProject` 换新表）；`billing_credit_test.go` 夹具表清单同上。
 - 多副本下其它节点的 `enterpriseBillingInfoCache` 仍有最多 15s 延迟（已接受的退化，与授信配置变更一致）。
+- #48（M8）合入 main 后需再合一次 main。

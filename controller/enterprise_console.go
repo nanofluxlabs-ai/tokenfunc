@@ -4,12 +4,10 @@ import (
 	"errors"
 	"net/http"
 	"strconv"
-	"strings"
 
 	"github.com/QuantumNous/new-api/common"
 	"github.com/QuantumNous/new-api/middleware"
 	"github.com/QuantumNous/new-api/model"
-	"github.com/QuantumNous/new-api/setting/operation_setting"
 
 	"github.com/gin-gonic/gin"
 )
@@ -487,146 +485,6 @@ func SetEnterpriseMemberRole(c *gin.Context) {
 // ---------------------------------------------------------------------------
 // API Key
 // ---------------------------------------------------------------------------
-
-type enterpriseTokenAssignmentRequest struct {
-	TeamId   int `json:"team_id"`
-	MemberId int `json:"member_id"`
-}
-
-type enterpriseTokenCreateRequest struct {
-	Name           string `json:"name"`
-	TeamId         int    `json:"team_id"`
-	MemberId       int    `json:"member_id"`
-	RemainQuota    int    `json:"remain_quota"`
-	UnlimitedQuota bool   `json:"unlimited_quota"`
-	ExpiredTime    int64  `json:"expired_time"`
-}
-
-func ListEnterpriseTokens(c *gin.Context) {
-	enterprise := currentEnterprise(c)
-	pageInfo := common.GetPageQuery(c)
-	filter := model.EnterpriseTokenFilter{
-		TeamId:   optionalIntQuery(c, "team_id"),
-		MemberId: optionalIntQuery(c, "member_id"),
-		Status:   optionalIntQuery(c, "status"),
-		Keyword:  c.Query("keyword"),
-	}
-	items, total, err := model.ListEnterpriseTokens(enterprise.Id, enterprise.UserId, currentScope(c), filter, pageInfo.GetStartIdx(), pageInfo.GetPageSize())
-	if err != nil {
-		common.ApiError(c, err)
-		return
-	}
-	pageInfo.SetTotal(int(total))
-	pageInfo.SetItems(items)
-	common.ApiSuccess(c, pageInfo)
-}
-
-// CreateEnterpriseToken 为团队/持有人创建 key（key 始终落在企业主账号名下）
-func CreateEnterpriseToken(c *gin.Context) {
-	enterprise := currentEnterprise(c)
-	var req enterpriseTokenCreateRequest
-	if err := common.DecodeJson(c.Request.Body, &req); err != nil {
-		common.ApiErrorMsg(c, "invalid request body")
-		return
-	}
-	req.Name = strings.TrimSpace(req.Name)
-	if req.Name == "" || len(req.Name) > 50 {
-		common.ApiErrorMsg(c, "key name is required and must be at most 50 characters")
-		return
-	}
-	if !req.UnlimitedQuota && (req.RemainQuota < 0 || req.RemainQuota > maxTokenQuota()) {
-		common.ApiErrorMsg(c, "invalid key quota")
-		return
-	}
-	if req.ExpiredTime != -1 && req.ExpiredTime != 0 && req.ExpiredTime < common.GetTimestamp() {
-		common.ApiErrorMsg(c, "expiration time must be in the future")
-		return
-	}
-	if req.ExpiredTime == 0 {
-		req.ExpiredTime = -1
-	}
-	teamId, ok := resolveScopedTeam(c, req.TeamId)
-	if !ok {
-		return
-	}
-	count, err := model.CountUserTokens(enterprise.UserId)
-	if err != nil {
-		common.ApiError(c, err)
-		return
-	}
-	if maxTokens := operation_setting.GetMaxUserTokens(); int(count) >= maxTokens {
-		common.ApiErrorMsg(c, "maximum number of API keys reached ("+strconv.Itoa(maxTokens)+")")
-		return
-	}
-	key, err := common.GenerateKey()
-	if err != nil {
-		common.ApiErrorMsg(c, "failed to generate key")
-		return
-	}
-	now := common.GetTimestamp()
-	token := &model.Token{
-		UserId:         enterprise.UserId,
-		Name:           req.Name,
-		Key:            key,
-		CreatedTime:    now,
-		AccessedTime:   now,
-		ExpiredTime:    req.ExpiredTime,
-		RemainQuota:    req.RemainQuota,
-		UnlimitedQuota: req.UnlimitedQuota,
-	}
-	if err := model.CreateEnterpriseToken(enterprise.Id, currentScope(c), token, teamId, req.MemberId); err != nil {
-		enterpriseApiError(c, err)
-		return
-	}
-	// 与上游一致：创建时只返回 id，明文 key 通过"查看 key"接口获取
-	common.ApiSuccess(c, gin.H{"id": token.Id})
-}
-
-func UpdateEnterpriseTokenAssignment(c *gin.Context) {
-	id, ok := paramId(c)
-	if !ok {
-		return
-	}
-	var req enterpriseTokenAssignmentRequest
-	if err := common.DecodeJson(c.Request.Body, &req); err != nil {
-		common.ApiErrorMsg(c, "invalid request body")
-		return
-	}
-	teamId, ok := resolveScopedTeam(c, req.TeamId)
-	if !ok {
-		return
-	}
-	enterprise := currentEnterprise(c)
-	if err := model.AssignEnterpriseToken(enterprise.Id, enterprise.UserId, currentScope(c), id, teamId, req.MemberId); err != nil {
-		enterpriseApiError(c, err)
-		return
-	}
-	common.ApiSuccess(c, nil)
-}
-
-// GetEnterpriseTokenKey 返回企业 key 的明文（上游 /api/token/:id/key 按登录者查，成员账号拿不到主账号的 key）
-func GetEnterpriseTokenKey(c *gin.Context) {
-	id, ok := paramId(c)
-	if !ok {
-		return
-	}
-	enterprise := currentEnterprise(c)
-	assignment, err := model.GetEnterpriseTokenAssignment(id)
-	if err != nil {
-		common.ApiError(c, err)
-		return
-	}
-	if assignment == nil || assignment.EnterpriseId != enterprise.Id || !currentScope(c).Allows(assignment.TeamId) {
-		enterpriseApiError(c, model.ErrEnterpriseResourceNotFound)
-		return
-	}
-	token, err := model.GetTokenByIds(id, enterprise.UserId)
-	if err != nil {
-		enterpriseApiError(c, model.ErrEnterpriseResourceNotFound)
-		return
-	}
-	common.ApiSuccess(c, gin.H{"key": token.Key})
-}
 
 // recordEnterpriseConsoleAudit 企业控制台内的组织/权限变更审计（操作者是企业主或成员，不是平台管理员）
 func recordEnterpriseConsoleAudit(c *gin.Context, action string, params map[string]any) {

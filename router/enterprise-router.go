@@ -88,7 +88,13 @@ func registerEnterpriseRoutes(apiRouter *gin.RouterGroup) {
 
 		consoleRoute.GET("/tokens", controller.ListEnterpriseTokens)
 		consoleRoute.POST("/tokens", controller.CreateEnterpriseToken)
+		consoleRoute.GET("/tokens/options", controller.GetEnterpriseTokenOptions)
+		consoleRoute.PUT("/tokens/:id", controller.UpdateEnterpriseToken)
+		consoleRoute.PUT("/tokens/:id/status", controller.UpdateEnterpriseTokenStatus)
 		consoleRoute.PUT("/tokens/:id/assignment", controller.UpdateEnterpriseTokenAssignment)
+		consoleRoute.DELETE("/tokens/:id", controller.DeleteEnterpriseToken)
 		consoleRoute.POST("/tokens/:id/key", controller.GetEnterpriseTokenKey)
+		consoleRoute.POST("/tokens/batch-status", controller.BatchUpdateEnterpriseTokenStatus)
+		consoleRoute.POST("/tokens/batch-delete", controller.BatchDeleteEnterpriseTokens)
 	}
 }

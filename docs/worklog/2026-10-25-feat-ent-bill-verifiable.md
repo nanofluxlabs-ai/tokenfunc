@@ -37,6 +37,7 @@
 - `make test-db PKG='./model/ ./service/ ./controller/ ./middleware/ ./router/ -count=1'`：五个包全部 `ok`（model 22.7s、controller 46.1s）。含 `TestEnterpriseConsoleBillExport`（sqlite，走现有 controller 夹具）：v2 账单导出 200、`text/csv`、BOM、含「汇总(按令牌分组-模型)」「汇总(按模型)」「汇总(按天)」与单价列 `5.0000`、不含「调用明细」；v1 账单 `success:false`；他企业账单 404。`router` 的 `TestAccessTokenRouteRulesCoverEveryDashboardRoute` 通过（两条新路由已登记）。
 - 前端：`bun run typecheck` 通过；`bunx oxfmt --write` 与 `bunx oxlint -c .oxlintrc.json` 对改动文件 / 目录无 error；`bunx vitest run src/features/enterprise-console src/features/finance src/i18n`：17 个文件 53 条通过，其中新增 `bill-detail-snapshot.test.tsx`（v1 显示「-」且无单价列、v2 渲染单价表头与按天表、logs 合计 ≠ 账单金额时出提示）、`invoice-html.test.ts` 补 v1 / v2 两条（单价列、`2.5*` 标注与表尾注释、按天表、按团队缓存列），`locale-shape.test.ts` 守卫七文件键集合一致。
 - 合入 origin/main（#47 M7、#48 M8）：10 个文件冲突均为「两侧各自追加」（导出 handler 与对账差异 handler、`BillsTable` 的导出按钮与对账差异列、七个翻译文件的新键），财务账单详情在 #48 版本上重新套用 v2 分流；合并后 `make test-db PKG='./model/ ./service/ ./controller/ ./middleware/ ./router/ -count=1'` 五包 `ok`，`bun run typecheck` 通过，`bunx vitest run src/features/enterprise-console src/features/finance src/features/enterprises src/i18n` 23 文件 79 条通过。
+- 批次 2 按序合并前再合入 origin/main `6c06d3c6e`（#51 M3、#50 M14）：唯一冲突 `controller/enterprise_console_test.go` 的测试路由（导出路由与 tokens 路由两侧追加，取并集）；之后 `go vet` 通过，五包 PG 测试 `ok`（model 21.6s、service 7.4s、controller 48.7s），`bun run typecheck` 通过、oxlint exit 0，`vitest run` 四个目录 27 文件 91 条通过，七个翻译文件各 1269 键一致。
 - 未做浏览器验收：worktree 的 dev schema 为空库，没有 acme 企业与消费日志可出账；端到端链路（logs → 出账 → 快照 → 页面 / CSV）由上述 PG 测试覆盖。
 
 ## 遗留

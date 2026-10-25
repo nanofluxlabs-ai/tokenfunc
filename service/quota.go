@@ -461,7 +461,7 @@ func postConsumeQuotaWithResult(relayInfo *relaycommon.RelayInfo, quota int, pre
 		if info == nil {
 			return result, errors.New("enterprise billing info is missing")
 		}
-		if err := model.ApplyCreditSettlement(info.EnterpriseId, relayInfo.CreditPeriodId, int64(quota), 0); err != nil {
+		if _, err := model.ApplyCreditSettlement(info.EnterpriseId, relayInfo.CreditPeriodId, int64(quota), 0); err != nil {
 			return result, err
 		}
 	} else {

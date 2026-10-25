@@ -63,10 +63,14 @@ type EnterpriseBill struct {
 	ReminderCount      int             `json:"reminder_count" gorm:"not null;default:0"`
 	LastRemindedAt     int64           `json:"last_reminded_at" gorm:"not null;default:0"`
 	ReconcileDiffQuota int64           `json:"reconcile_diff_quota" gorm:"not null;default:0"`
-	UsageSnapshot      JSONValue       `json:"usage_snapshot" gorm:"type:jsonb"`
-	SellerSnapshot     JSONValue       `json:"seller_snapshot" gorm:"type:jsonb"`
-	BuyerSnapshot      JSONValue       `json:"buyer_snapshot" gorm:"type:jsonb"`
-	Remark             string          `json:"remark" gorm:"type:text"`
+	// ReconcileAckedAt / By / Note 管理员确认差异已人工核对；为 0 表示待处理
+	ReconcileAckedAt int64     `json:"reconcile_acked_at" gorm:"not null;default:0"`
+	ReconcileAckedBy int       `json:"reconcile_acked_by" gorm:"not null;default:0"`
+	ReconcileAckNote string    `json:"reconcile_ack_note" gorm:"type:text"`
+	UsageSnapshot    JSONValue `json:"usage_snapshot" gorm:"type:jsonb"`
+	SellerSnapshot   JSONValue `json:"seller_snapshot" gorm:"type:jsonb"`
+	BuyerSnapshot    JSONValue `json:"buyer_snapshot" gorm:"type:jsonb"`
+	Remark           string    `json:"remark" gorm:"type:text"`
 	// ArchiveInfo / ArchivedAt 账期包归档登记（见 tokenfunc_bill_archive.go）；ArchivedAt 为 0 表示未归档
 	ArchiveInfo JSONValue `json:"archive_info" gorm:"type:jsonb"`
 	ArchivedAt  int64     `json:"archived_at" gorm:"not null;default:0;index"`
@@ -351,6 +355,8 @@ type EnterpriseBillFilter struct {
 	BillType     string
 	Status       string
 	OverdueOnly  bool
+	// ReconcileDiffOnly 只看出账时计数器与明细不一致的授信账单
+	ReconcileDiffOnly bool
 }
 
 func ListEnterpriseBills(filter EnterpriseBillFilter, startIdx int, num int) ([]*EnterpriseBill, int64, error) {
@@ -366,6 +372,9 @@ func ListEnterpriseBills(filter EnterpriseBillFilter, startIdx int, num int) ([]
 	}
 	if filter.OverdueOnly {
 		query = query.Where("status IN ? AND due_at > 0 AND due_at <= ?", []string{EnterpriseBillUnpaid, EnterpriseBillPartiallyPaid}, common.GetTimestamp())
+	}
+	if filter.ReconcileDiffOnly {
+		query = query.Where("bill_type = ? AND reconcile_diff_quota <> 0", EnterpriseBillTypeCredit)
 	}
 	var total int64
 	if err := query.Count(&total).Error; err != nil {
@@ -497,4 +506,124 @@ func GenerateMonthlyStatements(now int64) (int, error) {
 		created++
 	}
 	return created, nil
+}
+
+// ---------------------------------------------------------------------------
+// 对账差异告警：出账时计数器（账期 used_quota）与明细聚合（ent_usage_daily）不一致的授信账单
+// ---------------------------------------------------------------------------
+
+// 对账差异列表的状态筛选
+const (
+	ReconcileAlertStatePending = "pending"
+	ReconcileAlertStateAcked   = "acked"
+	ReconcileAlertStateAll     = "all"
+)
+
+var (
+	ErrEnterpriseBillNoReconcileDiff = errors.New("bill has no reconciliation difference")
+	ErrReconcileAlertState           = errors.New("invalid reconcile alert state")
+)
+
+// ReconcileAlert 对账差异告警行：差异账单 + 企业名 + 出账快照里的明细合计
+type ReconcileAlert struct {
+	BillId             int64  `json:"bill_id"`
+	BillNo             string `json:"bill_no"`
+	EnterpriseId       int    `json:"enterprise_id"`
+	EnterpriseName     string `json:"enterprise_name"`
+	PeriodId           int64  `json:"period_id"`
+	PeriodStart        int64  `json:"period_start"`
+	PeriodEnd          int64  `json:"period_end"`
+	AmountQuota        int64  `json:"amount_quota"`
+	DetailTotalQuota   int64  `json:"detail_total_quota"`
+	ReconcileDiffQuota int64  `json:"reconcile_diff_quota"`
+	IssuedAt           int64  `json:"issued_at"`
+	ReconcileAckedAt   int64  `json:"reconcile_acked_at"`
+	ReconcileAckedBy   int    `json:"reconcile_acked_by"`
+	ReconcileAckNote   string `json:"reconcile_ack_note"`
+}
+
+// BillDetailTotalQuota 出账快照里的明细合计；旧快照缺字段时按 amount − diff 还原
+func BillDetailTotalQuota(bill *EnterpriseBill) int64 {
+	var snapshot struct {
+		DetailTotalQuota *int64 `json:"detail_total_quota"`
+	}
+	if len(bill.UsageSnapshot) > 0 && common.Unmarshal(bill.UsageSnapshot, &snapshot) == nil && snapshot.DetailTotalQuota != nil {
+		return *snapshot.DetailTotalQuota
+	}
+	return bill.AmountQuota - bill.ReconcileDiffQuota
+}
+
+// ListReconcileAlerts 分页列出有对账差异的授信账单；state 为 pending（未核对）/ acked（已核对）/ all
+func ListReconcileAlerts(state string, enterpriseId int, startIdx int, num int) ([]*ReconcileAlert, int64, error) {
+	query := DB.Model(&EnterpriseBill{}).Where("bill_type = ? AND reconcile_diff_quota <> 0", EnterpriseBillTypeCredit)
+	switch state {
+	case ReconcileAlertStatePending, "":
+		query = query.Where("reconcile_acked_at = 0")
+	case ReconcileAlertStateAcked:
+		query = query.Where("reconcile_acked_at > 0")
+	case ReconcileAlertStateAll:
+	default:
+		return nil, 0, fmt.Errorf("%w: %q", ErrReconcileAlertState, state)
+	}
+	if enterpriseId > 0 {
+		query = query.Where("enterprise_id = ?", enterpriseId)
+	}
+	var total int64
+	if err := query.Count(&total).Error; err != nil {
+		return nil, 0, err
+	}
+	bills := make([]*EnterpriseBill, 0)
+	if err := query.Order("id DESC").Limit(num).Offset(startIdx).Find(&bills).Error; err != nil {
+		return nil, 0, err
+	}
+	enterpriseIds := make([]int, 0, len(bills))
+	for _, bill := range bills {
+		enterpriseIds = append(enterpriseIds, bill.EnterpriseId)
+	}
+	briefs, err := financeEnterpriseBriefs(enterpriseIds)
+	if err != nil {
+		return nil, 0, err
+	}
+	alerts := make([]*ReconcileAlert, 0, len(bills))
+	for _, bill := range bills {
+		alerts = append(alerts, &ReconcileAlert{
+			BillId: bill.Id, BillNo: bill.BillNo, EnterpriseId: bill.EnterpriseId, EnterpriseName: briefs[bill.EnterpriseId].Name,
+			PeriodId: bill.PeriodId, PeriodStart: bill.PeriodStart, PeriodEnd: bill.PeriodEnd,
+			AmountQuota: bill.AmountQuota, DetailTotalQuota: BillDetailTotalQuota(bill), ReconcileDiffQuota: bill.ReconcileDiffQuota,
+			IssuedAt: bill.IssuedAt, ReconcileAckedAt: bill.ReconcileAckedAt, ReconcileAckedBy: bill.ReconcileAckedBy, ReconcileAckNote: bill.ReconcileAckNote,
+		})
+	}
+	return alerts, total, nil
+}
+
+// AckReconcileAlert 标记差异已人工核对（幂等：已核对的账单原样返回，不覆盖首次备注）
+func AckReconcileAlert(billId int64, operatorId int, note string) (*EnterpriseBill, error) {
+	note = strings.TrimSpace(note)
+	var bill EnterpriseBill
+	err := DB.Transaction(func(tx *gorm.DB) error {
+		if err := lockForUpdate(tx).First(&bill, "id = ?", billId).Error; err != nil {
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				return ErrEnterpriseResourceNotFound
+			}
+			return err
+		}
+		if bill.BillType != EnterpriseBillTypeCredit || bill.ReconcileDiffQuota == 0 {
+			return ErrEnterpriseBillNoReconcileDiff
+		}
+		if bill.ReconcileAckedAt > 0 {
+			return nil
+		}
+		now := common.GetTimestamp()
+		if err := tx.Model(&EnterpriseBill{}).Where("id = ?", bill.Id).Updates(map[string]any{
+			"reconcile_acked_at": now, "reconcile_acked_by": operatorId, "reconcile_ack_note": note, "updated_at": now,
+		}).Error; err != nil {
+			return err
+		}
+		bill.ReconcileAckedAt, bill.ReconcileAckedBy, bill.ReconcileAckNote, bill.UpdatedAt = now, operatorId, note, now
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	return &bill, nil
 }

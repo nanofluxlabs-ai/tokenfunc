@@ -24,6 +24,8 @@ export interface Enterprise {
   credit_cycle_type: string
   credit_cycle_days: number
   credit_limit_quota: number
+  /** 授信预警阈值（已用占额度百分比，0 关闭） */
+  credit_alert_percent: number
   payment_terms_days: number
   currency: string
   billing_profile: EnterpriseBillingProfile
@@ -90,6 +92,8 @@ export interface CreditConfigPayload {
   cycle_type: 'natural_month' | 'fixed_days'
   cycle_days: number
   limit_usd: number
+  /** 预警阈值 0..99，0 关闭 */
+  alert_percent: number
 }
 
 export interface TopupPayload {

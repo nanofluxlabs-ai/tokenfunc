@@ -25,7 +25,9 @@
   - `keys-page.tsx` 状态列：所属团队已拦截的 key 追加「Blocked by budget」徽标（读 `useTeams()` 的 `budget_state`）。
   - i18n 七语言 +4 键；新增 `__tests__/team-budget-meter.test.tsx`。
 
-与方案的偏差：方案写「上调预算后清当月 warn 记录」，实现为上调时同时清 warn 与 exceeded（上调到用量之上后再次用尽是新事件，应再通知）；改阈值只清 warn。通知收件逻辑未复用 M8（#48 未合入），本分支自带 `teamBudgetNoticeReceiver`，#48 合入后改为复用 `enterpriseNoticeReceiver`。
+与方案的偏差：方案写「上调预算后清当月 warn 记录」，实现为上调时同时清 warn 与 exceeded（上调到用量之上后再次用尽是新事件，应再通知）；改阈值只清 warn。
+
+合并 main（#47 M7 / #48 M8 合入后）：`EnterpriseBillingInfo` 取两边字段并集（`CreditAlertPercent` + `TeamBudgets`），model / service 两个测试夹具的表列表取并集，`enterprise_credit_funding_test.go` 末尾两个追加的用例都保留；通知收件邮箱改为复用 #48 的 `enterpriseNoticeReceiver`，删掉临时的 `teamBudgetNoticeReceiver`。
 
 ## 验证
 
@@ -40,10 +42,10 @@
 - HTTP 冒烟（worktree 库从主 dev 复制 root 行并重置密码；登录接口返回 JWT，请求带 `Authorization: Bearer` + `New-Api-User`）：root `POST /api/admin/enterprise/enterprises` 新建 m14acme → 企业主 `GET /api/enterprise/teams` 返回 `month_quota:0, budget_percent:0, budget_state:"none"` → `PUT /teams/1 {monthly_budget_usd:1, budget_alert_percent:80, budget_enforce:true}` → 列表 `monthly_budget_quota:500000, budget_state:"ok"` → 直接写 `ent_usage_daily` 425000 → `budget_percent:85, budget_state:"warn"` → 改 600000 → `120 / exceeded`。
 - 浏览器（前端 5177，m14acme 登录）：团队页 Default 行显示橙色进度条「$0.85 / $1 Budget warning」（`.tmp/m14-team-budget.png`）；改为超预算后显示红条「$1.2 / $1 Over budget Blocked by budget」（`.tmp/m14-team-exceeded.png`）；密钥页 m14-smoke 行状态列「Enabled」+「Blocked by budget」（`.tmp/m14-keys-blocked.png`）。
 - 未验证：真实 relay 请求被 403（本地无渠道，拦截路径靠 `TestBillingSessionTeamBudgetEnforce` 覆盖）；邮件实际投递（本地无 SMTP，发送函数在测试里被替换为收集器）。
+- 合并 main 后复跑：`make test-db` 六包 ok（含 #48 的 `TestCreditFundingAlerts` 与本分支 `TestBillingSessionTeamBudgetEnforce` 同文件共存）；`bun run typecheck` 通过；`bunx vitest run src/features/enterprise-console src/i18n/tokenfunc src/features/enterprises` 10 文件 39 例通过。
 
 ## 遗留
 
-- #48（M8）合入后：`teamBudgetNoticeReceiver` 改为复用 `enterpriseNoticeReceiver`；`loadEnterpriseBillingInfo` 两边都改了，合并时留意。
 - M6 概览待办「N 个团队预算告警 / M 个已拦截」按方案归 M6，本分支未做；团队列表已下发 `budget_state` 可直接汇总。
 - 预算通知邮件正文为英文（与 M8 授信预警一致），后端通知文案 i18n 化留待统一处理。
 - 本月消耗缓存是进程内的：多副本下其他节点写入的用量最多延迟 60 秒，拦截可能略超一个窗口（已拍板接受）。

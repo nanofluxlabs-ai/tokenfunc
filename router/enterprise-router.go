@@ -30,6 +30,8 @@ func registerEnterpriseRoutes(apiRouter *gin.RouterGroup) {
 		adminRoute.POST("/bills/:id/payments", controller.AdminRegisterBillPayment)
 		adminRoute.POST("/bills/:id/void", controller.AdminVoidEnterpriseBill)
 		adminRoute.POST("/credit-periods/:id/issue", controller.AdminIssueBillNow)
+		adminRoute.GET("/reconcile/alerts", controller.AdminListReconcileAlerts)
+		adminRoute.POST("/reconcile/alerts/:bill_id/ack", controller.AdminAckReconcileAlert)
 		adminRoute.GET("/settings/seller", controller.AdminGetSellerProfile)
 		adminRoute.PUT("/settings/seller", controller.AdminUpdateSellerProfile)
 		adminRoute.GET("/quotes/config", controller.AdminGetQuoteConfig)

@@ -9,6 +9,7 @@ import (
 	"github.com/QuantumNous/new-api/common"
 
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 // 授信账期状态
@@ -86,9 +87,17 @@ type EnterpriseCreditConfig struct {
 	CycleType  string
 	CycleDays  int
 	LimitQuota int64
+	// AlertPercent 预警阈值百分比（0..99，0 关闭预警）
+	AlertPercent int
 }
 
+// EnterpriseDefaultCreditAlertPercent 新开通授信时的默认预警阈值
+const EnterpriseDefaultCreditAlertPercent = 80
+
 func (c EnterpriseCreditConfig) validate() error {
+	if c.AlertPercent < 0 || c.AlertPercent > 99 {
+		return fmt.Errorf("%w: alert percent must be between 0 and 99", ErrEnterpriseCreditConfig)
+	}
 	switch c.CycleType {
 	case EnterpriseCreditCycleNaturalMonth:
 	case EnterpriseCreditCycleFixedDays:
@@ -253,10 +262,21 @@ func GetCreditPeriodById(id int64) (*EnterpriseCreditPeriod, error) {
 	return &period, err
 }
 
-// AddCreditUsage 原子更新账期用量。enforceLimit=true 时只在 open 期且不超额度时生效（预扣）；
-// 否则在 open/closing 期上无条件累加（结算差额、退款）。返回是否命中并更新。
-func AddCreditUsage(periodId int64, delta int64, inflightDelta int, enforceLimit bool) (bool, error) {
-	query := DB.Model(&EnterpriseCreditPeriod{}).Where("id = ?", periodId)
+// CreditUsageState 一次用量更新后的账期计数，由 UPDATE ... RETURNING 回填；预警判断只用它，不再回查
+type CreditUsageState struct {
+	PeriodId   int64
+	UsedQuota  int64
+	LimitQuota int64
+}
+
+// AddCreditUsageReturning 原子更新账期用量并返回更新后的 used/limit（PG RETURNING，同一条 UPDATE）。
+// enforceLimit=true 时只在 open 期且不超额度时生效（预扣）；否则在 open/closing 期上无条件累加（结算差额、退款）。
+// 未命中时 ok=false 且 state 为零值。
+func AddCreditUsageReturning(periodId int64, delta int64, inflightDelta int, enforceLimit bool) (bool, CreditUsageState, error) {
+	var period EnterpriseCreditPeriod
+	query := DB.Model(&period).
+		Clauses(clause.Returning{Columns: []clause.Column{{Name: "id"}, {Name: "used_quota"}, {Name: "limit_quota"}}}).
+		Where("id = ?", periodId)
 	if enforceLimit {
 		query = query.Where("status = ? AND used_quota + ? <= limit_quota", EnterpriseCreditPeriodOpen, delta)
 	} else {
@@ -268,28 +288,39 @@ func AddCreditUsage(periodId int64, delta int64, inflightDelta int, enforceLimit
 		"updated_at":     common.GetTimestamp(),
 	})
 	if result.Error != nil {
-		return false, result.Error
+		return false, CreditUsageState{}, result.Error
 	}
-	return result.RowsAffected == 1, nil
+	if result.RowsAffected != 1 {
+		return false, CreditUsageState{}, nil
+	}
+	return true, CreditUsageState{PeriodId: period.Id, UsedQuota: period.UsedQuota, LimitQuota: period.LimitQuota}, nil
 }
 
-// ApplyCreditSettlement 把结算差额记回预扣时的账期；该期已出账时记入当前 open 期并写跨期调整流水
-func ApplyCreditSettlement(enterpriseId int, periodId int64, delta int64, inflightDelta int) error {
-	applied, err := AddCreditUsage(periodId, delta, inflightDelta, false)
+// AddCreditUsage 同 AddCreditUsageReturning，只关心是否命中
+func AddCreditUsage(periodId int64, delta int64, inflightDelta int, enforceLimit bool) (bool, error) {
+	ok, _, err := AddCreditUsageReturning(periodId, delta, inflightDelta, enforceLimit)
+	return ok, err
+}
+
+// ApplyCreditSettlement 把结算差额记回预扣时的账期；该期已出账时记入当前 open 期并写跨期调整流水。
+// 返回实际记账的账期计数（没有任何账期被更新时 PeriodId 为 0）。
+func ApplyCreditSettlement(enterpriseId int, periodId int64, delta int64, inflightDelta int) (CreditUsageState, error) {
+	applied, state, err := AddCreditUsageReturning(periodId, delta, inflightDelta, false)
 	if err != nil || applied {
-		return err
+		return state, err
 	}
 	if delta == 0 {
-		return nil
+		return CreditUsageState{}, nil
 	}
 	open, err := EnsureOpenCreditPeriod(enterpriseId)
 	if err != nil {
-		return fmt.Errorf("period %d is billed and no open period to carry delta %d: %w", periodId, delta, err)
+		return CreditUsageState{}, fmt.Errorf("period %d is billed and no open period to carry delta %d: %w", periodId, delta, err)
 	}
-	if _, err := AddCreditUsage(open.Id, delta, 0, false); err != nil {
-		return err
+	_, state, err = AddCreditUsageReturning(open.Id, delta, 0, false)
+	if err != nil {
+		return CreditUsageState{}, err
 	}
-	return recordEnterpriseLedger(DB, &EnterpriseLedgerEntry{
+	return state, recordEnterpriseLedger(DB, &EnterpriseLedgerEntry{
 		EnterpriseId: enterpriseId,
 		Type:         EnterpriseLedgerCrossPeriodAdjustment,
 		AmountQuota:  delta,
@@ -313,13 +344,15 @@ func ConfigureEnterpriseCredit(enterpriseId int, config EnterpriseCreditConfig, 
 		previous := map[string]any{
 			"billing_mode": enterprise.BillingMode, "cycle_type": enterprise.CreditCycleType,
 			"cycle_days": enterprise.CreditCycleDays, "limit_quota": enterprise.CreditLimitQuota,
+			"alert_percent": enterprise.CreditAlertPercent,
 		}
 		updates := map[string]any{
-			"billing_mode":       EnterpriseBillingModeCredit,
-			"credit_cycle_type":  config.CycleType,
-			"credit_cycle_days":  config.CycleDays,
-			"credit_limit_quota": config.LimitQuota,
-			"updated_at":         now,
+			"billing_mode":         EnterpriseBillingModeCredit,
+			"credit_cycle_type":    config.CycleType,
+			"credit_cycle_days":    config.CycleDays,
+			"credit_limit_quota":   config.LimitQuota,
+			"credit_alert_percent": config.AlertPercent,
+			"updated_at":           now,
 		}
 		if enterprise.CreditAnchorAt == 0 || enterprise.BillingMode != EnterpriseBillingModeCredit {
 			updates["credit_anchor_at"] = now
@@ -343,9 +376,15 @@ func ConfigureEnterpriseCredit(enterpriseId int, config EnterpriseCreditConfig, 
 				return err
 			}
 		}
+		// 额度上调或阈值变化后，本期的预警应按新口径重新生效；用尽通知不重置（额度不足仍是事实）
+		if config.LimitQuota > period.LimitQuota || config.AlertPercent != enterprise.CreditAlertPercent {
+			if err := resetCreditNotifyTx(tx, period.Id, CreditNotifyKindWarn); err != nil {
+				return err
+			}
+		}
 		detail, _ := common.Marshal(map[string]any{"before": previous, "after": map[string]any{
 			"billing_mode": EnterpriseBillingModeCredit, "cycle_type": config.CycleType,
-			"cycle_days": config.CycleDays, "limit_quota": config.LimitQuota,
+			"cycle_days": config.CycleDays, "limit_quota": config.LimitQuota, "alert_percent": config.AlertPercent,
 		}})
 		return recordEnterpriseLedger(tx, &EnterpriseLedgerEntry{
 			EnterpriseId: enterpriseId,
@@ -514,10 +553,11 @@ func RolloverDueCreditPeriods(now int64) (int, error) {
 
 // EnterpriseBillingInfo 计费入口需要的最小企业信息
 type EnterpriseBillingInfo struct {
-	EnterpriseId int
-	BillingMode  string
-	Status       string
-	OpenPeriodId int64
+	EnterpriseId       int
+	BillingMode        string
+	Status             string
+	OpenPeriodId       int64
+	CreditAlertPercent int
 	// TeamBudgets 设了月度预算的团队（team_id -> 预算配置）；没有时为 nil，计费入口只多一次 map 读
 	TeamBudgets map[int]EnterpriseTeamBudget
 }
@@ -533,14 +573,14 @@ var enterpriseBillingInfoCache sync.Map // user_id -> enterpriseBillingInfoEntry
 
 func loadEnterpriseBillingInfo(userId int) (*EnterpriseBillingInfo, error) {
 	var enterprise Enterprise
-	err := DB.Select("id", "billing_mode", "status").Where("user_id = ?", userId).First(&enterprise).Error
+	err := DB.Select("id", "billing_mode", "status", "credit_alert_percent").Where("user_id = ?", userId).First(&enterprise).Error
 	if errors.Is(err, gorm.ErrRecordNotFound) {
 		return nil, nil
 	}
 	if err != nil {
 		return nil, err
 	}
-	info := &EnterpriseBillingInfo{EnterpriseId: enterprise.Id, BillingMode: enterprise.BillingMode, Status: enterprise.Status}
+	info := &EnterpriseBillingInfo{EnterpriseId: enterprise.Id, BillingMode: enterprise.BillingMode, Status: enterprise.Status, CreditAlertPercent: enterprise.CreditAlertPercent}
 	if enterprise.BillingMode == EnterpriseBillingModeCredit {
 		var periodId int64
 		err := DB.Model(&EnterpriseCreditPeriod{}).Where("enterprise_id = ? AND status = ?", enterprise.Id, EnterpriseCreditPeriodOpen).

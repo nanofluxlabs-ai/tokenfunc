@@ -28,6 +28,7 @@ type CreditFunding struct {
 	periodId     int64 // 预扣时确定，之后不变
 	consumed     int   // 本次预扣额度
 	reserved     bool  // 预扣已成功（在途计数 +1），结算或退款必须把它减回去
+	alertPercent int   // 预警阈值百分比（0 关闭），来自企业缓存
 }
 
 func (f *CreditFunding) Source() string { return BillingSourceCredit }
@@ -45,13 +46,14 @@ func (f *CreditFunding) PreConsume(amount int) error {
 			}
 			f.periodId = period.Id
 		}
-		ok, err := model.AddCreditUsage(f.periodId, int64(amount), 1, true)
+		ok, state, err := model.AddCreditUsageReturning(f.periodId, int64(amount), 1, true)
 		if err != nil {
 			return err
 		}
 		if ok {
 			f.consumed = amount
 			f.reserved = true
+			f.checkCreditAlert(state, false)
 			return nil
 		}
 		// 未命中：要么额度不足，要么账期已滚动；用最新 open 期再判断一次
@@ -60,6 +62,8 @@ func (f *CreditFunding) PreConsume(amount int) error {
 			return err
 		}
 		if err == nil && period.Id == f.periodId {
+			// 预扣被拒即将 403：直接按「用尽」告警
+			f.checkCreditAlert(model.CreditUsageState{PeriodId: period.Id, UsedQuota: period.UsedQuota, LimitQuota: period.LimitQuota}, true)
 			return ErrInsufficientCreditQuota
 		}
 	}
@@ -72,7 +76,12 @@ func (f *CreditFunding) Settle(delta int) error {
 		inflight = -1
 		f.reserved = false
 	}
-	return model.ApplyCreditSettlement(f.enterpriseId, f.periodId, int64(delta), inflight)
+	state, err := model.ApplyCreditSettlement(f.enterpriseId, f.periodId, int64(delta), inflight)
+	if err != nil {
+		return err
+	}
+	f.checkCreditAlert(state, false)
+	return nil
 }
 
 // Finish 结算差额为 0 时也要释放在途计数（BillingSession.Settle 在 delta=0 时不会调 Settle）
@@ -100,10 +109,14 @@ func (f *CreditFunding) reserveExtra(delta int, requireAvailableQuota bool) erro
 	}
 	if !ok {
 		if requireAvailableQuota {
+			// 失败路径才回查一次账期，只为给「用尽」告警提供计数
+			if period, err := model.GetCreditPeriodById(f.periodId); err == nil {
+				f.checkCreditAlert(model.CreditUsageState{PeriodId: period.Id, UsedQuota: period.UsedQuota, LimitQuota: period.LimitQuota}, true)
+			}
 			return types.NewErrorWithStatusCode(ErrInsufficientCreditQuota, types.ErrorCodeInsufficientUserQuota, http.StatusForbidden, types.ErrOptionWithSkipRetry(), types.ErrOptionWithNoRecordErrorLog())
 		}
 		// 账期已不在 open/closing（极少见：出账后仍在途），按跨期调整处理
-		if err := model.ApplyCreditSettlement(f.enterpriseId, f.periodId, int64(delta), 0); err != nil {
+		if _, err := model.ApplyCreditSettlement(f.enterpriseId, f.periodId, int64(delta), 0); err != nil {
 			return types.NewError(err, types.ErrorCodeUpdateDataError, types.ErrOptionWithSkipRetry())
 		}
 	}
@@ -138,7 +151,7 @@ func enterpriseBillingGate(c *gin.Context, relayInfo *relaycommon.RelayInfo, pre
 	if info.BillingMode != model.EnterpriseBillingModeCredit {
 		return nil, false, nil
 	}
-	funding := &CreditFunding{enterpriseId: info.EnterpriseId, periodId: info.OpenPeriodId}
+	funding := &CreditFunding{enterpriseId: info.EnterpriseId, periodId: info.OpenPeriodId, alertPercent: info.CreditAlertPercent}
 	session := &BillingSession{relayInfo: relayInfo, funding: funding}
 	if apiErr := session.preConsume(c, preConsumedQuota); apiErr != nil {
 		return nil, true, apiErr

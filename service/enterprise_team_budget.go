@@ -67,15 +67,6 @@ func checkTeamBudgetGate(c *gin.Context, info *model.EnterpriseBillingInfo, toke
 		types.ErrOptionWithSkipRetry(), types.ErrOptionWithNoRecordErrorLog())
 }
 
-// teamBudgetNoticeReceiver 企业通知收件邮箱：账单邮箱优先，其次联系人邮箱。
-// TODO(#48 合入后)：改为复用 enterpriseNoticeReceiver。
-func teamBudgetNoticeReceiver(enterprise *model.Enterprise) string {
-	if receiver := strings.TrimSpace(enterprise.BillingProfile.BillingEmail); receiver != "" {
-		return receiver
-	}
-	return strings.TrimSpace(enterprise.ContactEmail)
-}
-
 // sendTeamBudgetAlert 发送团队预算通知：企业账单邮箱 + root 必发 + 企业主（通知渠道不是邮箱或邮箱不同时）+ 该团队管理员（非邮箱渠道）
 func sendTeamBudgetAlert(alert model.TeamBudgetAlert) {
 	enterprise, err := model.GetEnterpriseById(alert.EnterpriseId)
@@ -107,7 +98,7 @@ func sendTeamBudgetAlert(alert model.TeamBudgetAlert) {
 		model.QuotaToUSD(alert.UsedQuota).StringFixed(2), model.QuotaToUSD(alert.BudgetQuota).StringFixed(2), usedPercent,
 		enforceLine, link, link)
 
-	receiver := teamBudgetNoticeReceiver(enterprise)
+	receiver := enterpriseNoticeReceiver(enterprise)
 	if receiver != "" && common.SMTPServer != "" {
 		if err := common.SendEmail(subject, receiver, content); err != nil {
 			common.SysError(fmt.Sprintf("enterprise team budget: send email to enterprise %d failed: %v", alert.EnterpriseId, err))

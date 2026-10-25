@@ -2,8 +2,8 @@
 
 - 日期：2026-10-25
 - 分支：feat/rollup-channel-breakdown
-- PR：
-- 关键 commit：
+- PR：#39
+- 关键 commit：5aab8582c
 
 ## 背景
 

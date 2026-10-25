@@ -2,8 +2,8 @@
 
 - 日期：2026-10-25
 - 分支：feat/user-list-email
-- PR：
-- 关键 commit：36787a7
+- PR：#45
+- 关键 commit：b39fa1b、05cf84e
 
 ## 背景
 

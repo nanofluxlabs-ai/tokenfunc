@@ -2,7 +2,7 @@
 
 - 日期：2026-10-25
 - 分支：feat/ent-manual-adjustment
-- PR：
+- PR：#54
 - 关键 commit：d27c33032（后端）、557eefcc6（前端）、后续一条 test + worklog 提交
 
 ## 背景

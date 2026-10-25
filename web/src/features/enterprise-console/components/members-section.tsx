@@ -253,7 +253,7 @@ export function MembersSection(props: MembersSectionProps) {
     },
     {
       id: 'month_quota',
-      header: t('This month'),
+      header: t('Spend this month'),
       cell: (row) =>
         row.month_quota > 0 ? (
           <Link

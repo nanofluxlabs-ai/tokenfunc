@@ -339,6 +339,8 @@ export interface BillUsageSnapshotV1
 /** v2 快照：财务中心口径，按分组-模型 / 按模型折叠（含四项 token、单价四列、倍率分布）/ 按天 */
 export interface BillUsageSnapshotV2
   extends StatementBalanceSnapshot, UsageAttributionSnapshot {
+  /** 旧账单按当前 logs 现算时为 live（后端不落库） */
+  snapshot_source?: 'live'
   snapshot_version: number
   logs_total_calls: number
   logs_total_quota: number

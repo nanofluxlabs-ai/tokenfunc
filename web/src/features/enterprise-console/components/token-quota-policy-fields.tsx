@@ -43,29 +43,29 @@ export function TokenQuotaPolicyFields(props: TokenQuotaPolicyFieldsProps) {
       <div className='grid gap-3 sm:grid-cols-2'>
         <div className='flex flex-col gap-2'>
           <Label htmlFor={periodId}>{t('Reset period')}</Label>
-          <NativeSelect className='w-full'>
-            <select
-              id={periodId}
-              value={draft.reset_period}
-              onChange={(event) =>
-                props.onChange({
-                  ...draft,
-                  reset_period: event.target
-                    .value as TokenQuotaPolicyDraft['reset_period'],
-                })
-              }
-            >
-              {props.allowNever && (
-                <NativeSelectOption value='never'>
-                  {t('No periodic quota')}
-                </NativeSelectOption>
-              )}
-              {TOKEN_QUOTA_RESET_PERIODS.map((period) => (
-                <NativeSelectOption key={period.value} value={period.value}>
-                  {t(period.labelKey)}
-                </NativeSelectOption>
-              ))}
-            </select>
+          {/* NativeSelect 自身就是 <select>，不能再套一层原生 select，否则外层无选项显示为空 */}
+          <NativeSelect
+            className='w-full'
+            id={periodId}
+            value={draft.reset_period}
+            onChange={(event) =>
+              props.onChange({
+                ...draft,
+                reset_period: event.target
+                  .value as TokenQuotaPolicyDraft['reset_period'],
+              })
+            }
+          >
+            {props.allowNever && (
+              <NativeSelectOption value='never'>
+                {t('No periodic quota')}
+              </NativeSelectOption>
+            )}
+            {TOKEN_QUOTA_RESET_PERIODS.map((period) => (
+              <NativeSelectOption key={period.value} value={period.value}>
+                {t(period.labelKey)}
+              </NativeSelectOption>
+            ))}
           </NativeSelect>
         </div>
         {draft.reset_period === 'custom' && (

@@ -274,3 +274,21 @@ func ListTeamAdminUserIds(enterpriseId int, teamId int) ([]int, error) {
 		Pluck("user_id", &userIds).Error
 	return userIds, err
 }
+
+// GetTeamBudgetState 单个团队本月预算状态（none / ok / warn / exceeded）；员工自查接口用，未设预算返回 none
+func GetTeamBudgetState(enterpriseId int, teamId int) (string, error) {
+	budgets, err := loadEnterpriseTeamBudgets(enterpriseId)
+	if err != nil {
+		return "", err
+	}
+	budget, ok := budgets[teamId]
+	if !ok {
+		return TeamBudgetStateNone, nil
+	}
+	used, err := GetTeamMonthUsage(enterpriseId, teamId)
+	if err != nil {
+		return "", err
+	}
+	_, state := teamBudgetState(budget, used)
+	return state, nil
+}

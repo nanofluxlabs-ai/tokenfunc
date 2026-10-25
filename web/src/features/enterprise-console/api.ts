@@ -76,6 +76,7 @@ export async function deleteTeam(id: number): Promise<ApiResponse> {
 
 export async function listMembers(params: {
   team_id?: number
+  member_id?: number
   keyword?: string
   status?: string
   has_login?: boolean

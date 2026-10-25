@@ -457,6 +457,7 @@ type EnterpriseMemberListItem struct {
 
 type EnterpriseMemberFilter struct {
 	TeamId   *int
+	Id       *int
 	Keyword  string
 	Status   string
 	HasLogin *bool
@@ -470,6 +471,9 @@ func ListEnterpriseMembers(enterpriseId int, scope EnterpriseScope, filter Enter
 	}
 	if filter.TeamId != nil {
 		query = query.Where("ent_members.team_id = ?", *filter.TeamId)
+	}
+	if filter.Id != nil {
+		query = query.Where("ent_members.id = ?", *filter.Id)
 	}
 	if filter.Status != "" {
 		query = query.Where("ent_members.status = ?", filter.Status)

@@ -412,7 +412,7 @@ function KeysTable(props: KeysTableProps) {
     },
     {
       id: 'month',
-      header: t('This month'),
+      header: t('Spend this month'),
       cell: (row) => <MonthQuotaCell row={row} />,
     },
     {

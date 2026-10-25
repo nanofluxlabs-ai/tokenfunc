@@ -1378,7 +1378,6 @@
     "OpenAI-compatible: total_usage = period usage × 100; dates are ignored": "OpenAI-compatible: total_usage = period usage × 100; dates are ignored",
     "Pay offline by bank transfer; the administrator registers the payment and the bill turns paid. Reminders go out on the due date and 1, 3, 7 and 14 days after it. Quota-based credit without auto-reset resumes service only after the bill is settled.": "Pay offline by bank transfer; the administrator registers the payment and the bill turns paid. Reminders go out on the due date and 1, 3, 7 and 14 days after it. Quota-based credit without auto-reset resumes service only after the bill is settled.",
     "Querying credit from code": "Querying credit from code",
-    "Quota consumed today and this month by this key.": "Quota consumed today and this month by this key.",
     "Quota-based credit is used up and the bill is awaiting payment. Service resumes when the bill is settled or the admin opens a new period.": "Quota-based credit is used up and the bill is awaiting payment. Service resumes when the bill is settled or the admin opens a new period.",
     "Sales contact QR code": "Sales contact QR code",
     "Set a team budget if you want a hard stop": "Set a team budget if you want a hard stop",
@@ -1418,6 +1417,10 @@
     "Set periodic quota": "Задать периодическую квоту",
     "Set periodic quota for {{count}} keys": "Задать периодическую квоту для {{count}} ключей",
     "Set periodic quota for selected": "Задать периодическую квоту для выбранных",
-    "Periodic quota saved": "Периодическая квота сохранена"
+    "Periodic quota saved": "Периодическая квота сохранена",
+    "Requests and quota consumed today and this month by this key.": "Запросы и квота, израсходованные этим ключом сегодня и за текущий месяц.",
+    "Error code": "Код ошибки",
+    "HTTP status": "HTTP-статус",
+    "This bill was issued before unit prices were snapshotted; the breakdown below is computed from current logs.": "Этот счёт был выставлен до фиксации цен; приведённая ниже разбивка рассчитана по текущим журналам."
   }
 }

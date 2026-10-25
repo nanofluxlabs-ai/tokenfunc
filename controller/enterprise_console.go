@@ -257,6 +257,7 @@ func ListEnterpriseMembers(c *gin.Context) {
 	pageInfo := common.GetPageQuery(c)
 	filter := model.EnterpriseMemberFilter{
 		TeamId:   optionalIntQuery(c, "team_id"),
+		Id:       optionalIntQuery(c, "member_id"),
 		Keyword:  c.Query("keyword"),
 		Status:   c.Query("status"),
 		HasLogin: optionalBoolQuery(c, "has_login"),

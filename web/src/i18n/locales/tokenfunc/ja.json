@@ -1378,7 +1378,6 @@
     "OpenAI-compatible: total_usage = period usage × 100; dates are ignored": "OpenAI-compatible: total_usage = period usage × 100; dates are ignored",
     "Pay offline by bank transfer; the administrator registers the payment and the bill turns paid. Reminders go out on the due date and 1, 3, 7 and 14 days after it. Quota-based credit without auto-reset resumes service only after the bill is settled.": "Pay offline by bank transfer; the administrator registers the payment and the bill turns paid. Reminders go out on the due date and 1, 3, 7 and 14 days after it. Quota-based credit without auto-reset resumes service only after the bill is settled.",
     "Querying credit from code": "Querying credit from code",
-    "Quota consumed today and this month by this key.": "Quota consumed today and this month by this key.",
     "Quota-based credit is used up and the bill is awaiting payment. Service resumes when the bill is settled or the admin opens a new period.": "Quota-based credit is used up and the bill is awaiting payment. Service resumes when the bill is settled or the admin opens a new period.",
     "Sales contact QR code": "Sales contact QR code",
     "Set a team budget if you want a hard stop": "Set a team budget if you want a hard stop",
@@ -1418,6 +1417,10 @@
     "Set periodic quota": "定期クォータを設定",
     "Set periodic quota for {{count}} keys": "{{count}} 個のキーに定期クォータを設定",
     "Set periodic quota for selected": "選択したキーに定期クォータを設定",
-    "Periodic quota saved": "定期クォータを保存しました"
+    "Periodic quota saved": "定期クォータを保存しました",
+    "Requests and quota consumed today and this month by this key.": "このキーの本日および今月のリクエスト数と消費量。",
+    "Error code": "エラーコード",
+    "HTTP status": "HTTP ステータス",
+    "This bill was issued before unit prices were snapshotted; the breakdown below is computed from current logs.": "この請求書は単価スナップショットの凍結前に発行されたため、以下の内訳は現在のログから算出しています。"
   }
 }

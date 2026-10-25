@@ -77,6 +77,22 @@ func GetEnterpriseEmployeeMe(c *gin.Context) {
 		return
 	}
 
+	budgetState, err := model.GetTeamBudgetState(info.EnterpriseId, profile.TeamId)
+	if err != nil {
+		writeBillingError(c, http.StatusInternalServerError, string(types.ErrorCodeQueryDataError), err.Error())
+		return
+	}
+	policy, err := model.GetTokenQuotaPolicy(tokenId)
+	if err != nil {
+		writeBillingError(c, http.StatusInternalServerError, string(types.ErrorCodeQueryDataError), err.Error())
+		return
+	}
+	// 未设周期限额时为 null，与接入文档一致
+	var quotaPolicy gin.H
+	if policy != nil {
+		quotaPolicy = gin.H{"reset_period": policy.ResetPeriod, "custom_seconds": policy.CustomSeconds, "period_quota": policy.PeriodQuota, "next_reset_at": policy.NextResetAt}
+	}
+
 	var member gin.H
 	if profile.HasMember {
 		member = gin.H{"name": profile.MemberName, "employee_no": profile.MemberEmployeeNo}
@@ -84,17 +100,15 @@ func GetEnterpriseEmployeeMe(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"object":     "enterprise_employee",
 		"enterprise": gin.H{"name": enterprise.Name, "billing_mode": enterprise.BillingMode},
-		// budget_state 由团队月度预算（M14）填充，合并前为 null
-		"team":   gin.H{"name": profile.TeamName, "budget_state": nil},
-		"member": member,
+		"team":       gin.H{"name": profile.TeamName, "budget_state": budgetState},
+		"member":     member,
 		"key": gin.H{
 			"name":            profile.Token.Name,
 			"unlimited_quota": profile.Token.UnlimitedQuota,
 			"remain_quota":    profile.Token.RemainQuota,
 			"used_quota":      profile.Token.UsedQuota,
 			"expired_time":    profile.Token.ExpiredTime,
-			// quota_policy 由 key 周期限额（M4）填充，合并前为 null
-			"quota_policy": nil,
+			"quota_policy":    quotaPolicy,
 		},
 		"usage":      gin.H{"today": todayUsage, "month": monthUsage},
 		"top_models": topModels,

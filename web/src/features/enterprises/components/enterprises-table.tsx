@@ -20,7 +20,7 @@ const route = getRouteApi('/_authenticated/users/')
 export function EnterprisesTable() {
   const { t } = useTranslation()
   const columns = useEnterprisesColumns()
-  const { refreshTrigger } = useEnterprises()
+  const { refreshTrigger, currentRow, setCurrentRow } = useEnterprises()
   const isMobile = useMediaQuery('(max-width: 640px)')
 
   const {
@@ -70,6 +70,18 @@ export function EnterprisesTable() {
     },
     placeholderData: (previousData) => previousData,
   })
+
+  // 列表刷新后把打开中的行同步给抽屉，调账 / 充值后余额即时更新
+  useEffect(() => {
+    if (!currentRow || !data) {
+      return
+    }
+    const fresh = data.items.find((item) => item.id === currentRow.id)
+    if (fresh && fresh !== currentRow) {
+      setCurrentRow(fresh)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [data])
 
   const { table } = useDataTable({
     data: data?.items || [],

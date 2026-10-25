@@ -469,6 +469,7 @@ func SumEnterpriseUsageByPeriod(enterpriseId int, periodId int64) (int64, error)
 type EnterpriseTokenProfile struct {
 	Token        *Token
 	EnterpriseId int
+	TeamId       int
 	TeamName     string
 	TeamStatus   string
 	// HasMember 为 false 表示 key 无持有人（团队公共 key），此时 Member* 字段无意义
@@ -487,6 +488,7 @@ func GetEnterpriseTokenProfile(tokenId int) (*EnterpriseTokenProfile, error) {
 	}
 	var row struct {
 		EnterpriseId     int
+		TeamId           int
 		MemberId         int
 		TeamName         string
 		TeamStatus       string
@@ -495,7 +497,7 @@ func GetEnterpriseTokenProfile(tokenId int) (*EnterpriseTokenProfile, error) {
 		MemberStatus     string
 	}
 	result := DB.Table("ent_token_assignments a").
-		Select(`a.enterprise_id, a.member_id, COALESCE(t.name, '') AS team_name, COALESCE(t.status, '') AS team_status,
+		Select(`a.enterprise_id, a.team_id, a.member_id, COALESCE(t.name, '') AS team_name, COALESCE(t.status, '') AS team_status,
 			COALESCE(m.name, '') AS member_name, COALESCE(m.employee_no, '') AS member_employee_no, COALESCE(m.status, '') AS member_status`).
 		Joins("LEFT JOIN ent_teams t ON t.id = a.team_id AND t.deleted_at IS NULL").
 		Joins("LEFT JOIN ent_members m ON m.id = a.member_id AND m.deleted_at IS NULL").
@@ -511,6 +513,7 @@ func GetEnterpriseTokenProfile(tokenId int) (*EnterpriseTokenProfile, error) {
 	return &EnterpriseTokenProfile{
 		Token:            token,
 		EnterpriseId:     row.EnterpriseId,
+		TeamId:           row.TeamId,
 		TeamName:         row.TeamName,
 		TeamStatus:       row.TeamStatus,
 		HasMember:        row.MemberId != 0,

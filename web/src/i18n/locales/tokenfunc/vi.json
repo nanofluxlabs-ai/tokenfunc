@@ -1378,7 +1378,6 @@
     "OpenAI-compatible: total_usage = period usage × 100; dates are ignored": "OpenAI-compatible: total_usage = period usage × 100; dates are ignored",
     "Pay offline by bank transfer; the administrator registers the payment and the bill turns paid. Reminders go out on the due date and 1, 3, 7 and 14 days after it. Quota-based credit without auto-reset resumes service only after the bill is settled.": "Pay offline by bank transfer; the administrator registers the payment and the bill turns paid. Reminders go out on the due date and 1, 3, 7 and 14 days after it. Quota-based credit without auto-reset resumes service only after the bill is settled.",
     "Querying credit from code": "Querying credit from code",
-    "Quota consumed today and this month by this key.": "Quota consumed today and this month by this key.",
     "Quota-based credit is used up and the bill is awaiting payment. Service resumes when the bill is settled or the admin opens a new period.": "Quota-based credit is used up and the bill is awaiting payment. Service resumes when the bill is settled or the admin opens a new period.",
     "Sales contact QR code": "Sales contact QR code",
     "Set a team budget if you want a hard stop": "Set a team budget if you want a hard stop",
@@ -1418,6 +1417,10 @@
     "Set periodic quota": "Đặt hạn mức định kỳ",
     "Set periodic quota for {{count}} keys": "Đặt hạn mức định kỳ cho {{count}} khóa",
     "Set periodic quota for selected": "Đặt hạn mức định kỳ cho mục đã chọn",
-    "Periodic quota saved": "Đã lưu hạn mức định kỳ"
+    "Periodic quota saved": "Đã lưu hạn mức định kỳ",
+    "Requests and quota consumed today and this month by this key.": "Số yêu cầu và hạn mức mà khóa này đã dùng hôm nay và trong tháng này.",
+    "Error code": "Mã lỗi",
+    "HTTP status": "Trạng thái HTTP",
+    "This bill was issued before unit prices were snapshotted; the breakdown below is computed from current logs.": "Hóa đơn này được phát hành trước khi đơn giá được chốt; phần chi tiết bên dưới được tính từ nhật ký hiện tại."
   }
 }

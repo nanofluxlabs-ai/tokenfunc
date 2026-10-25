@@ -120,10 +120,21 @@ export function BillDetailContent(props: { bill: Bill }) {
   let usageBlocks: React.ReactNode
   if (isBillSnapshotV2(snapshot)) {
     usageBlocks = (
-      <BillSnapshotSection
-        snapshot={snapshot}
-        amountQuota={bill.amount_quota}
-      />
+      <>
+        {snapshot.snapshot_source === 'live' && (
+          <Alert>
+            <AlertDescription>
+              {t(
+                'This bill was issued before unit prices were snapshotted; the breakdown below is computed from current logs.'
+              )}
+            </AlertDescription>
+          </Alert>
+        )}
+        <BillSnapshotSection
+          snapshot={snapshot}
+          amountQuota={bill.amount_quota}
+        />
+      </>
     )
   } else {
     usageBlocks = (

@@ -35,7 +35,7 @@ func setupCreditBillingPostgres(t *testing.T) {
 	tables := []any{
 		&model.User{}, &model.Token{}, &model.Ability{}, &model.Enterprise{}, &model.EnterpriseTeam{}, &model.EnterpriseMember{},
 		&model.EnterpriseTokenAssignment{}, &model.EnterpriseCreditPeriod{}, &model.EnterpriseCreditNotifyRecord{}, &model.EnterpriseLedgerEntry{},
-		&model.EnterpriseUsageDaily{},
+		&model.EnterpriseUsageDaily{}, &model.EnterpriseTokenQuotaPolicy{},
 	}
 	previousDB, previousLogDB := model.DB, model.LOG_DB
 	previousMain, previousLog := common.MainDatabaseType(), common.LogDatabaseType()

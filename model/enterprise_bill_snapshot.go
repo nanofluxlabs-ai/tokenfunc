@@ -123,3 +123,35 @@ func (s *EnterpriseBillUsageSnapshot) FinanceSummary() *FinanceUsageSummary {
 func (s *EnterpriseBillUsageSnapshot) FinanceDaily() *FinanceUsageDaily {
 	return &FinanceUsageDaily{TotalCalls: s.LogsTotalCalls, TotalQuota: s.LogsTotalQuota, TotalAmountUSD: FinanceQuotaToUSD(s.LogsTotalQuota), ByDay: s.ByDay}
 }
+
+// WithLiveUsageSnapshot 旧快照（无 v2 财务块）的账单在账期 logs 未清理时按当前 logs 现算 v2 块，只改返回值不落库，
+// 与管理员财务中心对旧账单的实时口径一致；logs 已清理、聚合失败或非 PG 时原样返回
+func (b *EnterpriseBill) WithLiveUsageSnapshot() *EnterpriseBill {
+	if b.UsageSnapshotV2() != nil || len(b.UsageSnapshot) == 0 {
+		return b
+	}
+	if purged, err := BillPeriodLogsPurged(b); err != nil || purged {
+		return b
+	}
+	enterprise, err := GetEnterpriseById(b.EnterpriseId)
+	if err != nil {
+		return b
+	}
+	live, err := buildEnterpriseBillUsageSnapshot(enterprise.UserId, FinanceRange{Start: b.PeriodStart, EndExcl: b.PeriodEnd})
+	if err != nil {
+		return b
+	}
+	var snapshot map[string]any
+	if err := common.Unmarshal(b.UsageSnapshot, &snapshot); err != nil || snapshot == nil {
+		return b
+	}
+	live.mergeInto(snapshot)
+	snapshot["snapshot_source"] = FinanceUsageSourceLive
+	raw, err := common.Marshal(snapshot)
+	if err != nil {
+		return b
+	}
+	result := *b
+	result.UsageSnapshot = JSONValue(raw)
+	return &result
+}

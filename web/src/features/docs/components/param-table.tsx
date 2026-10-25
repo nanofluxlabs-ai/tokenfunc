@@ -31,7 +31,11 @@ export type DocsParam = {
 }
 
 /** Parameter reference table shared by all endpoint pages. */
-export function ParamTable(props: { params: DocsParam[] }) {
+export function ParamTable(props: {
+  params: DocsParam[]
+  /** 列标题覆盖：错误码表等非参数表复用时传入 */
+  labels?: { name?: string; type?: string; default?: string }
+}) {
   const { t } = useTranslation()
 
   return (
@@ -44,7 +48,7 @@ export function ParamTable(props: { params: DocsParam[] }) {
       columns={[
         {
           id: 'parameter',
-          header: t('Parameter'),
+          header: props.labels?.name ?? t('Parameter'),
           className: 'h-9 w-48',
           cellClassName: 'py-2.5 align-top',
           cell: (param) => (
@@ -65,7 +69,7 @@ export function ParamTable(props: { params: DocsParam[] }) {
         },
         {
           id: 'type',
-          header: t('Type'),
+          header: props.labels?.type ?? t('Type'),
           className: 'h-9 w-28',
           cellClassName: 'py-2.5 align-top',
           cell: (param) => (
@@ -79,7 +83,7 @@ export function ParamTable(props: { params: DocsParam[] }) {
         },
         {
           id: 'default',
-          header: t('Default'),
+          header: props.labels?.default ?? t('Default'),
           className: 'h-9 w-24',
           cellClassName: 'py-2.5 align-top',
           cell: (param) =>

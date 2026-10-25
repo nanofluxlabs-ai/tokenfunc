@@ -222,3 +222,19 @@ func ResetDueTokenQuotaPolicies(now int64) (int, error) {
 	}
 	return reset, nil
 }
+
+// GetTokenQuotaPolicy 读取一把 key 的周期限额；未设置（或表尚未建）返回 (nil, nil)
+func GetTokenQuotaPolicy(tokenId int) (*EnterpriseTokenQuotaPolicy, error) {
+	var policy EnterpriseTokenQuotaPolicy
+	err := DB.Where("token_id = ?", tokenId).First(&policy).Error
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return nil, nil
+	}
+	if err != nil {
+		if !DB.Migrator().HasTable(&EnterpriseTokenQuotaPolicy{}) {
+			return nil, nil
+		}
+		return nil, err
+	}
+	return &policy, nil
+}

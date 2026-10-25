@@ -81,7 +81,8 @@ const EMPLOYEE_ME_FIELDS = [
   {
     name: 'usage',
     type: 'object',
-    descriptionKey: 'Quota consumed today and this month by this key.',
+    descriptionKey:
+      'Requests and quota consumed today and this month by this key.',
   },
   {
     name: 'top_models',
@@ -123,9 +124,16 @@ const EMPLOYEE_ME_SAMPLE = {
     remain_quota: 2500000,
     used_quota: 500000,
     expired_time: -1,
-    quota_policy: { reset_period: 'daily', period_quota: 3000000 },
+    quota_policy: {
+      reset_period: 'daily',
+      period_quota: 3000000,
+      next_reset_at: 1761523200,
+    },
   },
-  usage: { today: 120000, month: 500000 },
+  usage: {
+    today: { requests: 3, quota: 120000 },
+    month: { requests: 12, quota: 500000 },
+  },
   top_models: [{ model: 'gpt-4o', quota: 480000 }],
   models: ['gpt-4o', 'claude-sonnet-5'],
 }
@@ -351,7 +359,10 @@ export default function EnterpriseIntegrationPage() {
             'All errors use the OpenAI error envelope with the real HTTP status. These codes are specific to enterprise accounts; the generic ones are on the Errors page.'
           )}
         </P>
-        <ParamTable params={ERROR_ROWS} />
+        <ParamTable
+          params={ERROR_ROWS}
+          labels={{ name: t('Error code'), type: t('HTTP status') }}
+        />
         <Note>
           {t(
             '403 with a quota or budget code is not retryable: wait for the next period / month or contact the administrator. 404 credit_period_not_found and 5xx are safe to retry with backoff.'

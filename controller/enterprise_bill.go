@@ -306,7 +306,7 @@ func currentEnterpriseBill(c *gin.Context) (*model.EnterpriseBill, bool) {
 
 func GetEnterpriseBillSelf(c *gin.Context) {
 	if bill, ok := currentEnterpriseBill(c); ok {
-		common.ApiSuccess(c, bill)
+		common.ApiSuccess(c, bill.WithLiveUsageSnapshot())
 	}
 }
 

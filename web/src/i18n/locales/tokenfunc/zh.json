@@ -1378,7 +1378,6 @@
     "OpenAI-compatible: total_usage = period usage × 100; dates are ignored": "OpenAI 兼容：total_usage = 本期已用 × 100，忽略日期参数",
     "Pay offline by bank transfer; the administrator registers the payment and the bill turns paid. Reminders go out on the due date and 1, 3, 7 and 14 days after it. Quota-based credit without auto-reset resumes service only after the bill is settled.": "线下银行转账付款，管理员登记后账单变为已付。到期日及逾期 1、3、7、14 天会发催款提醒。未开自动翻转的额度信用要等账单结清才恢复服务。",
     "Querying credit from code": "在代码里查询授信额度",
-    "Quota consumed today and this month by this key.": "这把密钥今日与本月的消耗。",
     "Quota-based credit is used up and the bill is awaiting payment. Service resumes when the bill is settled or the admin opens a new period.": "额度信用已用满，账单待付款。账单结清或管理员手动开期后恢复服务。",
     "Sales contact QR code": "商务联系二维码",
     "Set a team budget if you want a hard stop": "需要硬性上限时设团队预算",
@@ -1418,6 +1417,10 @@
     "Set periodic quota": "设置周期限额",
     "Set periodic quota for {{count}} keys": "为 {{count}} 把密钥设置周期限额",
     "Set periodic quota for selected": "为所选设置周期限额",
-    "Periodic quota saved": "周期限额已保存"
+    "Periodic quota saved": "周期限额已保存",
+    "Requests and quota consumed today and this month by this key.": "这把密钥今日与本月的请求数与消耗。",
+    "Error code": "错误码",
+    "HTTP status": "HTTP 状态",
+    "This bill was issued before unit prices were snapshotted; the breakdown below is computed from current logs.": "该账单出账时尚未冻结单价快照，以下明细按当前日志实时计算。"
   }
 }

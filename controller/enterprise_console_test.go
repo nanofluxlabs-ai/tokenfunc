@@ -610,7 +610,7 @@ func TestEnterpriseEmployeeMe(t *testing.T) {
 		require.Equal(t, http.StatusOK, status, body)
 		assert.Equal(t, "enterprise_employee", body["object"])
 		assert.Equal(t, map[string]any{"name": "me-owner Co", "billing_mode": model.EnterpriseBillingModeCredit}, body["enterprise"])
-		assert.Equal(t, map[string]any{"name": "R&D", "budget_state": nil}, body["team"])
+		assert.Equal(t, map[string]any{"name": "R&D", "budget_state": model.TeamBudgetStateNone}, body["team"])
 		assert.Equal(t, map[string]any{"name": "Alice", "employee_no": "R001"}, body["member"])
 		key, _ := body["key"].(map[string]any)
 		assert.Equal(t, "Alice-Codex", key["name"])
@@ -632,11 +632,33 @@ func TestEnterpriseEmployeeMe(t *testing.T) {
 		}
 	})
 
+	t.Run("team budget state and key quota policy are reported", func(t *testing.T) {
+		// 先登记清理再改状态，失败时也不污染后面的子用例
+		t.Cleanup(func() {
+			require.NoError(t, model.DB.Model(team).Update("monthly_budget_quota", 0).Error)
+			model.InvalidateTeamMonthUsage(team.Id)
+			require.NoError(t, model.SetTokenQuotaPolicies(enterprise.Id, owner.Id, model.EnterpriseScope{}, []int{aliceKey.Id}, model.TokenQuotaPolicyInput{ResetPeriod: model.TokenQuotaResetNever}))
+		})
+		require.NoError(t, model.DB.Model(team).Updates(map[string]any{"monthly_budget_quota": 2000, "budget_alert_percent": 50}).Error)
+		model.InvalidateTeamMonthUsage(team.Id)
+		require.NoError(t, model.SetTokenQuotaPolicies(enterprise.Id, owner.Id, model.EnterpriseScope{}, []int{aliceKey.Id}, model.TokenQuotaPolicyInput{ResetPeriod: model.TokenQuotaResetDaily, PeriodQuota: 5000}))
+		status, body := me("meemployeekey")
+		require.Equal(t, http.StatusOK, status, body)
+		// 团队本月 1204（成员 key 205 + 团队 key 999）已过 2000 × 50% 的告警线
+		assert.Equal(t, map[string]any{"name": "R&D", "budget_state": model.TeamBudgetStateWarn}, body["team"])
+		key, _ := body["key"].(map[string]any)
+		policy, _ := key["quota_policy"].(map[string]any)
+		assert.Equal(t, model.TokenQuotaResetDaily, policy["reset_period"])
+		assert.EqualValues(t, 5000, policy["period_quota"])
+		assert.Greater(t, policy["next_reset_at"], float64(0))
+		assert.EqualValues(t, 5000, key["remain_quota"], "写入策略即施行周期额度")
+	})
+
 	t.Run("team key without a holder is allowed with a null member", func(t *testing.T) {
 		status, body := me("meteamkey")
 		require.Equal(t, http.StatusOK, status, body)
 		assert.Nil(t, body["member"])
-		assert.Equal(t, map[string]any{"name": "R&D", "budget_state": nil}, body["team"])
+		assert.Equal(t, map[string]any{"name": "R&D", "budget_state": model.TeamBudgetStateNone}, body["team"])
 		assert.Equal(t, []any{"gpt-4o", "gpt-4o-mini"}, body["models"])
 		usage, _ := body["usage"].(map[string]any)
 		assert.Equal(t, map[string]any{"quota": float64(999), "requests": float64(1)}, usage["today"])

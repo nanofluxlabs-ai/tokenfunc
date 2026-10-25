@@ -2,7 +2,7 @@
 
 - 日期：2026-10-25
 - 分支：feat/ent-quota-credit（worktree `agent-a4af1e5688534965d`，slot 8）
-- PR：（见下）
+- PR：#53
 - 关键 commit：b528c0e39（后端）、aa4e166d2（前端）
 
 ## 背景

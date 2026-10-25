@@ -61,3 +61,59 @@ test('username column links to the usage logs filtered by that username', async 
   // 显示名仍作为副标题保留
   expect(screen.getByText('Alice')).toBeInTheDocument()
 })
+
+test('username column shows the email beside the username when present', async () => {
+  const user = {
+    id: 8,
+    username: 'bob',
+    email: 'bob@example.com',
+    role: 1,
+    status: 1,
+    quota: 0,
+    used_quota: 0,
+    request_count: 0,
+    group: 'default',
+  } as User
+  const rootRoute = createRootRoute({
+    component: () => <UsernameCell user={user} />,
+  })
+  const router = createRouter({
+    routeTree: rootRoute,
+    history: createMemoryHistory({ initialEntries: ['/'] }),
+  })
+  render(<RouterProvider router={router} />)
+  await router.load()
+
+  const link = await screen.findByRole('link', {
+    name: 'View usage logs of bob',
+  })
+  const email = screen.getByText('bob@example.com')
+  // 邮箱与用户名同一行，位于用户名右侧
+  expect(link.closest('.flex.items-center')).toContainElement(email)
+})
+
+test('username column renders no email text when the user has none', async () => {
+  const user = {
+    id: 9,
+    username: 'carol',
+    email: '',
+    role: 1,
+    status: 1,
+    quota: 0,
+    used_quota: 0,
+    request_count: 0,
+    group: 'default',
+  } as User
+  const rootRoute = createRootRoute({
+    component: () => <UsernameCell user={user} />,
+  })
+  const router = createRouter({
+    routeTree: rootRoute,
+    history: createMemoryHistory({ initialEntries: ['/'] }),
+  })
+  render(<RouterProvider router={router} />)
+  await router.load()
+
+  await screen.findByRole('link', { name: 'View usage logs of carol' })
+  expect(screen.queryByText(/@/)).not.toBeInTheDocument()
+})

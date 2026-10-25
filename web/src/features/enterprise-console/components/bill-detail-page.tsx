@@ -163,18 +163,22 @@ function BillDetailContent(props: { bill: Bill }) {
             fallbackName='—'
           />
           <SnapshotTable
-            title={t('Department')}
+            title={t('Team')}
             items={
-              (snapshot.by_department as UsageSnapshotGroup[] | undefined) ?? []
+              ((snapshot.by_team ?? snapshot.by_department) as
+                | UsageSnapshotGroup[]
+                | undefined) ?? []
             }
             fallbackName={t('Unassigned')}
           />
           <SnapshotTable
-            title={t('Project')}
+            title={t('Member')}
             items={
-              (snapshot.by_project as UsageSnapshotGroup[] | undefined) ?? []
+              ((snapshot.by_member ?? snapshot.by_employee) as
+                | UsageSnapshotGroup[]
+                | undefined) ?? []
             }
-            fallbackName={t('No project')}
+            fallbackName={t('Team key (no holder)')}
           />
         </>
       )}

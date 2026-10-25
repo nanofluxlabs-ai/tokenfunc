@@ -23,6 +23,7 @@ import { useTranslation } from 'react-i18next'
 import { resolveSidebarView } from '@/components/layout/lib/sidebar-view-registry'
 import type { NavGroup, ResolvedSidebarView } from '@/components/layout/types'
 import { useEnterpriseSelf } from '@/features/enterprise-console/hooks/use-enterprise-self'
+import { actorAtLeast } from '@/features/enterprise-console/lib/member-roles'
 import { usePromoterSelf } from '@/features/promoter-center/hooks/use-promoter-self'
 import { ROLE } from '@/lib/roles'
 import { useAuthStore } from '@/stores/auth-store'
@@ -52,7 +53,13 @@ export function useSidebarView(): ResolvedSidebarView {
   const userRole = useAuthStore((s) => s.auth.user?.role)
   const rootSidebarData = useSidebarData()
   const configFilteredRoot = useSidebarConfig(rootSidebarData.navGroups)
-  const isEnterpriseOwner = Boolean(useEnterpriseSelf().data)
+  const enterprise = useEnterpriseSelf().data
+  const isEnterpriseMember = Boolean(enterprise)
+  // 账单 / 财务只给企业主与企业管理员；团队角色看不到
+  const canSeeEnterpriseFinance = actorAtLeast(
+    enterprise?.actor,
+    'enterprise_admin'
+  )
   const isPromoter = Boolean(usePromoterSelf().data)
 
   const rootNavGroups = useMemo<NavGroup[]>(() => {
@@ -60,15 +67,27 @@ export function useSidebarView(): ResolvedSidebarView {
     const isAdmin = role >= ROLE.ADMIN
     return configFilteredRoot
       .filter((group) => (group.id === 'admin' ? isAdmin : true))
-      .filter((group) => (group.id === 'enterprise' ? isEnterpriseOwner : true))
+      .filter((group) =>
+        group.id === 'enterprise' ? isEnterpriseMember : true
+      )
       .filter((group) => (group.id === 'promoter' ? isPromoter : true))
       .map((group) => {
         const items = group.items.filter(
-          (item) => item.requiredRole === undefined || role >= item.requiredRole
+          (item) =>
+            (item.requiredRole === undefined || role >= item.requiredRole) &&
+            (group.id !== 'enterprise' ||
+              canSeeEnterpriseFinance ||
+              item.url !== '/enterprise/bills')
         )
         return items.length === group.items.length ? group : { ...group, items }
       })
-  }, [configFilteredRoot, userRole, isEnterpriseOwner, isPromoter])
+  }, [
+    configFilteredRoot,
+    userRole,
+    isEnterpriseMember,
+    canSeeEnterpriseFinance,
+    isPromoter,
+  ])
 
   const view = resolveSidebarView(pathname)
 

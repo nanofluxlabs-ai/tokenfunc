@@ -8,10 +8,10 @@ import { Label } from '@/components/ui/label'
 import { handleServerError } from '@/lib/handle-server-error'
 
 import { updateTokenAssignment } from '../api'
-import { useProjectOptions } from '../hooks/use-project-options'
+import { useTeamOptions } from '../hooks/use-team-options'
 import type { EnterpriseToken } from '../types'
-import { EmployeePicker } from './employee-picker'
 import { EntitySelect } from './entity-select'
+import { MemberPicker } from './member-picker'
 
 type TokenAssignDialogProps = {
   token: EnterpriseToken | null
@@ -21,14 +21,14 @@ type TokenAssignDialogProps = {
 
 export function TokenAssignDialog(props: TokenAssignDialogProps) {
   const { t } = useTranslation()
-  const projectOptions = useProjectOptions()
-  const [employeeId, setEmployeeId] = useState(0)
-  const [projectId, setProjectId] = useState(0)
+  const teamOptions = useTeamOptions()
+  const [teamId, setTeamId] = useState(0)
+  const [memberId, setMemberId] = useState(0)
   const [isSubmitting, setIsSubmitting] = useState(false)
 
   useEffect(() => {
-    setEmployeeId(props.token?.employee_id ?? 0)
-    setProjectId(props.token?.project_id ?? 0)
+    setTeamId(props.token?.team_id ?? 0)
+    setMemberId(props.token?.member_id ?? 0)
   }, [props.token])
 
   const handleSave = async () => {
@@ -36,8 +36,8 @@ export function TokenAssignDialog(props: TokenAssignDialogProps) {
     setIsSubmitting(true)
     try {
       const result = await updateTokenAssignment(props.token.id, {
-        employee_id: employeeId,
-        project_id: projectId,
+        team_id: teamId,
+        member_id: memberId,
       })
       if (!result.success) {
         handleServerError(result)
@@ -70,23 +70,32 @@ export function TokenAssignDialog(props: TokenAssignDialogProps) {
     >
       <div className='flex flex-col gap-4'>
         <div className='flex flex-col gap-2'>
-          <Label htmlFor='assign-employee'>{t('Employee')}</Label>
-          <EmployeePicker
-            id='assign-employee'
-            value={employeeId}
-            onChange={setEmployeeId}
-            selectedLabel={props.token?.employee_name}
-            noneLabel={t('Shared (no employee)')}
+          <Label htmlFor='assign-team'>{t('Team')}</Label>
+          <EntitySelect
+            id='assign-team'
+            value={teamId}
+            onChange={(value) => {
+              setTeamId(value)
+              // 换团队后持有人要重选
+              setMemberId(0)
+            }}
+            options={teamOptions}
+            noneLabel={t('Default team')}
           />
         </div>
         <div className='flex flex-col gap-2'>
-          <Label htmlFor='assign-project'>{t('Project')}</Label>
-          <EntitySelect
-            id='assign-project'
-            value={projectId}
-            onChange={setProjectId}
-            options={projectOptions}
-            noneLabel={t('No project')}
+          <Label htmlFor='assign-member'>{t('Holder')}</Label>
+          <MemberPicker
+            id='assign-member'
+            value={memberId}
+            onChange={setMemberId}
+            teamId={teamId}
+            selectedLabel={
+              memberId === props.token?.member_id
+                ? props.token?.member_name
+                : undefined
+            }
+            noneLabel={t('Team key (no holder)')}
           />
         </div>
       </div>

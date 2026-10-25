@@ -82,24 +82,26 @@ func (p *EnterpriseBillingProfile) Scan(value any) error {
 // Enterprise 企业资料，与企业主账号（users 行）1:1。
 // 是否企业账号只由本表决定，不在 users 表上加字段，以减少与上游的合并冲突。
 type Enterprise struct {
-	Id               int                      `json:"id"`
-	UserId           int                      `json:"user_id" gorm:"uniqueIndex;not null"`
-	Name             string                   `json:"name" gorm:"type:varchar(128);not null;index"`
-	ContactName      string                   `json:"contact_name" gorm:"type:varchar(64);not null;default:''"`
-	ContactEmail     string                   `json:"contact_email" gorm:"type:varchar(128);not null;default:''"`
-	ContactPhone     string                   `json:"contact_phone" gorm:"type:varchar(32);not null;default:''"`
-	BillingMode      string                   `json:"billing_mode" gorm:"type:varchar(16);not null;index"`
-	CreditCycleType  string                   `json:"credit_cycle_type" gorm:"type:varchar(16);not null;default:''"`
-	CreditCycleDays  int                      `json:"credit_cycle_days" gorm:"not null;default:0"`
-	CreditLimitQuota int64                    `json:"credit_limit_quota" gorm:"not null;default:0"`
-	CreditAnchorAt   int64                    `json:"credit_anchor_at" gorm:"not null;default:0"`
-	PaymentTermsDays int                      `json:"payment_terms_days" gorm:"not null;default:15"`
-	Currency         string                   `json:"currency" gorm:"type:varchar(8);not null;default:'USD'"`
-	BillingProfile   EnterpriseBillingProfile `json:"billing_profile" gorm:"type:jsonb"`
-	Status           string                   `json:"status" gorm:"type:varchar(16);not null;index"`
-	Remark           string                   `json:"remark" gorm:"type:text"`
-	CreatedAt        int64                    `json:"created_at" gorm:"not null"`
-	UpdatedAt        int64                    `json:"updated_at" gorm:"not null"`
+	Id               int    `json:"id"`
+	UserId           int    `json:"user_id" gorm:"uniqueIndex;not null"`
+	Name             string `json:"name" gorm:"type:varchar(128);not null;index"`
+	ContactName      string `json:"contact_name" gorm:"type:varchar(64);not null;default:''"`
+	ContactEmail     string `json:"contact_email" gorm:"type:varchar(128);not null;default:''"`
+	ContactPhone     string `json:"contact_phone" gorm:"type:varchar(32);not null;default:''"`
+	BillingMode      string `json:"billing_mode" gorm:"type:varchar(16);not null;index"`
+	CreditCycleType  string `json:"credit_cycle_type" gorm:"type:varchar(16);not null;default:''"`
+	CreditCycleDays  int    `json:"credit_cycle_days" gorm:"not null;default:0"`
+	CreditLimitQuota int64  `json:"credit_limit_quota" gorm:"not null;default:0"`
+	CreditAnchorAt   int64  `json:"credit_anchor_at" gorm:"not null;default:0"`
+	// CreditAlertPercent 授信预警阈值（已用占额度的百分比，0..99，0 关闭；达到后通知账单邮箱与 root）
+	CreditAlertPercent int                      `json:"credit_alert_percent" gorm:"not null;default:80"`
+	PaymentTermsDays   int                      `json:"payment_terms_days" gorm:"not null;default:15"`
+	Currency           string                   `json:"currency" gorm:"type:varchar(8);not null;default:'USD'"`
+	BillingProfile     EnterpriseBillingProfile `json:"billing_profile" gorm:"type:jsonb"`
+	Status             string                   `json:"status" gorm:"type:varchar(16);not null;index"`
+	Remark             string                   `json:"remark" gorm:"type:text"`
+	CreatedAt          int64                    `json:"created_at" gorm:"not null"`
+	UpdatedAt          int64                    `json:"updated_at" gorm:"not null"`
 }
 
 // EnterpriseListItem 管理员企业客户列表行：企业资料 + 主账号摘要 + 授信企业的当前账期额度（预付企业为 0）

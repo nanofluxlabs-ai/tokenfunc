@@ -17,6 +17,7 @@ import { requireServerSuccess } from '@/lib/server-error-message'
 
 import { getEnterpriseOverview, listCreditPeriods, listLedger } from '../api'
 import { CreditPeriodsTable, LedgerTable } from './billing-tables'
+import { CreditAlertHint } from './credit-alert-hint'
 import { EnterpriseGuard } from './enterprise-guard'
 
 function OverviewContent() {
@@ -42,10 +43,11 @@ function OverviewContent() {
   })
   const data = overview.data
   const period = data?.open_period ?? null
-  const usedPercent =
+  const rawUsedPercent =
     period && period.limit_quota > 0
-      ? Math.min(100, (period.used_quota / period.limit_quota) * 100)
+      ? (period.used_quota / period.limit_quota) * 100
       : 0
+  const usedPercent = Math.min(100, rawUsedPercent)
 
   return (
     <div className='flex flex-col gap-6'>
@@ -92,6 +94,12 @@ function OverviewContent() {
                   value={usedPercent}
                   aria-label={t('Current period usage')}
                 />
+                {period && (
+                  <CreditAlertHint
+                    alertPercent={data?.enterprise.credit_alert_percent ?? 0}
+                    usedPercent={rawUsedPercent}
+                  />
+                )}
                 <p className='text-muted-foreground mt-2 text-xs'>
                   {t(
                     'Requests are rejected once the period limit is reached. Contact your account manager to raise it.'

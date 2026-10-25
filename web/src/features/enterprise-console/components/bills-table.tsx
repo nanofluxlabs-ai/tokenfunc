@@ -1,4 +1,4 @@
-import { Printer } from 'lucide-react'
+import { Check, Printer } from 'lucide-react'
 import type { ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
@@ -9,6 +9,7 @@ import {
 } from '@/components/data-table'
 import { StatusBadge } from '@/components/status-badge'
 import { Button } from '@/components/ui/button'
+import { formatQuotaWithCurrency } from '@/lib/currency'
 import { formatTimestampToDate } from '@/lib/format'
 
 import { BILL_STATUSES, BILL_TYPES } from '../constants'
@@ -69,6 +70,40 @@ type BillsTableProps = {
   /** 账单号的渲染（控制台：链接到详情） */
   renderBillNo?: (bill: Bill) => ReactNode
   showEnterprise?: boolean
+  /** 管理员：显示对账差异列（企业侧不展示） */
+  showReconcile?: boolean
+}
+
+/** 对账差异单元格：无差异「—」，未核对给 warning 徽标，已核对给确认人 */
+export function ReconcileDiffCell(props: { bill: Bill }) {
+  const { t } = useTranslation()
+  if (
+    props.bill.bill_type !== 'credit' ||
+    props.bill.reconcile_diff_quota === 0
+  ) {
+    return <>—</>
+  }
+  const diff = formatQuotaWithCurrency(props.bill.reconcile_diff_quota)
+  if (props.bill.reconcile_acked_at > 0) {
+    return (
+      <div className='flex flex-col text-xs'>
+        <span className='inline-flex items-center gap-1'>
+          <Check className='text-success h-3.5 w-3.5' aria-hidden='true' />
+          {t('Reconciled')}
+        </span>
+        <span className='text-muted-foreground'>
+          {t('by #{{id}}', { id: props.bill.reconcile_acked_by })} · {diff}
+        </span>
+      </div>
+    )
+  }
+  return (
+    <StatusBadge
+      label={`${t('Diff')} ${diff}`}
+      variant='warning'
+      copyable={false}
+    />
+  )
 }
 
 export function BillsTable(props: BillsTableProps) {
@@ -136,6 +171,15 @@ export function BillsTable(props: BillsTableProps) {
       cell: (row) =>
         row.bill_type === 'statement' ? '—' : <BillStatusBadge bill={row} />,
     },
+    ...(props.showReconcile
+      ? [
+          {
+            id: 'reconcile',
+            header: t('Reconciliation'),
+            cell: (row: Bill) => <ReconcileDiffCell bill={row} />,
+          },
+        ]
+      : []),
     {
       id: 'actions',
       header: t('Actions'),

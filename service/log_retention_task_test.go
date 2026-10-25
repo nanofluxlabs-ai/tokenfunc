@@ -101,7 +101,7 @@ func setupLogRetentionPostgres(t *testing.T) *memoryArchiveStore {
 	require.NoError(t, err)
 	sqlDB, err := db.DB()
 	require.NoError(t, err)
-	tables := []any{&model.User{}, &model.Log{}, &model.Option{}, &model.Enterprise{}, &model.EnterpriseCreditPeriod{}, &model.EnterpriseBill{}, &model.LogDailyRollup{}, &model.LogArchiveManifest{}}
+	tables := []any{&model.User{}, &model.Log{}, &model.Option{}, &model.Enterprise{}, &model.EnterpriseCreditPeriod{}, &model.EnterpriseCreditNotifyRecord{}, &model.EnterpriseBill{}, &model.LogDailyRollup{}, &model.LogArchiveManifest{}}
 	previousDB, previousLogDB := model.DB, model.LOG_DB
 	previousMain, previousLog := common.MainDatabaseType(), common.LogDatabaseType()
 	previousDays, previousRunAt, previousRedis := common.DBLogRetentionDays, common.DBLogRetentionRunAt, common.RedisEnabled

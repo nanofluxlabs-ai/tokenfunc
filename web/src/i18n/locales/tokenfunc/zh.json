@@ -1211,6 +1211,23 @@
     "Usage of this key is billed to the enterprise and attributed to the selected team and holder.": "该密钥的用量计入企业账单，并归属到所选团队和持有人。",
     "{{name}} signs in as {{username}}.": "{{name}} 使用账号 {{username}} 登录。",
     "View your enterprise teams, members, and API keys.": "查看企业的团队、成员和 API 密钥。",
-    "Manage enterprise teams, members, member logins, and API key assignments.": "管理企业的团队、成员、成员登录和 API 密钥归属。"
+    "Manage enterprise teams, members, member logins, and API key assignments.": "管理企业的团队、成员、成员登录和 API 密钥归属。",
+    "Usage alert threshold (%)": "用量预警阈值（%）",
+    "The billing email and administrators are notified when period usage reaches this percentage, and again when the limit is exhausted. 0 disables alerts.": "本期已用达到该百分比时通知账单邮箱与管理员，额度用尽时再通知一次。0 表示关闭预警。",
+    "Alert threshold {{percent}}% · billing email is notified when reached": "预警阈值 {{percent}}% · 达到后通知账单邮箱",
+    "Alert threshold reached": "已达预警阈值",
+    "Limit exhausted": "额度已用尽",
+    "Reconciliation diff": "对账差异",
+    "Reconciled": "已核对",
+    "by #{{id}}": "操作人 #{{id}}",
+    "Diff": "差额",
+    "Reconciliation difference": "对账差异",
+    "The period counter ({{counter}}) and the usage details ({{detail}}) differ by {{diff}}. The bill was issued from the counter.": "账期计数器（{{counter}}）与用量明细（{{detail}}）相差 {{diff}}，账单金额以计数器为准。",
+    "Reconciled by #{{id}} on {{date}}": "已由 #{{id}} 于 {{date}} 核对",
+    "Mark as reconciled": "标记已核对",
+    "Reconciliation difference marked as reviewed": "已标记对账差异为已核对",
+    "Failed to mark as reconciled": "标记已核对失败",
+    "Confirm that the difference has been reviewed. The bill amount stays as issued.": "确认差异已人工核对。账单金额保持出账时的数值不变。",
+    "Note (optional)": "备注（可选）"
   }
 }

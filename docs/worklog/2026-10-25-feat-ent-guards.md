@@ -68,4 +68,4 @@ ok  	github.com/QuantumNous/new-api/model	16.300s
 
 - `team.budget_state`（M14）与 `key.quota_policy`（M4）暂为 `null`，契约字段已占位。
 - 多副本下其它节点的 `enterpriseBillingInfoCache` 仍有最多 15s 延迟（已接受的退化，与授信配置变更一致）。
-- #48（M8）合入 main 后需再合一次 main。
+- #48（M8，`627b397ab`）已二次合入：仅 `billing_credit_test.go` 夹具表清单冲突（补 `EnterpriseCreditNotifyRecord`），重跑 `go build ./...`、五包 PG 测试（`ok model 21.300s / service 6.630s / controller 48.221s / middleware 0.750s / router 0.775s`）、typecheck、钱包 vitest（3 files / 9 tests）全部通过。

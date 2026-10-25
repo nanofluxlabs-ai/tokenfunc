@@ -1211,6 +1211,23 @@
     "Usage of this key is billed to the enterprise and attributed to the selected team and holder.": "Использование ключа оплачивается предприятием и относится к выбранной команде и владельцу.",
     "{{name}} signs in as {{username}}.": "{{name}} входит как {{username}}.",
     "View your enterprise teams, members, and API keys.": "Просмотр команд, участников и API-ключей предприятия.",
-    "Manage enterprise teams, members, member logins, and API key assignments.": "Управление командами, участниками, их входом и привязкой API-ключей предприятия."
+    "Manage enterprise teams, members, member logins, and API key assignments.": "Управление командами, участниками, их входом и привязкой API-ключей предприятия.",
+    "Usage alert threshold (%)": "Порог оповещения об использовании (%)",
+    "The billing email and administrators are notified when period usage reaches this percentage, and again when the limit is exhausted. 0 disables alerts.": "Когда использование за период достигает этого процента, уведомляются биллинговый e-mail и администраторы; повторно — при исчерпании лимита. 0 отключает оповещения.",
+    "Alert threshold {{percent}}% · billing email is notified when reached": "Порог оповещения {{percent}}% · при достижении уведомляется биллинговый e-mail",
+    "Alert threshold reached": "Порог оповещения достигнут",
+    "Limit exhausted": "Лимит исчерпан",
+    "Reconciliation diff": "Расхождение сверки",
+    "Reconciled": "Сверено",
+    "by #{{id}}": "выполнил #{{id}}",
+    "Diff": "Разница",
+    "Reconciliation difference": "Расхождение при сверке",
+    "The period counter ({{counter}}) and the usage details ({{detail}}) differ by {{diff}}. The bill was issued from the counter.": "Счётчик периода ({{counter}}) и детализация использования ({{detail}}) расходятся на {{diff}}. Счёт выставлен по счётчику.",
+    "Reconciled by #{{id}} on {{date}}": "Сверено пользователем #{{id}} {{date}}",
+    "Mark as reconciled": "Отметить как сверенное",
+    "Reconciliation difference marked as reviewed": "Расхождение сверки отмечено как проверенное",
+    "Failed to mark as reconciled": "Не удалось отметить как сверенное",
+    "Confirm that the difference has been reviewed. The bill amount stays as issued.": "Подтвердите, что расхождение проверено. Сумма счёта остаётся как при выставлении.",
+    "Note (optional)": "Примечание (необязательно)"
   }
 }

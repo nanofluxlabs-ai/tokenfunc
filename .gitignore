@@ -47,3 +47,6 @@ go.work.sum
 
 # 本地临时文件
 .tmp/
+# k8s 真实密钥只在本地（模板见 *.example）
+deploy/k8s/manifests/ghcr-secret.yaml
+deploy/k8s/manifests/**/secret.yaml

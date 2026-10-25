@@ -1,0 +1,57 @@
+# tokenfunc.com / www.tokenfunc.com → tokenfunc-api（只到 slave）
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: tokenfunc-api-ingress
+  namespace: tokenfunc
+  annotations:
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    # proxy-read-timeout 是两次 chunk 之间的空闲超时，1800s 覆盖模型长思考的静默段
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "1800"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "1800"
+    nginx.ingress.kubernetes.io/proxy-connect-timeout: "10"
+    nginx.ingress.kubernetes.io/proxy-body-size: "50m"
+    # 关闭响应 / 请求体缓冲：流式 token 实时透传，大请求体不在 nginx 内存里积累
+    nginx.ingress.kubernetes.io/proxy-buffering: "off"
+    nginx.ingress.kubernetes.io/proxy-request-buffering: "off"
+    nginx.ingress.kubernetes.io/proxy-http-version: "1.1"
+    # 允许带下划线的请求头（Codex CLI 的 session_id 等），默认会被静默丢弃
+    nginx.ingress.kubernetes.io/server-snippet: |
+      underscores_in_headers on;
+    nginx.ingress.kubernetes.io/configuration-snippet: |
+      proxy_set_header Upgrade $http_upgrade;
+      proxy_set_header Connection "upgrade";
+      add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
+      add_header X-Frame-Options "SAMEORIGIN" always;
+      add_header X-Content-Type-Options "nosniff" always;
+      add_header Referrer-Policy "no-referrer-when-downgrade" always;
+      add_header Permissions-Policy "camera=(), microphone=(), geolocation=()" always;
+      proxy_hide_header Server;
+spec:
+  ingressClassName: nginx
+  tls:
+  - hosts:
+    - tokenfunc.com
+    - www.tokenfunc.com
+    secretName: tokenfunc-api-tls
+  rules:
+  - host: tokenfunc.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: tokenfunc-api
+            port:
+              number: 3000
+  - host: www.tokenfunc.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: tokenfunc-api
+            port:
+              number: 3000

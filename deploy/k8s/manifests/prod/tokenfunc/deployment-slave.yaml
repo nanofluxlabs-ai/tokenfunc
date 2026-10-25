@@ -1,0 +1,92 @@
+# slave：多副本，只接 API 流量（NODE_TYPE=slave 不跑上游定时任务；二开后台任务靠 Redis 锁，slave 上也不会重复执行）。
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: tokenfunc-api-slave
+  namespace: tokenfunc
+  labels:
+    app: tokenfunc-api
+    role: slave
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: tokenfunc-api
+      role: slave
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 0
+      maxSurge: 1
+  template:
+    metadata:
+      labels:
+        app: tokenfunc-api
+        role: slave
+    spec:
+      imagePullSecrets:
+      - name: ghcr-secret
+      terminationGracePeriodSeconds: 1830
+      affinity:
+        podAntiAffinity:
+          # 软约束：尽量分散到不同节点；用 required 会让滚动更新时 Terminating Pod 占槽、新 Pod 调度不上
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              labelSelector:
+                matchLabels:
+                  app: tokenfunc-api
+                  role: slave
+              topologyKey: kubernetes.io/hostname
+      containers:
+      - name: tokenfunc-api
+        # 同 master：apply 前核对线上 tag
+        image: ghcr.io/nanofluxlabs-ai/tokenfunc:latest
+        ports:
+        - containerPort: 3000
+          name: http
+        envFrom:
+        - configMapRef:
+            name: tokenfunc-api-config
+        - secretRef:
+            name: tokenfunc-api
+        env:
+        - name: NODE_TYPE
+          value: "slave"
+        - name: NODE_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        volumeMounts:
+        - name: tmp
+          mountPath: /tmp
+        readinessProbe:
+          httpGet:
+            path: /api/health/ready
+            port: http
+          initialDelaySeconds: 10
+          periodSeconds: 5
+          failureThreshold: 3
+        livenessProbe:
+          httpGet:
+            path: /api/health/live
+            port: http
+          initialDelaySeconds: 30
+          periodSeconds: 30
+          failureThreshold: 3
+        lifecycle:
+          preStop:
+            exec:
+              command: ["/bin/sh", "-c", "sleep 15"]
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "200m"
+          limits:
+            # 请求体全量入内存；按「maxSurge=1 时两个 slave 挤同一节点也不爆」倒推，节点规格变了要重算
+            memory: "2Gi"
+            cpu: "1000m"
+      volumes:
+      - name: tmp
+        emptyDir:
+          sizeLimit: 1Gi

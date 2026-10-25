@@ -201,6 +201,7 @@ gh run view -R nanofluxlabs-ai/tokenfunc $RUN_ID --json status,conclusion,jobs \
 ```bash
 # 1. 线上版本必须等于 tag
 curl -fsS https://tokenfunc.com/api/status | jq -r '"\(.success) \(.data.version)"'
+curl -fsS https://tokenfunc.com/api/health/ready | jq -r '"ready=\(.data.ready) db=\(.data.db) redis=\(.data.redis)"'   # 2026-10-25 起镜像带探针；旧镜像 404 可忽略
 
 # 2. 容器状态与镜像、.env 已固化
 ssh tokenfunc "cd /opt/tokenfunc && docker ps --format '{{.Names}}\t{{.Image}}\t{{.Status}}' | grep tokenfunc; grep '^TF_API_IMAGE=' .env"

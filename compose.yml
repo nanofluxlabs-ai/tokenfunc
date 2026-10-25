@@ -79,6 +79,8 @@ services:
       SESSION_COOKIE_SECURE: ${TF_SESSION_COOKIE_SECURE:-false}
       SESSION_COOKIE_TRUSTED_URL: ${TF_SESSION_COOKIE_TRUSTED_URL:-}
       NODE_NAME: ${TF_NODE_NAME:-tokenfunc-api-1}
+      # 单机 docker 只有一个实例，必须是 master（跑上游定时任务与二开后台任务）；k8s 下主从拆成两个 Deployment
+      NODE_TYPE: ${TF_NODE_TYPE:-master}
       # 留空时应用默认信任回环与私网网段并打印告警；生产填 nginx 所在的 docker 网段
       TRUSTED_PROXIES: ${TF_TRUSTED_PROXIES:-}
       ERROR_LOG_ENABLED: "true"
@@ -91,13 +93,27 @@ services:
       LOG_RETENTION_DAYS: ${TF_LOG_RETENTION_DAYS:-7}
       # 服务端日志与未指定语言的请求提示 / 邮件 / 通知的默认语言（上游 rc.44 起支持），与上游默认保持一致
       DEFAULT_LANGUAGE: ${TF_DEFAULT_LANGUAGE:-zh-CN}
+      # logs 表保留 + 归档（TokenFunc 二开）：天数 0 = 空转不删；生产填 90。变量名与 make api / k8s 同名，不加 TF_ 前缀
+      DB_LOG_RETENTION_DAYS: ${DB_LOG_RETENTION_DAYS:-0}
+      DB_LOG_RETENTION_RUN_AT: ${DB_LOG_RETENTION_RUN_AT:-03:00}
+      DB_LOG_RETENTION_MAX_DAYS_PER_RUN: ${DB_LOG_RETENTION_MAX_DAYS_PER_RUN:-30}
+      DB_LOG_RETENTION_BATCH_LIMIT: ${DB_LOG_RETENTION_BATCH_LIMIT:-2000}
+      DB_LOG_RETENTION_BATCH_PAUSE_MS: ${DB_LOG_RETENTION_BATCH_PAUSE_MS:-200}
+      # 归档对象存储（S3 兼容，腾讯云 COS）；四个必填项任一为空则任务拒绝删除
+      LOG_ARCHIVE_S3_ENDPOINT: ${LOG_ARCHIVE_S3_ENDPOINT:-}
+      LOG_ARCHIVE_S3_REGION: ${LOG_ARCHIVE_S3_REGION:-}
+      LOG_ARCHIVE_S3_BUCKET: ${LOG_ARCHIVE_S3_BUCKET:-}
+      LOG_ARCHIVE_S3_PREFIX: ${LOG_ARCHIVE_S3_PREFIX:-}
+      LOG_ARCHIVE_S3_ACCESS_KEY: ${LOG_ARCHIVE_S3_ACCESS_KEY:-}
+      LOG_ARCHIVE_S3_SECRET_KEY: ${LOG_ARCHIVE_S3_SECRET_KEY:-}
+      LOG_ARCHIVE_S3_PATH_STYLE: ${LOG_ARCHIVE_S3_PATH_STYLE:-false}
     depends_on:
       postgres:
         condition: service_healthy
       redis:
         condition: service_healthy
     healthcheck:
-      test: ["CMD-SHELL", "wget -q -O - http://127.0.0.1:3000/api/status | grep -q '\"success\":true'"]
+      test: ["CMD-SHELL", "wget -q -O - http://127.0.0.1:3000/api/health/ready | grep -q '\"ready\":true'"]
       interval: 10s
       timeout: 5s
       retries: 12

@@ -90,6 +90,9 @@ export function DailyTab(props: DailyTabProps) {
     }
   }, [chartGridColor, chartTextColor, props.daily, t])
 
+  // 明细表最近的日期在前；图表时间轴保持升序
+  const tableRows = useMemo(() => [...props.daily].reverse(), [props.daily])
+
   const columns = [
     {
       id: 'day',
@@ -155,7 +158,7 @@ export function DailyTab(props: DailyTabProps) {
       <SectionBlock title={t('Summary by day')}>
         <StaticDataTable
           columns={columns}
-          data={props.daily}
+          data={tableRows}
           getRowKey={(row) => row.day}
           empty={props.daily.length === 0}
           emptyContent={t('No consumption in this range')}

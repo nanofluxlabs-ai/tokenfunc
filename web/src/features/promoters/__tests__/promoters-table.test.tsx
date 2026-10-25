@@ -81,6 +81,11 @@ test('renders the toolbar search and the promoter rows with bound count and mont
   expect(
     screen.getAllByRole('button', { name: 'Manage bindings' })[0]
   ).toHaveTextContent('4')
+  // 列头是「本月消耗」而不是上游的「This month」（中文译文「本月获得」会被当成收入）
+  expect(
+    screen.getByRole('columnheader', { name: 'Month consumption' })
+  ).toBeInTheDocument()
+  expect(screen.queryByText('This month')).toBeNull()
   expect(apiMock.listPromoters).toHaveBeenCalledWith({
     keyword: undefined,
     p: 1,

@@ -11,10 +11,12 @@ import { StatusBadge } from '@/components/status-badge'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import {
+  BillExportCsvButton,
   BillStatusBadge,
   InvoiceButton,
 } from '@/features/enterprise-console/components/bills-table'
 import { CREDIT_PERIOD_STATUSES } from '@/features/enterprise-console/constants'
+import { isBillSnapshotV2 } from '@/features/enterprise-console/types'
 import { toIntlLocale } from '@/i18n/languages'
 import {
   formatNumber,
@@ -34,8 +36,11 @@ import {
 import { buildUsageCsvFilename } from '../../lib/csv'
 import type { FinanceBillContext, UsageRangeParams } from '../../types'
 import { MetricCard } from '../metric-card'
+import { SectionBlock as Block } from '../section-block'
+import { BillSnapshotSection } from '../usage-breakdown/bill-snapshot-section'
 import { ExportCsvControl } from '../usage-breakdown/export-csv-control'
 import { UsageBreakdownSection } from '../usage-breakdown/usage-breakdown-section'
+import { UsageDetailTable } from '../usage-breakdown/usage-detail-table'
 import { BillArchiveControl } from './bill-archive-control'
 import { ReconcileAckDialog, ReconcileDiffAlert } from './reconcile-diff-alert'
 
@@ -45,7 +50,11 @@ function day(timestamp: number): string {
   return formatTimestampToDate(timestamp).slice(0, 10)
 }
 
-/** 账单详情正文：头部提示 + 汇总卡 + 三块明细。导出供页面与测试复用 */
+/**
+ * 账单详情正文：头部提示 + 汇总卡 + 明细。导出供页面与测试复用。
+ * 已出账且快照为 v2 的账单直接渲染出账时冻结的快照（与企业侧同口径），不再实时扫 logs；
+ * 进行中账期与旧快照账单维持实时聚合。
+ */
 export function BillDetailContent(props: {
   context: FinanceBillContext
   /** 点击「标记已核对」：由页面在布局槽位外打开确认框 */
@@ -56,13 +65,18 @@ export function BillDetailContent(props: {
   const context = props.context
   const summary = context.summary
   const isOpenPeriod = context.kind === 'period'
+  const billSnapshot = context.bill?.usage_snapshot
+  const frozen =
+    context.kind === 'bill' && isBillSnapshotV2(billSnapshot)
+      ? billSnapshot
+      : null
   const usageParams: UsageRangeParams = {
     scope: 'admin',
     user_id: summary.user_id,
     ts_start: context.usage_ts_start,
     ts_end: context.usage_ts_end,
   }
-  const usage = useUsageSummary(usageParams)
+  const usage = useUsageSummary({ ...usageParams, enabled: frozen === null })
   const usagePercent = creditUsagePercent(
     summary.used_quota,
     summary.limit_quota
@@ -85,11 +99,20 @@ export function BillDetailContent(props: {
           </AlertDescription>
         </Alert>
       )}
-      {context.logs_purged && (
+      {context.logs_purged && frozen === null && (
         <Alert className='border-warning/40 bg-warning/10'>
           <AlertDescription>
             {t(
               'Raw logs of this period have been archived and purged; the breakdown below may be incomplete. Use the archived statement snapshot as the source of truth.'
+            )}
+          </AlertDescription>
+        </Alert>
+      )}
+      {frozen && (
+        <Alert>
+          <AlertDescription>
+            {t(
+              'Settled bill: the breakdown below is the usage snapshot frozen at issue time.'
             )}
           </AlertDescription>
         </Alert>
@@ -128,11 +151,33 @@ export function BillDetailContent(props: {
         />
         <MetricCard
           label={t('Requests')}
-          value={formatNumber(usage.data?.total_calls ?? 0, locale)}
-          loading={usage.isLoading}
+          value={formatNumber(
+            frozen ? frozen.logs_total_calls : (usage.data?.total_calls ?? 0),
+            locale
+          )}
+          loading={frozen === null && usage.isLoading}
         />
       </div>
-      <UsageBreakdownSection {...usageParams} />
+      {frozen ? (
+        <>
+          <BillSnapshotSection
+            snapshot={frozen}
+            amountQuota={summary.amount_quota}
+          />
+          <Block title={t('Usage detail')}>
+            <p className='text-muted-foreground border-b px-4 py-2 text-xs'>
+              {t(
+                'Row-level detail for settled bills follows the archived statement snapshot.'
+              )}
+            </p>
+            <div className='p-2'>
+              <UsageDetailTable {...usageParams} />
+            </div>
+          </Block>
+        </>
+      ) : (
+        <UsageBreakdownSection {...usageParams} />
+      )}
     </div>
   )
 }
@@ -205,8 +250,11 @@ export function BillDetailPage() {
         <SectionPageLayout.Actions>
           <div className='flex flex-wrap items-center gap-2'>
             {data?.bill && <InvoiceButton bill={data.bill} size='sm' />}
+            {data?.bill && (
+              <BillExportCsvButton bill={data.bill} scope='admin' size='sm' />
+            )}
             {data?.bill && <BillArchiveControl bill={data.bill} />}
-            {data && summary && (
+            {data && summary && data.kind === 'period' && (
               <ExportCsvControl
                 scope='admin'
                 user_id={summary.user_id}

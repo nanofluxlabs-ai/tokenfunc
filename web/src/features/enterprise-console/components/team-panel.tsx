@@ -11,6 +11,7 @@ import { cn } from '@/lib/utils'
 
 import { archiveTeam, deleteTeam } from '../api'
 import type { Team } from '../types'
+import { TeamBudgetMeter } from './team-budget-meter'
 import { TeamDialog } from './team-dialog'
 
 /** 选中值：'all' 全部成员，正数为团队 id */
@@ -46,19 +47,24 @@ function TeamRow(props: {
     >
       <button
         type='button'
-        className='flex min-w-0 flex-1 items-center gap-2 py-1.5 text-left'
+        className='flex min-w-0 flex-1 flex-col gap-1 py-1.5 text-left'
         aria-pressed={isSelected}
         onClick={() => props.onSelect(team.id)}
       >
-        <span className={cn('truncate', archived && 'text-muted-foreground')}>
-          {team.name}
+        <span className='flex w-full items-center gap-2'>
+          <span className={cn('truncate', archived && 'text-muted-foreground')}>
+            {team.name}
+          </span>
+          {archived && (
+            <span className='text-muted-foreground text-xs'>
+              {t('Archived')}
+            </span>
+          )}
+          <span className='text-muted-foreground ml-auto text-xs tabular-nums'>
+            {team.member_count}
+          </span>
         </span>
-        {archived && (
-          <span className='text-muted-foreground text-xs'>{t('Archived')}</span>
-        )}
-        <span className='text-muted-foreground ml-auto text-xs tabular-nums'>
-          {team.member_count}
-        </span>
+        <TeamBudgetMeter team={team} />
       </button>
       {props.canManage && (
         <div className='flex opacity-0 group-focus-within:opacity-100 group-hover:opacity-100'>

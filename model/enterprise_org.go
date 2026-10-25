@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/QuantumNous/new-api/common"
 
@@ -207,6 +208,10 @@ type EnterpriseTeamListItem struct {
 	EnterpriseTeam
 	MemberCount int `json:"member_count"`
 	TokenCount  int `json:"token_count"`
+	// 本月消耗与预算状态（none / ok / warn / exceeded），列表时回填
+	MonthQuota    int64  `json:"month_quota" gorm:"-"`
+	BudgetPercent int    `json:"budget_percent" gorm:"-"`
+	BudgetState   string `json:"budget_state" gorm:"-"`
 }
 
 func ListEnterpriseTeams(enterpriseId int, scope EnterpriseScope) ([]*EnterpriseTeamListItem, error) {
@@ -222,7 +227,10 @@ func ListEnterpriseTeams(enterpriseId int, scope EnterpriseScope) ([]*Enterprise
 			 WHERE a.team_id = ent_teams.id) AS token_count`).
 		Order("ent_teams.is_default DESC, ent_teams.sort ASC, ent_teams.id ASC").
 		Scan(&items).Error
-	return items, err
+	if err != nil {
+		return nil, err
+	}
+	return items, fillTeamBudgetStates(enterpriseId, items)
 }
 
 func getEnterpriseTeam(tx *gorm.DB, enterpriseId int, id int) (*EnterpriseTeam, error) {
@@ -326,21 +334,42 @@ func UpdateEnterpriseTeam(team *EnterpriseTeam) error {
 	if err := team.normalize(); err != nil {
 		return err
 	}
-	if _, err := getEnterpriseTeam(DB, team.EnterpriseId, team.Id); err != nil {
+	current, err := getEnterpriseTeam(DB, team.EnterpriseId, team.Id)
+	if err != nil {
 		return err
 	}
-	err := DB.Model(&EnterpriseTeam{}).Where("enterprise_id = ? AND id = ?", team.EnterpriseId, team.Id).Updates(map[string]any{
-		"name":                 team.Name,
-		"sort":                 team.Sort,
-		"monthly_budget_quota": team.MonthlyBudgetQuota,
-		"budget_alert_percent": team.BudgetAlertPercent,
-		"budget_enforce":       team.BudgetEnforce,
-		"updated_at":           common.GetTimestamp(),
-	}).Error
+	err = DB.Transaction(func(tx *gorm.DB) error {
+		err := tx.Model(&EnterpriseTeam{}).Where("enterprise_id = ? AND id = ?", team.EnterpriseId, team.Id).Updates(map[string]any{
+			"name":                 team.Name,
+			"sort":                 team.Sort,
+			"monthly_budget_quota": team.MonthlyBudgetQuota,
+			"budget_alert_percent": team.BudgetAlertPercent,
+			"budget_enforce":       team.BudgetEnforce,
+			"updated_at":           common.GetTimestamp(),
+		}).Error
+		if err != nil {
+			return err
+		}
+		// 预算上调：当月两档都可再触发；只改阈值：告警档按新阈值重新生效
+		month := EnterpriseBudgetMonth(time.Now())
+		if team.MonthlyBudgetQuota > current.MonthlyBudgetQuota {
+			return resetTeamBudgetNotifyTx(tx, team.Id, month, TeamBudgetKindWarn, TeamBudgetKindExceeded)
+		}
+		if team.BudgetAlertPercent != current.BudgetAlertPercent {
+			return resetTeamBudgetNotifyTx(tx, team.Id, month, TeamBudgetKindWarn)
+		}
+		return nil
+	})
 	if isUniqueViolation(err) {
 		return ErrEnterpriseDuplicateName
 	}
-	return err
+	if err != nil {
+		return err
+	}
+	// 拦截判定读的是计费信息缓存里的预算 map，配置变更后立即失效
+	InvalidateEnterpriseBillingInfoByEnterprise(team.EnterpriseId)
+	InvalidateTeamMonthUsage(team.Id)
+	return nil
 }
 
 // disableTeamTokens 停用团队名下全部启用中的 key（归档团队时）
@@ -877,32 +906,53 @@ func SetEnterpriseMemberRole(enterpriseId int, memberId int, role string) error 
 // API Key 归属
 // ---------------------------------------------------------------------------
 
-// EnterpriseTokenListItem 企业 key 列表行（key 只返回脱敏值）
+// EnterpriseTokenListItem 企业 key 列表行（key 只返回脱敏值；本月 / 上月消耗从 ent_usage_daily 回填）
 type EnterpriseTokenListItem struct {
-	Id             int    `json:"id"`
-	Name           string `json:"name"`
-	Key            string `json:"key" gorm:"column:token_key"`
-	Status         int    `json:"status"`
-	RemainQuota    int    `json:"remain_quota"`
-	UnlimitedQuota bool   `json:"unlimited_quota"`
-	UsedQuota      int    `json:"used_quota"`
-	ExpiredTime    int64  `json:"expired_time"`
-	CreatedTime    int64  `json:"created_time"`
-	AccessedTime   int64  `json:"accessed_time"`
-	TeamId         int    `json:"team_id"`
-	TeamName       string `json:"team_name"`
-	MemberId       int    `json:"member_id"`
-	MemberName     string `json:"member_name"`
+	Id                 int    `json:"id"`
+	Name               string `json:"name"`
+	Key                string `json:"key" gorm:"column:token_key"`
+	Status             int    `json:"status"`
+	RemainQuota        int    `json:"remain_quota"`
+	UnlimitedQuota     bool   `json:"unlimited_quota"`
+	UsedQuota          int    `json:"used_quota"`
+	ExpiredTime        int64  `json:"expired_time"`
+	CreatedTime        int64  `json:"created_time"`
+	AccessedTime       int64  `json:"accessed_time"`
+	Group              string `json:"group" gorm:"column:token_group"`
+	ModelLimitsEnabled bool   `json:"model_limits_enabled"`
+	ModelLimits        string `json:"model_limits"`
+	AllowIps           string `json:"allow_ips"`
+	TeamId             int    `json:"team_id"`
+	TeamName           string `json:"team_name"`
+	TeamStatus         string `json:"team_status"`
+	MemberId           int    `json:"member_id"`
+	MemberName         string `json:"member_name"`
+	MonthQuota         int64  `json:"month_quota" gorm:"-"`
+	PrevMonthQuota     int64  `json:"prev_month_quota" gorm:"-"`
 }
+
+// EnterpriseTokenExpiringWindow 「即将过期」筛选的窗口：7 天内
+const EnterpriseTokenExpiringWindow = 7 * 24 * 3600
 
 type EnterpriseTokenFilter struct {
 	TeamId   *int
 	MemberId *int
 	Status   *int
+	// Expiring 只看 7 天内到期的 key
+	Expiring bool
 	Keyword  string
 }
 
-func ListEnterpriseTokens(enterpriseId int, ownerUserId int, scope EnterpriseScope, filter EnterpriseTokenFilter, startIdx int, num int) ([]*EnterpriseTokenListItem, int64, error) {
+// enterpriseMonthRange 本月与上月的起止日（账期时区），列表页环比用
+func enterpriseMonthRange(now time.Time) (thisFrom, thisTo, prevFrom, prevTo string) {
+	local := now.In(enterpriseBillingLocation)
+	thisStart := time.Date(local.Year(), local.Month(), 1, 0, 0, 0, 0, enterpriseBillingLocation)
+	prevStart := thisStart.AddDate(0, -1, 0)
+	return thisStart.Format("2006-01-02"), local.Format("2006-01-02"),
+		prevStart.Format("2006-01-02"), thisStart.AddDate(0, 0, -1).Format("2006-01-02")
+}
+
+func enterpriseTokenQuery(enterpriseId int, ownerUserId int, scope EnterpriseScope) *gorm.DB {
 	query := DB.Table("tokens").
 		Joins("LEFT JOIN ent_token_assignments a ON a.token_id = tokens.id AND a.enterprise_id = ?", enterpriseId).
 		Joins("LEFT JOIN ent_teams tm ON tm.id = a.team_id").
@@ -911,6 +961,18 @@ func ListEnterpriseTokens(enterpriseId int, ownerUserId int, scope EnterpriseSco
 	if scope.TeamId != nil {
 		query = query.Where("a.team_id = ?", *scope.TeamId)
 	}
+	return query
+}
+
+const enterpriseTokenSelect = `tokens.id, tokens.name, tokens.` + "%s" + ` AS token_key, tokens.status, tokens.remain_quota,
+	tokens.unlimited_quota, tokens.used_quota, tokens.expired_time, tokens.created_time, tokens.accessed_time,
+	tokens.` + "%s" + ` AS token_group, tokens.model_limits_enabled, COALESCE(tokens.model_limits, '') AS model_limits,
+	COALESCE(tokens.allow_ips, '') AS allow_ips,
+	COALESCE(a.team_id, 0) AS team_id, COALESCE(tm.name, '') AS team_name, COALESCE(tm.status, '') AS team_status,
+	COALESCE(a.member_id, 0) AS member_id, COALESCE(m.name, '') AS member_name`
+
+func ListEnterpriseTokens(enterpriseId int, ownerUserId int, scope EnterpriseScope, filter EnterpriseTokenFilter, startIdx int, num int) ([]*EnterpriseTokenListItem, int64, error) {
+	query := enterpriseTokenQuery(enterpriseId, ownerUserId, scope)
 	if filter.TeamId != nil {
 		query = query.Where("COALESCE(a.team_id, 0) = ?", *filter.TeamId)
 	}
@@ -919,6 +981,10 @@ func ListEnterpriseTokens(enterpriseId int, ownerUserId int, scope EnterpriseSco
 	}
 	if filter.Status != nil {
 		query = query.Where("tokens.status = ?", *filter.Status)
+	}
+	if filter.Expiring {
+		now := common.GetTimestamp()
+		query = query.Where("tokens.expired_time > 0 AND tokens.expired_time <= ?", now+EnterpriseTokenExpiringWindow)
 	}
 	if keyword := strings.TrimSpace(filter.Keyword); keyword != "" {
 		like := "%" + keyword + "%"
@@ -930,20 +996,173 @@ func ListEnterpriseTokens(enterpriseId int, ownerUserId int, scope EnterpriseSco
 	}
 	items := make([]*EnterpriseTokenListItem, 0)
 	err := query.
-		Select(`tokens.id, tokens.name, tokens.` + commonKeyCol + ` AS token_key, tokens.status, tokens.remain_quota,
-			tokens.unlimited_quota, tokens.used_quota, tokens.expired_time, tokens.created_time, tokens.accessed_time,
-			COALESCE(a.team_id, 0) AS team_id, COALESCE(tm.name, '') AS team_name,
-			COALESCE(a.member_id, 0) AS member_id, COALESCE(m.name, '') AS member_name`).
+		Select(fmt.Sprintf(enterpriseTokenSelect, commonKeyCol, commonGroupCol)).
 		Order("tokens.id DESC").
 		Limit(num).Offset(startIdx).
 		Scan(&items).Error
 	if err != nil {
 		return nil, 0, err
 	}
+	ids := make([]int, 0, len(items))
 	for _, item := range items {
 		item.Key = MaskTokenKey(item.Key)
+		ids = append(ids, item.Id)
+	}
+	thisFrom, thisTo, prevFrom, prevTo := enterpriseMonthRange(time.Now())
+	thisMonth, err := SumEnterpriseUsageByColumn(enterpriseId, "token_id", ids, thisFrom, thisTo)
+	if err != nil {
+		return nil, 0, err
+	}
+	prevMonth, err := SumEnterpriseUsageByColumn(enterpriseId, "token_id", ids, prevFrom, prevTo)
+	if err != nil {
+		return nil, 0, err
+	}
+	for _, item := range items {
+		item.MonthQuota = thisMonth[item.Id]
+		item.PrevMonthQuota = prevMonth[item.Id]
 	}
 	return items, total, nil
+}
+
+// GetEnterpriseToken 取范围内的一把 key（含归属）；范围外或不属于企业主账号的按不存在处理
+func GetEnterpriseToken(enterpriseId int, ownerUserId int, scope EnterpriseScope, tokenId int) (*Token, *EnterpriseTokenAssignment, error) {
+	token, err := GetTokenByIds(tokenId, ownerUserId)
+	if err != nil {
+		return nil, nil, ErrEnterpriseResourceNotFound
+	}
+	assignment, err := GetEnterpriseTokenAssignment(tokenId)
+	if err != nil {
+		return nil, nil, err
+	}
+	if assignment == nil || assignment.EnterpriseId != enterpriseId || !scope.Allows(assignment.TeamId) {
+		return nil, nil, ErrEnterpriseResourceNotFound
+	}
+	return token, assignment, nil
+}
+
+// DeleteEnterpriseToken 软删 key 并删除归属行（同一事务）
+func DeleteEnterpriseToken(enterpriseId int, ownerUserId int, scope EnterpriseScope, tokenId int) (*Token, error) {
+	token, _, err := GetEnterpriseToken(enterpriseId, ownerUserId, scope, tokenId)
+	if err != nil {
+		return nil, err
+	}
+	if cacheErr := invalidateTokenCacheForMutation(token.Key); cacheErr != nil {
+		common.SysLog(common.LogText("failed to invalidate token cache before delete: %s", cacheErr.Error()))
+	}
+	err = DB.Transaction(func(tx *gorm.DB) error {
+		if err := tx.Delete(&Token{}, "id = ? AND user_id = ?", tokenId, ownerUserId).Error; err != nil {
+			return err
+		}
+		return tx.Where("token_id = ?", tokenId).Delete(&EnterpriseTokenAssignment{}).Error
+	})
+	if err != nil {
+		return nil, err
+	}
+	InvalidateTokenAttribution(tokenId)
+	return token, nil
+}
+
+// listEnterpriseTokensInScope 批量操作前把 id 解析成范围内的 key；任一 id 不在范围内整批按不存在处理
+func listEnterpriseTokensInScope(enterpriseId int, ownerUserId int, scope EnterpriseScope, ids []int) ([]Token, error) {
+	if len(ids) == 0 {
+		return nil, ErrEnterpriseResourceNotFound
+	}
+	var tokens []Token
+	err := enterpriseTokenQuery(enterpriseId, ownerUserId, scope).
+		Where("tokens.id IN ? AND a.token_id IS NOT NULL", ids).
+		Select("tokens.*").
+		Find(&tokens).Error
+	if err != nil {
+		return nil, err
+	}
+	if len(tokens) != len(uniqueInts(ids)) {
+		return nil, ErrEnterpriseResourceNotFound
+	}
+	return tokens, nil
+}
+
+func uniqueInts(values []int) []int {
+	seen := make(map[int]struct{}, len(values))
+	result := make([]int, 0, len(values))
+	for _, value := range values {
+		if _, ok := seen[value]; ok {
+			continue
+		}
+		seen[value] = struct{}{}
+		result = append(result, value)
+	}
+	return result
+}
+
+// EnterpriseTokenBatchResult 批量启停 / 删除的结果：跳过的是过期 / 耗尽不能启用的 key
+type EnterpriseTokenBatchResult struct {
+	Updated int   `json:"updated"`
+	Skipped []int `json:"skipped"`
+}
+
+// BatchUpdateEnterpriseTokenStatus 批量启用 / 停用；启用时跳过已过期或额度耗尽的 key（与上游单条启用的校验一致）
+func BatchUpdateEnterpriseTokenStatus(enterpriseId int, ownerUserId int, scope EnterpriseScope, ids []int, status int) (*EnterpriseTokenBatchResult, error) {
+	tokens, err := listEnterpriseTokensInScope(enterpriseId, ownerUserId, scope, ids)
+	if err != nil {
+		return nil, err
+	}
+	result := &EnterpriseTokenBatchResult{Skipped: []int{}}
+	targets := make([]int, 0, len(tokens))
+	now := common.GetTimestamp()
+	for _, token := range tokens {
+		if status == common.TokenStatusEnabled {
+			expired := token.ExpiredTime != -1 && token.ExpiredTime <= now
+			exhausted := !token.UnlimitedQuota && token.RemainQuota <= 0
+			if expired || exhausted {
+				result.Skipped = append(result.Skipped, token.Id)
+				continue
+			}
+		}
+		targets = append(targets, token.Id)
+	}
+	if len(targets) == 0 {
+		return result, nil
+	}
+	if err := invalidateTokensCache(tokens); err != nil {
+		common.SysLog(common.LogText("failed to invalidate token cache before batch status update: %s", err.Error()))
+	}
+	update := DB.Model(&Token{}).Where("id IN ? AND user_id = ?", targets, ownerUserId).Update("status", status)
+	if update.Error != nil {
+		return nil, update.Error
+	}
+	result.Updated = int(update.RowsAffected)
+	return result, nil
+}
+
+// BatchDeleteEnterpriseTokens 批量软删 key 与归属行
+func BatchDeleteEnterpriseTokens(enterpriseId int, ownerUserId int, scope EnterpriseScope, ids []int) (int, error) {
+	tokens, err := listEnterpriseTokensInScope(enterpriseId, ownerUserId, scope, ids)
+	if err != nil {
+		return 0, err
+	}
+	if err := invalidateTokensCache(tokens); err != nil {
+		common.SysLog(common.LogText("failed to invalidate token cache before batch delete: %s", err.Error()))
+	}
+	targets := make([]int, 0, len(tokens))
+	for _, token := range tokens {
+		targets = append(targets, token.Id)
+	}
+	var deleted int64
+	err = DB.Transaction(func(tx *gorm.DB) error {
+		result := tx.Where("id IN ? AND user_id = ?", targets, ownerUserId).Delete(&Token{})
+		if result.Error != nil {
+			return result.Error
+		}
+		deleted = result.RowsAffected
+		return tx.Where("token_id IN ?", targets).Delete(&EnterpriseTokenAssignment{}).Error
+	})
+	if err != nil {
+		return 0, err
+	}
+	for _, id := range targets {
+		InvalidateTokenAttribution(id)
+	}
+	return int(deleted), nil
 }
 
 // validateTokenAssignmentTargets 校验团队未归档、持有人在职且属于该团队，返回解析后的团队 id

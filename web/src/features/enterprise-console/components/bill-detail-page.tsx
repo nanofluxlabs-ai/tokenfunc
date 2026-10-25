@@ -9,6 +9,7 @@ import {
 import { EmptyState } from '@/components/empty-state'
 import { SectionPageLayout } from '@/components/layout'
 import { LoadingState } from '@/components/loading-state'
+import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import {
   Card,
@@ -17,41 +18,82 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card'
+import { BillSnapshotSection } from '@/features/finance/components/usage-breakdown/bill-snapshot-section'
+import { toIntlLocale } from '@/i18n/languages'
 import { formatQuotaWithCurrency } from '@/lib/currency'
-import { formatTimestampToDate } from '@/lib/format'
+import { formatNumber, formatTimestampToDate } from '@/lib/format'
 import { requireServerSuccess } from '@/lib/server-error-message'
 
 import { getBill } from '../api'
-import type { Bill, UsageSnapshotGroup } from '../types'
-import { BillStatusBadge, InvoiceButton } from './bills-table'
+import { isBillSnapshotV2, type Bill, type UsageSnapshotGroup } from '../types'
+import {
+  BillExportCsvButton,
+  BillStatusBadge,
+  InvoiceButton,
+} from './bills-table'
 import { EnterpriseGuard } from './enterprise-guard'
 
 const route = getRouteApi('/_authenticated/enterprise/bills/$id')
 
+const NUM = 'text-right tabular-nums'
+
+/** 归因块（按模型 v1 / 按团队 / 按成员）：缓存两列旧快照没有，显示「-」 */
 function SnapshotTable(props: {
   title: string
   items: UsageSnapshotGroup[]
   fallbackName: string
 }) {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
+  const locale = toIntlLocale(i18n.resolvedLanguage || i18n.language)
+  const number = (value: number | undefined) =>
+    value == null ? '-' : formatNumber(value, locale)
   const columns: StaticDataTableColumn<UsageSnapshotGroup>[] = [
     {
       id: 'name',
       header: props.title,
       cell: (row) => row.key_name || props.fallbackName,
     },
-    { id: 'requests', header: t('Requests'), cell: (row) => row.request_count },
     {
-      id: 'tokens',
-      header: t('Tokens'),
-      cell: (row) => row.prompt_tokens + row.completion_tokens,
+      id: 'requests',
+      header: t('Requests'),
+      className: NUM,
+      cellClassName: NUM,
+      cell: (row) => number(row.request_count),
+    },
+    {
+      id: 'input',
+      header: t('Input tokens'),
+      className: NUM,
+      cellClassName: NUM,
+      cell: (row) => number(row.prompt_tokens),
+    },
+    {
+      id: 'cached',
+      header: t('Cache hits'),
+      className: NUM,
+      cellClassName: NUM,
+      cell: (row) => number(row.cache_tokens),
+    },
+    {
+      id: 'cache_write',
+      header: t('Cache writes'),
+      className: NUM,
+      cellClassName: NUM,
+      cell: (row) => number(row.cache_creation_tokens),
+    },
+    {
+      id: 'output',
+      header: t('Output tokens'),
+      className: NUM,
+      cellClassName: NUM,
+      cell: (row) => number(row.completion_tokens),
     },
     {
       id: 'amount',
       header: t('Amount'),
-      cell: (row) => (
-        <span className='font-mono'>{formatQuotaWithCurrency(row.quota)}</span>
-      ),
+      className: NUM,
+      cellClassName: `${NUM} font-mono`,
+      cell: (row) => formatQuotaWithCurrency(row.quota),
     },
   ]
   return (
@@ -65,14 +107,43 @@ function SnapshotTable(props: {
   )
 }
 
-function BillDetailContent(props: { bill: Bill }) {
+/** 账单详情正文；导出供测试复用 */
+export function BillDetailContent(props: { bill: Bill }) {
   const { t } = useTranslation()
   const bill = props.bill
-  const snapshot = (bill.usage_snapshot ?? {}) as Record<string, unknown>
+  const snapshot = bill.usage_snapshot ?? {}
   const isStatement = bill.bill_type === 'statement'
   const outstanding = (
     Number.parseFloat(bill.total_usd) - Number.parseFloat(bill.paid_usd)
   ).toFixed(2)
+
+  let usageBlocks: React.ReactNode
+  if (isBillSnapshotV2(snapshot)) {
+    usageBlocks = (
+      <BillSnapshotSection
+        snapshot={snapshot}
+        amountQuota={bill.amount_quota}
+      />
+    )
+  } else {
+    usageBlocks = (
+      <>
+        <Alert>
+          <AlertDescription>
+            {t(
+              'This bill was issued before unit prices were snapshotted; price and daily breakdowns are not available.'
+            )}
+          </AlertDescription>
+        </Alert>
+        <SnapshotTable
+          title={t('Model')}
+          items={snapshot.by_model ?? []}
+          fallbackName='—'
+        />
+      </>
+    )
+  }
+
   return (
     <div className='flex flex-col gap-6'>
       <div className='grid gap-4 md:grid-cols-3'>
@@ -117,12 +188,13 @@ function BillDetailContent(props: { bill: Bill }) {
               )}
             </CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className='flex flex-wrap gap-2'>
             <InvoiceButton bill={bill} size='sm' />
+            <BillExportCsvButton bill={bill} scope='enterprise' size='sm' />
           </CardContent>
         </Card>
       </div>
-      {isStatement ? (
+      {isStatement && (
         <Card>
           <CardContent className='grid gap-2 text-sm sm:grid-cols-5'>
             {(
@@ -153,35 +225,18 @@ function BillDetailContent(props: { bill: Bill }) {
             ))}
           </CardContent>
         </Card>
-      ) : (
-        <>
-          <SnapshotTable
-            title={t('Model')}
-            items={
-              (snapshot.by_model as UsageSnapshotGroup[] | undefined) ?? []
-            }
-            fallbackName='—'
-          />
-          <SnapshotTable
-            title={t('Team')}
-            items={
-              ((snapshot.by_team ?? snapshot.by_department) as
-                | UsageSnapshotGroup[]
-                | undefined) ?? []
-            }
-            fallbackName={t('Unassigned')}
-          />
-          <SnapshotTable
-            title={t('Member')}
-            items={
-              ((snapshot.by_member ?? snapshot.by_employee) as
-                | UsageSnapshotGroup[]
-                | undefined) ?? []
-            }
-            fallbackName={t('Team key (no holder)')}
-          />
-        </>
       )}
+      {usageBlocks}
+      <SnapshotTable
+        title={t('Team')}
+        items={snapshot.by_team ?? snapshot.by_department ?? []}
+        fallbackName={t('Unassigned')}
+      />
+      <SnapshotTable
+        title={t('Member')}
+        items={snapshot.by_member ?? snapshot.by_employee ?? []}
+        fallbackName={t('Team key (no holder)')}
+      />
     </div>
   )
 }

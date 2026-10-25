@@ -38,7 +38,7 @@ const (
 	MsgQuotaUserInsufficient                = "quota.user_insufficient"
 	MsgQuotaPreConsumeInsufficient          = "quota.pre_consume_insufficient"
 	MsgQuotaSubscriptionInsufficient        = "quota.subscription_insufficient"
-	MsgQuotaEnterpriseCreditAwaitingPayment = "quota.enterprise_credit_awaiting_payment"
+	MsgQuotaTeamBudgetExceeded              = "quota.team_budget_exceeded"
 	MsgRelayModelPriceNotConfigured         = "relay.model_price_not_configured"
 	MsgRelayModelPriceNotConfiguredAdmin    = "relay.model_price_not_configured_admin"
 	MsgRelayTaskChannelDisabled             = "relay.task_channel_disabled"
@@ -47,6 +47,7 @@ const (
 	MsgRelayRetryGetChannelFailed           = "relay.retry_get_channel_failed"
 	MsgRelayRetryNoAvailableChannel         = "relay.retry_no_available_channel"
 	MsgRelayAccessTokenUnsupported          = "relay.access_token_unsupported"
+	MsgQuotaEnterpriseCreditAwaitingPayment = "quota.enterprise_credit_awaiting_payment"
 )
 
 // Emails and the name of the token created at registration, in the

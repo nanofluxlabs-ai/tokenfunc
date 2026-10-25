@@ -14,11 +14,11 @@ func init() {
 		"POST /api/admin/enterprise/enterprises/:id/topup":               accessTokenScopeRule("billing:write"),
 		"GET /api/admin/enterprise/enterprises/:id/ledger":               accessTokenScopeRule("billing:read"),
 		"GET /api/admin/enterprise/enterprises/:id/credit-periods":       accessTokenScopeRule("billing:read"),
-		"POST /api/admin/enterprise/enterprises/:id/credit-periods/open": accessTokenScopeRule("billing:write"),
 		"GET /api/admin/enterprise/enterprises/:id/usage/summary":        accessTokenScopeRule("billing:read"),
 		"GET /api/admin/enterprise/enterprises/:id/usage/export":         accessTokenScopeRule("billing:read"),
 		"GET /api/admin/enterprise/bills":                                accessTokenScopeRule("billing:read"),
 		"GET /api/admin/enterprise/bills/:id":                            accessTokenScopeRule("billing:read"),
+		"GET /api/admin/enterprise/bills/:id/export":                     accessTokenScopeRule("billing:read"),
 		"POST /api/admin/enterprise/bills/:id/payments":                  accessTokenScopeRule("billing:write"),
 		"POST /api/admin/enterprise/bills/:id/void":                      accessTokenScopeRule("billing:write"),
 		"POST /api/admin/enterprise/credit-periods/:id/issue":            accessTokenScopeRule("billing:write"),
@@ -31,6 +31,7 @@ func init() {
 		"POST /api/admin/enterprise/quotes/render":                       accessTokenScopeRule("billing:read"),
 		"GET /api/admin/enterprise/leads":                                accessTokenScopeRule("user:read"),
 		"PUT /api/admin/enterprise/leads/:id":                            accessTokenScopeRule("user:write"),
+		"POST /api/admin/enterprise/enterprises/:id/credit-periods/open": accessTokenScopeRule("billing:write"),
 		// 营销页匿名留资，无需作用域
 		"POST /api/enterprise/leads": accessTokenAnyRule,
 
@@ -43,6 +44,7 @@ func init() {
 		"GET /api/enterprise/usage/export":          accessTokenScopeRule("enterprise:read"),
 		"GET /api/enterprise/bills":                 accessTokenScopeRule("enterprise:read"),
 		"GET /api/enterprise/bills/:id":             accessTokenScopeRule("enterprise:read"),
+		"GET /api/enterprise/bills/:id/export":      accessTokenScopeRule("enterprise:read"),
 		"GET /api/enterprise/teams":                 accessTokenScopeRule("enterprise:read"),
 		"POST /api/enterprise/teams":                accessTokenScopeRule("enterprise:write"),
 		"PUT /api/enterprise/teams/:id":             accessTokenScopeRule("enterprise:write"),
@@ -58,8 +60,14 @@ func init() {
 		"PUT /api/enterprise/members/:id/role":      accessTokenScopeRule("enterprise:write"),
 		"GET /api/enterprise/tokens":                accessTokenScopeRule("enterprise:read"),
 		"POST /api/enterprise/tokens":               accessTokenScopeRule("enterprise:write"),
+		"GET /api/enterprise/tokens/options":        accessTokenScopeRule("enterprise:read"),
+		"PUT /api/enterprise/tokens/:id":            accessTokenScopeRule("enterprise:write"),
+		"PUT /api/enterprise/tokens/:id/status":     accessTokenScopeRule("enterprise:write"),
 		"PUT /api/enterprise/tokens/:id/assignment": accessTokenScopeRule("enterprise:write"),
+		"DELETE /api/enterprise/tokens/:id":         accessTokenScopeRule("enterprise:write"),
 		"POST /api/enterprise/tokens/:id/key":       accessTokenScopeRule("enterprise:read"),
+		"POST /api/enterprise/tokens/batch-status":  accessTokenScopeRule("enterprise:write"),
+		"POST /api/enterprise/tokens/batch-delete":  accessTokenScopeRule("enterprise:write"),
 	} {
 		accessTokenRouteRules[key] = rule
 	}

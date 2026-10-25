@@ -157,7 +157,7 @@ func RecordEnterpriseUsage(event EnterpriseUsageEvent) error {
 		Quota:               int64(event.Quota),
 		UpdatedAt:           common.GetTimestamp(),
 	}
-	return DB.Clauses(clause.OnConflict{
+	err = DB.Clauses(clause.OnConflict{
 		Columns: []clause.Column{
 			{Name: "day"}, {Name: "enterprise_id"}, {Name: "token_id"}, {Name: "model_name"}, {Name: "period_id"},
 			{Name: "team_id"}, {Name: "member_id"},
@@ -172,6 +172,22 @@ func RecordEnterpriseUsage(event EnterpriseUsageEvent) error {
 			"updated_at":            row.UpdatedAt,
 		}),
 	}).Create(&row).Error
+	if err != nil {
+		return err
+	}
+	// 团队预算：只对设了预算的团队判档；本节点写入的用量先累加进缓存再判
+	budget, ok := info.TeamBudgets[attribution.TeamId]
+	if !ok {
+		return nil
+	}
+	addTeamMonthUsage(attribution.TeamId, row.Quota)
+	used, err := GetTeamMonthUsage(info.EnterpriseId, attribution.TeamId)
+	if err != nil {
+		common.SysError(fmt.Sprintf("enterprise team budget: load month usage for team %d failed: %v", attribution.TeamId, err))
+		return nil
+	}
+	checkTeamBudgetAfterUsage(info.EnterpriseId, attribution.TeamId, budget, used)
+	return nil
 }
 
 // logOtherInt 从消费日志 other 的公开字段取整数（缺失或类型不符按 0）
@@ -405,4 +421,106 @@ func SumEnterpriseUsageByPeriod(enterpriseId int, periodId int64) (int64, error)
 	err := DB.Model(&EnterpriseUsageDaily{}).Where("enterprise_id = ? AND period_id = ?", enterpriseId, periodId).
 		Select("COALESCE(SUM(quota), 0)").Scan(&total).Error
 	return total, err
+}
+
+// ---------------------------------------------------------------------------
+// 员工凭自己的 API key 自查（GET /v1/enterprise/employee/me）
+// ---------------------------------------------------------------------------
+
+// EnterpriseTokenProfile 一把 key 在企业组织里的归属：团队 / 持有人按新三层契约命名，
+// 持有人可空（团队公共 key）。
+type EnterpriseTokenProfile struct {
+	Token        *Token
+	EnterpriseId int
+	TeamName     string
+	TeamStatus   string
+	// HasMember 为 false 表示 key 无持有人（团队公共 key），此时 Member* 字段无意义
+	HasMember        bool
+	MemberName       string
+	MemberEmployeeNo string
+	MemberStatus     string
+}
+
+// GetEnterpriseTokenProfile 读取 key 的组织归属（团队必有、持有人可空）；
+// 没有归属行（主账号在上游 /keys 页自建的 key）返回 ErrEnterpriseResourceNotFound。
+func GetEnterpriseTokenProfile(tokenId int) (*EnterpriseTokenProfile, error) {
+	token, err := GetTokenById(tokenId)
+	if err != nil {
+		return nil, err
+	}
+	var row struct {
+		EnterpriseId     int
+		MemberId         int
+		TeamName         string
+		TeamStatus       string
+		MemberName       string
+		MemberEmployeeNo string
+		MemberStatus     string
+	}
+	result := DB.Table("ent_token_assignments a").
+		Select(`a.enterprise_id, a.member_id, COALESCE(t.name, '') AS team_name, COALESCE(t.status, '') AS team_status,
+			COALESCE(m.name, '') AS member_name, COALESCE(m.employee_no, '') AS member_employee_no, COALESCE(m.status, '') AS member_status`).
+		Joins("LEFT JOIN ent_teams t ON t.id = a.team_id AND t.deleted_at IS NULL").
+		Joins("LEFT JOIN ent_members m ON m.id = a.member_id AND m.deleted_at IS NULL").
+		Where("a.token_id = ?", tokenId).
+		Limit(1).
+		Scan(&row)
+	if result.Error != nil {
+		return nil, result.Error
+	}
+	if result.RowsAffected == 0 {
+		return nil, ErrEnterpriseResourceNotFound
+	}
+	return &EnterpriseTokenProfile{
+		Token:            token,
+		EnterpriseId:     row.EnterpriseId,
+		TeamName:         row.TeamName,
+		TeamStatus:       row.TeamStatus,
+		HasMember:        row.MemberId != 0,
+		MemberName:       row.MemberName,
+		MemberEmployeeNo: row.MemberEmployeeNo,
+		MemberStatus:     row.MemberStatus,
+	}, nil
+}
+
+// EnterpriseUsageTotals 一段日期内某把 key 的合计
+type EnterpriseUsageTotals struct {
+	Quota        int64 `json:"quota"`
+	RequestCount int64 `json:"requests"`
+}
+
+// CurrentEnterpriseUsageDays 按账期时区返回今天与本月第一天（YYYY-MM-DD）
+func CurrentEnterpriseUsageDays() (today string, monthStart string) {
+	now := time.Now().In(enterpriseBillingLocation)
+	return now.Format("2006-01-02"), time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, enterpriseBillingLocation).Format("2006-01-02")
+}
+
+// SumTokenUsage 单把 key 在 [fromDay, toDay] 的合计：按 token_id 汇总，不区分账期 / 归属快照
+func SumTokenUsage(tokenId int, fromDay string, toDay string) (*EnterpriseUsageTotals, error) {
+	totals := &EnterpriseUsageTotals{}
+	err := DB.Model(&EnterpriseUsageDaily{}).
+		Select("COALESCE(SUM(quota), 0) AS quota, COALESCE(SUM(request_count), 0) AS request_count").
+		Where("token_id = ? AND day BETWEEN ? AND ?", tokenId, fromDay, toDay).
+		Scan(totals).Error
+	return totals, err
+}
+
+// EnterpriseTokenModelUsage 单把 key 按模型的合计
+type EnterpriseTokenModelUsage struct {
+	Model        string `json:"model"`
+	Quota        int64  `json:"quota"`
+	RequestCount int64  `json:"requests"`
+}
+
+// TopTokenModels 单把 key 在 [fromDay, toDay] 消耗最多的前 limit 个模型
+func TopTokenModels(tokenId int, fromDay string, toDay string, limit int) ([]*EnterpriseTokenModelUsage, error) {
+	items := make([]*EnterpriseTokenModelUsage, 0)
+	err := DB.Model(&EnterpriseUsageDaily{}).
+		Select("model_name AS model, SUM(quota) AS quota, SUM(request_count) AS request_count").
+		Where("token_id = ? AND day BETWEEN ? AND ?", tokenId, fromDay, toDay).
+		Group("model_name").
+		Order("quota DESC, model_name ASC").
+		Limit(limit).
+		Scan(&items).Error
+	return items, err
 }

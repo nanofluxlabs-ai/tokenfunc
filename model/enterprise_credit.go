@@ -742,6 +742,8 @@ type EnterpriseBillingInfo struct {
 	Status             string
 	OpenPeriodId       int64
 	CreditAlertPercent int
+	// TeamBudgets 设了月度预算的团队（team_id -> 预算配置）；没有时为 nil，计费入口只多一次 map 读
+	TeamBudgets map[int]EnterpriseTeamBudget
 }
 
 const enterpriseBillingInfoTTL = 15 * time.Second
@@ -772,6 +774,11 @@ func loadEnterpriseBillingInfo(userId int) (*EnterpriseBillingInfo, error) {
 		}
 		info.OpenPeriodId = periodId
 	}
+	budgets, err := loadEnterpriseTeamBudgets(enterprise.Id)
+	if err != nil {
+		return nil, err
+	}
+	info.TeamBudgets = budgets
 	return info, nil
 }
 

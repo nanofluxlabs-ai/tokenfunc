@@ -62,8 +62,9 @@ import {
   updateEnterpriseTokenStatus,
 } from '../api'
 import { useEnterpriseSelf } from '../hooks/use-enterprise-self'
-import { useTeamOptions } from '../hooks/use-team-options'
+import { useTeamOptions, useTeams } from '../hooks/use-team-options'
 import { isTeamScoped, MEMBER_ROLE_LABELS } from '../lib/member-roles'
+import { isTeamBudgetBlocked } from '../lib/team-budget'
 import type { EnterpriseKeysSearch } from '../search-schema'
 import type { EnterpriseToken } from '../types'
 import { EnterpriseGuard } from './enterprise-guard'
@@ -163,6 +164,15 @@ function KeysTable(props: { onEdit: (token: EnterpriseToken) => void }) {
   const { data: enterprise } = useEnterpriseSelf()
   const { status: siteStatus } = useStatus()
   const teamOptions = useTeamOptions()
+  const teams = useTeams()
+  // 已超预算且勾了拦截的团队：其 key 行在状态列标「预算拦截中」
+  const blockedTeamIds = useMemo(
+    () =>
+      new Set(
+        (teams.data ?? []).filter(isTeamBudgetBlocked).map((team) => team.id)
+      ),
+    [teams.data]
+  )
   const teamScoped = isTeamScoped(enterprise?.actor)
   const [keyword, setKeyword] = useState(search.q ?? '')
   const debouncedKeyword = useDebounce(keyword, 400)
@@ -422,11 +432,20 @@ function KeysTable(props: { onEdit: (token: EnterpriseToken) => void }) {
       cell: (row) => {
         const config = API_KEY_STATUSES[row.status]
         return (
-          <StatusBadge
-            label={config ? t(config.label) : String(row.status)}
-            variant={config?.variant ?? 'neutral'}
-            copyable={false}
-          />
+          <div className='flex flex-wrap gap-1'>
+            <StatusBadge
+              label={config ? t(config.label) : String(row.status)}
+              variant={config?.variant ?? 'neutral'}
+              copyable={false}
+            />
+            {blockedTeamIds.has(row.team_id) && (
+              <StatusBadge
+                label={t('Blocked by budget')}
+                variant='danger'
+                copyable={false}
+              />
+            )}
+          </div>
         )
       },
     },

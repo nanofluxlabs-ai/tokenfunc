@@ -45,7 +45,13 @@ export interface Team {
   created_at: number
   member_count: number
   token_count: number
+  /** 本月消耗（quota）与预算占比；budget_state 为 none 表示未设预算 */
+  month_quota: number
+  budget_percent: number
+  budget_state: TeamBudgetState
 }
+
+export type TeamBudgetState = 'none' | 'ok' | 'warn' | 'exceeded'
 
 export interface TeamPayload {
   name: string

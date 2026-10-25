@@ -24,6 +24,7 @@ func newEnterpriseConsoleRouter() *gin.Engine {
 	router.Use(middleware.RequestId(), middleware.AccessTokenAudit())
 	api := router.Group("/api")
 	api.GET("/enterprise/self", middleware.UserAuth(), GetEnterpriseSelf)
+	api.PUT("/admin/enterprise/enterprises/:id", middleware.AdminAuth(), AdminUpdateEnterprise)
 	console := api.Group("/enterprise", middleware.UserAuth(), middleware.EnterpriseAuth())
 	console.GET("/overview", GetEnterpriseOverview)
 	console.GET("/teams", ListEnterpriseTeams)
@@ -342,7 +343,7 @@ func TestEnterpriseConsoleOverview(t *testing.T) {
 
 // 企业密钥页：访问限制校验、编辑含归属、启停校验、删除清归属、批量范围、成员取明文、本月消耗回填、key 上限按企业覆盖、派生四态筛选
 func TestEnterpriseConsoleTokenManagement(t *testing.T) {
-	setupAccessTokenAudit(t)
+	_, adminToken := setupAccessTokenAudit(t)
 	// GetUserGroup / 列表 SELECT 用到带引号的 group / key 列名
 	model.InitColumnNames()
 	require.NoError(t, model.DB.AutoMigrate(&model.Token{}, &model.Ability{}, &model.Enterprise{}, &model.EnterpriseTeam{}, &model.EnterpriseMember{}, &model.EnterpriseTokenAssignment{}, &model.EnterpriseTokenQuotaPolicy{}, &model.EnterpriseUsageDaily{}))
@@ -525,7 +526,17 @@ func TestEnterpriseConsoleTokenManagement(t *testing.T) {
 	code, body = call("POST", "/api/enterprise/tokens", ownerToken, `{"name":"two","unlimited_quota":true}`)
 	require.Equal(t, http.StatusOK, code)
 	assert.Equal(t, false, body["success"], "site limit reached")
-	require.NoError(t, model.DB.Model(&model.Enterprise{}).Where("id = ?", ent.Id).Update("max_tokens", 5).Error)
+	// 管理员在企业资料里设 key 上限：越界拒绝、合法值落库
+	adminUpdate := func(maxTokens string) map[string]any {
+		response := accessTokenRequest(router, "PUT", "/api/admin/enterprise/enterprises/"+itoa(ent.Id), adminToken, "", `{"name":"Key Co","payment_terms_days":15,"max_tokens":`+maxTokens+`}`)
+		require.Equal(t, http.StatusOK, response.Code, response.Body.String())
+		var parsed map[string]any
+		require.NoError(t, common.Unmarshal(response.Body.Bytes(), &parsed), response.Body.String())
+		return parsed
+	}
+	assert.Equal(t, false, adminUpdate("10001")["success"], "above the hard cap")
+	assert.Equal(t, false, adminUpdate("-1")["success"], "negative")
+	require.Equal(t, true, adminUpdate("5")["success"])
 	refreshed, err := model.GetEnterpriseById(ent.Id)
 	require.NoError(t, err)
 	require.Equal(t, 5, refreshed.MaxTokens)

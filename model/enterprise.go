@@ -42,6 +42,8 @@ const (
 const (
 	EnterpriseDefaultPaymentTermsDays = 15
 	EnterpriseDefaultCurrency         = "USD"
+	// EnterpriseMaxTokensLimit 管理员可为企业设置的 key 总数上限的硬上限
+	EnterpriseMaxTokensLimit = 10000
 )
 
 var (
@@ -149,6 +151,9 @@ func (e *Enterprise) Normalize() error {
 	}
 	if e.PaymentTermsDays < 1 || e.PaymentTermsDays > 365 {
 		return errors.New("payment terms days must be between 1 and 365")
+	}
+	if e.MaxTokens < 0 || e.MaxTokens > EnterpriseMaxTokensLimit {
+		return fmt.Errorf("max tokens must be between 0 and %d", EnterpriseMaxTokensLimit)
 	}
 	if e.Currency == "" {
 		e.Currency = EnterpriseDefaultCurrency
@@ -318,6 +323,7 @@ func UpdateEnterpriseProfile(enterprise *Enterprise) error {
 		"payment_terms_days": enterprise.PaymentTermsDays,
 		"billing_profile":    enterprise.BillingProfile,
 		"remark":             enterprise.Remark,
+		"max_tokens":         enterprise.MaxTokens,
 		"updated_at":         common.GetTimestamp(),
 	}).Error
 }

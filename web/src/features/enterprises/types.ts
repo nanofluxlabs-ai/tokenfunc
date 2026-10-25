@@ -32,6 +32,8 @@ export interface Enterprise {
   currency: string
   billing_profile: EnterpriseBillingProfile
   status: EnterpriseStatus
+  /** 企业 key 总数上限；0 表示沿用站点每用户上限 */
+  max_tokens: number
   remark: string
   created_at: number
   updated_at: number
@@ -59,6 +61,7 @@ export interface EnterpriseProfilePayload {
   payment_terms_days: number
   billing_profile: EnterpriseBillingProfile
   remark: string
+  max_tokens: number
 }
 
 export interface CreateEnterprisePayload {

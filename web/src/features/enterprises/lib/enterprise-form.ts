@@ -1,7 +1,7 @@
 import type { TFunction } from 'i18next'
 import { z } from 'zod'
 
-import { DEFAULT_PAYMENT_TERMS_DAYS } from '../constants'
+import { DEFAULT_PAYMENT_TERMS_DAYS, MAX_ENTERPRISE_TOKENS } from '../constants'
 import type {
   CreateEnterprisePayload,
   Enterprise,
@@ -38,6 +38,14 @@ export function getEnterpriseFormSchema(t: TFunction, isUpdate: boolean) {
         .int()
         .min(1, t('Payment terms must be between 1 and 365 days'))
         .max(365, t('Payment terms must be between 1 and 365 days')),
+      max_tokens: z
+        .number()
+        .int()
+        .min(0, t('Max API keys must be between 0 and 10000'))
+        .max(
+          MAX_ENTERPRISE_TOKENS,
+          t('Max API keys must be between 0 and 10000')
+        ),
       company_name: z.string().trim(),
       tax_id: z.string().trim(),
       address: z.string().trim(),
@@ -93,6 +101,7 @@ export const ENTERPRISE_FORM_DEFAULT_VALUES: EnterpriseFormValues = {
   contact_email: '',
   contact_phone: '',
   payment_terms_days: DEFAULT_PAYMENT_TERMS_DAYS,
+  max_tokens: 0,
   company_name: '',
   tax_id: '',
   address: '',
@@ -114,6 +123,7 @@ export function enterpriseToFormValues(
     contact_phone: enterprise.contact_phone,
     payment_terms_days:
       enterprise.payment_terms_days || DEFAULT_PAYMENT_TERMS_DAYS,
+    max_tokens: enterprise.max_tokens ?? 0,
     company_name: profile?.company_name ?? '',
     tax_id: profile?.tax_id ?? '',
     address: profile?.address ?? '',
@@ -133,6 +143,7 @@ export function formValuesToProfilePayload(
     contact_email: values.contact_email,
     contact_phone: values.contact_phone,
     payment_terms_days: values.payment_terms_days,
+    max_tokens: values.max_tokens,
     billing_profile: {
       company_name: values.company_name,
       tax_id: values.tax_id,

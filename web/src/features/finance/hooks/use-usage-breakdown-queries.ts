@@ -8,15 +8,25 @@ import type { UsageRangeParams, UsageScope } from '../types'
 
 export type UsageBreakdownParams = UsageRangeParams & { enabled?: boolean }
 
-const usageKey = (kind: string, params: UsageRangeParams) => [
+/** 同一主体同一区间带不带 bill_id 是两份数据（实时 logs vs 冻结件），key 里要分开 */
+export const usageKey = (kind: string, params: UsageRangeParams) => [
   FINANCE_QUERY_KEY,
   'usage',
   kind,
   params.scope,
   params.scope === 'admin' ? params.user_id : 0,
+  params.scope === 'admin' ? (params.bill_id ?? 0) : 0,
   params.ts_start,
   params.ts_end,
 ]
+
+/** 从带页码等附加字段的参数里只取主体部分 */
+export function usageScopeOf(params: UsageRangeParams): UsageScope {
+  if (params.scope === 'admin') {
+    return { scope: 'admin', user_id: params.user_id, bill_id: params.bill_id }
+  }
+  return { scope: 'self' }
+}
 
 /** admin 主体必须有合法 user_id；self 主体总是可查 */
 export function usageScopeReady(params: UsageRangeParams): boolean {
@@ -47,10 +57,7 @@ export function useUsageDetail(
   params: UsageBreakdownParams & { page: number; pageSize?: number }
 ) {
   const pageSize = params.pageSize ?? FINANCE_PAGE_SIZE
-  const scope: UsageScope =
-    params.scope === 'admin'
-      ? { scope: 'admin', user_id: params.user_id }
-      : { scope: 'self' }
+  const scope = usageScopeOf(params)
   return useQuery({
     queryKey: [...usageKey('detail', params), params.page, pageSize],
     queryFn: async () =>

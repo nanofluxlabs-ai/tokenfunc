@@ -14,6 +14,7 @@
 - `scripts/tokenfunc/worktree-env.sh`（新）：slot 注册表（主 checkout `.tmp/worktree-slots.tsv`，`mkdir` 锁），`init` 领最小空闲 slot（端口被无关进程占用的 slot 跳过）、以主 checkout `.env` 为底生成本 worktree `.env`（`TF_DEV_SCHEMA=dev_<slug>`、`TF_TEST_SCHEMA=test_<slug>`、Redis db 2N/2N+1、端口 3000+N/5173+N）、起库建 schema、`bun install`、打印环境卡；`clean` 停 API、`DROP SCHEMA`、`FLUSHDB`、释放 slot；`list` 标孤儿；`env` 打印参数。
 - `makefile`：新增 `wt-init` / `wt-clean` / `wt-list` / `wt-env`；`COMPOSE` 固定以主 checkout 为项目目录（worktree 里 bind mount 相对路径不同会让 compose 重建容器）；`db-schemas` 把 `TF_DEV_SCHEMA` / `TF_TEST_SCHEMA` 一并建上；`web` 显式传 `VITE_REACT_APP_SERVER_URL`（此前 rsbuild 写死 3000，改端口前端仍打主 checkout 的 API）；`api` 的 `NODE_NAME` 带 worktree 名。
 - `compose.yml`：redis `--databases 64`（默认 16 个只够 7 个 worktree）。
+- 合并后补一笔（直接提交 main）：`db-schemas` 的「schema 就绪」提示去重，主 checkout 不再打印 `dev,test,dev,test`。
 - `CLAUDE.md`：变更前三选一（AskUserQuestion）强制规则；worktree 路径必须 `wt-init` / `wt-clean`。
 - `docs/tokenfunc/development.md`：§1 / §3 / §4.1 补充，新增 §4.7 worktree 并行开发。
 

@@ -76,7 +76,7 @@ db-schemas: ## 幂等创建 TF_PG_SCHEMAS 与当前 dev/test schema
 			psql -v ON_ERROR_STOP=1 -U $(TF_PG_USER) -d $(TF_PG_DB) \
 			-c "CREATE SCHEMA IF NOT EXISTS \"$$schema\" AUTHORIZATION \"$(TF_PG_USER)\";" >/dev/null; \
 	done
-	@echo "schema 就绪: $(TF_PG_SCHEMAS),$(TF_DEV_SCHEMA),$(TF_TEST_SCHEMA)"
+	@echo "schema 就绪: $$(echo "$(TF_PG_SCHEMAS),$(TF_DEV_SCHEMA),$(TF_TEST_SCHEMA)" | tr ',' '\n' | sort -u | paste -sd, -)"
 
 stop: api-stop ## 停止 API 与基础设施容器（保留数据）
 	@$(COMPOSE) --profile app stop

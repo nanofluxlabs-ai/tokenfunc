@@ -39,7 +39,7 @@ func financeDayRange(c *gin.Context, defaultDays int, maxDays int) (model.Financ
 	}
 	startDay := c.Query("start_date")
 	if startDay == "" {
-		end, err := time.ParseInLocation("2006-01-02", endDay, time.FixedZone("CST", 8*3600))
+		end, err := time.ParseInLocation("2006-01-02", endDay, model.BillingLocation())
 		if err != nil {
 			common.ApiErrorMsg(c, "invalid end_date")
 			return model.FinanceRange{}, false

@@ -50,6 +50,7 @@ var financeTestTables = []any{
 	&User{}, &Token{}, &Log{}, &TopUp{}, &SubscriptionPlan{}, &SubscriptionOrder{}, &UserSubscription{}, &Channel{}, &Redemption{},
 	&Enterprise{}, &EnterpriseDepartment{}, &EnterpriseEmployee{}, &EnterpriseProject{}, &EnterpriseTokenAssignment{},
 	&EnterpriseCreditPeriod{}, &EnterpriseLedgerEntry{}, &EnterpriseUsageDaily{}, &EnterpriseBill{},
+	&LogDailyRollup{}, &Option{},
 }
 
 // financeTestDay 固定的测试日（上海时区 2026-03-10 00:00）

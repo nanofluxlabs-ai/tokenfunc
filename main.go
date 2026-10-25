@@ -136,6 +136,9 @@ func main() {
 	// 企业授信账期滚动（TokenFunc 二开）
 	service.StartEnterpriseCreditTask()
 
+	// logs 按天预聚合维护（TokenFunc 二开，仅 PostgreSQL）
+	service.StartLogDailyRollupTask()
+
 	// 渠道消耗统计：批量 flush 循环 + 首次启动从 logs 回填历史（TokenFunc 二开）
 	common.LoadChannelUsageSetting()
 	go model.UpdateChannelUsageStats(context.Background())

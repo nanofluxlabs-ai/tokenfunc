@@ -11,8 +11,8 @@ import (
 )
 
 // 用户消耗与模型消费（净额 = 消费 − 退款，次数与 token 只算消费）。
-// 用户消耗基础列走 tf_log_daily_rollups + 实时补边（ReadLogUsageByUser），token 拆分 / 钱包订阅拆分 / 最后消耗时间只对当前页用户实时查 logs；
-// 模型消费按渠道维度聚合，预聚合表没有渠道列，仍全区间扫 logs。先在 LOG_DB 聚合，再按当前页 ID 到主库补用户 / 企业 / 授信 / 订阅信息，不跨库 JOIN。
+// 两者都走 tf_log_daily_rollups + 实时补边（ReadLogUsageByUser / ReadLogUsageByModelChannel），拆分列与最后消耗时间也来自预聚合度量；
+// 聚合完再按当前页 ID 到主库补用户 / 企业 / 授信 / 订阅 / 渠道名，不跨库 JOIN。
 
 // FinanceUserConsumptionFilter 用户消耗筛选
 type FinanceUserConsumptionFilter struct {
@@ -81,30 +81,11 @@ type FinanceUserConsumptionItem struct {
 // FinanceUserConsumptionMaxUsers 单次按 user_id 聚合的上限；超出时按净消耗截断尾部并记日志
 const FinanceUserConsumptionMaxUsers = 50000
 
+// financeUserConsumeScan 排序 / 分页用的轻量行；明细从 byUser 的 totals 取
 type financeUserConsumeScan struct {
-	UserId           int
-	Username         string
-	ConsumeQuota     int64
-	RefundQuota      int64
-	NetQuota         int64
-	ConsumeCount     int64
-	PromptTokens     int64
-	CompletionTokens int64
-	TotalTokens      int64
-	LastConsumeAt    int64
-}
-
-type financeUserBreakdownScan struct {
-	UserId                   int
-	TextInputTokens          int64
-	TextOutputTokens         int64
-	CacheReadTokens          int64
-	CacheWriteTokens         int64
-	AudioInputTokens         int64
-	AudioOutputTokens        int64
-	WalletConsumeQuota       int64
-	SubscriptionConsumeQuota int64
-	LastConsumeAt            int64
+	UserId      int
+	NetQuota    int64
+	TotalTokens int64
 }
 
 // ListFinanceUserConsumptions 用户消耗列表：读取器按用户聚合（预聚合 + 实时补边，不分页）→ 关键词过滤 → 内存分页 → 只给当前页补充信息。
@@ -136,10 +117,7 @@ func ListFinanceUserConsumptions(filter FinanceUserConsumptionFilter, startIdx i
 	}
 	scans := make([]financeUserConsumeScan, 0, len(byUser))
 	for userId, totals := range byUser {
-		scans = append(scans, financeUserConsumeScan{
-			UserId: userId, ConsumeQuota: totals.ConsumeQuota, RefundQuota: totals.RefundQuota, NetQuota: totals.NetQuota,
-			ConsumeCount: totals.Calls, PromptTokens: totals.PromptTokens, CompletionTokens: totals.CompletionTokens, TotalTokens: totals.TotalTokens(),
-		})
+		scans = append(scans, financeUserConsumeScan{UserId: userId, NetQuota: totals.NetQuota, TotalTokens: totals.TotalTokens()})
 	}
 	sort.Slice(scans, func(i, j int) bool {
 		if scans[i].NetQuota != scans[j].NetQuota {
@@ -163,16 +141,18 @@ func ListFinanceUserConsumptions(filter FinanceUserConsumptionFilter, startIdx i
 	userIds := make([]int, 0, len(page))
 	byUserItem := make(map[int]*FinanceUserConsumptionItem, len(page))
 	for _, scan := range page {
+		totals := byUser[scan.UserId]
 		item := &FinanceUserConsumptionItem{
-			UserId: scan.UserId, ConsumeQuota: scan.ConsumeQuota, RefundQuota: scan.RefundQuota, NetQuota: scan.NetQuota,
-			ConsumeCount: scan.ConsumeCount, PromptTokens: scan.PromptTokens, CompletionTokens: scan.CompletionTokens, TotalTokens: scan.TotalTokens,
+			UserId: scan.UserId, ConsumeQuota: totals.ConsumeQuota, RefundQuota: totals.RefundQuota, NetQuota: totals.NetQuota,
+			ConsumeCount: totals.Calls, PromptTokens: totals.PromptTokens, CompletionTokens: totals.CompletionTokens, TotalTokens: totals.TotalTokens(),
+			LastConsumeAt:   totals.LastConsumeAt,
+			TextInputTokens: totals.TextInputTokens, TextOutputTokens: totals.TextOutputTokens, CacheReadTokens: totals.CacheReadTokens, CacheWriteTokens: totals.CacheWriteTokens,
+			AudioInputTokens: totals.AudioInputTokens, AudioOutputTokens: totals.AudioOutputTokens,
+			WalletConsumeQuota: totals.WalletQuota, SubscriptionConsumeQuota: totals.SubscriptionQuota,
 		}
 		items = append(items, item)
 		userIds = append(userIds, scan.UserId)
 		byUserItem[scan.UserId] = item
-	}
-	if err := fillFinanceUserBreakdown(byUserItem, userIds, r); err != nil {
-		return nil, 0, err
 	}
 	if err := fillFinanceUserProfiles(byUserItem, userIds, r.EndExcl); err != nil {
 		return nil, 0, err
@@ -194,41 +174,6 @@ func financeUserIdsByKeyword(keyword string) ([]int, error) {
 		return nil, err
 	}
 	return ids, nil
-}
-
-// fillFinanceUserBreakdown 当前页用户的 token 拆分与钱包 / 订阅拆分（LOG_DB，SQL 聚合）
-//   - 文本输入优先 other.text_input；缺省按语义退化：Claude 语义 prompt 已是净输入，只扣音频；OpenAI 语义再扣缓存
-//   - 订阅扣费：billing_source=subscription 时取 subscription_consumed（为 0 时整笔计入）；钱包：其余整笔，订阅请求取 wallet_quota_deducted
-func fillFinanceUserBreakdown(byUser map[int]*FinanceUserConsumptionItem, userIds []int, r FinanceRange) error {
-	query := fmt.Sprintf(`SELECT l.user_id,
-	SUM(COALESCE(d.text_in, CASE WHEN d.is_net THEN GREATEST(l.prompt_tokens::bigint - d.audio_in, 0) ELSE GREATEST(l.prompt_tokens::bigint - d.audio_in - d.cache_read - d.cache_write, 0) END))::bigint AS text_input_tokens,
-	SUM(COALESCE(d.text_out, GREATEST(l.completion_tokens::bigint - d.audio_out, 0)))::bigint AS text_output_tokens,
-	SUM(d.cache_read)::bigint AS cache_read_tokens, SUM(d.cache_write)::bigint AS cache_write_tokens,
-	SUM(d.audio_in)::bigint AS audio_input_tokens, SUM(d.audio_out)::bigint AS audio_output_tokens,
-	SUM(CASE WHEN d.billing_source = 'subscription' THEN COALESCE(NULLIF(d.sub_consumed, 0), l.quota::bigint) ELSE 0 END)::bigint AS subscription_consume_quota,
-	SUM(CASE WHEN d.billing_source = 'subscription' THEN COALESCE(d.wallet_deducted, 0) ELSE l.quota::bigint END)::bigint AS wallet_consume_quota,
-	MAX(l.created_at) AS last_consume_at
-	%s WHERE l.user_id IN ? AND l.type = %d AND l.created_at >= %d AND l.created_at < %d GROUP BY l.user_id`, financeLogFromSQL, LogTypeConsume, r.Start, r.EndExcl)
-	scans := make([]financeUserBreakdownScan, 0)
-	if err := LOG_DB.Raw(query, userIds).Scan(&scans).Error; err != nil {
-		return err
-	}
-	for _, scan := range scans {
-		item := byUser[scan.UserId]
-		if item == nil {
-			continue
-		}
-		item.TextInputTokens = scan.TextInputTokens
-		item.TextOutputTokens = scan.TextOutputTokens
-		item.CacheReadTokens = scan.CacheReadTokens
-		item.CacheWriteTokens = scan.CacheWriteTokens
-		item.AudioInputTokens = scan.AudioInputTokens
-		item.AudioOutputTokens = scan.AudioOutputTokens
-		item.WalletConsumeQuota = scan.WalletConsumeQuota
-		item.SubscriptionConsumeQuota = scan.SubscriptionConsumeQuota
-		item.LastConsumeAt = scan.LastConsumeAt
-	}
-	return nil
 }
 
 // fillFinanceUserProfiles 当前页用户的账号 / 企业 / 授信 / 订阅 / 付费判定（主库）
@@ -364,41 +309,47 @@ type FinanceModelConsumptionSummary struct {
 // FinanceModelConsumptionMaxRows 模型消费行数上限
 const FinanceModelConsumptionMaxRows = 2000
 
-// ListFinanceModelConsumptions 按 分组 × 模型 × 渠道 聚合净消费，一次返回全部（前端构树）
+// ListFinanceModelConsumptions 按 分组 × 模型 × 渠道 聚合净消费，一次返回全部（前端构树）。
+// Username 在 users 表上匹配（用户名模糊 / 数字 id），与用户消耗的关键词口径一致，而不是日志写入时的用户名。
 func ListFinanceModelConsumptions(filter FinanceModelConsumptionFilter) ([]*FinanceModelConsumptionItem, *FinanceModelConsumptionSummary, error) {
 	if err := financeRequirePostgres(); err != nil {
 		return nil, nil, err
 	}
-	r := filter.Range
-	query := LOG_DB.Table("logs").
-		Select(fmt.Sprintf(`model_name, %[3]s AS group_name, channel_id,
-	SUM(CASE WHEN type = %[1]d THEN quota ELSE 0 END)::bigint AS consume_quota,
-	SUM(CASE WHEN type = %[2]d THEN quota ELSE 0 END)::bigint AS refund_quota,
-	SUM(CASE WHEN type = %[1]d THEN quota WHEN type = %[2]d THEN -quota ELSE 0 END)::bigint AS net_quota,
-	SUM(CASE WHEN type = %[1]d THEN 1 ELSE 0 END)::bigint AS consume_count,
-	SUM(CASE WHEN type = %[1]d THEN prompt_tokens ELSE 0 END)::bigint AS prompt_tokens,
-	SUM(CASE WHEN type = %[1]d THEN completion_tokens ELSE 0 END)::bigint AS completion_tokens,
-	SUM(CASE WHEN type = %[1]d THEN prompt_tokens + completion_tokens ELSE 0 END)::bigint AS total_tokens`, LogTypeConsume, LogTypeRefund, logGroupCol)).
-		Where("user_id > 0 AND type IN ? AND created_at >= ? AND created_at < ?", []int{LogTypeConsume, LogTypeRefund}, r.Start, r.EndExcl)
-	if filter.ModelName != "" {
-		query = query.Where("model_name ILIKE ? ESCAPE '!'", financeContainsPattern(filter.ModelName))
-	}
+	var scopeIds []int
 	if filter.Username != "" {
-		query = query.Where("username ILIKE ? ESCAPE '!'", financeContainsPattern(filter.Username))
+		matched, err := financeUserIdsByKeyword(filter.Username)
+		if err != nil {
+			return nil, nil, err
+		}
+		scopeIds = matched
 	}
-	if filter.Group != "" {
-		query = query.Where(logGroupCol+" = ?", filter.Group)
-	}
-	type scanRow struct {
-		FinanceModelConsumptionItem
-		GroupName string
-	}
-	scans := make([]scanRow, 0)
-	err := query.Group("model_name, " + logGroupCol + ", channel_id").Order("net_quota DESC, total_tokens DESC, model_name ASC").
-		Limit(FinanceModelConsumptionMaxRows + 1).Scan(&scans).Error
+	byKey, err := ReadLogUsageByModelChannel(scopeIds, filter.ModelName, filter.Group, filter.Range)
 	if err != nil {
 		return nil, nil, err
 	}
+	scans := make([]*FinanceModelConsumptionItem, 0, len(byKey))
+	for key, totals := range byKey {
+		scans = append(scans, &FinanceModelConsumptionItem{
+			ModelName: key.ModelName, Group: key.GroupName, ChannelId: key.ChannelId,
+			ConsumeQuota: totals.ConsumeQuota, RefundQuota: totals.RefundQuota, NetQuota: totals.NetQuota, ConsumeCount: totals.Calls,
+			PromptTokens: totals.PromptTokens, CompletionTokens: totals.CompletionTokens, TotalTokens: totals.TotalTokens(),
+		})
+	}
+	sort.Slice(scans, func(i, j int) bool {
+		if scans[i].NetQuota != scans[j].NetQuota {
+			return scans[i].NetQuota > scans[j].NetQuota
+		}
+		if scans[i].TotalTokens != scans[j].TotalTokens {
+			return scans[i].TotalTokens > scans[j].TotalTokens
+		}
+		if scans[i].ModelName != scans[j].ModelName {
+			return scans[i].ModelName < scans[j].ModelName
+		}
+		if scans[i].Group != scans[j].Group {
+			return scans[i].Group < scans[j].Group
+		}
+		return scans[i].ChannelId < scans[j].ChannelId
+	})
 	summary := &FinanceModelConsumptionSummary{}
 	if len(scans) > FinanceModelConsumptionMaxRows {
 		summary.Truncated = true
@@ -407,11 +358,9 @@ func ListFinanceModelConsumptions(filter FinanceModelConsumptionFilter) ([]*Fina
 	items := make([]*FinanceModelConsumptionItem, 0, len(scans))
 	channelIds := make([]int, 0)
 	seenChannel := make(map[int]bool)
-	for _, scan := range scans {
-		item := scan.FinanceModelConsumptionItem
-		item.Group = scan.GroupName
-		item.GroupLabel = setting.GetUsableGroupDescription(scan.GroupName)
-		items = append(items, &item)
+	for _, item := range scans {
+		item.GroupLabel = setting.GetUsableGroupDescription(item.Group)
+		items = append(items, item)
 		summary.NetQuota += item.NetQuota
 		summary.ConsumeQuota += item.ConsumeQuota
 		summary.RefundQuota += item.RefundQuota
@@ -442,6 +391,5 @@ func ListFinanceModelConsumptions(filter FinanceModelConsumptionFilter) ([]*Fina
 			}
 		}
 	}
-	sort.SliceStable(items, func(i, j int) bool { return items[i].NetQuota > items[j].NetQuota })
 	return items, summary, nil
 }

@@ -2,7 +2,7 @@
 
 - 日期：2026-10-26
 - 分支：feat/finance-bill-archived-detail（worktree `agent-a2b5df6bc7b8d5040`，slot 4）
-- PR：
+- PR：#57
 - 关键 commit：59df84ab6（后端）、c711e054e（前端）、43e4929ba（合入 origin/main #54 / #55）
 
 ## 背景

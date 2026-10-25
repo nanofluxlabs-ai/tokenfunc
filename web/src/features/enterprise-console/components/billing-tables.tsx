@@ -43,8 +43,9 @@ export function LedgerTable(props: {
     {
       id: 'balance',
       header: t('Balance After'),
+      // 只有动余额的流水（充值、钱包调账）才有期后余额
       cell: (row) =>
-        row.type === 'topup' ? (
+        row.type === 'topup' || row.ref_type === 'wallet' ? (
           <span className='font-mono'>
             {formatQuotaWithCurrency(row.balance_after_quota)}
           </span>

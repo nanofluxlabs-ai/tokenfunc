@@ -1224,6 +1224,25 @@
     "Reconciliation difference marked as reviewed": "已标记对账差异为已核对",
     "Failed to mark as reconciled": "标记已核对失败",
     "Confirm that the difference has been reviewed. The bill amount stays as issued.": "确认差异已人工核对。账单金额保持出账时的数值不变。",
-    "Note (optional)": "备注（可选）"
+    "Note (optional)": "备注（可选）",
+    "Adjust balance": "余额调账",
+    "Adjust bill": "账单调账",
+    "Adjustment amount (USD)": "调整金额（USD）",
+    "Adjustment amount cannot be zero": "调整金额不能为 0",
+    "Adjustment amount is out of range": "调整金额超出范围",
+    "Adjusted total cannot be below the amount already paid": "调整后的总额不能低于已付金额",
+    "Remark must be at least {{count}} characters": "备注至少 {{count}} 个字",
+    "Remark must be at most {{count}} characters": "备注最多 {{count}} 个字",
+    "New total: {{amount}}": "调整后总额：{{amount}}",
+    "Positive adds to the balance, negative deducts. Every adjustment is written to the ledger with your remark.": "正数增加余额，负数扣减。每笔调账都会连同备注写入资金流水。",
+    "Remark (required)": "备注（必填）",
+    "Why this adjustment is made": "说明本次调账的原因",
+    "Verify to adjust enterprise billing": "验证身份以进行企业调账",
+    "Confirm your identity before adjusting {{name}}.": "调整 {{name}} 之前请确认您的身份。",
+    "Failed to register adjustment": "调账失败",
+    "Adjustment registered": "调账已登记",
+    "Register adjustment": "登记调账",
+    "Current balance: {{amount}}": "当前余额：{{amount}}",
+    "Enterprise balance adjustment": "企业余额调账"
   }
 }

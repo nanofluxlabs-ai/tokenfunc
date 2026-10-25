@@ -1224,6 +1224,25 @@
     "Reconciliation difference marked as reviewed": "Đã đánh dấu chênh lệch đối soát là đã kiểm tra",
     "Failed to mark as reconciled": "Không thể đánh dấu đã đối soát",
     "Confirm that the difference has been reviewed. The bill amount stays as issued.": "Xác nhận chênh lệch đã được kiểm tra. Số tiền hóa đơn giữ nguyên như khi phát hành.",
-    "Note (optional)": "Ghi chú (tùy chọn)"
+    "Note (optional)": "Ghi chú (tùy chọn)",
+    "Adjust balance": "Điều chỉnh số dư",
+    "Adjust bill": "Điều chỉnh hóa đơn",
+    "Adjustment amount (USD)": "Số tiền điều chỉnh (USD)",
+    "Adjustment amount cannot be zero": "Số tiền điều chỉnh không được bằng 0",
+    "Adjustment amount is out of range": "Số tiền điều chỉnh nằm ngoài phạm vi",
+    "Adjusted total cannot be below the amount already paid": "Tổng sau điều chỉnh không được thấp hơn số tiền đã thanh toán",
+    "Remark must be at least {{count}} characters": "Ghi chú phải có ít nhất {{count}} ký tự",
+    "Remark must be at most {{count}} characters": "Ghi chú tối đa {{count}} ký tự",
+    "New total: {{amount}}": "Tổng mới: {{amount}}",
+    "Positive adds to the balance, negative deducts. Every adjustment is written to the ledger with your remark.": "Số dương cộng vào số dư, số âm trừ đi. Mỗi lần điều chỉnh đều được ghi vào sổ cái kèm ghi chú của bạn.",
+    "Remark (required)": "Ghi chú (bắt buộc)",
+    "Why this adjustment is made": "Lý do điều chỉnh",
+    "Verify to adjust enterprise billing": "Xác minh để điều chỉnh thanh toán doanh nghiệp",
+    "Confirm your identity before adjusting {{name}}.": "Xác nhận danh tính trước khi điều chỉnh {{name}}.",
+    "Failed to register adjustment": "Ghi nhận điều chỉnh thất bại",
+    "Adjustment registered": "Đã ghi nhận điều chỉnh",
+    "Register adjustment": "Ghi nhận điều chỉnh",
+    "Current balance: {{amount}}": "Số dư hiện tại: {{amount}}",
+    "Enterprise balance adjustment": "Điều chỉnh số dư doanh nghiệp"
   }
 }

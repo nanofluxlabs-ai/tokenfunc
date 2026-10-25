@@ -1224,6 +1224,25 @@
     "Reconciliation difference marked as reviewed": "Расхождение сверки отмечено как проверенное",
     "Failed to mark as reconciled": "Не удалось отметить как сверенное",
     "Confirm that the difference has been reviewed. The bill amount stays as issued.": "Подтвердите, что расхождение проверено. Сумма счёта остаётся как при выставлении.",
-    "Note (optional)": "Примечание (необязательно)"
+    "Note (optional)": "Примечание (необязательно)",
+    "Adjust balance": "Корректировать баланс",
+    "Adjust bill": "Корректировать счёт",
+    "Adjustment amount (USD)": "Сумма корректировки (USD)",
+    "Adjustment amount cannot be zero": "Сумма корректировки не может быть нулевой",
+    "Adjustment amount is out of range": "Сумма корректировки вне допустимого диапазона",
+    "Adjusted total cannot be below the amount already paid": "Итог после корректировки не может быть меньше уже оплаченной суммы",
+    "Remark must be at least {{count}} characters": "Примечание должно содержать не менее {{count}} символов",
+    "Remark must be at most {{count}} characters": "Примечание должно содержать не более {{count}} символов",
+    "New total: {{amount}}": "Новый итог: {{amount}}",
+    "Positive adds to the balance, negative deducts. Every adjustment is written to the ledger with your remark.": "Положительная сумма пополняет баланс, отрицательная списывает. Каждая корректировка записывается в журнал вместе с примечанием.",
+    "Remark (required)": "Примечание (обязательно)",
+    "Why this adjustment is made": "Причина корректировки",
+    "Verify to adjust enterprise billing": "Подтвердите личность для корректировки биллинга компании",
+    "Confirm your identity before adjusting {{name}}.": "Подтвердите личность перед корректировкой {{name}}.",
+    "Failed to register adjustment": "Не удалось зарегистрировать корректировку",
+    "Adjustment registered": "Корректировка зарегистрирована",
+    "Register adjustment": "Зарегистрировать корректировку",
+    "Current balance: {{amount}}": "Текущий баланс: {{amount}}",
+    "Enterprise balance adjustment": "Корректировка баланса компании"
   }
 }

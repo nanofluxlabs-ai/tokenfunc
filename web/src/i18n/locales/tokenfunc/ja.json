@@ -1224,6 +1224,25 @@
     "Reconciliation difference marked as reviewed": "照合差異を確認済みにしました",
     "Failed to mark as reconciled": "照合済みにできませんでした",
     "Confirm that the difference has been reviewed. The bill amount stays as issued.": "差異を確認済みであることを確定します。請求金額は発行時のまま変わりません。",
-    "Note (optional)": "メモ（任意）"
+    "Note (optional)": "メモ（任意）",
+    "Adjust balance": "残高を調整",
+    "Adjust bill": "請求書を調整",
+    "Adjustment amount (USD)": "調整金額（USD）",
+    "Adjustment amount cannot be zero": "調整金額は 0 にできません",
+    "Adjustment amount is out of range": "調整金額が範囲外です",
+    "Adjusted total cannot be below the amount already paid": "調整後の合計は支払済み金額を下回れません",
+    "Remark must be at least {{count}} characters": "備考は {{count}} 文字以上必要です",
+    "Remark must be at most {{count}} characters": "備考は {{count}} 文字以内で入力してください",
+    "New total: {{amount}}": "調整後の合計：{{amount}}",
+    "Positive adds to the balance, negative deducts. Every adjustment is written to the ledger with your remark.": "正の値は残高を増やし、負の値は減らします。すべての調整は備考とともに台帳に記録されます。",
+    "Remark (required)": "備考（必須）",
+    "Why this adjustment is made": "この調整を行う理由",
+    "Verify to adjust enterprise billing": "企業の請求を調整するには本人確認が必要です",
+    "Confirm your identity before adjusting {{name}}.": "{{name}} を調整する前に本人確認を行ってください。",
+    "Failed to register adjustment": "調整の登録に失敗しました",
+    "Adjustment registered": "調整を登録しました",
+    "Register adjustment": "調整を登録",
+    "Current balance: {{amount}}": "現在の残高：{{amount}}",
+    "Enterprise balance adjustment": "企業残高の調整"
   }
 }

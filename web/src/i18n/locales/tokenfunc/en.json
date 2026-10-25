@@ -1224,6 +1224,25 @@
     "Reconciliation difference marked as reviewed": "Reconciliation difference marked as reviewed",
     "Failed to mark as reconciled": "Failed to mark as reconciled",
     "Confirm that the difference has been reviewed. The bill amount stays as issued.": "Confirm that the difference has been reviewed. The bill amount stays as issued.",
-    "Note (optional)": "Note (optional)"
+    "Note (optional)": "Note (optional)",
+    "Adjust balance": "Adjust balance",
+    "Adjust bill": "Adjust bill",
+    "Adjustment amount (USD)": "Adjustment amount (USD)",
+    "Adjustment amount cannot be zero": "Adjustment amount cannot be zero",
+    "Adjustment amount is out of range": "Adjustment amount is out of range",
+    "Adjusted total cannot be below the amount already paid": "Adjusted total cannot be below the amount already paid",
+    "Remark must be at least {{count}} characters": "Remark must be at least {{count}} characters",
+    "Remark must be at most {{count}} characters": "Remark must be at most {{count}} characters",
+    "New total: {{amount}}": "New total: {{amount}}",
+    "Positive adds to the balance, negative deducts. Every adjustment is written to the ledger with your remark.": "Positive adds to the balance, negative deducts. Every adjustment is written to the ledger with your remark.",
+    "Remark (required)": "Remark (required)",
+    "Why this adjustment is made": "Why this adjustment is made",
+    "Verify to adjust enterprise billing": "Verify to adjust enterprise billing",
+    "Confirm your identity before adjusting {{name}}.": "Confirm your identity before adjusting {{name}}.",
+    "Failed to register adjustment": "Failed to register adjustment",
+    "Adjustment registered": "Adjustment registered",
+    "Register adjustment": "Register adjustment",
+    "Current balance: {{amount}}": "Current balance: {{amount}}",
+    "Enterprise balance adjustment": "Enterprise balance adjustment"
   }
 }

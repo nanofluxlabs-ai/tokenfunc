@@ -39,6 +39,7 @@ import {
   setEnterpriseStatus,
 } from '../api'
 import type { EnterpriseListItem } from '../types'
+import { AdjustmentDialog } from './adjustment-dialog'
 import { CreditConfigForm } from './credit-config-form'
 import { useEnterprises } from './enterprises-provider'
 import { TopupForm } from './topup-form'
@@ -58,6 +59,7 @@ export function EnterpriseBillingDrawer(props: EnterpriseBillingDrawerProps) {
   const [confirm, setConfirm] = useState<
     'suspend' | 'activate' | 'disable_credit' | null
   >(null)
+  const [adjustOpen, setAdjustOpen] = useState(false)
 
   const enterprise = useQuery({
     queryKey: ['admin-enterprise', enterpriseId],
@@ -192,6 +194,15 @@ export function EnterpriseBillingDrawer(props: EnterpriseBillingDrawerProps) {
                     </span>
                   )}
                   <div className='flex-1' />
+                  {!isCredit && (
+                    <Button
+                      variant='outline'
+                      size='sm'
+                      onClick={() => setAdjustOpen(true)}
+                    >
+                      {t('Adjust balance')}
+                    </Button>
+                  )}
                   <Button
                     variant={isSuspended ? 'default' : 'destructive'}
                     size='sm'
@@ -289,6 +300,13 @@ export function EnterpriseBillingDrawer(props: EnterpriseBillingDrawerProps) {
         destructive={confirm === 'suspend'}
         confirmText={t('Confirm')}
         handleConfirm={() => void handleConfirm()}
+      />
+      <AdjustmentDialog
+        open={adjustOpen}
+        onOpenChange={setAdjustOpen}
+        enterpriseId={enterpriseId}
+        balanceQuota={props.currentRow?.quota}
+        onSaved={refresh}
       />
     </>
   )

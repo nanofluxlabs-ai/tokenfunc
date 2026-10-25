@@ -7,9 +7,11 @@ import type {
   UsageSummary,
   PageData,
 } from '@/features/enterprise-console/types'
-import { api } from '@/lib/api'
+import { api, securityProofConfig } from '@/lib/api'
 
 import type {
+  AdjustmentKind,
+  AdjustmentPayload,
   ApiResponse,
   TrialLead,
   CreateEnterprisePayload,
@@ -81,6 +83,25 @@ export async function registerEnterpriseTopup(
   payload: TopupPayload
 ): Promise<ApiResponse<LedgerEntry>> {
   const res = await api.post(`${ADMIN_ENTERPRISE_BASE}/${id}/topup`, payload)
+  return res.data
+}
+
+/**
+ * 人工调账（余额 / 账单）；需要 `admin.user.manage` + action `enterprise_adjust`
+ * 绑定企业主 user_id 的二次验证凭证
+ */
+export async function createEnterpriseAdjustment(
+  id: number,
+  payload: AdjustmentPayload,
+  proofToken: string
+): Promise<
+  ApiResponse<{ kind: AdjustmentKind; ledger: LedgerEntry; bill?: Bill }>
+> {
+  const res = await api.post(
+    `${ADMIN_ENTERPRISE_BASE}/${id}/adjustments`,
+    payload,
+    securityProofConfig(proofToken)
+  )
   return res.data
 }
 

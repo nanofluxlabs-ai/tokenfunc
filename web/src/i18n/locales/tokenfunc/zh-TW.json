@@ -1224,6 +1224,25 @@
     "Reconciliation difference marked as reviewed": "已標記對帳差異為已核對",
     "Failed to mark as reconciled": "標記已核對失敗",
     "Confirm that the difference has been reviewed. The bill amount stays as issued.": "確認差異已人工核對。帳單金額保持出帳時的數值不變。",
-    "Note (optional)": "備註（可選）"
+    "Note (optional)": "備註（可選）",
+    "Adjust balance": "餘額調帳",
+    "Adjust bill": "帳單調帳",
+    "Adjustment amount (USD)": "調整金額（USD）",
+    "Adjustment amount cannot be zero": "調整金額不能為 0",
+    "Adjustment amount is out of range": "調整金額超出範圍",
+    "Adjusted total cannot be below the amount already paid": "調整後的總額不能低於已付金額",
+    "Remark must be at least {{count}} characters": "備註至少 {{count}} 個字",
+    "Remark must be at most {{count}} characters": "備註最多 {{count}} 個字",
+    "New total: {{amount}}": "調整後總額：{{amount}}",
+    "Positive adds to the balance, negative deducts. Every adjustment is written to the ledger with your remark.": "正數增加餘額，負數扣減。每筆調帳都會連同備註寫入資金流水。",
+    "Remark (required)": "備註（必填）",
+    "Why this adjustment is made": "說明本次調帳的原因",
+    "Verify to adjust enterprise billing": "驗證身分以進行企業調帳",
+    "Confirm your identity before adjusting {{name}}.": "調整 {{name}} 之前請確認您的身分。",
+    "Failed to register adjustment": "調帳失敗",
+    "Adjustment registered": "調帳已登記",
+    "Register adjustment": "登記調帳",
+    "Current balance: {{amount}}": "目前餘額：{{amount}}",
+    "Enterprise balance adjustment": "企業餘額調帳"
   }
 }

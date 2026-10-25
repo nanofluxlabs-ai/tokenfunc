@@ -22,6 +22,7 @@ export const DOCS_GROUPS: { id: DocsGroupId; titleKey: string }[] = [
   { id: 'quick-start', titleKey: 'Quick start' },
   { id: 'model-access-api', titleKey: 'Model access API' },
   { id: 'tool-integration', titleKey: 'Third-party tool integration' },
+  { id: 'enterprise', titleKey: 'Enterprise integration' },
 ]
 
 export const DOCS_PAGES: DocsPageEntry[] = [
@@ -123,6 +124,13 @@ export const DOCS_PAGES: DocsPageEntry[] = [
     titleKey: 'OpenAI-compatible clients',
     descriptionKey:
       'Use any OpenAI-compatible SDK, CLI, or app with the gateway.',
+  },
+  {
+    slug: 'enterprise-integration',
+    group: 'enterprise',
+    titleKey: 'Enterprise integration guide',
+    descriptionKey:
+      'Distribute employee keys, query credit, and read bills as an enterprise customer.',
   },
 ]
 

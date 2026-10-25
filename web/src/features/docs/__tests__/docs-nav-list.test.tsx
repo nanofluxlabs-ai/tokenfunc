@@ -55,13 +55,14 @@ describe('DocsNavList', () => {
     }
   })
 
-  it('renders the three group headings', () => {
+  it('renders the four group headings', () => {
     render(<DocsNavList />)
 
     // 'Quick start' is both the group heading and its single page title.
     expect(screen.getAllByText('Quick start')).toHaveLength(2)
     expect(screen.getByText('Model access API')).toBeInTheDocument()
     expect(screen.getByText('Third-party tool integration')).toBeInTheDocument()
+    expect(screen.getByText('Enterprise integration')).toBeInTheDocument()
   })
 
   it('marks exactly the active page with aria-current', () => {

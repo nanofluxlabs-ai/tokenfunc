@@ -1177,6 +1177,12 @@
     "This month is already settled": "この月は精算済みです",
     "No settlement record for this month": "この月の精算記録がありません",
     "Settlement amount cannot be negative": "精算金額は負の値にできません",
-    "Remark is too long": "備考が長すぎます"
+    "Remark is too long": "備考が長すぎます",
+    "Alert threshold must be between 0 and 99": "アラートしきい値は 0〜99 の範囲で指定してください",
+    "Usage alert threshold (%)": "使用量アラートしきい値（%）",
+    "The billing email and administrators are notified when period usage reaches this percentage, and again when the limit is exhausted. 0 disables alerts.": "期間内の使用量がこの割合に達したとき、請求先メールと管理者に通知し、上限を使い切ったときに再度通知します。0 でアラートを無効化します。",
+    "Alert threshold {{percent}}% · billing email is notified when reached": "アラートしきい値 {{percent}}% · 到達時に請求先メールへ通知",
+    "Alert threshold reached": "アラートしきい値に到達",
+    "Limit exhausted": "上限を使い切りました"
   }
 }

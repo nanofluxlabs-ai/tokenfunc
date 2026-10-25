@@ -35,6 +35,9 @@ type CreditConfigFormProps = {
   onSaved: () => void
 }
 
+/** 与后端 EnterpriseDefaultCreditAlertPercent 一致 */
+const DEFAULT_ALERT_PERCENT = 80
+
 /** 开通或修改授信：额度立即生效，周期类型从下一期生效 */
 export function CreditConfigForm(props: CreditConfigFormProps) {
   const { t } = useTranslation()
@@ -46,6 +49,11 @@ export function CreditConfigForm(props: CreditConfigFormProps) {
         cycle_type: z.enum(['natural_month', 'fixed_days']),
         cycle_days: z.number().int().min(1).max(366),
         limit_usd: z.number().min(0, t('Credit limit cannot be negative')),
+        alert_percent: z
+          .number()
+          .int()
+          .min(0, t('Alert threshold must be between 0 and 99'))
+          .max(99, t('Alert threshold must be between 0 and 99')),
       }),
     [t]
   )
@@ -57,6 +65,7 @@ export function CreditConfigForm(props: CreditConfigFormProps) {
       cycle_type: 'natural_month',
       cycle_days: 30,
       limit_usd: 0,
+      alert_percent: DEFAULT_ALERT_PERCENT,
     },
   })
   const cycleType = useWatch({ control: form.control, name: 'cycle_type' })
@@ -69,8 +78,12 @@ export function CreditConfigForm(props: CreditConfigFormProps) {
           : 'natural_month',
       cycle_days: props.enterprise.credit_cycle_days || 30,
       limit_usd: props.enterprise.credit_limit_quota / quotaPerUnit,
+      // 尚未开通授信的企业沿用默认阈值；已开通的保留当前值（含 0 = 关闭）
+      alert_percent: isCredit
+        ? props.enterprise.credit_alert_percent
+        : DEFAULT_ALERT_PERCENT,
     })
-  }, [props.enterprise, form, quotaPerUnit])
+  }, [props.enterprise, form, quotaPerUnit, isCredit])
 
   const onSubmit = async (values: Values) => {
     setIsSubmitting(true)
@@ -187,6 +200,33 @@ export function CreditConfigForm(props: CreditConfigFormProps) {
               <FormDescription>
                 {t(
                   'Requests are rejected once the period usage reaches this limit. Raising it takes effect immediately.'
+                )}
+              </FormDescription>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={form.control}
+          name='alert_percent'
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>{t('Usage alert threshold (%)')}</FormLabel>
+              <FormControl>
+                <Input
+                  type='number'
+                  min={0}
+                  max={99}
+                  step={1}
+                  value={field.value}
+                  onChange={(event) =>
+                    field.onChange(Number.parseInt(event.target.value, 10) || 0)
+                  }
+                />
+              </FormControl>
+              <FormDescription>
+                {t(
+                  'The billing email and administrators are notified when period usage reaches this percentage, and again when the limit is exhausted. 0 disables alerts.'
                 )}
               </FormDescription>
               <FormMessage />

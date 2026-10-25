@@ -34,7 +34,7 @@ func setupCreditBillingPostgres(t *testing.T) {
 	require.NoError(t, i18n.Init())
 	tables := []any{
 		&model.User{}, &model.Token{}, &model.Enterprise{}, &model.EnterpriseDepartment{}, &model.EnterpriseEmployee{},
-		&model.EnterpriseProject{}, &model.EnterpriseTokenAssignment{}, &model.EnterpriseCreditPeriod{}, &model.EnterpriseLedgerEntry{},
+		&model.EnterpriseProject{}, &model.EnterpriseTokenAssignment{}, &model.EnterpriseCreditPeriod{}, &model.EnterpriseCreditNotifyRecord{}, &model.EnterpriseLedgerEntry{},
 	}
 	previousDB, previousLogDB := model.DB, model.LOG_DB
 	previousMain, previousLog := common.MainDatabaseType(), common.LogDatabaseType()

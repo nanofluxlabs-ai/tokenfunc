@@ -22,6 +22,8 @@ type adminEnterpriseCreditRequest struct {
 	CycleType string  `json:"cycle_type"`
 	CycleDays int     `json:"cycle_days"`
 	LimitUSD  float64 `json:"limit_usd"`
+	// AlertPercent 预警阈值（0..99，0 关闭）；缺省沿用企业当前值，首次开通时为默认 80
+	AlertPercent *int `json:"alert_percent"`
 }
 
 // AdminConfigureEnterpriseCredit 开通/修改授信（额度立即生效，周期从下一期生效）
@@ -40,7 +42,12 @@ func AdminConfigureEnterpriseCredit(c *gin.Context) {
 		common.ApiErrorMsg(c, "invalid credit limit")
 		return
 	}
-	config := model.EnterpriseCreditConfig{CycleType: req.CycleType, CycleDays: req.CycleDays, LimitQuota: int64(limitQuota)}
+	config := model.EnterpriseCreditConfig{CycleType: req.CycleType, CycleDays: req.CycleDays, LimitQuota: int64(limitQuota), AlertPercent: model.EnterpriseDefaultCreditAlertPercent}
+	if req.AlertPercent != nil {
+		config.AlertPercent = *req.AlertPercent
+	} else if current, err := model.GetEnterpriseById(id); err == nil && current.BillingMode == model.EnterpriseBillingModeCredit {
+		config.AlertPercent = current.CreditAlertPercent
+	}
 	if err := model.ConfigureEnterpriseCredit(id, config, c.GetInt("id")); err != nil {
 		if errors.Is(err, model.ErrEnterpriseCreditConfig) {
 			common.ApiErrorMsg(c, err.Error())
@@ -51,7 +58,7 @@ func AdminConfigureEnterpriseCredit(c *gin.Context) {
 	}
 	enterprise, _ := model.GetEnterpriseById(id)
 	recordManageAuditFor(c, enterpriseOwnerId(enterprise), "enterprise.credit.configure", map[string]any{
-		"enterprise_id": id, "cycle_type": req.CycleType, "cycle_days": req.CycleDays, "limit_usd": req.LimitUSD,
+		"enterprise_id": id, "cycle_type": req.CycleType, "cycle_days": req.CycleDays, "limit_usd": req.LimitUSD, "alert_percent": config.AlertPercent,
 	})
 	common.ApiSuccess(c, nil)
 }

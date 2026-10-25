@@ -71,6 +71,14 @@ func runEnterpriseBillingOnce(ctx context.Context, now int64) {
 	}
 }
 
+// enterpriseNoticeReceiver 企业通知收件邮箱：账单邮箱优先，其次联系人邮箱；都没有返回空串
+func enterpriseNoticeReceiver(enterprise *model.Enterprise) string {
+	if receiver := strings.TrimSpace(enterprise.BillingProfile.BillingEmail); receiver != "" {
+		return receiver
+	}
+	return strings.TrimSpace(enterprise.ContactEmail)
+}
+
 // sendEnterpriseBillEmail 给企业的账单邮箱/联系人邮箱发账单或催款邮件；没有配置 SMTP 或邮箱时跳过
 func sendEnterpriseBillEmail(ctx context.Context, bill *model.EnterpriseBill, reminder bool) bool {
 	if common.SMTPServer == "" {
@@ -80,10 +88,7 @@ func sendEnterpriseBillEmail(ctx context.Context, bill *model.EnterpriseBill, re
 	if err != nil {
 		return false
 	}
-	receiver := strings.TrimSpace(enterprise.BillingProfile.BillingEmail)
-	if receiver == "" {
-		receiver = strings.TrimSpace(enterprise.ContactEmail)
-	}
+	receiver := enterpriseNoticeReceiver(enterprise)
 	if receiver == "" {
 		return false
 	}

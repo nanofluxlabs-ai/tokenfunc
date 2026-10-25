@@ -1177,6 +1177,12 @@
     "This month is already settled": "This month is already settled",
     "No settlement record for this month": "No settlement record for this month",
     "Settlement amount cannot be negative": "Settlement amount cannot be negative",
-    "Remark is too long": "Remark is too long"
+    "Remark is too long": "Remark is too long",
+    "Alert threshold must be between 0 and 99": "Alert threshold must be between 0 and 99",
+    "Usage alert threshold (%)": "Usage alert threshold (%)",
+    "The billing email and administrators are notified when period usage reaches this percentage, and again when the limit is exhausted. 0 disables alerts.": "The billing email and administrators are notified when period usage reaches this percentage, and again when the limit is exhausted. 0 disables alerts.",
+    "Alert threshold {{percent}}% · billing email is notified when reached": "Alert threshold {{percent}}% · billing email is notified when reached",
+    "Alert threshold reached": "Alert threshold reached",
+    "Limit exhausted": "Limit exhausted"
   }
 }

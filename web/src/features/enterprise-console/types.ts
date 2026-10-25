@@ -141,6 +141,7 @@ export interface EnterpriseOverview {
     credit_cycle_type: string
     credit_cycle_days: number
     credit_limit_quota: number
+    credit_alert_percent: number
     payment_terms_days: number
   }
   balance_quota: number

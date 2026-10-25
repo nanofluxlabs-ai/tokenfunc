@@ -1177,6 +1177,12 @@
     "This month is already settled": "Ce mois est déjà réglé",
     "No settlement record for this month": "Aucun règlement enregistré pour ce mois",
     "Settlement amount cannot be negative": "Le montant du règlement ne peut pas être négatif",
-    "Remark is too long": "La remarque est trop longue"
+    "Remark is too long": "La remarque est trop longue",
+    "Alert threshold must be between 0 and 99": "Le seuil d'alerte doit être compris entre 0 et 99",
+    "Usage alert threshold (%)": "Seuil d'alerte d'utilisation (%)",
+    "The billing email and administrators are notified when period usage reaches this percentage, and again when the limit is exhausted. 0 disables alerts.": "L'e-mail de facturation et les administrateurs sont prévenus lorsque l'utilisation de la période atteint ce pourcentage, puis à nouveau lorsque la limite est épuisée. 0 désactive les alertes.",
+    "Alert threshold {{percent}}% · billing email is notified when reached": "Seuil d'alerte {{percent}}% · l'e-mail de facturation est prévenu une fois atteint",
+    "Alert threshold reached": "Seuil d'alerte atteint",
+    "Limit exhausted": "Limite épuisée"
   }
 }

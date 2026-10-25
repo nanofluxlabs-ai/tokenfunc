@@ -1177,6 +1177,12 @@
     "This month is already settled": "該月已結算",
     "No settlement record for this month": "該月沒有結算記錄",
     "Settlement amount cannot be negative": "結算金額不能為負",
-    "Remark is too long": "備註過長"
+    "Remark is too long": "備註過長",
+    "Alert threshold must be between 0 and 99": "預警閾值必須在 0 到 99 之間",
+    "Usage alert threshold (%)": "用量預警閾值（%）",
+    "The billing email and administrators are notified when period usage reaches this percentage, and again when the limit is exhausted. 0 disables alerts.": "本期已用達到該百分比時通知帳單信箱與管理員，額度用盡時再通知一次。0 表示關閉預警。",
+    "Alert threshold {{percent}}% · billing email is notified when reached": "預警閾值 {{percent}}% · 達到後通知帳單信箱",
+    "Alert threshold reached": "已達預警閾值",
+    "Limit exhausted": "額度已用盡"
   }
 }

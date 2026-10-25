@@ -33,6 +33,7 @@ function makeItem(overrides: Partial<EnterpriseListItem>): EnterpriseListItem {
     credit_cycle_type: '',
     credit_cycle_days: 0,
     credit_limit_quota: 0,
+    credit_alert_percent: 80,
     payment_terms_days: 15,
     currency: 'USD',
     billing_profile: {

@@ -1177,6 +1177,12 @@
     "This month is already settled": "Этот месяц уже рассчитан",
     "No settlement record for this month": "Нет записи о расчёте за этот месяц",
     "Settlement amount cannot be negative": "Сумма расчёта не может быть отрицательной",
-    "Remark is too long": "Слишком длинное примечание"
+    "Remark is too long": "Слишком длинное примечание",
+    "Alert threshold must be between 0 and 99": "Порог оповещения должен быть от 0 до 99",
+    "Usage alert threshold (%)": "Порог оповещения об использовании (%)",
+    "The billing email and administrators are notified when period usage reaches this percentage, and again when the limit is exhausted. 0 disables alerts.": "Когда использование за период достигает этого процента, уведомляются биллинговый e-mail и администраторы; повторно — при исчерпании лимита. 0 отключает оповещения.",
+    "Alert threshold {{percent}}% · billing email is notified when reached": "Порог оповещения {{percent}}% · при достижении уведомляется биллинговый e-mail",
+    "Alert threshold reached": "Порог оповещения достигнут",
+    "Limit exhausted": "Лимит исчерпан"
   }
 }

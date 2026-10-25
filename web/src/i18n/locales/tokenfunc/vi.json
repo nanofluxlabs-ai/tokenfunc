@@ -1177,6 +1177,12 @@
     "This month is already settled": "Tháng này đã được quyết toán",
     "No settlement record for this month": "Không có hồ sơ quyết toán cho tháng này",
     "Settlement amount cannot be negative": "Số tiền quyết toán không được âm",
-    "Remark is too long": "Ghi chú quá dài"
+    "Remark is too long": "Ghi chú quá dài",
+    "Alert threshold must be between 0 and 99": "Ngưỡng cảnh báo phải nằm trong khoảng 0 đến 99",
+    "Usage alert threshold (%)": "Ngưỡng cảnh báo sử dụng (%)",
+    "The billing email and administrators are notified when period usage reaches this percentage, and again when the limit is exhausted. 0 disables alerts.": "Email thanh toán và quản trị viên sẽ được thông báo khi mức sử dụng trong kỳ đạt tỷ lệ này, và một lần nữa khi hạn mức cạn kiệt. 0 để tắt cảnh báo.",
+    "Alert threshold {{percent}}% · billing email is notified when reached": "Ngưỡng cảnh báo {{percent}}% · thông báo tới email thanh toán khi đạt",
+    "Alert threshold reached": "Đã đạt ngưỡng cảnh báo",
+    "Limit exhausted": "Hạn mức đã cạn"
   }
 }

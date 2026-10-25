@@ -261,6 +261,18 @@ func loadLogRetentionGuards() (map[int]string, error) {
 	return guards, nil
 }
 
+// logRetentionBillGuardDay 未归档账单里最早账期开始日的前一天；该日起（含）的天不能清理，返回 "" 表示没有未归档账单
+func logRetentionBillGuardDay() (string, error) {
+	start, err := model.MinUnarchivedBillPeriodStart()
+	if err != nil {
+		return "", fmt.Errorf("query unarchived bills: %w", err)
+	}
+	if start == 0 {
+		return "", nil
+	}
+	return model.FinanceDay(start - logRetentionGuardBackdate), nil
+}
+
 func guardedUserIdsForDay(guards map[int]string, day string) []int {
 	ids := make([]int, 0)
 	for userId, fromDay := range guards {
@@ -297,6 +309,10 @@ func PurgeArchivedLogsBefore(ctx context.Context, cutoffTs int64, maxDays int, b
 		return result, err
 	}
 	result.GuardedUsers = len(guards)
+	billGuardDay, err := logRetentionBillGuardDay()
+	if err != nil {
+		return result, err
+	}
 	startDay, err := logRetentionStartDay()
 	if err != nil {
 		return result, err
@@ -316,6 +332,10 @@ func PurgeArchivedLogsBefore(ctx context.Context, cutoffTs int64, maxDays int, b
 		}
 		if day > cursor {
 			result.StoppedReason = "rollup cursor at " + cursor
+			return result, nil
+		}
+		if billGuardDay != "" && day >= billGuardDay {
+			result.StoppedReason = "unarchived bill period from " + billGuardDay
 			return result, nil
 		}
 		if result.DaysArchived >= maxDays {
@@ -365,6 +385,13 @@ func RetryLogArchiveDay(ctx context.Context, day string, now time.Time) (*model.
 	store, err := LogArchiveStore()
 	if err != nil {
 		return nil, common.NewMessage("Log archive object store is not configured")
+	}
+	billGuardDay, err := logRetentionBillGuardDay()
+	if err != nil {
+		return nil, err
+	}
+	if billGuardDay != "" && day >= billGuardDay {
+		return nil, common.NewMessage("Day {{day}} belongs to a billing period whose bill is not archived yet", map[string]any{"day": day})
 	}
 	guards, err := loadLogRetentionGuards()
 	if err != nil {

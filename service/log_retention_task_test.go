@@ -67,6 +67,16 @@ func (m *memoryArchiveStore) Head(_ context.Context, key string) (objectstore.Ob
 	return objectstore.ObjectInfo{Size: int64(len(data)), ETag: "not-an-md5"}, nil
 }
 
+func (m *memoryArchiveStore) Get(_ context.Context, key string) (io.ReadCloser, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	data, ok := m.objects[key]
+	if !ok {
+		return nil, errors.New("not found")
+	}
+	return io.NopCloser(bytes.NewReader(data)), nil
+}
+
 // rows 解压并解析归档 CSV
 func (m *memoryArchiveStore) rows(t *testing.T, key string) [][]string {
 	t.Helper()
@@ -91,7 +101,7 @@ func setupLogRetentionPostgres(t *testing.T) *memoryArchiveStore {
 	require.NoError(t, err)
 	sqlDB, err := db.DB()
 	require.NoError(t, err)
-	tables := []any{&model.User{}, &model.Log{}, &model.Option{}, &model.Enterprise{}, &model.EnterpriseCreditPeriod{}, &model.LogDailyRollup{}, &model.LogArchiveManifest{}}
+	tables := []any{&model.User{}, &model.Log{}, &model.Option{}, &model.Enterprise{}, &model.EnterpriseCreditPeriod{}, &model.EnterpriseBill{}, &model.LogDailyRollup{}, &model.LogArchiveManifest{}}
 	previousDB, previousLogDB := model.DB, model.LOG_DB
 	previousMain, previousLog := common.MainDatabaseType(), common.LogDatabaseType()
 	previousDays, previousRunAt, previousRedis := common.DBLogRetentionDays, common.DBLogRetentionRunAt, common.RedisEnabled

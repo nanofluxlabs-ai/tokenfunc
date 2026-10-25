@@ -116,7 +116,7 @@ make dev          # 自动生成 .env → 起 postgres/redis → 编译并后台
 - 开发数据在 docker 卷 `tokenfunc_postgres-data` / `tokenfunc_redis-data`，`make down` 不会删除，`make reset` 才会。
 - 只想重走初始化向导：`make reset-setup && make api`。
 - 导入导出：`make psql` 进入后用 `\copy`，或 `docker compose exec postgres pg_dump -U tokenfunc -n dev tokenfunc > .tmp/dev.sql`。
-- logs 归档回放：`DB_LOG_RETENTION_DAYS` 开启后 90 天外的原始 logs 只在 COS（`logs/YYYY-MM-DD[.pN].csv.gz`，清单在 `tf_log_archive_manifests` / 运维中心「日志归档」页）。要查历史明细用 `make logarchive-import ARGS='-day 2026-07-01'`（或 `-from/-to`、`-verify-only`、`-truncate`）导回独立回放表 `tf_logs_archive`（`LIKE logs`，与 logs 同库），再用 SQL 查；回放表不参与归档任务、不影响任何页面与统计。生产上用 `go run ./cmd/logarchive-import`，`SQL_DSN` / `LOG_SQL_DSN` / `LOG_ARCHIVE_S3_*` 与主服务同名。
+- logs 归档回放：`DB_LOG_RETENTION_DAYS` 开启后 90 天外的原始 logs 只在 COS（`logs/YYYY-MM-DD[.pN].csv.gz`，清单在 `tf_log_archive_manifests` / 运维中心「日志归档」页）。要查历史明细用 `make logarchive-import ARGS='-day 2026-07-01'`（或 `-from/-to`、`-verify-only`、`-truncate`）导回独立回放表 `tf_logs_archive`（`LIKE logs`，与 logs 同库），再用 SQL 查；已出账账单的账期包（`bills/{bill_no}/statement.csv.gz` + `raw-logs.csv.gz`，账单详情页可下载）用 `-bill <账单号>` 导回原始日志；回放表不参与归档任务、不影响任何页面与统计。生产上用 `go run ./cmd/logarchive-import`，`SQL_DSN` / `LOG_SQL_DSN` / `LOG_ARCHIVE_S3_*` 与主服务同名。
 
 ## 6. 生产部署
 

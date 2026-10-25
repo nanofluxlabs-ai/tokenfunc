@@ -1133,6 +1133,15 @@
     "— verify the apiKey value and that the model id in the models array exists on this site (compare with the models endpoint).": "— проверьте значение apiKey и что id модели из массива models существует на этом сайте (сверьте с эндпоинтом models).",
     "Cannot bind: the promoter themselves, admins, or users already assigned to another promoter": "Нельзя привязать: самого промоутера, администраторов и пользователей, уже закреплённых за другим промоутером",
     "Month consumption": "Расход за месяц",
-    "Search by username / ID / email to add": "Найдите по имени пользователя / ID / email, чтобы добавить"
+    "Search by username / ID / email to add": "Найдите по имени пользователя / ID / email, чтобы добавить",
+    "Bill archived to object storage": "Счёт заархивирован в объектное хранилище",
+    "Failed to archive bill": "Не удалось заархивировать счёт",
+    "Download failed": "Ошибка загрузки",
+    "Statement snapshot": "Снимок выписки",
+    "Raw logs": "Сырые логи",
+    "Archiving...": "Архивация…",
+    "Archive to object storage": "Архивировать в объектное хранилище",
+    "Raw logs of this period have been archived and purged; the breakdown below may be incomplete. Use the archived statement snapshot as the source of truth.": "Сырые логи этого периода заархивированы и удалены; разбивка ниже может быть неполной. Ориентируйтесь на архивный снимок выписки.",
+    "Day {{day}} belongs to a billing period whose bill is not archived yet": "День {{day}} относится к расчётному периоду, счёт за который ещё не заархивирован"
   }
 }

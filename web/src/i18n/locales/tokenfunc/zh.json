@@ -1133,6 +1133,15 @@
     "— verify the apiKey value and that the model id in the models array exists on this site (compare with the models endpoint).": "—— 核对 apiKey 的值，并确认 models 数组中的模型 id 在本站存在（可与模型端点对照）。",
     "Cannot bind: the promoter themselves, admins, or users already assigned to another promoter": "不可绑定：自己、管理员、已归属其他推广人的用户",
     "Month consumption": "本月消耗",
-    "Search by username / ID / email to add": "搜索用户名 / ID / 邮箱后添加"
+    "Search by username / ID / email to add": "搜索用户名 / ID / 邮箱后添加",
+    "Bill archived to object storage": "账单已归档到对象存储",
+    "Failed to archive bill": "账单归档失败",
+    "Download failed": "下载失败",
+    "Statement snapshot": "对账单冻结件",
+    "Raw logs": "原始日志",
+    "Archiving...": "归档中…",
+    "Archive to object storage": "归档到对象存储",
+    "Raw logs of this period have been archived and purged; the breakdown below may be incomplete. Use the archived statement snapshot as the source of truth.": "本账期的原始日志已归档删除，下方明细可能不完整，请以归档的对账单冻结件为准。",
+    "Day {{day}} belongs to a billing period whose bill is not archived yet": "{{day}} 属于尚未归档账单的账期"
   }
 }

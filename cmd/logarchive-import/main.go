@@ -7,6 +7,7 @@
 //	go run ./cmd/logarchive-import -from 2026-07-01 -to 2026-07-31 # 导一段
 //	go run ./cmd/logarchive-import -day 2026-07-01 -verify-only    # 只下载校验 sha256，不写库
 //	go run ./cmd/logarchive-import -truncate -day 2026-07-01       # 先清空回放表
+//	go run ./cmd/logarchive-import -bill B-20260801-0003            # 导入某账单账期包里的 raw-logs.csv.gz
 //
 // 需要：SQL_DSN（主库，读 tf_log_archive_manifests）、LOG_SQL_DSN（日志库，缺省同 SQL_DSN；回放表与 logs 同库）、LOG_ARCHIVE_S3_*。
 // 回放表 tf_logs_archive 按 `CREATE TABLE IF NOT EXISTS ... (LIKE logs INCLUDING DEFAULTS)` 建（无主键，有 created_at 索引）。
@@ -29,6 +30,7 @@ import (
 
 func main() {
 	day := flag.String("day", "", "要导入的上海日 YYYY-MM-DD")
+	billNo := flag.String("bill", "", "账单号：导入该账单账期包的 raw-logs.csv.gz（企业主账号本账期全部日志）")
 	from := flag.String("from", "", "起始上海日 YYYY-MM-DD（与 -to 连用）")
 	to := flag.String("to", "", "结束上海日 YYYY-MM-DD（含）")
 	table := flag.String("table", "tf_logs_archive", "回放表名（与 logs 同库）")
@@ -37,8 +39,12 @@ func main() {
 	envFile := flag.String("env", ".env", "环境变量文件；不存在时忽略")
 	flag.Parse()
 
-	days, err := resolveDays(*day, *from, *to)
-	fail(err)
+	var days []string
+	if *billNo == "" {
+		var err error
+		days, err = resolveDays(*day, *from, *to)
+		fail(err)
+	}
 	_ = godotenv.Load(*envFile)
 
 	store, err := objectstore.New(objectstore.Config{
@@ -73,6 +79,16 @@ func main() {
 			fail(im.truncate(ctx))
 			fmt.Println("truncated", *table)
 		}
+	}
+	if *billNo != "" {
+		n, err := im.importBill(ctx, *billNo)
+		fail(err)
+		if *verifyOnly {
+			fmt.Printf("done: bill %s verified\n", *billNo)
+		} else {
+			fmt.Printf("done: %d rows imported into %s from bill %s\n", n, *table, *billNo)
+		}
+		return
 	}
 	var total int64
 	failed := 0

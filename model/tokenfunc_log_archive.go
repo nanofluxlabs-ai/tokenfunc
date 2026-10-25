@@ -137,7 +137,9 @@ type LogArchiveFilter struct {
 	EndTs          int64
 	ExcludeTypes   []int
 	ExcludeUserIds []int
-	MaxId          int64
+	// UserIds 只导出这些用户（账单账期包）；为空不限
+	UserIds []int
+	MaxId   int64
 }
 
 func (f LogArchiveFilter) apply(tx *gorm.DB) *gorm.DB {
@@ -147,6 +149,9 @@ func (f LogArchiveFilter) apply(tx *gorm.DB) *gorm.DB {
 	}
 	if len(f.ExcludeUserIds) > 0 {
 		tx = tx.Where("user_id NOT IN ?", f.ExcludeUserIds)
+	}
+	if len(f.UserIds) > 0 {
+		tx = tx.Where("user_id IN ?", f.UserIds)
 	}
 	if f.MaxId > 0 {
 		tx = tx.Where("id <= ?", f.MaxId)

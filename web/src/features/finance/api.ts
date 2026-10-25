@@ -2,6 +2,7 @@ import { api } from '@/lib/api'
 
 import type {
   ApiResponse,
+  BillArchiveFile,
   FinanceBillContext,
   FinanceBillKind,
   FinanceBillList,
@@ -128,5 +129,24 @@ export async function getFinanceBill(
   id: number
 ): Promise<ApiResponse<FinanceBillContext>> {
   const res = await api.get(`${FINANCE_BASE}/bills/${kind}/${id}`)
+  return res.data
+}
+
+/** 手动（重新）归档一张已出账账单的账期包到对象存储 */
+export async function archiveFinanceBill(
+  id: number
+): Promise<ApiResponse<{ bill_id: number; archived_at: number }>> {
+  const res = await api.post(`${FINANCE_BASE}/bill-archives/${id}`)
+  return res.data
+}
+
+/** 下载账期包里的一个对象（.csv.gz，服务端从对象存储透传） */
+export async function downloadFinanceBillArchive(
+  id: number,
+  file: BillArchiveFile
+): Promise<Blob> {
+  const res = await api.get(`${FINANCE_BASE}/bill-archives/${id}/${file}`, {
+    responseType: 'blob',
+  })
   return res.data
 }

@@ -36,5 +36,7 @@ func registerFinanceRoutes(apiRouter *gin.RouterGroup) {
 		financeRoute.GET("/usage/export", controller.AdminExportFinanceUsage)
 		financeRoute.GET("/bills", controller.AdminListFinanceBills)
 		financeRoute.GET("/bills/:kind/:id", controller.AdminGetFinanceBill)
+		financeRoute.POST("/bill-archives/:id", controller.AdminArchiveFinanceBill)
+		financeRoute.GET("/bill-archives/:id/:file", controller.AdminDownloadFinanceBillArchive)
 	}
 }

@@ -62,6 +62,8 @@ type FinanceBillContext struct {
 	Period       *EnterpriseCreditPeriod `json:"period"`
 	UsageTsStart int64                   `json:"usage_ts_start"`
 	UsageTsEnd   int64                   `json:"usage_ts_end"`
+	// LogsPurged 账期内已有原始日志被归档删除：明细区按实时 logs 计算会不完整，应以账期包冻结件为准
+	LogsPurged bool `json:"logs_purged"`
 }
 
 type financeEnterpriseBrief struct {
@@ -208,6 +210,11 @@ func GetFinanceBillContext(kind string, id int64) (*FinanceBillContext, error) {
 		context.Summary = financeBillSummaryFromBill(context.Bill, brief, context.Period)
 	} else {
 		context.Summary = financeBillSummaryFromPeriod(context.Period, brief)
+	}
+	if context.Bill != nil {
+		if context.LogsPurged, err = BillPeriodLogsPurged(context.Bill); err != nil {
+			return nil, err
+		}
 	}
 	context.UsageTsStart = context.Summary.PeriodStart
 	context.UsageTsEnd = context.Summary.PeriodEnd - 1

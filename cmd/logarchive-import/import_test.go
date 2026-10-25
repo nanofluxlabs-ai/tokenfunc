@@ -66,7 +66,7 @@ func TestImportDayRoundTrip(t *testing.T) {
 	model.DB, model.LOG_DB = db, db
 	common.SetDatabaseTypes(common.DatabaseTypePostgreSQL, common.DatabaseTypePostgreSQL)
 	model.InitColumnNames()
-	tables := []any{&model.Log{}, &model.LogArchiveManifest{}}
+	tables := []any{&model.Log{}, &model.LogArchiveManifest{}, &model.Enterprise{}, &model.EnterpriseBill{}}
 	require.NoError(t, db.Migrator().DropTable(tables...))
 	require.NoError(t, db.Exec("DROP TABLE IF EXISTS "+testTable).Error)
 	require.NoError(t, db.AutoMigrate(tables...))
@@ -164,6 +164,33 @@ func TestImportDayRoundTrip(t *testing.T) {
 	require.NoError(t, db.Create(&model.LogArchiveManifest{Day: "2026-03-11", Status: model.LogArchiveStatusPending, Parts: 1, TotalRows: 1}).Error)
 	_, err = im.importDay(ctx, "2026-03-11")
 	require.ErrorContains(t, err, "pending")
+
+	// 账单账期包：用户 1 两天的原始日志，按 (user_id, 账期) 替换导入
+	enterprise := &model.Enterprise{UserId: 1, Name: "Acme", BillingMode: model.EnterpriseBillingModeCredit, Status: model.EnterpriseStatusActive}
+	require.NoError(t, db.Create(enterprise).Error)
+	var rawGz bytes.Buffer
+	rawWriter := gzip.NewWriter(&rawGz)
+	rawStats, err := service.WriteLogsArchiveCSV(ctx, rawWriter, model.LogArchiveFilter{StartTs: r.Start, EndTs: next.EndExcl, UserIds: []int{1}})
+	require.NoError(t, err)
+	require.NoError(t, rawWriter.Close())
+	require.Equal(t, int64(2), rawStats.Rows)
+	rawKey := store.Key(model.BillArchiveObjectKey("B-1", model.BillArchiveFileRawLogs)...)
+	store.objects[rawKey] = rawGz.Bytes()
+	rawSum := sha256.Sum256(rawGz.Bytes())
+	archiveInfo, err := common.Marshal(model.BillArchiveInfo{RawLogs: &model.BillArchiveObject{Key: rawKey, Sha256: hex.EncodeToString(rawSum[:]), Rows: 2}, ArchivedAt: 1})
+	require.NoError(t, err)
+	require.NoError(t, db.Create(&model.EnterpriseBill{BillNo: "B-1", EnterpriseId: enterprise.Id, BillType: model.EnterpriseBillTypeCredit, Status: model.EnterpriseBillPaid,
+		PeriodStart: r.Start, PeriodEnd: next.EndExcl, Currency: "USD", IssuedAt: 1, CreatedAt: 1, UpdatedAt: 1, ArchivedAt: 1, ArchiveInfo: model.JSONValue(archiveInfo)}).Error)
+	imported, err = im.importBill(ctx, "B-1")
+	require.NoError(t, err)
+	assert.Equal(t, int64(2), imported)
+	imported, err = im.importBill(ctx, "B-1")
+	require.NoError(t, err)
+	assert.Equal(t, int64(2), imported)
+	require.NoError(t, db.Table(testTable).Where("user_id = 1").Count(&count).Error)
+	assert.Equal(t, int64(2), count, "重复导入按 (user_id, 账期) 替换")
+	_, err = im.importBill(ctx, "B-404")
+	require.ErrorContains(t, err, "not found")
 }
 
 func TestResolveDays(t *testing.T) {

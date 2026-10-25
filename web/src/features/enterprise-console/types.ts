@@ -183,6 +183,22 @@ export interface UsageSnapshotGroup {
   quota: number
 }
 
+/** 账期包里单个对象的登记 */
+export interface BillArchiveObject {
+  key: string
+  bytes: number
+  sha256: string
+  rows: number
+}
+
+/** ent_bills.archive_info：账期包归档登记 */
+export interface BillArchiveInfo {
+  statement?: BillArchiveObject
+  raw_logs?: BillArchiveObject
+  schema_version: number
+  archived_at: number
+}
+
 export interface Bill {
   id: number
   bill_no: string
@@ -203,6 +219,8 @@ export interface Bill {
   paid_at: number
   reminder_count: number
   reconcile_diff_quota: number
+  archive_info: BillArchiveInfo | null
+  archived_at: number
   usage_snapshot: Record<string, unknown> | null
   seller_snapshot: SellerProfile | null
   buyer_snapshot: {

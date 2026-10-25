@@ -37,6 +37,7 @@ func runEnterpriseBillingOnce(ctx context.Context, now int64) {
 		}
 		logger.LogInfo(ctx, fmt.Sprintf("enterprise billing: issued %s amount=%s for enterprise %d", bill.BillNo, bill.TotalUSD.String(), bill.EnterpriseId))
 		sendEnterpriseBillEmail(ctx, bill, false)
+		ArchiveBillAsync(bill)
 	}
 
 	today := common.GetTimestamp() / 86400
@@ -65,6 +66,8 @@ func runEnterpriseBillingOnce(ctx context.Context, now int64) {
 		logger.LogWarn(ctx, "enterprise billing: generate statements failed: "+err.Error())
 	} else if created > 0 {
 		logger.LogInfo(ctx, fmt.Sprintf("enterprise billing: generated %d monthly statements", created))
+		// 对账单在 model 层批量生成，直接扫一轮待归档账单即时归档
+		runBillArchiveOnce(ctx, time.Now())
 	}
 }
 

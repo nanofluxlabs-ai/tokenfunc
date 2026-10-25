@@ -241,21 +241,6 @@ func financeUsageDetail(c *gin.Context, userId int) {
 	common.ApiSuccess(c, pageInfo)
 }
 
-// financeExportSubject 导出文件注释头里的账号标识与企业名
-func financeExportSubject(userId int) (accountLabel string, enterpriseName string) {
-	var user model.User
-	if err := model.DB.Unscoped().Select("id, username, email").Where("id = ?", userId).First(&user).Error; err == nil {
-		accountLabel = user.Username
-		if user.Email != "" {
-			accountLabel = user.Username + " <" + user.Email + ">"
-		}
-	}
-	if enterprise, err := model.GetEnterpriseByUserId(userId); err == nil && enterprise != nil {
-		enterpriseName = enterprise.Name
-	}
-	return accountLabel, enterpriseName
-}
-
 func financeCSVHeaders(c *gin.Context, filename string) {
 	c.Header("Content-Disposition", fmt.Sprintf(`attachment; filename="%s"`, filename))
 	c.Header("Content-Type", "text/csv; charset=utf-8")
@@ -268,27 +253,11 @@ func financeUsageExport(c *gin.Context, userId int) {
 	if !ok {
 		return
 	}
-	summary, err := model.GetFinanceUsageSummary(userId, r)
+	payload, err := service.BuildFinanceUsageCSVPayload(userId, r, c.DefaultQuery("include_detail", "true") != "false")
 	if err != nil {
 		financeApiError(c, err)
 		return
 	}
-	daily, err := model.GetFinanceUsageDaily(userId, r)
-	if err != nil {
-		financeApiError(c, err)
-		return
-	}
-	payload := service.FinanceUsageCSVPayload{
-		StartDay: model.FinanceDay(r.Start), EndDay: model.FinanceDay(r.EndExcl - 1), Summary: summary, Daily: daily,
-		IncludeDetail: c.DefaultQuery("include_detail", "true") != "false",
-	}
-	if payload.IncludeDetail {
-		if payload.Details, err = model.ListFinanceUsageForExport(userId, r); err != nil {
-			financeApiError(c, err)
-			return
-		}
-	}
-	payload.AccountLabel, payload.EnterpriseName = financeExportSubject(userId)
 	financeCSVHeaders(c, fmt.Sprintf("usage-%d_%s_%s.csv", userId, payload.StartDay, payload.EndDay))
 	if err := service.WriteFinanceUsageCSV(c.Writer, payload); err != nil {
 		common.SysError("finance usage export failed: " + err.Error())
@@ -387,7 +356,7 @@ func GetSelfFinanceTopupExport(c *gin.Context) {
 	payload := service.FinanceTopupCSVPayload{
 		StartDay: model.FinanceDay(r.Start), EndDay: model.FinanceDay(r.EndExcl - 1), Summary: model.SummarizeFinanceTopup(entries), Entries: entries,
 	}
-	payload.AccountLabel, payload.EnterpriseName = financeExportSubject(userId)
+	payload.AccountLabel, payload.EnterpriseName = service.FinanceExportSubject(userId)
 	financeCSVHeaders(c, fmt.Sprintf("topup-%d_%s_%s.csv", userId, payload.StartDay, payload.EndDay))
 	if err := service.WriteFinanceTopupCSV(c.Writer, payload); err != nil {
 		common.SysError("finance topup export failed: " + err.Error())

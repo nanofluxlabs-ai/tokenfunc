@@ -1133,6 +1133,15 @@
     "— verify the apiKey value and that the model id in the models array exists on this site (compare with the models endpoint).": "— kiểm tra giá trị apiKey và đảm bảo id mô hình trong mảng models tồn tại trên trang này (đối chiếu với endpoint models).",
     "Cannot bind: the promoter themselves, admins, or users already assigned to another promoter": "Không thể liên kết: chính người quảng bá, quản trị viên, hoặc người dùng đã thuộc người quảng bá khác",
     "Month consumption": "Tiêu thụ tháng này",
-    "Search by username / ID / email to add": "Tìm theo tên người dùng / ID / email để thêm"
+    "Search by username / ID / email to add": "Tìm theo tên người dùng / ID / email để thêm",
+    "Bill archived to object storage": "Đã lưu trữ hóa đơn vào kho đối tượng",
+    "Failed to archive bill": "Lưu trữ hóa đơn thất bại",
+    "Download failed": "Tải xuống thất bại",
+    "Statement snapshot": "Bản sao kê cố định",
+    "Raw logs": "Nhật ký gốc",
+    "Archiving...": "Đang lưu trữ…",
+    "Archive to object storage": "Lưu trữ vào kho đối tượng",
+    "Raw logs of this period have been archived and purged; the breakdown below may be incomplete. Use the archived statement snapshot as the source of truth.": "Nhật ký gốc của kỳ này đã được lưu trữ và xóa; phần chi tiết bên dưới có thể không đầy đủ. Hãy lấy bản sao kê cố định đã lưu trữ làm chuẩn.",
+    "Day {{day}} belongs to a billing period whose bill is not archived yet": "Ngày {{day}} thuộc kỳ thanh toán có hóa đơn chưa được lưu trữ"
   }
 }

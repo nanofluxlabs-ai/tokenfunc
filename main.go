@@ -142,6 +142,9 @@ func main() {
 	// logs 表 90 天保留 + 归档到对象存储（TokenFunc 二开，DB_LOG_RETENTION_DAYS 为 0 时空转）
 	service.StartLogRetentionTask()
 
+	// 已出账账单的账期包归档到对象存储（TokenFunc 二开，对象存储未配置时空转）
+	service.StartBillArchiveTask()
+
 	// 渠道消耗统计：批量 flush 循环 + 首次启动从 logs 回填历史（TokenFunc 二开）
 	common.LoadChannelUsageSetting()
 	go model.UpdateChannelUsageStats(context.Background())

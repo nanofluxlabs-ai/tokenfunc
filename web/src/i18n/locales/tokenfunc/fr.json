@@ -1133,6 +1133,15 @@
     "— verify the apiKey value and that the model id in the models array exists on this site (compare with the models endpoint).": "— vérifiez la valeur de apiKey et que l'id de modèle du tableau models existe sur ce site (comparez avec l'endpoint models).",
     "Cannot bind: the promoter themselves, admins, or users already assigned to another promoter": "Impossible de lier : le promoteur lui-même, les administrateurs ou les utilisateurs déjà rattachés à un autre promoteur",
     "Month consumption": "Consommation du mois",
-    "Search by username / ID / email to add": "Rechercher par nom d’utilisateur / ID / e-mail pour ajouter"
+    "Search by username / ID / email to add": "Rechercher par nom d’utilisateur / ID / e-mail pour ajouter",
+    "Bill archived to object storage": "Facture archivée dans le stockage objet",
+    "Failed to archive bill": "Échec de l’archivage de la facture",
+    "Download failed": "Échec du téléchargement",
+    "Statement snapshot": "Relevé figé",
+    "Raw logs": "Journaux bruts",
+    "Archiving...": "Archivage…",
+    "Archive to object storage": "Archiver dans le stockage objet",
+    "Raw logs of this period have been archived and purged; the breakdown below may be incomplete. Use the archived statement snapshot as the source of truth.": "Les journaux bruts de cette période ont été archivés et purgés ; le détail ci-dessous peut être incomplet. Faites foi au relevé figé archivé.",
+    "Day {{day}} belongs to a billing period whose bill is not archived yet": "Le jour {{day}} appartient à une période dont la facture n’est pas encore archivée"
   }
 }

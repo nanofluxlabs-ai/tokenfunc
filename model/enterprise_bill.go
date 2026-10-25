@@ -434,6 +434,19 @@ func ListEnterpriseBills(filter EnterpriseBillFilter, startIdx int, num int) ([]
 	return bills, total, err
 }
 
+// CountEnterpriseOutstandingBills 未结清（未付 / 部分付款）账单数，以及其中已过到期日的数量（概览待办用）
+func CountEnterpriseOutstandingBills(enterpriseId int, now int64) (unpaid int, overdue int, err error) {
+	var row struct {
+		Unpaid  int
+		Overdue int
+	}
+	err = DB.Model(&EnterpriseBill{}).
+		Select("COUNT(*) AS unpaid, COUNT(*) FILTER (WHERE due_at > 0 AND due_at <= ?) AS overdue", now).
+		Where("enterprise_id = ? AND status IN ?", enterpriseId, []string{EnterpriseBillUnpaid, EnterpriseBillPartiallyPaid}).
+		Scan(&row).Error
+	return row.Unpaid, row.Overdue, err
+}
+
 func GetEnterpriseBill(id int64) (*EnterpriseBill, error) {
 	var bill EnterpriseBill
 	err := DB.First(&bill, "id = ?", id).Error

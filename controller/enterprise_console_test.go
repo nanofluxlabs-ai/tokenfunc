@@ -25,6 +25,7 @@ func newEnterpriseConsoleRouter() *gin.Engine {
 	api := router.Group("/api")
 	api.GET("/enterprise/self", middleware.UserAuth(), GetEnterpriseSelf)
 	console := api.Group("/enterprise", middleware.UserAuth(), middleware.EnterpriseAuth())
+	console.GET("/overview", GetEnterpriseOverview)
 	console.GET("/teams", ListEnterpriseTeams)
 	console.POST("/teams", middleware.RequireEnterpriseRole(model.EnterpriseMemberRoleEnterpriseAdmin), CreateEnterpriseTeam)
 	console.GET("/members", ListEnterpriseMembers)
@@ -135,6 +136,8 @@ func TestEnterpriseConsoleAccessTokenScopes(t *testing.T) {
 // 成员角色的范围：团队管理员只看本团队、不能建团队、不能看账单、不能授予高于自己的角色；企业管理员看全企业
 func TestEnterpriseConsoleMemberRoles(t *testing.T) {
 	setupAccessTokenAudit(t)
+	// 建 key 时 GetUserGroup 用到带引号的 group 列名，单跑本用例时也要初始化
+	model.InitColumnNames()
 	require.NoError(t, model.DB.AutoMigrate(&model.Token{}, &model.Enterprise{}, &model.EnterpriseTeam{}, &model.EnterpriseMember{}, &model.EnterpriseTokenAssignment{}, &model.EnterpriseUsageDaily{}, &model.EnterpriseBill{}))
 	owner := &model.User{Username: "role-owner", Password: "placeholder", Role: common.RoleCommonUser, Status: common.UserStatusEnabled, Group: "default", AuthVersion: 1, AffCode: "role-own"}
 	require.NoError(t, model.DB.Create(owner).Error)
@@ -187,6 +190,137 @@ func TestEnterpriseConsoleMemberRoles(t *testing.T) {
 
 func itoa(value int) string {
 	return strconv.Itoa(value)
+}
+
+// 企业概览：key 四态按余额 / 到期时间派生、待办计数（逾期账单、超预算团队、耗尽与即将过期 key）、近 30 天补零、
+// 授信预警命中；团队管理员只拿到本团队的统计且没有账单 / 账期字段
+func TestEnterpriseConsoleOverview(t *testing.T) {
+	setupAccessTokenAudit(t)
+	model.InitColumnNames()
+	require.NoError(t, model.DB.AutoMigrate(&model.Token{}, &model.Enterprise{}, &model.EnterpriseTeam{}, &model.EnterpriseMember{}, &model.EnterpriseTokenAssignment{},
+		&model.EnterpriseUsageDaily{}, &model.EnterpriseBill{}, &model.EnterpriseCreditPeriod{}, &model.EnterpriseTeamBudgetNotify{}))
+	owner := &model.User{Username: "ov-owner", Password: "placeholder", Role: common.RoleCommonUser, Status: common.UserStatusEnabled, Group: "default", AuthVersion: 1, AffCode: "ov-own"}
+	require.NoError(t, model.DB.Create(owner).Error)
+	require.NoError(t, model.UpgradeUserToEnterprise(owner.Id, &model.Enterprise{Name: "Overview Co"}))
+	ent, err := model.GetEnterpriseByUserId(owner.Id)
+	require.NoError(t, err)
+	// 研发团队预算 $0.002（1000 quota），本月已用 1500 → 超预算；QA 团队无预算
+	rd := &model.EnterpriseTeam{EnterpriseId: ent.Id, Name: "Research", MonthlyBudgetQuota: 1000, BudgetAlertPercent: 80, BudgetEnforce: true}
+	require.NoError(t, model.CreateEnterpriseTeam(rd))
+	qa := &model.EnterpriseTeam{EnterpriseId: ent.Id, Name: "QA"}
+	require.NoError(t, model.CreateEnterpriseTeam(qa))
+	lead := &model.EnterpriseMember{EnterpriseId: ent.Id, TeamId: rd.Id, Name: "Lead"}
+	require.NoError(t, model.CreateEnterpriseMember(lead))
+	require.NoError(t, model.CreateEnterpriseMember(&model.EnterpriseMember{EnterpriseId: ent.Id, TeamId: qa.Id, Name: "Tester"}))
+	leadUser := &model.User{Username: "ov-lead", Password: "placeholder", Role: common.RoleCommonUser, Status: common.UserStatusEnabled, Group: "default", AuthVersion: 1, AffCode: "ov-ld"}
+	require.NoError(t, model.DB.Create(leadUser).Error)
+	require.NoError(t, model.BindEnterpriseMemberLogin(ent.Id, lead.Id, leadUser, model.EnterpriseMemberRoleTeamAdmin))
+
+	now := common.GetTimestamp()
+	newKey := func(name string, teamId int, token model.Token) {
+		token.UserId, token.Name, token.Key = owner.Id, name, name
+		if token.Status == 0 {
+			token.Status = common.TokenStatusEnabled
+		}
+		if token.ExpiredTime == 0 {
+			token.ExpiredTime = -1
+		}
+		require.NoError(t, model.CreateEnterpriseToken(ent.Id, model.EnterpriseScope{}, &token, teamId, 0))
+	}
+	newKey("rd-active", rd.Id, model.Token{UnlimitedQuota: true})
+	newKey("rd-exhausted-flag", rd.Id, model.Token{Status: common.TokenStatusExhausted})
+	newKey("rd-exhausted-derived", rd.Id, model.Token{RemainQuota: 0})
+	newKey("rd-expiring", rd.Id, model.Token{UnlimitedQuota: true, ExpiredTime: now + 3600})
+	newKey("qa-expired-derived", qa.Id, model.Token{UnlimitedQuota: true, ExpiredTime: now - 60})
+	newKey("qa-disabled", qa.Id, model.Token{UnlimitedQuota: true, Status: common.TokenStatusDisabled})
+
+	today, monthStart := model.CurrentEnterpriseUsageDays()
+	require.NoError(t, model.DB.Create(&model.EnterpriseUsageDaily{Day: monthStart, EnterpriseId: ent.Id, TokenId: 1, ModelName: "gpt-4o", TeamId: rd.Id, RequestCount: 3, Quota: 1500, UpdatedAt: 1}).Error)
+	require.NoError(t, model.DB.Create(&model.EnterpriseUsageDaily{Day: today, EnterpriseId: ent.Id, TokenId: 2, ModelName: "gpt-4o", TeamId: qa.Id, RequestCount: 1, Quota: 200, UpdatedAt: 1}).Error)
+	// 两张未结清账单：一张已逾期、一张未到期
+	require.NoError(t, model.DB.Create(&model.EnterpriseBill{BillNo: "B-overdue", EnterpriseId: ent.Id, BillType: model.EnterpriseBillTypeCredit, Status: model.EnterpriseBillUnpaid, IssuedAt: now - 86400*20, DueAt: now - 86400, CreatedAt: now, UpdatedAt: now}).Error)
+	require.NoError(t, model.DB.Create(&model.EnterpriseBill{BillNo: "B-due", EnterpriseId: ent.Id, BillType: model.EnterpriseBillTypeCredit, Status: model.EnterpriseBillPartiallyPaid, IssuedAt: now, DueAt: now + 86400*10, CreatedAt: now, UpdatedAt: now}).Error)
+	// 授信：当前账期已用 90%，阈值 80% → 预警命中
+	require.NoError(t, model.DB.Model(&model.Enterprise{}).Where("id = ?", ent.Id).Updates(map[string]any{"billing_mode": model.EnterpriseBillingModeCredit, "credit_alert_percent": 80}).Error)
+	require.NoError(t, model.DB.Create(&model.EnterpriseCreditPeriod{EnterpriseId: ent.Id, PeriodNo: 1, StartAt: now - 86400, EndAt: now + 86400, LimitQuota: 10000, UsedQuota: 9000, Status: model.EnterpriseCreditPeriodOpen, CreatedAt: now, UpdatedAt: now}).Error)
+
+	router := newEnterpriseConsoleRouter()
+	ownerToken, _ := createScopedAccessToken(t, owner.Id, 0, "enterprise:read")
+	leadToken, _ := createScopedAccessToken(t, leadUser.Id, 0, "enterprise:read")
+	overview := func(token string) map[string]any {
+		response := accessTokenRequest(router, "GET", "/api/enterprise/overview", token, "", "")
+		require.Equal(t, http.StatusOK, response.Code, response.Body.String())
+		var parsed struct {
+			Success bool           `json:"success"`
+			Data    map[string]any `json:"data"`
+		}
+		require.NoError(t, common.Unmarshal(response.Body.Bytes(), &parsed), response.Body.String())
+		require.True(t, parsed.Success, response.Body.String())
+		return parsed.Data
+	}
+	section := func(data map[string]any, key string) map[string]any {
+		value, _ := data[key].(map[string]any)
+		require.NotNil(t, value, key)
+		return value
+	}
+
+	// 企业主：全企业统计 + 财务待办
+	data := overview(ownerToken)
+	keys := section(data, "keys")
+	assert.Equal(t, float64(6), keys["total"])
+	assert.Equal(t, float64(2), keys["active"])
+	assert.Equal(t, float64(1), keys["disabled"])
+	assert.Equal(t, float64(2), keys["exhausted"], "status=4 plus remain_quota<=0")
+	assert.Equal(t, float64(1), keys["expired"], "derived from expired_time")
+	assert.Equal(t, float64(1), keys["expiring_7d"])
+	org := section(data, "org")
+	assert.Equal(t, float64(3), org["teams"], "Default + Research + QA")
+	assert.Equal(t, float64(2), org["members"])
+	assert.Equal(t, float64(1), org["login_members"])
+	month := section(data, "month")
+	assert.Equal(t, float64(1700), month["quota"])
+	assert.Equal(t, float64(0), month["prev_quota"])
+	daily, _ := data["daily"].([]any)
+	require.Len(t, daily, 30, "30 days with zero fill")
+	last := daily[29].(map[string]any)
+	assert.Equal(t, today, last["day"])
+	assert.Equal(t, float64(200), last["quota"])
+	todos := section(data, "todos")
+	assert.Equal(t, float64(2), todos["unpaid_bills"])
+	assert.Equal(t, float64(1), todos["overdue_bills"])
+	assert.Equal(t, float64(2), todos["exhausted_keys"])
+	assert.Equal(t, float64(1), todos["expiring_keys"])
+	assert.Equal(t, true, todos["credit_alert_hit"])
+	exceeded, _ := todos["team_budget_exceeded"].([]any)
+	require.Len(t, exceeded, 1)
+	assert.Equal(t, "Research", exceeded[0].(map[string]any)["team_name"])
+	assert.Equal(t, true, exceeded[0].(map[string]any)["budget_enforce"])
+	assert.Empty(t, todos["team_budget_warn"])
+	assert.Equal(t, float64(9000), section(data, "open_period")["used_quota"])
+	assert.Nil(t, data["scope"])
+	assert.Nil(t, data["team_budget"])
+
+	// 团队管理员：只看研发团队，没有账单 / 账期 / 预警
+	data = overview(leadToken)
+	scope := section(data, "scope")
+	assert.Equal(t, float64(rd.Id), scope["team_id"])
+	assert.Equal(t, "Research", scope["team_name"])
+	keys = section(data, "keys")
+	assert.Equal(t, float64(4), keys["total"])
+	assert.Equal(t, float64(2), keys["exhausted"])
+	assert.Equal(t, float64(0), keys["expired"])
+	org = section(data, "org")
+	assert.Equal(t, float64(1), org["teams"])
+	assert.Equal(t, float64(1), org["members"])
+	assert.Equal(t, float64(1500), section(data, "month")["quota"])
+	assert.Equal(t, float64(1500), section(data, "team_budget")["month_quota"])
+	assert.Equal(t, "exceeded", section(data, "team_budget")["budget_state"])
+	todos = section(data, "todos")
+	assert.Equal(t, float64(0), todos["unpaid_bills"])
+	assert.Equal(t, float64(0), todos["overdue_bills"])
+	assert.Equal(t, false, todos["credit_alert_hit"])
+	assert.Nil(t, data["open_period"])
+	assert.Equal(t, float64(0), data["balance_quota"])
 }
 
 // 企业密钥页：访问限制校验、编辑含归属、启停校验、删除清归属、批量范围、成员取明文、本月消耗回填、key 上限按企业覆盖

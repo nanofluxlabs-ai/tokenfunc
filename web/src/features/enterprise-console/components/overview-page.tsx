@@ -1,189 +1,152 @@
 import { useQuery } from '@tanstack/react-query'
+import { Link } from '@tanstack/react-router'
+import { ArrowRight, ChevronRight } from 'lucide-react'
+import { type ReactNode, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
+import { DailyQuotaBarChart } from '@/components/charts/daily-quota-bar-chart'
 import { SectionPageLayout } from '@/components/layout'
-import { StatusBadge } from '@/components/status-badge'
+import { LoadingState } from '@/components/loading-state'
 import {
   Card,
+  CardAction,
   CardContent,
-  CardDescription,
   CardHeader,
   CardTitle,
 } from '@/components/ui/card'
-import { Progress } from '@/components/ui/progress'
-import { formatQuotaWithCurrency } from '@/lib/currency'
-import { formatTimestampToDate } from '@/lib/format'
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from '@/components/ui/collapsible'
 import { requireServerSuccess } from '@/lib/server-error-message'
+import { cn } from '@/lib/utils'
 
 import { getEnterpriseOverview, listCreditPeriods, listLedger } from '../api'
-import {
-  formatCreditPeriodRange,
-  isCreditAwaitingPayment,
-} from '../lib/credit-period'
+import { useEnterpriseSelf } from '../hooks/use-enterprise-self'
+import { isTeamScoped } from '../lib/member-roles'
 import { CreditPeriodsTable, LedgerTable } from './billing-tables'
-import { CreditAlertHint } from './credit-alert-hint'
 import { EnterpriseGuard } from './enterprise-guard'
+import { OverviewKpiCards } from './overview-kpi-cards'
+import { OverviewTodos } from './overview-todos'
+
+/** 默认收起的财务区块；内容在第一次展开时才加载 */
+function FinanceSection(props: {
+  title: string
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  children: ReactNode
+}) {
+  return (
+    <Collapsible open={props.open} onOpenChange={props.onOpenChange}>
+      <CollapsibleTrigger className='flex items-center gap-1 text-sm font-medium'>
+        <ChevronRight
+          aria-hidden='true'
+          className={cn(
+            'size-4 transition-transform',
+            props.open && 'rotate-90'
+          )}
+        />
+        {props.title}
+      </CollapsibleTrigger>
+      <CollapsibleContent className='mt-2'>{props.children}</CollapsibleContent>
+    </Collapsible>
+  )
+}
 
 function OverviewContent() {
   const { t } = useTranslation()
+  const self = useEnterpriseSelf()
+  const teamScoped = isTeamScoped(self.data?.actor)
   const overview = useQuery({
     queryKey: ['enterprise', 'overview'],
     queryFn: async () =>
       requireServerSuccess(await getEnterpriseOverview()).data ?? null,
   })
+  const data = overview.data
+  const isCredit = data?.enterprise.billing_mode === 'credit'
+  const [ledgerOpen, setLedgerOpen] = useState(false)
+  const [periodsOpen, setPeriodsOpen] = useState(false)
+  // 预付企业第一张卡要显示最近充值，流水提前取；其余情况展开时再取
   const ledger = useQuery({
     queryKey: ['enterprise', 'ledger'],
     queryFn: async () =>
       requireServerSuccess(await listLedger({ page_size: 20 })).data?.items ??
       [],
+    enabled: !teamScoped && data !== undefined && (ledgerOpen || !isCredit),
   })
-  const isCredit = overview.data?.enterprise.billing_mode === 'credit'
   const periods = useQuery({
     queryKey: ['enterprise', 'credit-periods'],
     queryFn: async () =>
       requireServerSuccess(await listCreditPeriods({ page_size: 12 })).data
         ?.items ?? [],
-    enabled: isCredit,
+    enabled: !teamScoped && isCredit && periodsOpen,
   })
-  const data = overview.data
-  const period = data?.open_period ?? null
-  const rawUsedPercent =
-    period && period.limit_quota > 0
-      ? (period.used_quota / period.limit_quota) * 100
-      : 0
-  const usedPercent = Math.min(100, rawUsedPercent)
-  const isQuotaBased = data?.enterprise.credit_cycle_type === 'quota_based'
-  const awaitingPayment =
-    data !== undefined &&
-    data !== null &&
-    isCredit &&
-    isCreditAwaitingPayment(data.enterprise, period !== null)
+  const lastTopupAt = useMemo(
+    () =>
+      ledger.data?.find((entry) => entry.type === 'topup')?.created_at ?? null,
+    [ledger.data]
+  )
 
-  let billingModeHint = t(
-    'Top-ups are registered by your account manager after bank transfer.'
-  )
-  if (isCredit) {
-    billingModeHint = isQuotaBased
-      ? t(
-          'Usage is billed per credit period; a bill is issued as soon as the limit is used up.'
-        )
-      : t(
-          'Usage is billed per credit period; a bill is issued when the period ends.'
-        )
-  }
-  let limitHint = t(
-    'Requests are rejected once the period limit is reached. Contact your account manager to raise it.'
-  )
-  if (isQuotaBased) {
-    limitHint = data?.enterprise.credit_auto_reset
-      ? t(
-          'When the limit is used up the period is billed and the next period starts automatically.'
-        )
-      : t(
-          'When the limit is used up the period is billed; requests are rejected until the bill is paid.'
-        )
-  }
-  let currentPeriodText = t('No open credit period')
-  if (period) {
-    currentPeriodText = formatCreditPeriodRange(period, formatTimestampToDate)
-  } else if (awaitingPayment) {
-    currentPeriodText = t(
-      'Awaiting bill payment. Contact your account manager to open the next period.'
-    )
+  if (!data) {
+    return <LoadingState />
   }
 
   return (
     <div className='flex flex-col gap-6'>
-      <div className='grid gap-4 md:grid-cols-3'>
-        <Card>
-          <CardHeader>
-            <CardDescription>{t('Billing Mode')}</CardDescription>
-            <CardTitle className='flex items-center gap-2'>
-              {isCredit ? t('Credit') : t('Prepaid')}
-              {data?.enterprise.status === 'suspended' && (
-                <StatusBadge
-                  label={t('Suspended')}
-                  variant='danger'
-                  copyable={false}
-                />
-              )}
-            </CardTitle>
-          </CardHeader>
-          <CardContent className='text-muted-foreground text-sm'>
-            {billingModeHint}
-          </CardContent>
-        </Card>
-        {isCredit ? (
-          <>
-            <Card>
-              <CardHeader>
-                <CardDescription>{t('Current period usage')}</CardDescription>
-                <CardTitle className='font-mono'>
-                  {period ? formatQuotaWithCurrency(period.used_quota) : '—'}
-                  <span className='text-muted-foreground text-base font-normal'>
-                    {' / '}
-                    {period ? formatQuotaWithCurrency(period.limit_quota) : '—'}
-                  </span>
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <Progress
-                  value={usedPercent}
-                  aria-label={t('Current period usage')}
-                />
-                {period && (
-                  <CreditAlertHint
-                    alertPercent={data?.enterprise.credit_alert_percent ?? 0}
-                    usedPercent={rawUsedPercent}
-                  />
-                )}
-                <p className='text-muted-foreground mt-2 text-xs'>
-                  {limitHint}
-                </p>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader>
-                <CardDescription>{t('Current period')}</CardDescription>
-                <CardTitle className='flex items-center gap-2'>
-                  {period ? `#${period.period_no}` : '—'}
-                  {awaitingPayment && (
-                    <StatusBadge
-                      label={t('Awaiting payment')}
-                      variant='warning'
-                      copyable={false}
-                    />
-                  )}
-                </CardTitle>
-              </CardHeader>
-              <CardContent className='text-sm'>{currentPeriodText}</CardContent>
-            </Card>
-          </>
-        ) : (
-          <Card className='md:col-span-2'>
-            <CardHeader>
-              <CardDescription>{t('Balance')}</CardDescription>
-              <CardTitle className='font-mono'>
-                {data ? formatQuotaWithCurrency(data.balance_quota) : '—'}
-              </CardTitle>
-            </CardHeader>
-          </Card>
-        )}
-      </div>
-
-      {isCredit && (
-        <section className='flex flex-col gap-2'>
-          <h3 className='text-sm font-medium'>{t('Credit Periods')}</h3>
-          <CreditPeriodsTable
-            periods={periods.data ?? []}
-            isLoading={periods.isLoading}
+      <OverviewKpiCards
+        overview={data}
+        teamScoped={teamScoped}
+        lastTopupAt={lastTopupAt}
+      />
+      <OverviewTodos todos={data.todos} />
+      <Card>
+        <CardHeader>
+          <CardTitle>{t('Spend in the last 30 days')}</CardTitle>
+          <CardAction>
+            <Link
+              to='/enterprise/usage'
+              className='text-muted-foreground hover:text-foreground inline-flex items-center gap-1 text-xs'
+            >
+              {t('View usage report')}
+              <ArrowRight className='size-3' aria-hidden='true' />
+            </Link>
+          </CardAction>
+        </CardHeader>
+        <CardContent>
+          <DailyQuotaBarChart
+            id='enterprise-overview-daily'
+            data={data.daily}
+            loading={overview.isFetching}
           />
-        </section>
+        </CardContent>
+      </Card>
+      {!teamScoped && (
+        <div className='flex flex-col gap-4'>
+          {isCredit && (
+            <FinanceSection
+              title={t('Credit Periods')}
+              open={periodsOpen}
+              onOpenChange={setPeriodsOpen}
+            >
+              <CreditPeriodsTable
+                periods={periods.data ?? []}
+                isLoading={periods.isLoading}
+              />
+            </FinanceSection>
+          )}
+          <FinanceSection
+            title={t('Ledger')}
+            open={ledgerOpen}
+            onOpenChange={setLedgerOpen}
+          >
+            <LedgerTable
+              entries={ledger.data ?? []}
+              isLoading={ledger.isLoading}
+            />
+          </FinanceSection>
+        </div>
       )}
-      <section className='flex flex-col gap-2'>
-        <h3 className='text-sm font-medium'>{t('Ledger')}</h3>
-        <LedgerTable entries={ledger.data ?? []} isLoading={ledger.isLoading} />
-      </section>
     </div>
   )
 }

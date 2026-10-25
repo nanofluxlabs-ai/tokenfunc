@@ -2,6 +2,7 @@ package controller
 
 import (
 	"errors"
+	"time"
 
 	"github.com/QuantumNous/new-api/common"
 	"github.com/QuantumNous/new-api/model"
@@ -199,20 +200,81 @@ func AdminListEnterpriseCreditPeriods(c *gin.Context) {
 // 企业控制台
 // ---------------------------------------------------------------------------
 
+// enterpriseOverviewScope 团队角色的可见范围（前端据此把第一张卡换成「本团队」）
+type enterpriseOverviewScope struct {
+	TeamId   int    `json:"team_id"`
+	TeamName string `json:"team_name"`
+}
+
+// enterpriseOverviewTodos 待办：全部是计数或列表，前端无数据不渲染；账单与授信预警只对企业主 / 企业管理员下发
+type enterpriseOverviewTodos struct {
+	UnpaidBills        int                               `json:"unpaid_bills"`
+	OverdueBills       int                               `json:"overdue_bills"`
+	ExhaustedKeys      int                               `json:"exhausted_keys"`
+	ExpiringKeys       int                               `json:"expiring_keys"`
+	CreditAlertHit     bool                              `json:"credit_alert_hit"`
+	TeamBudgetWarn     []*model.EnterpriseTeamBudgetItem `json:"team_budget_warn"`
+	TeamBudgetExceeded []*model.EnterpriseTeamBudgetItem `json:"team_budget_exceeded"`
+}
+
 type enterpriseOverview struct {
 	Enterprise   *model.Enterprise             `json:"enterprise"`
 	BalanceQuota int                           `json:"balance_quota"`
 	OpenPeriod   *model.EnterpriseCreditPeriod `json:"open_period"`
+	*model.EnterpriseOverviewStats
+	Todos enterpriseOverviewTodos `json:"todos"`
+	// TeamBudget 团队角色：本团队的预算进度（未设预算为 nil）；企业视角为 nil
+	TeamBudget *model.EnterpriseTeamBudgetItem `json:"team_budget"`
+	Scope      *enterpriseOverviewScope        `json:"scope"`
 }
 
-// GetEnterpriseOverview 概览：预付显示余额，授信显示当前账期的额度/已用；团队角色看不到财务字段
+// GetEnterpriseOverview 概览：KPI（本期 / 本月 / key / 组织）、待办、近 30 天按天消耗，全部来自小表。
+// 企业主 / 企业管理员另有余额或当前账期与账单待办；团队角色只看本团队的统计，没有财务字段。
 func GetEnterpriseOverview(c *gin.Context) {
 	enterprise := currentEnterprise(c)
-	overview := enterpriseOverview{Enterprise: enterprise}
-	if !currentActor(c).AtLeast(model.EnterpriseMemberRoleEnterpriseAdmin) {
+	actor := currentActor(c)
+	scope := actor.Scope()
+	now := time.Now()
+	stats, err := model.LoadEnterpriseOverviewStats(enterprise, scope, now)
+	if err != nil {
+		common.ApiError(c, err)
+		return
+	}
+	overview := enterpriseOverview{Enterprise: enterprise, EnterpriseOverviewStats: stats}
+	overview.Todos.ExhaustedKeys = stats.Keys.Exhausted
+	overview.Todos.ExpiringKeys = stats.Keys.Expiring7d
+	overview.Todos.TeamBudgetWarn = make([]*model.EnterpriseTeamBudgetItem, 0)
+	overview.Todos.TeamBudgetExceeded = make([]*model.EnterpriseTeamBudgetItem, 0)
+	for _, team := range stats.Teams {
+		switch team.BudgetState {
+		case model.TeamBudgetStateWarn:
+			overview.Todos.TeamBudgetWarn = append(overview.Todos.TeamBudgetWarn, team)
+		case model.TeamBudgetStateExceeded:
+			overview.Todos.TeamBudgetExceeded = append(overview.Todos.TeamBudgetExceeded, team)
+		}
+	}
+	if scope.TeamId != nil {
+		overview.Scope = &enterpriseOverviewScope{TeamId: *scope.TeamId}
+		for _, team := range stats.Teams {
+			if team.TeamId == *scope.TeamId {
+				overview.Scope.TeamName = team.TeamName
+				if team.BudgetQuota > 0 {
+					overview.TeamBudget = team
+				}
+			}
+		}
+	}
+	if !actor.AtLeast(model.EnterpriseMemberRoleEnterpriseAdmin) {
 		common.ApiSuccess(c, overview)
 		return
 	}
+	unpaid, overdue, err := model.CountEnterpriseOutstandingBills(enterprise.Id, now.Unix())
+	if err != nil {
+		common.ApiError(c, err)
+		return
+	}
+	overview.Todos.UnpaidBills = unpaid
+	overview.Todos.OverdueBills = overdue
 	if enterprise.BillingMode == model.EnterpriseBillingModeCredit {
 		period, err := model.GetOpenCreditPeriod(enterprise.Id)
 		if err != nil && !errors.Is(err, model.ErrEnterpriseCreditNoOpenPeriod) {
@@ -220,6 +282,9 @@ func GetEnterpriseOverview(c *gin.Context) {
 			return
 		}
 		overview.OpenPeriod = period
+		if period != nil && enterprise.CreditAlertPercent > 0 && period.LimitQuota > 0 {
+			overview.Todos.CreditAlertHit = period.UsedQuota*100 >= period.LimitQuota*int64(enterprise.CreditAlertPercent)
+		}
 	} else {
 		balance, err := model.GetUserQuota(enterprise.UserId, true)
 		if err != nil {

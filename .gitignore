@@ -50,3 +50,6 @@ go.work.sum
 # k8s 真实密钥只在本地（模板见 *.example）
 deploy/k8s/manifests/ghcr-secret.yaml
 deploy/k8s/manifests/**/secret.yaml
+
+# go build ./cmd/... 在仓库根产生的二进制
+/logarchive-import

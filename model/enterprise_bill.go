@@ -67,8 +67,11 @@ type EnterpriseBill struct {
 	SellerSnapshot     JSONValue       `json:"seller_snapshot" gorm:"type:jsonb"`
 	BuyerSnapshot      JSONValue       `json:"buyer_snapshot" gorm:"type:jsonb"`
 	Remark             string          `json:"remark" gorm:"type:text"`
-	CreatedAt          int64           `json:"created_at" gorm:"not null"`
-	UpdatedAt          int64           `json:"updated_at" gorm:"not null"`
+	// ArchiveInfo / ArchivedAt 账期包归档登记（见 tokenfunc_bill_archive.go）；ArchivedAt 为 0 表示未归档
+	ArchiveInfo JSONValue `json:"archive_info" gorm:"type:jsonb"`
+	ArchivedAt  int64     `json:"archived_at" gorm:"not null;default:0;index"`
+	CreatedAt   int64     `json:"created_at" gorm:"not null"`
+	UpdatedAt   int64     `json:"updated_at" gorm:"not null"`
 }
 
 func (EnterpriseBill) TableName() string { return "ent_bills" }

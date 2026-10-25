@@ -35,6 +35,7 @@ import type { FinanceBillContext, UsageRangeParams } from '../../types'
 import { MetricCard } from '../metric-card'
 import { ExportCsvControl } from '../usage-breakdown/export-csv-control'
 import { UsageBreakdownSection } from '../usage-breakdown/usage-breakdown-section'
+import { BillArchiveControl } from './bill-archive-control'
 
 const route = getRouteApi('/_authenticated/finance/bills/$billId')
 
@@ -74,6 +75,15 @@ export function BillDetailContent(props: { context: FinanceBillContext }) {
           <AlertDescription>
             {t(
               'This period is still open: figures are live and keep changing until the bill is issued.'
+            )}
+          </AlertDescription>
+        </Alert>
+      )}
+      {context.logs_purged && (
+        <Alert className='border-warning/40 bg-warning/10'>
+          <AlertDescription>
+            {t(
+              'Raw logs of this period have been archived and purged; the breakdown below may be incomplete. Use the archived statement snapshot as the source of truth.'
             )}
           </AlertDescription>
         </Alert>
@@ -175,6 +185,7 @@ export function BillDetailPage() {
       <SectionPageLayout.Actions>
         <div className='flex flex-wrap items-center gap-2'>
           {data?.bill && <InvoiceButton bill={data.bill} size='sm' />}
+          {data?.bill && <BillArchiveControl bill={data.bill} />}
           {data && summary && (
             <ExportCsvControl
               scope='admin'

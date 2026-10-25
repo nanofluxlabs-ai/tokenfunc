@@ -1133,6 +1133,15 @@
     "— verify the apiKey value and that the model id in the models array exists on this site (compare with the models endpoint).": "—— apiKey の値と、models 配列のモデル id がこのサイトに存在することを確認してください（models エンドポイントと照合）。",
     "Cannot bind: the promoter themselves, admins, or users already assigned to another promoter": "バインド不可：本人、管理者、既に他のプロモーターに紐付いているユーザー",
     "Month consumption": "今月の消費",
-    "Search by username / ID / email to add": "ユーザー名 / ID / メールで検索して追加"
+    "Search by username / ID / email to add": "ユーザー名 / ID / メールで検索して追加",
+    "Bill archived to object storage": "請求書をオブジェクトストレージにアーカイブしました",
+    "Failed to archive bill": "請求書のアーカイブに失敗しました",
+    "Download failed": "ダウンロードに失敗しました",
+    "Statement snapshot": "明細書スナップショット",
+    "Raw logs": "生ログ",
+    "Archiving...": "アーカイブ中…",
+    "Archive to object storage": "オブジェクトストレージへアーカイブ",
+    "Raw logs of this period have been archived and purged; the breakdown below may be incomplete. Use the archived statement snapshot as the source of truth.": "この期間の生ログはアーカイブ後に削除されています。以下の内訳は不完全な場合があります。アーカイブ済みの明細書スナップショットを正とします。",
+    "Day {{day}} belongs to a billing period whose bill is not archived yet": "{{day}} はまだアーカイブされていない請求書の期間に含まれます"
   }
 }

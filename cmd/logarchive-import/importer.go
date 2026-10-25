@@ -152,6 +152,71 @@ func (im *importer) importDay(ctx context.Context, day string) (int64, error) {
 	return imported, nil
 }
 
+// importBill 导入某账单账期包的 raw-logs.csv.gz：校验 sha256 后，在一个事务里删掉回放表里该企业主账号本账期的行并 COPY
+func (im *importer) importBill(ctx context.Context, billNo string) (int64, error) {
+	var (
+		userId                 int
+		periodStart, periodEnd int64
+		archivedAt             int64
+		archiveInfo            []byte
+	)
+	row := im.mainConn.QueryRow(ctx, `SELECT e.user_id, b.period_start, b.period_end, b.archived_at, COALESCE(b.archive_info::text, '')::bytea
+		FROM ent_bills b JOIN enterprises e ON e.id = b.enterprise_id WHERE b.bill_no = $1`, billNo)
+	if err := row.Scan(&userId, &periodStart, &periodEnd, &archivedAt, &archiveInfo); err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return 0, fmt.Errorf("bill %s not found", billNo)
+		}
+		return 0, err
+	}
+	bill := &model.EnterpriseBill{BillNo: billNo, ArchivedAt: archivedAt, ArchiveInfo: model.JSONValue(archiveInfo)}
+	object, err := bill.ArchiveObject(model.BillArchiveFileRawLogs)
+	if err != nil {
+		return 0, fmt.Errorf("bill %s: %w", billNo, err)
+	}
+	file, sum, err := im.download(ctx, object.Key)
+	if err != nil {
+		return 0, err
+	}
+	defer func() {
+		_ = file.Close()
+		_ = os.Remove(file.Name())
+	}()
+	if object.Sha256 != "" && object.Sha256 != sum {
+		return 0, fmt.Errorf("%s: sha256 %s != bill archive %s", object.Key, sum, object.Sha256)
+	}
+	fmt.Fprintf(im.out, "%s: verified %s\n", billNo, object.Key)
+	if im.verifyOnly {
+		return 0, nil
+	}
+	textColumns, err := im.stringColumns(ctx)
+	if err != nil {
+		return 0, err
+	}
+	tx, err := im.logConn.Begin(ctx)
+	if err != nil {
+		return 0, err
+	}
+	defer func() { _ = tx.Rollback(ctx) }()
+	ident := pgx.Identifier{im.table}.Sanitize()
+	if _, err := tx.Exec(ctx, fmt.Sprintf("DELETE FROM %s WHERE user_id = $1 AND created_at >= $2 AND created_at < $3", ident), userId, periodStart, periodEnd); err != nil {
+		return 0, err
+	}
+	if _, err := file.Seek(0, io.SeekStart); err != nil {
+		return 0, err
+	}
+	imported, err := copyCSVGz(ctx, tx.Conn(), ident, file, textColumns)
+	if err != nil {
+		return 0, err
+	}
+	if err := tx.Commit(ctx); err != nil {
+		return 0, err
+	}
+	if imported != object.Rows {
+		fmt.Fprintf(im.out, "%s: WARNING imported %d rows but bill archive says %d\n", billNo, imported, object.Rows)
+	}
+	return imported, nil
+}
+
 // download 把对象落临时文件并顺带算 sha256；对象元数据里有 sha256 时必须一致
 func (im *importer) download(ctx context.Context, key string) (*os.File, string, error) {
 	info, err := im.store.Head(ctx, key)

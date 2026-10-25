@@ -67,6 +67,8 @@ const baseBill: Bill = {
     billing_profile: { company_name: 'Acme Co', tax_id: 'A-1' },
   },
   remark: '',
+  archive_info: null,
+  archived_at: 0,
 }
 
 describe('buildInvoiceHtml', () => {

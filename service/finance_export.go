@@ -26,6 +26,44 @@ type FinanceUsageCSVPayload struct {
 	Details        []*model.FinanceUsageDetailRow
 }
 
+// BuildFinanceUsageCSVPayload 装配某用户某区间的用量 CSV 载荷：汇总 + 每日 + （可选）逐条明细 + 账号 / 企业标识。
+// HTTP 导出与账单账期包共用，保证冻结件与页面导出同口径
+func BuildFinanceUsageCSVPayload(userId int, r model.FinanceRange, includeDetail bool) (FinanceUsageCSVPayload, error) {
+	summary, err := model.GetFinanceUsageSummary(userId, r)
+	if err != nil {
+		return FinanceUsageCSVPayload{}, err
+	}
+	daily, err := model.GetFinanceUsageDaily(userId, r)
+	if err != nil {
+		return FinanceUsageCSVPayload{}, err
+	}
+	payload := FinanceUsageCSVPayload{
+		StartDay: model.FinanceDay(r.Start), EndDay: model.FinanceDay(r.EndExcl - 1), Summary: summary, Daily: daily, IncludeDetail: includeDetail,
+	}
+	if includeDetail {
+		if payload.Details, err = model.ListFinanceUsageForExport(userId, r); err != nil {
+			return FinanceUsageCSVPayload{}, err
+		}
+	}
+	payload.AccountLabel, payload.EnterpriseName = FinanceExportSubject(userId)
+	return payload, nil
+}
+
+// FinanceExportSubject 导出文件注释头里的账号标识与企业名
+func FinanceExportSubject(userId int) (accountLabel string, enterpriseName string) {
+	var user model.User
+	if err := model.DB.Unscoped().Select("id, username, email").Where("id = ?", userId).First(&user).Error; err == nil {
+		accountLabel = user.Username
+		if user.Email != "" {
+			accountLabel = user.Username + " <" + user.Email + ">"
+		}
+	}
+	if enterprise, err := model.GetEnterpriseByUserId(userId); err == nil && enterprise != nil {
+		enterpriseName = enterprise.Name
+	}
+	return accountLabel, enterpriseName
+}
+
 var financeUnitPriceCSVHeader = []string{"输入单价", "缓存命中单价", "缓存写入(5m)单价", "缓存写入(1h)单价", "输出单价"}
 
 // financeCSVPrice 单价列：缺省显示 -，小于 0.01 时保留 6 位

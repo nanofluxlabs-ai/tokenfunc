@@ -53,6 +53,7 @@ var auditContentTemplates = map[string]string{
 	"promoter.bind":     "Bound ${bound} users to promoter ${username} (ID: ${user_id})",
 	"promoter.unbind":   "Unbound user ${target_username} (ID: ${target_user_id}) from promoter ${username}",
 	"log_archive.retry": "Retried log archive for ${day} (status ${status}, rows ${rows})",
+	"bill.archive":      "Archived bill ${bill_no} to object storage (${detail_rows} statement rows, ${raw_rows} raw logs)",
 
 	"option.passkey_domains":           "Updated Passkey domains: removed ${domains}; affected ${known}; unknown ${unknown}",
 	"option.passkey_domains_confirmed": "Confirmed removal of Passkey domains: ${domains}; affected ${known}; unknown ${unknown}",

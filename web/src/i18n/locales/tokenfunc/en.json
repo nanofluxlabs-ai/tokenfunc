@@ -1133,6 +1133,15 @@
     "— verify the apiKey value and that the model id in the models array exists on this site (compare with the models endpoint).": "— verify the apiKey value and that the model id in the models array exists on this site (compare with the models endpoint).",
     "Cannot bind: the promoter themselves, admins, or users already assigned to another promoter": "Cannot bind: the promoter themselves, admins, or users already assigned to another promoter",
     "Month consumption": "Month consumption",
-    "Search by username / ID / email to add": "Search by username / ID / email to add"
+    "Search by username / ID / email to add": "Search by username / ID / email to add",
+    "Bill archived to object storage": "Bill archived to object storage",
+    "Failed to archive bill": "Failed to archive bill",
+    "Download failed": "Download failed",
+    "Statement snapshot": "Statement snapshot",
+    "Raw logs": "Raw logs",
+    "Archiving...": "Archiving...",
+    "Archive to object storage": "Archive to object storage",
+    "Raw logs of this period have been archived and purged; the breakdown below may be incomplete. Use the archived statement snapshot as the source of truth.": "Raw logs of this period have been archived and purged; the breakdown below may be incomplete. Use the archived statement snapshot as the source of truth.",
+    "Day {{day}} belongs to a billing period whose bill is not archived yet": "Day {{day}} belongs to a billing period whose bill is not archived yet"
   }
 }

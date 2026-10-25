@@ -366,4 +366,8 @@ export interface FinanceBillContext {
   } | null
   usage_ts_start: number
   usage_ts_end: number
+  /** 账期内已有原始日志被归档删除：明细区按实时 logs 计算会不完整 */
+  logs_purged: boolean
 }
+
+export type BillArchiveFile = 'statement' | 'raw-logs'

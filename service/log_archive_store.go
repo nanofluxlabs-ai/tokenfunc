@@ -33,6 +33,7 @@ type ArchiveObjectStore interface {
 	Key(parts ...string) string
 	Put(ctx context.Context, key string, body io.ReadSeeker, size int64, contentType string, metadata map[string]string) (string, error)
 	Head(ctx context.Context, key string) (objectstore.ObjectInfo, error)
+	Get(ctx context.Context, key string) (io.ReadCloser, error)
 }
 
 var (

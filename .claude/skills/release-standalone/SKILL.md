@@ -98,7 +98,7 @@ P3 部署验证或 P4 冒烟中出现以下任一情况，**立即回滚止血**
 | 容器 | `tokenfunc-api`（profile `app`）、`tokenfunc-postgres`、`tokenfunc-redis` |
 | 当前镜像 | `ssh tokenfunc "docker inspect -f '{{.Config.Image}}' tokenfunc-api"`，与 `.env` 里 `TF_API_IMAGE` 一致（P2.5 会改写） |
 | 健康 URL | `https://tokenfunc.com/api/status`（`success:true`，`data.version` 即镜像 tag） |
-| 容器访问日志 | `docker logs tokenfunc-api` 的 `[GIN]` 行：`\| 状态码 \| 耗时 \| 客户端 IP \| 方法 路径`；panic 行含 `new_api_panic` |
+| 容器访问日志 | 生产 `LOG_FORMAT=json`：`docker logs tokenfunc-api` 每行一个 JSON，访问日志 `"type":"access"`，字段 `status` / `path` / `client_ip` / `method` / `latency_ms`；panic 行含 `new_api_panic`。**不是** `[GIN]` 文本行（那是 `LOG_FORMAT=text` 的本地开发格式） |
 | 冒烟 token 环境变量 | `TOKENFUNC_SMOKE_API_KEY`（`sk-` 开头的 API 令牌，可在 `.claude/settings.local.json` 的 env 预配置） |
 
 ---
@@ -375,18 +375,18 @@ P4 通过后立即启动，不阻塞用户。用 `ScheduleWakeup(delaySeconds=60
 监控起点固定为 P3 部署完成时刻（`SINCE`，RFC3339），**每轮都从起点查到当前**，不用滑动窗口：
 
 ```bash
-# 4xx/5xx 按 状态码 / 路径 / 客户端 IP 聚合（排除流水号后的查询串）
-ssh tokenfunc "docker logs --since '<SINCE>' tokenfunc-api 2>&1 \
-  | grep '^\[GIN\]' \
-  | awk -F'|' '{gsub(/ /,\"\",\$4); gsub(/^ +| +\$/,\"\",\$6); split(\$7,p,\"?\"); gsub(/^ +/,\"\",p[1]); if (\$4+0>=400) c[\$4\" \"p[1]\" \"\$6]++} END {for (k in c) print c[k], k}' \
-  | sort -rn | head -20"
+# 访问日志是 JSON（"type":"access"）：先在生产机落一份窗口内的访问行，再用 jq 聚合 4xx/5xx 按 状态码 / 路径 / 客户端 IP
+ssh tokenfunc "docker logs --since '<SINCE>' tokenfunc-api 2>&1 | grep '\"type\":\"access\"' > /tmp/p6-access.jsonl; \
+  echo \"access=\$(wc -l < /tmp/p6-access.jsonl)\"; \
+  echo \"panic=\$(docker logs --since '<SINCE>' tokenfunc-api 2>&1 | grep -ciE 'new_api_panic|runtime error|nil pointer')\"; \
+  echo '--- 4xx/5xx by status path ip:'; \
+  jq -r 'select(.status >= 400) | \"\\(.status) \\(.path) \\(.client_ip)\"' /tmp/p6-access.jsonl | sort | uniq -c | sort -rn | head -20"
 
-# panic 巡检
-ssh tokenfunc "docker logs --since '<SINCE>' tokenfunc-api 2>&1 | grep -ciE 'new_api_panic|runtime error|nil pointer'"
-
-# sanity：窗口内必须有访问日志，否则"0 错误"不可信
-ssh tokenfunc "docker logs --since '<SINCE>' tokenfunc-api 2>&1 | grep -c '^\[GIN\]'"
+# 非访问类 warn / error（任务失败、归档告警等不会出现在访问日志里）
+ssh tokenfunc "docker logs --since '<SINCE>' tokenfunc-api 2>&1 | grep -E '\"level\":\"(error|warn)\"' | grep -v '\"type\":\"access\"' | tail -10"
 ```
+
+`access=0` 说明窗口内没有访问日志（或日志格式不是 JSON），此时「0 错误」不可信，先确认再下结论。健康检查每 10 秒打一次 `/api/health/ready`，正常窗口 access 不会是 0。本机出口 IP 用 `curl -s https://api.ipify.org` 取，冒烟与路由探测产生的 401 / 404 按它过滤。
 
 **每轮状态行（必须输出）**：
 
@@ -462,7 +462,7 @@ ssh tokenfunc "docker logs --since '<SINCE>' tokenfunc-api 2>&1 | grep -c '^\[GI
 | 生产 `/v1/models` 为空 | 还没配渠道，relay 冒烟标 ⏭️ 并说明，不算失败 |
 | 回滚时 `docker compose down` 或重启 postgres | 只 `up -d --wait api`，postgres / redis 不动，避免把全站打断 |
 | 回滚只改容器不改 `.env` | 下次任何人 `docker compose up` 又会拉回坏版本；回滚必须同时 `sed` 改 `TF_API_IMAGE` |
-| 用 nginx access.log 做监控 | 用 `docker logs tokenfunc-api` 的 `[GIN]` 行，字段固定（状态码 / 耗时 / IP / 路径），不必解析 nginx 格式 |
+| 用 nginx access.log 或 `[GIN]` 文本行做监控 | 生产是 JSON 日志，`[GIN]` grep 永远是 0 条（v2026.10.25.1 发版时踩过）；用 `"type":"access"` 行 + `jq` 聚合 `status` / `path` / `client_ip` |
 | 监控用滑动时间窗 | 固定 `--since <部署时刻>` 累计查，先看访问总数非 0 再下"0 错误"结论 |
 | P6 每轮 `noop:true` | 一律 `noop:false`，否则状态行被终端折叠 |
 | P3 完成只贴面板 | 先输出醒目的"✅ 部署已完成，服务健康"结论句，再贴面板 |

@@ -157,7 +157,7 @@ func RecordEnterpriseUsage(event EnterpriseUsageEvent) error {
 		Quota:               int64(event.Quota),
 		UpdatedAt:           common.GetTimestamp(),
 	}
-	return DB.Clauses(clause.OnConflict{
+	err = DB.Clauses(clause.OnConflict{
 		Columns: []clause.Column{
 			{Name: "day"}, {Name: "enterprise_id"}, {Name: "token_id"}, {Name: "model_name"}, {Name: "period_id"},
 			{Name: "team_id"}, {Name: "member_id"},
@@ -172,6 +172,22 @@ func RecordEnterpriseUsage(event EnterpriseUsageEvent) error {
 			"updated_at":            row.UpdatedAt,
 		}),
 	}).Create(&row).Error
+	if err != nil {
+		return err
+	}
+	// 团队预算：只对设了预算的团队判档；本节点写入的用量先累加进缓存再判
+	budget, ok := info.TeamBudgets[attribution.TeamId]
+	if !ok {
+		return nil
+	}
+	addTeamMonthUsage(attribution.TeamId, row.Quota)
+	used, err := GetTeamMonthUsage(info.EnterpriseId, attribution.TeamId)
+	if err != nil {
+		common.SysError(fmt.Sprintf("enterprise team budget: load month usage for team %d failed: %v", attribution.TeamId, err))
+		return nil
+	}
+	checkTeamBudgetAfterUsage(info.EnterpriseId, attribution.TeamId, budget, used)
+	return nil
 }
 
 // logOtherInt 从消费日志 other 的公开字段取整数（缺失或类型不符按 0）

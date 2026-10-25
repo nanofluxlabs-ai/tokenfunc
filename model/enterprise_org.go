@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/QuantumNous/new-api/common"
 
@@ -207,6 +208,10 @@ type EnterpriseTeamListItem struct {
 	EnterpriseTeam
 	MemberCount int `json:"member_count"`
 	TokenCount  int `json:"token_count"`
+	// 本月消耗与预算状态（none / ok / warn / exceeded），列表时回填
+	MonthQuota    int64  `json:"month_quota" gorm:"-"`
+	BudgetPercent int    `json:"budget_percent" gorm:"-"`
+	BudgetState   string `json:"budget_state" gorm:"-"`
 }
 
 func ListEnterpriseTeams(enterpriseId int, scope EnterpriseScope) ([]*EnterpriseTeamListItem, error) {
@@ -222,7 +227,10 @@ func ListEnterpriseTeams(enterpriseId int, scope EnterpriseScope) ([]*Enterprise
 			 WHERE a.team_id = ent_teams.id) AS token_count`).
 		Order("ent_teams.is_default DESC, ent_teams.sort ASC, ent_teams.id ASC").
 		Scan(&items).Error
-	return items, err
+	if err != nil {
+		return nil, err
+	}
+	return items, fillTeamBudgetStates(enterpriseId, items)
 }
 
 func getEnterpriseTeam(tx *gorm.DB, enterpriseId int, id int) (*EnterpriseTeam, error) {
@@ -326,21 +334,42 @@ func UpdateEnterpriseTeam(team *EnterpriseTeam) error {
 	if err := team.normalize(); err != nil {
 		return err
 	}
-	if _, err := getEnterpriseTeam(DB, team.EnterpriseId, team.Id); err != nil {
+	current, err := getEnterpriseTeam(DB, team.EnterpriseId, team.Id)
+	if err != nil {
 		return err
 	}
-	err := DB.Model(&EnterpriseTeam{}).Where("enterprise_id = ? AND id = ?", team.EnterpriseId, team.Id).Updates(map[string]any{
-		"name":                 team.Name,
-		"sort":                 team.Sort,
-		"monthly_budget_quota": team.MonthlyBudgetQuota,
-		"budget_alert_percent": team.BudgetAlertPercent,
-		"budget_enforce":       team.BudgetEnforce,
-		"updated_at":           common.GetTimestamp(),
-	}).Error
+	err = DB.Transaction(func(tx *gorm.DB) error {
+		err := tx.Model(&EnterpriseTeam{}).Where("enterprise_id = ? AND id = ?", team.EnterpriseId, team.Id).Updates(map[string]any{
+			"name":                 team.Name,
+			"sort":                 team.Sort,
+			"monthly_budget_quota": team.MonthlyBudgetQuota,
+			"budget_alert_percent": team.BudgetAlertPercent,
+			"budget_enforce":       team.BudgetEnforce,
+			"updated_at":           common.GetTimestamp(),
+		}).Error
+		if err != nil {
+			return err
+		}
+		// 预算上调：当月两档都可再触发；只改阈值：告警档按新阈值重新生效
+		month := EnterpriseBudgetMonth(time.Now())
+		if team.MonthlyBudgetQuota > current.MonthlyBudgetQuota {
+			return resetTeamBudgetNotifyTx(tx, team.Id, month, TeamBudgetKindWarn, TeamBudgetKindExceeded)
+		}
+		if team.BudgetAlertPercent != current.BudgetAlertPercent {
+			return resetTeamBudgetNotifyTx(tx, team.Id, month, TeamBudgetKindWarn)
+		}
+		return nil
+	})
 	if isUniqueViolation(err) {
 		return ErrEnterpriseDuplicateName
 	}
-	return err
+	if err != nil {
+		return err
+	}
+	// 拦截判定读的是计费信息缓存里的预算 map，配置变更后立即失效
+	InvalidateEnterpriseBillingInfoByEnterprise(team.EnterpriseId)
+	InvalidateTeamMonthUsage(team.Id)
+	return nil
 }
 
 // disableTeamTokens 停用团队名下全部启用中的 key（归档团队时）

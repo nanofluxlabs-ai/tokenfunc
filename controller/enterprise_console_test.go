@@ -33,7 +33,7 @@ func newEnterpriseConsoleRouter() *gin.Engine {
 // 企业控制台通过访问令牌（PAT）自动化访问：必须带 enterprise:* 作用域，且令牌所属用户必须是企业主账号或已绑定登录的成员
 func TestEnterpriseConsoleAccessTokenScopes(t *testing.T) {
 	admin, _ := setupAccessTokenAudit(t)
-	require.NoError(t, model.DB.AutoMigrate(&model.Token{}, &model.Enterprise{}, &model.EnterpriseTeam{}, &model.EnterpriseMember{}, &model.EnterpriseTokenAssignment{}))
+	require.NoError(t, model.DB.AutoMigrate(&model.Token{}, &model.Enterprise{}, &model.EnterpriseTeam{}, &model.EnterpriseMember{}, &model.EnterpriseTokenAssignment{}, &model.EnterpriseUsageDaily{}))
 	owner := &model.User{Username: "ent-owner", Password: "placeholder", Role: common.RoleCommonUser, Status: common.UserStatusEnabled, Group: "default", AuthVersion: 1, AffCode: "ent-owner"}
 	require.NoError(t, model.DB.Create(owner).Error)
 	require.NoError(t, model.UpgradeUserToEnterprise(owner.Id, &model.Enterprise{Name: "Owner Co"}))
@@ -68,7 +68,7 @@ func TestEnterpriseConsoleAccessTokenScopes(t *testing.T) {
 // 成员角色的范围：团队管理员只看本团队、不能建团队、不能看账单、不能授予高于自己的角色；企业管理员看全企业
 func TestEnterpriseConsoleMemberRoles(t *testing.T) {
 	setupAccessTokenAudit(t)
-	require.NoError(t, model.DB.AutoMigrate(&model.Token{}, &model.Enterprise{}, &model.EnterpriseTeam{}, &model.EnterpriseMember{}, &model.EnterpriseTokenAssignment{}, &model.EnterpriseBill{}))
+	require.NoError(t, model.DB.AutoMigrate(&model.Token{}, &model.Enterprise{}, &model.EnterpriseTeam{}, &model.EnterpriseMember{}, &model.EnterpriseTokenAssignment{}, &model.EnterpriseUsageDaily{}, &model.EnterpriseBill{}))
 	owner := &model.User{Username: "role-owner", Password: "placeholder", Role: common.RoleCommonUser, Status: common.UserStatusEnabled, Group: "default", AuthVersion: 1, AffCode: "role-own"}
 	require.NoError(t, model.DB.Create(owner).Error)
 	require.NoError(t, model.UpgradeUserToEnterprise(owner.Id, &model.Enterprise{Name: "Role Co"}))

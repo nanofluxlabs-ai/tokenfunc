@@ -44,7 +44,7 @@ func setupEnterprisePostgres(t *testing.T) {
 
 var enterpriseTestTables = []any{
 	&User{}, &Token{}, &Enterprise{}, &EnterpriseTeam{}, &EnterpriseMember{}, &EnterpriseTokenAssignment{},
-	&EnterpriseCreditPeriod{}, &EnterpriseLedgerEntry{}, &EnterpriseUsageDaily{}, &EnterpriseBill{}, &EnterpriseTrialLead{},
+	&EnterpriseCreditPeriod{}, &EnterpriseLedgerEntry{}, &EnterpriseUsageDaily{}, &EnterpriseTeamBudgetNotify{}, &EnterpriseBill{}, &EnterpriseTrialLead{},
 }
 
 func createEnterpriseTestUser(t *testing.T, username string, role int) *User {

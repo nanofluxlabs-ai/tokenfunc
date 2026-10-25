@@ -387,6 +387,7 @@ func migrateDB() error {
 		&EnterpriseCreditPeriod{},
 		&EnterpriseLedgerEntry{},
 		&EnterpriseUsageDaily{},
+		&EnterpriseTeamBudgetNotify{},
 		&EnterpriseBill{},
 		&EnterpriseTrialLead{},
 		&ChannelHourlyUsage{},

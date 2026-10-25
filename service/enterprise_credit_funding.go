@@ -131,6 +131,10 @@ func enterpriseBillingGate(c *gin.Context, relayInfo *relaycommon.RelayInfo, pre
 	if info.Status != model.EnterpriseStatusActive {
 		return nil, true, types.NewErrorWithStatusCode(errEnterpriseSuspended, types.ErrorCodeInsufficientUserQuota, http.StatusForbidden, types.ErrOptionWithSkipRetry(), types.ErrOptionWithNoRecordErrorLog())
 	}
+	// 团队预算拦截在任何资金源预扣之前，预付与授信企业都适用
+	if apiErr := checkTeamBudgetGate(c, info, relayInfo.TokenId, preConsumedQuota); apiErr != nil {
+		return nil, true, apiErr
+	}
 	if info.BillingMode != model.EnterpriseBillingModeCredit {
 		return nil, false, nil
 	}

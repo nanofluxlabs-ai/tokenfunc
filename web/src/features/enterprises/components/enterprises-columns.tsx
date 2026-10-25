@@ -16,10 +16,12 @@ import { EnterpriseRowActions } from './enterprise-row-actions'
 
 const EMPTY_CELL = '—'
 
-// 账期 end_at 是下一期起点（独占），展示时按含首尾的自然日显示，例如 2026-10-01 ~ 2026-10-31
+// 账期 end_at 是下一期起点（独占），展示时按含首尾的自然日显示，例如 2026-10-01 ~ 2026-10-31；
+// 额度信用期没有截止（end_at=0），显示为 2026-10-01 ~ —
 function formatPeriodRange(startAt: number, endAt: number): string {
-  if (startAt <= 0 || endAt <= 0) return EMPTY_CELL
+  if (startAt <= 0) return EMPTY_CELL
   const start = dayjs(startAt * 1000).format('YYYY-MM-DD')
+  if (endAt <= 0) return `${start} ~ ${EMPTY_CELL}`
   const end = dayjs(endAt * 1000)
     .subtract(1, 'second')
     .format('YYYY-MM-DD')
@@ -167,6 +169,9 @@ export function useEnterprisesColumns(): ColumnDef<EnterpriseListItem>[] {
         }
         if (row.original.credit_cycle_type === 'fixed_days') {
           return `${row.original.credit_cycle_days} ${t('days')}`
+        }
+        if (row.original.credit_cycle_type === 'quota_based') {
+          return t('By quota')
         }
         return t('Calendar month')
       },

@@ -25,6 +25,8 @@ export const TOKENFUNC_AUDIT_TEMPLATES: Record<string, string> = {
     'Configured credit for enterprise {{enterprise_id}}: {{cycle_type}}, limit {{limit_usd}} USD',
   'enterprise.credit.disable':
     'Switched enterprise {{enterprise_id}} back to prepaid',
+  'enterprise.credit.period_open':
+    'Opened credit period #{{period_no}} (ID: {{period_id}}) for enterprise {{enterprise_id}}',
   'enterprise.status': 'Set enterprise {{enterprise_id}} status to {{status}}',
   'enterprise.topup':
     'Registered offline top-up of {{amount_usd}} USD for enterprise {{enterprise_id}} (ref {{reference}})',

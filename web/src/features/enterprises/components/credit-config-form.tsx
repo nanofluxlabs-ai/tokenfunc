@@ -24,11 +24,24 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { Switch } from '@/components/ui/switch'
 import { getCurrencyDisplay } from '@/lib/currency'
 import { handleServerError } from '@/lib/handle-server-error'
 
 import { configureEnterpriseCredit } from '../api'
-import type { Enterprise } from '../types'
+import type { CreditCycleType, Enterprise } from '../types'
+
+const CYCLE_TYPES: CreditCycleType[] = [
+  'natural_month',
+  'fixed_days',
+  'quota_based',
+]
+
+function toCycleType(value: string): CreditCycleType {
+  return CYCLE_TYPES.includes(value as CreditCycleType)
+    ? (value as CreditCycleType)
+    : 'natural_month'
+}
 
 type CreditConfigFormProps = {
   enterprise: Enterprise
@@ -45,16 +58,27 @@ export function CreditConfigForm(props: CreditConfigFormProps) {
   const quotaPerUnit = getCurrencyDisplay().config.quotaPerUnit
   const schema = useMemo(
     () =>
-      z.object({
-        cycle_type: z.enum(['natural_month', 'fixed_days']),
-        cycle_days: z.number().int().min(1).max(366),
-        limit_usd: z.number().min(0, t('Credit limit cannot be negative')),
-        alert_percent: z
-          .number()
-          .int()
-          .min(0, t('Alert threshold must be between 0 and 99'))
-          .max(99, t('Alert threshold must be between 0 and 99')),
-      }),
+      z
+        .object({
+          cycle_type: z.enum(CYCLE_TYPES),
+          cycle_days: z.number().int().min(1).max(366),
+          limit_usd: z.number().min(0, t('Credit limit cannot be negative')),
+          alert_percent: z
+            .number()
+            .int()
+            .min(0, t('Alert threshold must be between 0 and 99'))
+            .max(99, t('Alert threshold must be between 0 and 99')),
+          auto_reset: z.boolean(),
+        })
+        // 额度为 0 的额度信用会在首次请求就"用满"翻转，后端同样拒绝
+        .refine(
+          (values) =>
+            values.cycle_type !== 'quota_based' || values.limit_usd > 0,
+          {
+            path: ['limit_usd'],
+            message: t('Quota based credit requires a positive limit'),
+          }
+        ),
     [t]
   )
   type Values = z.infer<typeof schema>
@@ -66,22 +90,21 @@ export function CreditConfigForm(props: CreditConfigFormProps) {
       cycle_days: 30,
       limit_usd: 0,
       alert_percent: DEFAULT_ALERT_PERCENT,
+      auto_reset: false,
     },
   })
   const cycleType = useWatch({ control: form.control, name: 'cycle_type' })
 
   useEffect(() => {
     form.reset({
-      cycle_type:
-        props.enterprise.credit_cycle_type === 'fixed_days'
-          ? 'fixed_days'
-          : 'natural_month',
+      cycle_type: toCycleType(props.enterprise.credit_cycle_type),
       cycle_days: props.enterprise.credit_cycle_days || 30,
       limit_usd: props.enterprise.credit_limit_quota / quotaPerUnit,
       // 尚未开通授信的企业沿用默认阈值；已开通的保留当前值（含 0 = 关闭）
       alert_percent: isCredit
         ? props.enterprise.credit_alert_percent
         : DEFAULT_ALERT_PERCENT,
+      auto_reset: props.enterprise.credit_auto_reset,
     })
   }, [props.enterprise, form, quotaPerUnit, isCredit])
 
@@ -124,6 +147,7 @@ export function CreditConfigForm(props: CreditConfigFormProps) {
                 items={[
                   { value: 'natural_month', label: t('Calendar month') },
                   { value: 'fixed_days', label: t('Fixed number of days') },
+                  { value: 'quota_based', label: t('By quota') },
                 ]}
                 value={field.value}
                 onValueChange={(value) =>
@@ -143,18 +167,46 @@ export function CreditConfigForm(props: CreditConfigFormProps) {
                     <SelectItem value='fixed_days'>
                       {t('Fixed number of days')}
                     </SelectItem>
+                    <SelectItem value='quota_based'>{t('By quota')}</SelectItem>
                   </SelectGroup>
                 </SelectContent>
               </Select>
-              {isCredit && (
-                <FormDescription>
-                  {t('Cycle changes take effect from the next period.')}
-                </FormDescription>
-              )}
+              <FormDescription>
+                {cycleType === 'quota_based'
+                  ? t(
+                      'The period has no end date: it is billed as soon as the limit is used up.'
+                    )
+                  : isCredit &&
+                    t('Cycle changes take effect from the next period.')}
+              </FormDescription>
               <FormMessage />
             </FormItem>
           )}
         />
+        {cycleType === 'quota_based' && (
+          <FormField
+            control={form.control}
+            name='auto_reset'
+            render={({ field }) => (
+              <FormItem className='flex items-center justify-between gap-4'>
+                <div>
+                  <FormLabel>{t('Open next period automatically')}</FormLabel>
+                  <FormDescription>
+                    {t(
+                      'On: a new period starts as soon as the limit is used up. Off: requests are rejected until the bill is paid or a period is opened manually.'
+                    )}
+                  </FormDescription>
+                </div>
+                <FormControl>
+                  <Switch
+                    checked={field.value}
+                    onCheckedChange={field.onChange}
+                  />
+                </FormControl>
+              </FormItem>
+            )}
+          />
+        )}
         {cycleType === 'fixed_days' && (
           <FormField
             control={form.control}

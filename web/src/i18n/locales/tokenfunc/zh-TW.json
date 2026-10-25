@@ -1224,6 +1224,19 @@
     "Reconciliation difference marked as reviewed": "已標記對帳差異為已核對",
     "Failed to mark as reconciled": "標記已核對失敗",
     "Confirm that the difference has been reviewed. The bill amount stays as issued.": "確認差異已人工核對。帳單金額保持出帳時的數值不變。",
-    "Note (optional)": "備註（可選）"
+    "Note (optional)": "備註（可選）",
+    "By quota": "按額度",
+    "Quota based credit requires a positive limit": "額度信用必須設定大於 0 的額度",
+    "The period has no end date: it is billed as soon as the limit is used up.": "帳期沒有固定截止日期：額度用滿即出帳。",
+    "Open next period automatically": "用滿自動開下一期",
+    "On: a new period starts as soon as the limit is used up. Off: requests are rejected until the bill is paid or a period is opened manually.": "開：額度用滿立即開始新一期。關：用滿後拒絕請求，直到帳單收款或管理員手動開期。",
+    "Open next period": "手動開下一期",
+    "A new credit period starts immediately without waiting for the bill to be paid.": "不等帳單收款，立即開始新的授信帳期。",
+    "Awaiting payment": "待收款",
+    "The limit was used up and billed; requests are rejected until the bill is paid.": "額度已用滿並出帳，收款前拒絕請求。",
+    "Usage is billed per credit period; a bill is issued as soon as the limit is used up.": "用量按授信帳期結算，額度用滿即出帳。",
+    "When the limit is used up the period is billed and the next period starts automatically.": "額度用滿後本期出帳，下一期自動開始。",
+    "When the limit is used up the period is billed; requests are rejected until the bill is paid.": "額度用滿後本期出帳，收款前拒絕請求。",
+    "Awaiting bill payment. Contact your account manager to open the next period.": "等待帳單收款。如需提前開啟下一期，請聯絡客戶經理。"
   }
 }

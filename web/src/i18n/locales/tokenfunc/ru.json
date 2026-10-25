@@ -1224,6 +1224,19 @@
     "Reconciliation difference marked as reviewed": "Расхождение сверки отмечено как проверенное",
     "Failed to mark as reconciled": "Не удалось отметить как сверенное",
     "Confirm that the difference has been reviewed. The bill amount stays as issued.": "Подтвердите, что расхождение проверено. Сумма счёта остаётся как при выставлении.",
-    "Note (optional)": "Примечание (необязательно)"
+    "Note (optional)": "Примечание (необязательно)",
+    "By quota": "По квоте",
+    "Quota based credit requires a positive limit": "Для кредита по квоте нужен положительный лимит",
+    "The period has no end date: it is billed as soon as the limit is used up.": "У периода нет даты окончания: счёт выставляется, как только лимит исчерпан.",
+    "Open next period automatically": "Автоматически открывать следующий период",
+    "On: a new period starts as soon as the limit is used up. Off: requests are rejected until the bill is paid or a period is opened manually.": "Вкл.: новый период начинается сразу после исчерпания лимита. Выкл.: запросы отклоняются, пока счёт не оплачен или период не открыт вручную.",
+    "Open next period": "Открыть следующий период",
+    "A new credit period starts immediately without waiting for the bill to be paid.": "Новый кредитный период начнётся немедленно, не дожидаясь оплаты счёта.",
+    "Awaiting payment": "Ожидает оплаты",
+    "The limit was used up and billed; requests are rejected until the bill is paid.": "Лимит исчерпан и выставлен счёт; запросы отклоняются до его оплаты.",
+    "Usage is billed per credit period; a bill is issued as soon as the limit is used up.": "Использование оплачивается по кредитным периодам; счёт выставляется, как только лимит исчерпан.",
+    "When the limit is used up the period is billed and the next period starts automatically.": "Когда лимит исчерпан, период закрывается счётом, и следующий начинается автоматически.",
+    "When the limit is used up the period is billed; requests are rejected until the bill is paid.": "Когда лимит исчерпан, выставляется счёт; запросы отклоняются до его оплаты.",
+    "Awaiting bill payment. Contact your account manager to open the next period.": "Ожидается оплата счёта. Чтобы открыть следующий период, обратитесь к менеджеру."
   }
 }

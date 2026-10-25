@@ -1224,6 +1224,19 @@
     "Reconciliation difference marked as reviewed": "Reconciliation difference marked as reviewed",
     "Failed to mark as reconciled": "Failed to mark as reconciled",
     "Confirm that the difference has been reviewed. The bill amount stays as issued.": "Confirm that the difference has been reviewed. The bill amount stays as issued.",
-    "Note (optional)": "Note (optional)"
+    "Note (optional)": "Note (optional)",
+    "By quota": "By quota",
+    "Quota based credit requires a positive limit": "Quota based credit requires a positive limit",
+    "The period has no end date: it is billed as soon as the limit is used up.": "The period has no end date: it is billed as soon as the limit is used up.",
+    "Open next period automatically": "Open next period automatically",
+    "On: a new period starts as soon as the limit is used up. Off: requests are rejected until the bill is paid or a period is opened manually.": "On: a new period starts as soon as the limit is used up. Off: requests are rejected until the bill is paid or a period is opened manually.",
+    "Open next period": "Open next period",
+    "A new credit period starts immediately without waiting for the bill to be paid.": "A new credit period starts immediately without waiting for the bill to be paid.",
+    "Awaiting payment": "Awaiting payment",
+    "The limit was used up and billed; requests are rejected until the bill is paid.": "The limit was used up and billed; requests are rejected until the bill is paid.",
+    "Usage is billed per credit period; a bill is issued as soon as the limit is used up.": "Usage is billed per credit period; a bill is issued as soon as the limit is used up.",
+    "When the limit is used up the period is billed and the next period starts automatically.": "When the limit is used up the period is billed and the next period starts automatically.",
+    "When the limit is used up the period is billed; requests are rejected until the bill is paid.": "When the limit is used up the period is billed; requests are rejected until the bill is paid.",
+    "Awaiting bill payment. Contact your account manager to open the next period.": "Awaiting bill payment. Contact your account manager to open the next period."
   }
 }

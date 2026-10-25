@@ -4,8 +4,8 @@ import { StatusBadge } from '@/components/status-badge'
 import { Progress } from '@/components/ui/progress'
 import { formatQuotaWithCurrency } from '@/lib/currency'
 
-import { isTeamBudgetBlocked } from '../lib/team-budget'
-import type { Team, TeamBudgetState } from '../types'
+import { isTeamBudgetBlocked, type TeamBudgetView } from '../lib/team-budget'
+import type { TeamBudgetState } from '../types'
 
 const INDICATOR_CLASS: Record<TeamBudgetState, string> = {
   none: 'bg-primary',
@@ -15,7 +15,8 @@ const INDICATOR_CLASS: Record<TeamBudgetState, string> = {
 }
 
 type TeamBudgetMeterProps = {
-  team: Team
+  /** 团队列表行或概览的团队预算项 */
+  team: TeamBudgetView
 }
 
 /** 团队月度预算进度：本月消耗 / 预算，达到阈值标黄、超预算标红并提示是否已拦截；未设预算不渲染 */

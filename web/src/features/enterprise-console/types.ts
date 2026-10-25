@@ -198,6 +198,35 @@ export interface CreditPeriod {
   closed_at: number
 }
 
+/** 按天消耗（概览柱图，区间内缺的日期后端已补零） */
+export interface UsageDayItem {
+  day: string
+  quota: number
+  request_count: number
+}
+
+/** 团队本月消耗与预算进度（概览待办 / 团队角色第一张卡） */
+export interface OverviewTeamBudget {
+  team_id: number
+  team_name: string
+  month_quota: number
+  budget_quota: number
+  budget_percent: number
+  budget_state: TeamBudgetState
+  budget_enforce: boolean
+}
+
+/** 概览待办：计数为 0 / 列表为空即无待办；账单与授信预警只对企业主 / 企业管理员下发 */
+export interface OverviewTodos {
+  unpaid_bills: number
+  overdue_bills: number
+  exhausted_keys: number
+  expiring_keys: number
+  credit_alert_hit: boolean
+  team_budget_warn: OverviewTeamBudget[]
+  team_budget_exceeded: OverviewTeamBudget[]
+}
+
 export interface EnterpriseOverview {
   enterprise: EnterpriseSelf & {
     credit_cycle_type: string
@@ -209,6 +238,22 @@ export interface EnterpriseOverview {
   }
   balance_quota: number
   open_period: CreditPeriod | null
+  month: { quota: number; prev_quota: number }
+  keys: {
+    total: number
+    active: number
+    disabled: number
+    exhausted: number
+    expired: number
+    expiring_7d: number
+  }
+  org: { teams: number; members: number; login_members: number }
+  daily: UsageDayItem[]
+  todos: OverviewTodos
+  /** 团队角色：本团队预算（未设预算为 null）；企业视角为 null */
+  team_budget: OverviewTeamBudget | null
+  /** 团队角色的可见范围；企业视角为 null */
+  scope: { team_id: number; team_name: string } | null
 }
 
 export type UsageGroupBy = 'team' | 'member' | 'model' | 'token' | 'day'

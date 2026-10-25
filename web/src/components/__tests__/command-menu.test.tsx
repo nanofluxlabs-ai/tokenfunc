@@ -25,9 +25,10 @@ import {
 } from '@tanstack/react-router'
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { afterAll, afterEach, beforeAll, expect, test } from 'vitest'
+import { afterAll, afterEach, beforeAll, expect, test, vi } from 'vitest'
 
 import { SearchProvider } from '@/context/search-provider'
+import { api } from '@/lib/api'
 import { ROLE } from '@/lib/roles'
 import { STATUS_QUERY_KEY } from '@/lib/status-query'
 import { useAuthStore } from '@/stores/auth-store'
@@ -74,6 +75,10 @@ afterEach(() => {
 })
 
 async function searchEntriesFor(role: number, sidebarModulesAdmin = '') {
+  // 侧边栏会拉企业 / 推广人自查接口；不 mock 时请求真实打到本机后端，401 刷新失败后清空登录态，Admin 分组随之消失
+  vi.spyOn(api, 'get').mockResolvedValue({
+    data: { success: true, data: null },
+  })
   useAuthStore.getState().auth.setUser({ id: 1, username: 'alice', role })
   const client = new QueryClient({
     defaultOptions: { queries: { retry: false } },

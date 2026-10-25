@@ -423,9 +423,22 @@ func TestEnterpriseBillRemindersAndStatements(t *testing.T) {
 	require.Equal(t, int64(1), total)
 	assert.Regexp(t, `^ST-\d{6}-\d{6}$`, statements[0].BillNo)
 	assert.Equal(t, lastMonth.Unix(), statements[0].PeriodStart)
-	var snapshot map[string]int64
+	// 对账单快照：余额变动五项 + 归因块（by_team / by_member 来自 ent_usage_daily 按自然月取）；日志库不可用时没有 v2 财务块
+	var snapshot struct {
+		Opening     int64                         `json:"opening_quota"`
+		Topup       int64                         `json:"topup_quota"`
+		Consumption int64                         `json:"consumption_quota"`
+		Adjustment  int64                         `json:"adjustment_quota"`
+		Closing     int64                         `json:"closing_quota"`
+		DetailTotal int64                         `json:"detail_total_quota"`
+		ByTeam      []*EnterpriseUsageSummaryItem `json:"by_team"`
+		ByMember    []*EnterpriseUsageSummaryItem `json:"by_member"`
+	}
 	require.NoError(t, common.Unmarshal(statements[0].UsageSnapshot, &snapshot))
-	assert.Equal(t, map[string]int64{"opening_quota": 820, "topup_quota": 300, "consumption_quota": 120, "adjustment_quota": 0, "closing_quota": 1000}, snapshot)
+	assert.Equal(t, [6]int64{820, 300, 120, 0, 1000, 120}, [6]int64{snapshot.Opening, snapshot.Topup, snapshot.Consumption, snapshot.Adjustment, snapshot.Closing, snapshot.DetailTotal})
+	require.Len(t, snapshot.ByTeam, 1)
+	assert.Equal(t, int64(120), snapshot.ByTeam[0].Quota)
+	require.Len(t, snapshot.ByMember, 1)
 }
 
 func TestEnterpriseTrialLeadLifecycle(t *testing.T) {

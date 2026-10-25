@@ -2,7 +2,7 @@
 
 - 日期：2026-10-26
 - 分支：feat/ent-token-quota-policy（worktree `agent-aeadf44ece2982ecd`，slot 2：API 3002 / 前端 5175 / schema `dev_agent_aeadf44ece2982ecd` / `test_agent_aeadf44ece2982ecd` / Redis db 4、5）
-- PR：
+- PR：#58
 - 关键 commit：9a7057960（后端）
 
 ## 背景

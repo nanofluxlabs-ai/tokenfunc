@@ -137,19 +137,19 @@ func enterpriseBillNo(issuedAt int64, id int64) string {
 	return fmt.Sprintf("TF-%s-%06d", time.Unix(issuedAt, 0).In(enterpriseBillingLocation).Format("200601"), id)
 }
 
-// summarizeUsageByPeriod 账期内按模型/部门/项目的汇总，写进账单快照
+// summarizeUsageByPeriod 账期内按模型/团队/成员的汇总，写进账单快照
 func summarizeUsageByPeriod(tx *gorm.DB, enterpriseId int, periodId int64) (map[string]any, error) {
 	snapshot := map[string]any{}
-	sums := "SUM(u.request_count) AS request_count, SUM(u.prompt_tokens) AS prompt_tokens, SUM(u.completion_tokens) AS completion_tokens, SUM(u.quota) AS quota"
+	sums := enterpriseUsageSums
 	groups := []struct {
 		key   string
 		query *gorm.DB
 	}{
 		{"by_model", tx.Table("ent_usage_daily u").Select("0 AS key_id, u.model_name AS key_name, " + sums).Group("u.model_name")},
-		{"by_department", tx.Table("ent_usage_daily u").Select("u.department_id AS key_id, COALESCE(MAX(d.name), '') AS key_name, " + sums).
-			Joins("LEFT JOIN ent_departments d ON d.id = u.department_id").Group("u.department_id")},
-		{"by_project", tx.Table("ent_usage_daily u").Select("u.project_id AS key_id, COALESCE(MAX(p.name), '') AS key_name, " + sums).
-			Joins("LEFT JOIN ent_projects p ON p.id = u.project_id").Group("u.project_id")},
+		{"by_team", tx.Table("ent_usage_daily u").Select("u.team_id AS key_id, COALESCE(MAX(tm.name), '') AS key_name, " + sums).
+			Joins("LEFT JOIN ent_teams tm ON tm.id = u.team_id").Group("u.team_id")},
+		{"by_member", tx.Table("ent_usage_daily u").Select("u.member_id AS key_id, COALESCE(MAX(m.name), '') AS key_name, " + sums).
+			Joins("LEFT JOIN ent_members m ON m.id = u.member_id").Group("u.member_id")},
 	}
 	for _, group := range groups {
 		items := make([]*EnterpriseUsageSummaryItem, 0)

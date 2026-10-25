@@ -18,42 +18,45 @@ import { useDebounce } from '@/hooks/use-debounce'
 import { requireServerSuccess } from '@/lib/server-error-message'
 import { cn } from '@/lib/utils'
 
-import { listEmployees } from '../api'
+import { listMembers } from '../api'
 
-/** 下拉里的特殊值：-1 表示"全部"（仅筛选场景），0 表示未指定员工 */
-export const EMPLOYEE_PICKER_ANY = -1
+/** 下拉里的特殊值：-1 表示"全部"（仅筛选场景），0 表示未指定成员 */
+export const MEMBER_PICKER_ANY = -1
 
-type EmployeeOption = { value: number; label: string; description?: string }
+type MemberOption = { value: number; label: string; description?: string }
 
-type EmployeePickerProps = {
+type MemberPickerProps = {
   value: number
   onChange: (value: number) => void
-  /** 已选员工的显示名；当该员工不在当前搜索结果里时用来回显 */
+  /** 已选成员的显示名；当该成员不在当前搜索结果里时用来回显 */
   selectedLabel?: string
   noneLabel: string
-  /** 是否提供"全部员工"选项（筛选场景） */
+  /** 是否提供"全部成员"选项（筛选场景） */
   allowAny?: boolean
+  /** 只列某个团队的成员（key 归属场景：持有人必须属于该团队） */
+  teamId?: number
   id?: string
   'aria-label'?: string
 }
 
 /**
- * 可搜索的员工选择器：外观与项目 / 部门用的 Select 触发器一致，
- * 搜索框放在弹层内，按关键字从服务端搜索在职员工（最多 20 条），
- * 避免一次性加载全部员工撞上分页上限。
+ * 可搜索的成员选择器：外观与团队用的 Select 触发器一致，
+ * 搜索框放在弹层内，按关键字从服务端搜索在职成员（最多 20 条），
+ * 避免一次性加载全部成员撞上分页上限。
  */
-export function EmployeePicker(props: EmployeePickerProps) {
+export function MemberPicker(props: MemberPickerProps) {
   const { t } = useTranslation()
   const [open, setOpen] = useState(false)
   const [search, setSearch] = useState('')
   const keyword = useDebounce(search.trim(), 300)
 
   const { data, isFetching } = useQuery({
-    queryKey: ['enterprise', 'employees', 'picker', keyword],
+    queryKey: ['enterprise', 'members', 'picker', props.teamId ?? 0, keyword],
     queryFn: async () =>
       requireServerSuccess(
-        await listEmployees({
+        await listMembers({
           status: 'active',
+          team_id: props.teamId || undefined,
           keyword: keyword || undefined,
           page_size: 20,
         })
@@ -62,16 +65,16 @@ export function EmployeePicker(props: EmployeePickerProps) {
     staleTime: 30 * 1000,
   })
 
-  const options = useMemo<EmployeeOption[]>(() => {
-    const fixed: EmployeeOption[] = []
+  const options = useMemo<MemberOption[]>(() => {
+    const fixed: MemberOption[] = []
     if (props.allowAny) {
-      fixed.push({ value: EMPLOYEE_PICKER_ANY, label: t('All Employees') })
+      fixed.push({ value: MEMBER_PICKER_ANY, label: t('All Members') })
     }
     fixed.push({ value: 0, label: props.noneLabel })
-    const fromServer: EmployeeOption[] = (data ?? []).map((employee) => ({
-      value: employee.id,
-      label: employee.name,
-      description: [employee.department_name, employee.employee_no]
+    const fromServer: MemberOption[] = (data ?? []).map((member) => ({
+      value: member.id,
+      label: member.name,
+      description: [member.team_name, member.employee_no]
         .filter(Boolean)
         .join(' · '),
     }))
@@ -93,7 +96,7 @@ export function EmployeePicker(props: EmployeePickerProps) {
 
   const selected =
     options.find((option) => option.value === props.value) ?? null
-  // 弹层未打开时搜索结果可能为空，已选员工靠 selectedLabel 回显
+  // 弹层未打开时搜索结果可能为空，已选成员靠 selectedLabel 回显
   const displayedLabel = selected?.label ?? props.selectedLabel ?? ''
 
   return (
@@ -130,15 +133,15 @@ export function EmployeePicker(props: EmployeePickerProps) {
       </ComboboxTrigger>
       <ComboboxContent>
         <ComboboxInput
-          placeholder={t('Search employees...')}
-          aria-label={t('Search employees...')}
+          placeholder={t('Search members...')}
+          aria-label={t('Search members...')}
           showTrigger={false}
         />
         <ComboboxEmpty>
           {isFetching ? t('Loading...') : t('No results found')}
         </ComboboxEmpty>
         <ComboboxList>
-          {(option: EmployeeOption) => (
+          {(option: MemberOption) => (
             <ComboboxItem key={option.value} value={option}>
               <span className='min-w-0 break-words'>
                 {option.label}

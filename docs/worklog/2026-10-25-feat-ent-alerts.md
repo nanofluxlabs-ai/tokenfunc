@@ -56,6 +56,7 @@
 - 前端：`bun run typecheck` 通过；`bunx vitest run` 相关目录 8 个文件 27 用例通过（新增 `credit-alert-hint.test.tsx`、`reconcile-diff-alert.test.tsx`、`bills-admin-page-reconcile.test.tsx`，`locale-shape.test.ts` 七文件键集一致）；`bunx oxlint` 对改动文件无 error；只对新 / 改文件跑了 `bunx oxfmt --write`。
 - 过程中发现并修复：service 包全量跑时 `TestFixedPriceBillingDatabaseMatrix/sqlite` 失败，根因是 funding 测试把授信态留在按 user_id 的进程内缓存里、后续 sqlite 用例同 id 用户命中授信路径；已在 `newCreditEnterprise` 加 `t.Cleanup` 失效缓存（与 controller 测试同做法）。
 - 未做：浏览器手工验收（acme 调额 → 收邮件、人工制造差异出账 → 财务 Tab 可见并 ack）；`make dev` 冒烟未跑。
+- 已合 main（#49，团队 / 成员 / key 三层模型）：冲突只在 6 个 Go 测试夹具表列表（`ent_departments/ent_employees/ent_projects` → `EnterpriseTeam/EnterpriseMember`，补 `EnterpriseCreditNotifyRecord`）与七个 tokenfunc locale 文件（两边都在末尾追加键，按 main 优先合并、本分支独有 17 键补入，`Alert threshold must be between 0 and 99` 两边同键）。合并后 `go build ./...`、`go vet`、`gofmt -l` 通过；`make test-db` 五包：`ok model 41.576s / ok service 12.917s / ok controller 56.791s / ok middleware 0.747s / ok router 0.961s`；`bun run typecheck` 通过；相关 vitest `8 files / 27 tests passed`；oxlint 无 error。前端未引用旧的 `isEnterpriseOwner`，无需改。
 
 ## 遗留
 

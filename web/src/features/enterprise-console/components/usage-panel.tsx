@@ -22,13 +22,12 @@ import { formatDateStr, formatNumber } from '@/lib/format'
 import { handleServerError } from '@/lib/handle-server-error'
 import { requireServerSuccess } from '@/lib/server-error-message'
 
-import { downloadUsageCsv } from '../api'
+import { downloadUsageCsv, type UsageQuery } from '../api'
 import type { ApiResponse, UsageGroupBy, UsageSummary } from '../types'
 
 const GROUP_OPTIONS: { value: UsageGroupBy; labelKey: string }[] = [
-  { value: 'department', labelKey: 'Department' },
-  { value: 'employee', labelKey: 'Employee' },
-  { value: 'project', labelKey: 'Project' },
+  { value: 'team', labelKey: 'Team' },
+  { value: 'member', labelKey: 'Member' },
   { value: 'model', labelKey: 'Model' },
   { value: 'token', labelKey: 'API Key' },
   { value: 'day', labelKey: 'Day' },
@@ -37,12 +36,10 @@ const GROUP_OPTIONS: { value: UsageGroupBy; labelKey: string }[] = [
 type UsagePanelProps = {
   /** react-query 缓存前缀，管理员与企业侧用不同的 key */
   queryKey: readonly unknown[]
-  fetchSummary: (params: {
-    group_by: UsageGroupBy
-    from: string
-    to: string
-  }) => Promise<ApiResponse<UsageSummary>>
+  fetchSummary: (params: UsageQuery) => Promise<ApiResponse<UsageSummary>>
   exportUrl: string
+  /** 固定筛选（团队角色只看本团队；管理员侧按需传） */
+  filter?: Pick<UsageQuery, 'team_id' | 'member_id'>
 }
 
 function defaultRange(): { from: Date; to: Date } {
@@ -57,17 +54,26 @@ export function UsagePanel(props: UsagePanelProps) {
   const { t, i18n } = useTranslation()
   const locale = toIntlLocale(i18n.resolvedLanguage || i18n.language)
   const [range, setRange] = useState(defaultRange)
-  const [groupBy, setGroupBy] = useState<UsageGroupBy>('department')
+  const [groupBy, setGroupBy] = useState<UsageGroupBy>('team')
+  const filter = props.filter ?? {}
   const [exporting, setExporting] = useState(false)
   const from = formatDateStr(range.from)
   const to = formatDateStr(range.to)
   const invalidRange = from > to
 
   const summary = useQuery({
-    queryKey: [...props.queryKey, 'usage', groupBy, from, to],
+    queryKey: [
+      ...props.queryKey,
+      'usage',
+      groupBy,
+      from,
+      to,
+      filter.team_id,
+      filter.member_id,
+    ],
     queryFn: async () =>
       requireServerSuccess(
-        await props.fetchSummary({ group_by: groupBy, from, to })
+        await props.fetchSummary({ ...filter, group_by: groupBy, from, to })
       ).data?.items ?? [],
     enabled: !invalidRange,
   })
@@ -78,9 +84,10 @@ export function UsagePanel(props: UsagePanelProps) {
         (acc, item) => ({
           requests: acc.requests + item.request_count,
           tokens: acc.tokens + item.prompt_tokens + item.completion_tokens,
+          cache: acc.cache + item.cache_tokens,
           quota: acc.quota + item.quota,
         }),
-        { requests: 0, tokens: 0, quota: 0 }
+        { requests: 0, tokens: 0, cache: 0, quota: 0 }
       ),
     [items]
   )
@@ -88,7 +95,11 @@ export function UsagePanel(props: UsagePanelProps) {
   const handleExport = async () => {
     setExporting(true)
     try {
-      const blob = await downloadUsageCsv(props.exportUrl, { from, to })
+      const blob = await downloadUsageCsv(props.exportUrl, {
+        ...filter,
+        from,
+        to,
+      })
       const url = URL.createObjectURL(blob)
       const link = document.createElement('a')
       link.href = url
@@ -103,8 +114,7 @@ export function UsagePanel(props: UsagePanelProps) {
   }
 
   const unassignedLabel = () => {
-    if (groupBy === 'employee') return t('Shared (no employee)')
-    if (groupBy === 'project') return t('No project')
+    if (groupBy === 'member') return t('Team key (no holder)')
     return t('Unassigned')
   }
   const columns: StaticDataTableColumn<(typeof items)[number]>[] = [
@@ -127,6 +137,11 @@ export function UsagePanel(props: UsagePanelProps) {
       id: 'prompt',
       header: t('Prompt Tokens'),
       cell: (row) => formatNumber(row.prompt_tokens, locale),
+    },
+    {
+      id: 'cache',
+      header: t('Cache Tokens'),
+      cell: (row) => formatNumber(row.cache_tokens, locale),
     },
     {
       id: 'completion',
@@ -187,6 +202,13 @@ export function UsagePanel(props: UsagePanelProps) {
             <CardTitle className='font-mono'>
               {formatNumber(totals.tokens, locale)}
             </CardTitle>
+            {totals.cache > 0 && (
+              <CardDescription>
+                {t('Cached: {{count}}', {
+                  count: formatNumber(totals.cache, locale),
+                })}
+              </CardDescription>
+            )}
           </CardHeader>
         </Card>
         <Card>

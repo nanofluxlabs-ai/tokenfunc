@@ -33,8 +33,8 @@ func setupCreditBillingPostgres(t *testing.T) {
 	require.NoError(t, err)
 	require.NoError(t, i18n.Init())
 	tables := []any{
-		&model.User{}, &model.Token{}, &model.Enterprise{}, &model.EnterpriseDepartment{}, &model.EnterpriseEmployee{},
-		&model.EnterpriseProject{}, &model.EnterpriseTokenAssignment{}, &model.EnterpriseCreditPeriod{}, &model.EnterpriseCreditNotifyRecord{}, &model.EnterpriseLedgerEntry{},
+		&model.User{}, &model.Token{}, &model.Enterprise{}, &model.EnterpriseTeam{}, &model.EnterpriseMember{},
+		&model.EnterpriseTokenAssignment{}, &model.EnterpriseCreditPeriod{}, &model.EnterpriseCreditNotifyRecord{}, &model.EnterpriseLedgerEntry{},
 	}
 	previousDB, previousLogDB := model.DB, model.LOG_DB
 	previousMain, previousLog := common.MainDatabaseType(), common.LogDatabaseType()
@@ -121,15 +121,15 @@ func newCreditBillingEnterprise(t *testing.T, username string, mode string) (*mo
 	return user, enterprise
 }
 
-// newCreditBillingKey 建一把主账号持有的 key；employeeId / projectId 非 0 时写入归属
-func newCreditBillingKey(t *testing.T, user *model.User, enterprise *model.Enterprise, key string, employeeId int, projectId int) *model.Token {
+// newCreditBillingKey 建一把主账号持有的 key；teamId 为 0 落默认团队，memberId 非 0 表示分配给成员
+func newCreditBillingKey(t *testing.T, user *model.User, enterprise *model.Enterprise, key string, teamId int, memberId int) *model.Token {
 	t.Helper()
 	token := &model.Token{UserId: user.Id, Key: key, Name: key, Status: common.TokenStatusEnabled, ExpiredTime: -1, RemainQuota: 999999, UsedQuota: 7}
 	if enterprise == nil {
 		require.NoError(t, model.DB.Create(token).Error)
 		return token
 	}
-	require.NoError(t, model.CreateEnterpriseToken(enterprise.Id, token, employeeId, projectId))
+	require.NoError(t, model.CreateEnterpriseToken(enterprise.Id, model.EnterpriseScope{}, token, teamId, memberId))
 	model.InvalidateTokenAttribution(token.Id)
 	return token
 }
@@ -201,13 +201,11 @@ func TestCreditBillingEndpoints(t *testing.T) {
 		assert.Equal(t, operation_setting.QuotaDisplayTypeTokens, body["quota_display_type"])
 	})
 
-	t.Run("employee key is rejected until reassigned to a project", func(t *testing.T) {
+	t.Run("member key is rejected until reassigned as a team key", func(t *testing.T) {
 		owner, enterprise := newCreditBillingEnterprise(t, "credit-employee", model.EnterpriseBillingModeCredit)
-		employee := &model.EnterpriseEmployee{EnterpriseId: enterprise.Id, Name: "Alice"}
-		require.NoError(t, model.CreateEnterpriseEmployee(employee))
-		project := &model.EnterpriseProject{EnterpriseId: enterprise.Id, Name: "Tencent Cloud"}
-		require.NoError(t, model.CreateEnterpriseProject(project))
-		token := newCreditBillingKey(t, owner, enterprise, "creditemployeekey", employee.Id, 0)
+		member := &model.EnterpriseMember{EnterpriseId: enterprise.Id, Name: "Alice"}
+		require.NoError(t, model.CreateEnterpriseMember(member))
+		token := newCreditBillingKey(t, owner, enterprise, "creditemployeekey", 0, member.Id)
 
 		for _, path := range []string{"subscription", "usage", "credit"} {
 			status, body := creditBillingRequest(t, router, path, "creditemployeekey")
@@ -215,8 +213,8 @@ func TestCreditBillingEndpoints(t *testing.T) {
 			assert.Equal(t, "access_denied", creditBillingErrorCode(body), path)
 		}
 
-		// 改成仅项目归属后立即放行（归属缓存已失效）
-		require.NoError(t, model.AssignEnterpriseToken(enterprise.Id, owner.Id, token.Id, 0, project.Id))
+		// 改成团队公共 key（无持有人）后立即放行（归属缓存已失效）
+		require.NoError(t, model.AssignEnterpriseToken(enterprise.Id, owner.Id, model.EnterpriseScope{}, token.Id, 0, 0))
 		for _, path := range []string{"subscription", "usage", "credit"} {
 			status, body := creditBillingRequest(t, router, path, "creditemployeekey")
 			assert.Equal(t, http.StatusOK, status, path, body)

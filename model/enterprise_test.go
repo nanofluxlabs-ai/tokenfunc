@@ -43,7 +43,7 @@ func setupEnterprisePostgres(t *testing.T) {
 }
 
 var enterpriseTestTables = []any{
-	&User{}, &Token{}, &Enterprise{}, &EnterpriseDepartment{}, &EnterpriseEmployee{}, &EnterpriseProject{}, &EnterpriseTokenAssignment{},
+	&User{}, &Token{}, &Enterprise{}, &EnterpriseTeam{}, &EnterpriseMember{}, &EnterpriseTokenAssignment{},
 	&EnterpriseCreditPeriod{}, &EnterpriseCreditNotifyRecord{}, &EnterpriseLedgerEntry{}, &EnterpriseUsageDaily{}, &EnterpriseBill{}, &EnterpriseTrialLead{},
 }
 
@@ -166,172 +166,6 @@ func TestEnterpriseUserTypeFilterAndList(t *testing.T) {
 	assert.Equal(t, int64(0), byName["Initech"].PeriodLimitQuota)
 	assert.Equal(t, int64(0), byName["Initech"].PeriodUsedQuota)
 	assert.Equal(t, int64(0), byName["Initech"].PeriodEndAt)
-}
-
-func TestEnterpriseDepartmentTree(t *testing.T) {
-	setupEnterprisePostgres(t)
-	owner := createEnterpriseTestUser(t, "deptowner", common.RoleCommonUser)
-	require.NoError(t, UpgradeUserToEnterprise(owner.Id, &Enterprise{Name: "Dept Co"}))
-	ent, err := GetEnterpriseByUserId(owner.Id)
-	require.NoError(t, err)
-	other := createEnterpriseTestUser(t, "otherowner", common.RoleCommonUser)
-	require.NoError(t, UpgradeUserToEnterprise(other.Id, &Enterprise{Name: "Other Co"}))
-	otherEnt, err := GetEnterpriseByUserId(other.Id)
-	require.NoError(t, err)
-
-	rd := &EnterpriseDepartment{EnterpriseId: ent.Id, Name: "R&D"}
-	require.NoError(t, CreateEnterpriseDepartment(rd))
-	backend := &EnterpriseDepartment{EnterpriseId: ent.Id, ParentId: rd.Id, Name: "Backend"}
-	require.NoError(t, CreateEnterpriseDepartment(backend))
-
-	// 同级重名拒绝；不同父级允许同名
-	assert.ErrorIs(t, CreateEnterpriseDepartment(&EnterpriseDepartment{EnterpriseId: ent.Id, ParentId: rd.Id, Name: "Backend"}), ErrEnterpriseDuplicateName)
-	require.NoError(t, CreateEnterpriseDepartment(&EnterpriseDepartment{EnterpriseId: ent.Id, Name: "Backend"}))
-
-	// 不能挂到自己的子孙下面，也不能挂到其他企业的部门下面
-	assert.ErrorIs(t, UpdateEnterpriseDepartment(ent.Id, rd.Id, "R&D", backend.Id, 0), ErrEnterpriseDepartmentCycle)
-	otherDept := &EnterpriseDepartment{EnterpriseId: otherEnt.Id, Name: "Ops"}
-	require.NoError(t, CreateEnterpriseDepartment(otherDept))
-	assert.ErrorIs(t, CreateEnterpriseDepartment(&EnterpriseDepartment{EnterpriseId: ent.Id, ParentId: otherDept.Id, Name: "X"}), ErrEnterpriseResourceNotFound)
-
-	// 有子部门或员工时不能删除；清空后可删除，删除后同名可重建
-	assert.ErrorIs(t, DeleteEnterpriseDepartment(ent.Id, rd.Id), ErrEnterpriseDepartmentInUse)
-	employee := &EnterpriseEmployee{EnterpriseId: ent.Id, DepartmentId: backend.Id, Name: "Alice"}
-	require.NoError(t, CreateEnterpriseEmployee(employee))
-	assert.ErrorIs(t, DeleteEnterpriseDepartment(ent.Id, backend.Id), ErrEnterpriseDepartmentInUse)
-	require.NoError(t, DeleteEnterpriseEmployee(ent.Id, employee.Id))
-	require.NoError(t, DeleteEnterpriseDepartment(ent.Id, backend.Id))
-	require.NoError(t, CreateEnterpriseDepartment(&EnterpriseDepartment{EnterpriseId: ent.Id, ParentId: rd.Id, Name: "Backend"}))
-}
-
-func TestEnterpriseTokenAssignmentAndEmployeeLifecycle(t *testing.T) {
-	setupEnterprisePostgres(t)
-	owner := createEnterpriseTestUser(t, "keyowner", common.RoleCommonUser)
-	require.NoError(t, UpgradeUserToEnterprise(owner.Id, &Enterprise{Name: "Key Co"}))
-	ent, err := GetEnterpriseByUserId(owner.Id)
-	require.NoError(t, err)
-	other := createEnterpriseTestUser(t, "keyother", common.RoleCommonUser)
-	require.NoError(t, UpgradeUserToEnterprise(other.Id, &Enterprise{Name: "Key Other"}))
-	otherEnt, err := GetEnterpriseByUserId(other.Id)
-	require.NoError(t, err)
-
-	dept := &EnterpriseDepartment{EnterpriseId: ent.Id, Name: "Sales"}
-	require.NoError(t, CreateEnterpriseDepartment(dept))
-	alice := &EnterpriseEmployee{EnterpriseId: ent.Id, DepartmentId: dept.Id, Name: "Alice", EmployeeNo: "E001"}
-	require.NoError(t, CreateEnterpriseEmployee(alice))
-	assert.ErrorIs(t, CreateEnterpriseEmployee(&EnterpriseEmployee{EnterpriseId: ent.Id, Name: "Dup", EmployeeNo: "E001"}), ErrEnterpriseDuplicateName)
-	require.NoError(t, CreateEnterpriseEmployee(&EnterpriseEmployee{EnterpriseId: otherEnt.Id, Name: "Same No", EmployeeNo: "E001"}))
-	project := &EnterpriseProject{EnterpriseId: ent.Id, Name: "Chatbot"}
-	require.NoError(t, CreateEnterpriseProject(project))
-	otherEmployee := &EnterpriseEmployee{EnterpriseId: otherEnt.Id, Name: "Mallory"}
-	require.NoError(t, CreateEnterpriseEmployee(otherEmployee))
-
-	newToken := func(key string) *Token {
-		return &Token{UserId: owner.Id, Name: key, Key: key, Status: common.TokenStatusEnabled, ExpiredTime: -1, UnlimitedQuota: true}
-	}
-	aliceKey := newToken("alicekey0000000000000000000000000000000000000001")
-	require.NoError(t, CreateEnterpriseToken(ent.Id, aliceKey, alice.Id, project.Id))
-	// 不能分配给其他企业的员工；失败时 key 不落库
-	strayKey := newToken("straykey0000000000000000000000000000000000000001")
-	assert.ErrorIs(t, CreateEnterpriseToken(ent.Id, strayKey, otherEmployee.Id, 0), ErrEnterpriseResourceNotFound)
-	var strayCount int64
-	require.NoError(t, DB.Model(&Token{}).Where("name = ?", strayKey.Name).Count(&strayCount).Error)
-	assert.Equal(t, int64(0), strayCount)
-	publicKey := newToken("publickey000000000000000000000000000000000000001")
-	require.NoError(t, CreateEnterpriseToken(ent.Id, publicKey, 0, 0))
-
-	items, total, err := ListEnterpriseTokens(ent.Id, owner.Id, EnterpriseTokenFilter{EmployeeId: &alice.Id}, 0, 20)
-	require.NoError(t, err)
-	require.Equal(t, int64(1), total)
-	assert.Equal(t, "Alice", items[0].EmployeeName)
-	assert.Equal(t, "Sales", items[0].DepartmentName)
-	assert.Equal(t, "Chatbot", items[0].ProjectName)
-	assert.NotEqual(t, aliceKey.Key, items[0].Key, "key must be masked")
-	unassigned := 0
-	_, total, err = ListEnterpriseTokens(ent.Id, owner.Id, EnterpriseTokenFilter{EmployeeId: &unassigned}, 0, 20)
-	require.NoError(t, err)
-	assert.Equal(t, int64(1), total)
-
-	// 归属只能指向本企业的 key；归档项目不能再分配
-	assert.ErrorIs(t, AssignEnterpriseToken(otherEnt.Id, other.Id, aliceKey.Id, 0, 0), ErrEnterpriseResourceNotFound)
-	project.Status = EnterpriseProjectStatusArchived
-	require.NoError(t, UpdateEnterpriseProject(project))
-	assert.ErrorIs(t, AssignEnterpriseToken(ent.Id, owner.Id, publicKey.Id, 0, project.Id), ErrEnterpriseProjectArchived)
-
-	// 停用员工：名下 key 同步停用，且不能再分配新 key
-	alice.Status = EnterpriseEmployeeStatusDisabled
-	require.NoError(t, UpdateEnterpriseEmployee(alice))
-	stored, err := GetTokenById(aliceKey.Id)
-	require.NoError(t, err)
-	assert.Equal(t, common.TokenStatusDisabled, stored.Status)
-	assert.ErrorIs(t, AssignEnterpriseToken(ent.Id, owner.Id, publicKey.Id, alice.Id, 0), ErrEnterpriseEmployeeNotActive)
-	stored, err = GetTokenById(publicKey.Id)
-	require.NoError(t, err)
-	assert.Equal(t, common.TokenStatusEnabled, stored.Status, "unrelated keys stay enabled")
-
-	// 删除员工后历史归属保留（列表仍能看到员工名）
-	require.NoError(t, DeleteEnterpriseEmployee(ent.Id, alice.Id))
-	items, _, err = ListEnterpriseTokens(ent.Id, owner.Id, EnterpriseTokenFilter{EmployeeId: &alice.Id}, 0, 20)
-	require.NoError(t, err)
-	require.Len(t, items, 1)
-	assert.Equal(t, "Alice", items[0].EmployeeName)
-	employees, total, err := ListEnterpriseEmployees(ent.Id, EnterpriseEmployeeFilter{}, 0, 20)
-	require.NoError(t, err)
-	assert.Equal(t, int64(0), total)
-	assert.Empty(t, employees)
-}
-
-func TestEnterpriseEmployeeImportIsAllOrNothing(t *testing.T) {
-	setupEnterprisePostgres(t)
-	owner := createEnterpriseTestUser(t, "importowner", common.RoleCommonUser)
-	require.NoError(t, UpgradeUserToEnterprise(owner.Id, &Enterprise{Name: "Import Co"}))
-	ent, err := GetEnterpriseByUserId(owner.Id)
-	require.NoError(t, err)
-	require.NoError(t, CreateEnterpriseDepartment(&EnterpriseDepartment{EnterpriseId: ent.Id, Name: "Sales"}))
-	require.NoError(t, CreateEnterpriseEmployee(&EnterpriseEmployee{EnterpriseId: ent.Id, Name: "Existing", EmployeeNo: "E100"}))
-
-	// 一行有错（工号与库中重复、文件内重复、缺姓名）→ 整批拒绝，不新建任何员工或部门
-	result, err := ImportEnterpriseEmployees(ent.Id, []EnterpriseEmployeeImportRow{
-		{Name: "Alice", EmployeeNo: "E100", Department: "sales"},
-		{Name: "Bob", EmployeeNo: "E101", Department: "New Dept"},
-		{Name: "Carol", EmployeeNo: "E101"},
-		{Name: " "},
-	})
-	require.NoError(t, err)
-	assert.Equal(t, 0, result.Created)
-	rows := make([]int, 0, len(result.Errors))
-	for _, importError := range result.Errors {
-		rows = append(rows, importError.Row)
-	}
-	assert.Equal(t, []int{1, 3, 4}, rows)
-	_, total, err := ListEnterpriseEmployees(ent.Id, EnterpriseEmployeeFilter{}, 0, 20)
-	require.NoError(t, err)
-	assert.Equal(t, int64(1), total)
-	departments, err := ListEnterpriseDepartments(ent.Id)
-	require.NoError(t, err)
-	assert.Len(t, departments, 1)
-
-	// 全部合法：部门按名称（不区分大小写）匹配，缺失的新建为顶级部门
-	result, err = ImportEnterpriseEmployees(ent.Id, []EnterpriseEmployeeImportRow{
-		{Name: "Alice", Email: "alice@x.com", EmployeeNo: "E201", Department: "SALES"},
-		{Name: "Bob", Department: "New Dept"},
-		{Name: "Carol", Department: "new dept"},
-		{Name: "Dave"},
-	})
-	require.NoError(t, err)
-	assert.Empty(t, result.Errors)
-	assert.Equal(t, 4, result.Created)
-	assert.Equal(t, []string{"New Dept"}, result.CreatedDepartments)
-	departments, err = ListEnterpriseDepartments(ent.Id)
-	require.NoError(t, err)
-	assert.Len(t, departments, 2)
-	items, total, err := ListEnterpriseEmployees(ent.Id, EnterpriseEmployeeFilter{Keyword: "alice"}, 0, 20)
-	require.NoError(t, err)
-	require.Equal(t, int64(1), total)
-	assert.Equal(t, "Sales", items[0].DepartmentName)
-	items, _, err = ListEnterpriseEmployees(ent.Id, EnterpriseEmployeeFilter{Keyword: "carol"}, 0, 20)
-	require.NoError(t, err)
-	assert.Equal(t, "New Dept", items[0].DepartmentName)
 }
 
 func TestEnterpriseCreditPeriodsAndUsage(t *testing.T) {
@@ -482,79 +316,6 @@ func TestEnterpriseTopupAndStatus(t *testing.T) {
 	assert.Nil(t, nonEnterprise)
 }
 
-func TestEnterpriseUsageAggregationSnapshotsAttribution(t *testing.T) {
-	setupEnterprisePostgres(t)
-	owner := createEnterpriseTestUser(t, "usageowner", common.RoleCommonUser)
-	require.NoError(t, UpgradeUserToEnterprise(owner.Id, &Enterprise{Name: "Usage Co"}))
-	ent, err := GetEnterpriseByUserId(owner.Id)
-	require.NoError(t, err)
-	sales := &EnterpriseDepartment{EnterpriseId: ent.Id, Name: "Sales"}
-	require.NoError(t, CreateEnterpriseDepartment(sales))
-	ops := &EnterpriseDepartment{EnterpriseId: ent.Id, Name: "Ops"}
-	require.NoError(t, CreateEnterpriseDepartment(ops))
-	alice := &EnterpriseEmployee{EnterpriseId: ent.Id, DepartmentId: sales.Id, Name: "Alice"}
-	require.NoError(t, CreateEnterpriseEmployee(alice))
-	project := &EnterpriseProject{EnterpriseId: ent.Id, Name: "Bot"}
-	require.NoError(t, CreateEnterpriseProject(project))
-	token := &Token{UserId: owner.Id, Name: "alice-key", Key: "alicekey0000000000000000000000000000000000000002", Status: common.TokenStatusEnabled, ExpiredTime: -1, UnlimitedQuota: true}
-	require.NoError(t, CreateEnterpriseToken(ent.Id, token, alice.Id, project.Id))
-	InvalidateEnterpriseBillingInfo(owner.Id)
-
-	now := common.GetTimestamp()
-	event := EnterpriseUsageEvent{UserId: owner.Id, TokenId: token.Id, ModelName: "gpt-4o", PromptTokens: 100, CompletionTokens: 50, Quota: 7, CreatedAt: now}
-	require.NoError(t, RecordEnterpriseUsage(event))
-	require.NoError(t, RecordEnterpriseUsage(event))
-	// 非企业用户不写任何东西
-	require.NoError(t, RecordEnterpriseUsage(EnterpriseUsageEvent{UserId: 424242, TokenId: 1, ModelName: "x", CreatedAt: now}))
-
-	from, to := DefaultEnterpriseUsageRange()
-	byEmployee, err := SummarizeEnterpriseUsage(ent.Id, EnterpriseUsageGroupEmployee, from, to)
-	require.NoError(t, err)
-	require.Len(t, byEmployee, 1)
-	assert.Equal(t, "Alice", byEmployee[0].KeyName)
-	assert.Equal(t, int64(2), byEmployee[0].RequestCount)
-	assert.Equal(t, int64(200), byEmployee[0].PromptTokens)
-	assert.Equal(t, int64(14), byEmployee[0].Quota)
-
-	// 员工换部门后：历史仍归 Sales，新用量归 Ops（写入时快照）
-	alice.DepartmentId = ops.Id
-	require.NoError(t, UpdateEnterpriseEmployee(alice))
-	require.NoError(t, RecordEnterpriseUsage(EnterpriseUsageEvent{UserId: owner.Id, TokenId: token.Id, ModelName: "gpt-4o", Quota: 3, CreatedAt: now}))
-	byDepartment, err := SummarizeEnterpriseUsage(ent.Id, EnterpriseUsageGroupDepartment, from, to)
-	require.NoError(t, err)
-	totals := map[string]int64{}
-	for _, item := range byDepartment {
-		totals[item.KeyName] = item.Quota
-	}
-	assert.Equal(t, map[string]int64{"Sales": 14, "Ops": 3}, totals)
-
-	// 其它维度与导出
-	byModel, err := SummarizeEnterpriseUsage(ent.Id, EnterpriseUsageGroupModel, from, to)
-	require.NoError(t, err)
-	require.Len(t, byModel, 1)
-	assert.Equal(t, "gpt-4o", byModel[0].KeyName)
-	assert.Equal(t, int64(17), byModel[0].Quota)
-	_, err = SummarizeEnterpriseUsage(ent.Id, "channel", from, to)
-	assert.ErrorIs(t, err, ErrEnterpriseUsageGroup)
-	rows, err := ExportEnterpriseUsage(ent.Id, from, to)
-	require.NoError(t, err)
-	require.Len(t, rows, 2)
-	assert.Equal(t, "Bot", rows[0].ProjectName)
-	assert.Equal(t, "alice-key", rows[0].TokenName)
-	assert.Equal(t, int64(17), rows[0].Quota+rows[1].Quota)
-
-	// 授信企业按账期归因；账期明细合计可用于出账对账
-	require.NoError(t, ConfigureEnterpriseCredit(ent.Id, EnterpriseCreditConfig{CycleType: EnterpriseCreditCycleNaturalMonth, LimitQuota: 1000}, 1))
-	period, err := GetOpenCreditPeriod(ent.Id)
-	require.NoError(t, err)
-	require.NoError(t, RecordEnterpriseUsage(EnterpriseUsageEvent{UserId: owner.Id, TokenId: token.Id, ModelName: "gpt-4o", Quota: 5, CreatedAt: now, CreditPeriodId: period.Id}))
-	periodTotal, err := SumEnterpriseUsageByPeriod(ent.Id, period.Id)
-	require.NoError(t, err)
-	assert.Equal(t, int64(5), periodTotal)
-	assert.NoError(t, ValidateEnterpriseUsageDay("2026-10-09"))
-	assert.Error(t, ValidateEnterpriseUsageDay("2026/10/09"))
-}
-
 func TestEnterpriseCreditBillLifecycle(t *testing.T) {
 	setupEnterprisePostgres(t)
 	owner := createEnterpriseTestUser(t, "billowner", common.RoleCommonUser)
@@ -565,7 +326,7 @@ func TestEnterpriseCreditBillLifecycle(t *testing.T) {
 	period, err := GetOpenCreditPeriod(ent.Id)
 	require.NoError(t, err)
 	token := &Token{UserId: owner.Id, Name: "k", Key: "billkey00000000000000000000000000000000000000001", Status: common.TokenStatusEnabled, ExpiredTime: -1, UnlimitedQuota: true}
-	require.NoError(t, CreateEnterpriseToken(ent.Id, token, 0, 0))
+	require.NoError(t, CreateEnterpriseToken(ent.Id, EnterpriseScope{}, token, 0, 0))
 	InvalidateEnterpriseBillingInfo(owner.Id)
 
 	// 本期消费 1,000,000 quota（$2），明细比计数器少 100（模拟聚合丢失一条）

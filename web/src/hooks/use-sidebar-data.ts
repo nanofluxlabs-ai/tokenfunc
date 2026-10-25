@@ -21,7 +21,6 @@ import {
   BarChart3,
   Briefcase,
   Building2,
-  FolderKanban,
   Gauge,
   Receipt,
   ReceiptText,
@@ -114,7 +113,7 @@ export function useSidebarData(): SidebarData {
         ],
       },
       {
-        // 企业控制台：仅企业主账号可见（见 use-sidebar-view）
+        // 企业控制台：企业主与已开通登录的成员可见，账单仅企业主/企业管理员（见 use-sidebar-view）
         id: 'enterprise',
         title: t('Enterprise'),
         items: [
@@ -124,17 +123,12 @@ export function useSidebarData(): SidebarData {
             icon: Gauge,
           },
           {
-            title: t('Organization'),
+            title: t('Teams'),
             url: '/enterprise/organization',
             icon: Building2,
           },
           {
-            title: t('Projects'),
-            url: '/enterprise/projects',
-            icon: FolderKanban,
-          },
-          {
-            title: t('Employee API Keys'),
+            title: t('Enterprise API Keys'),
             url: '/enterprise/keys',
             icon: KeyRound,
           },

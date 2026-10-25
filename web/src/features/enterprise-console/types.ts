@@ -6,8 +6,23 @@ export interface ApiResponse<T = unknown> {
 
 export type PageData<T> = { items: T[]; total: number }
 
-export type EmployeeStatus = 'active' | 'disabled'
-export type ProjectStatus = 'active' | 'archived'
+export type TeamStatus = 'active' | 'archived'
+export type MemberStatus = 'active' | 'disabled'
+/** 成员角色：none = 不登录只持 key */
+export type MemberRole =
+  | 'none'
+  | 'developer'
+  | 'team_admin'
+  | 'enterprise_admin'
+
+/** 当前登录者在企业里的身份（企业主或已绑定登录的成员） */
+export interface EnterpriseActor {
+  member_id: number
+  role: MemberRole
+  team_id: number
+  is_owner: boolean
+  provisioned: boolean
+}
 
 export interface EnterpriseSelf {
   id: number
@@ -15,52 +30,68 @@ export interface EnterpriseSelf {
   name: string
   billing_mode: 'prepaid' | 'credit'
   status: 'active' | 'suspended'
+  actor: EnterpriseActor
 }
 
-export interface Department {
+export interface Team {
   id: number
-  parent_id: number
   name: string
   sort: number
+  is_default: boolean
+  status: TeamStatus
+  monthly_budget_quota: number
+  budget_alert_percent: number
+  budget_enforce: boolean
+  created_at: number
+  member_count: number
+  token_count: number
 }
 
-export interface Employee {
+export interface TeamPayload {
+  name: string
+  sort: number
+  monthly_budget_usd?: number
+  budget_alert_percent?: number
+  budget_enforce?: boolean
+}
+
+export interface Member {
   id: number
-  department_id: number
-  department_name: string
+  team_id: number
+  team_name: string
   name: string
   email: string
   employee_no: string
-  status: EmployeeStatus
+  user_id: number
+  username: string
+  role: MemberRole
+  provisioned: boolean
+  status: MemberStatus
   remark: string
   token_count: number
   created_at: number
 }
 
-export interface EmployeePayload {
-  department_id: number
+export interface MemberPayload {
+  team_id: number
   name: string
   email: string
   employee_no: string
-  status: EmployeeStatus
+  status: MemberStatus
   remark: string
 }
 
-export interface Project {
-  id: number
-  name: string
-  code: string
-  status: ProjectStatus
-  remark: string
-  token_count: number
-  created_at: number
+export interface MemberLoginPayload {
+  mode: 'bind' | 'provision'
+  identifier?: string
+  role?: MemberRole
 }
 
-export interface ProjectPayload {
-  name: string
-  code: string
-  status: ProjectStatus
-  remark: string
+/** 一键开通返回的凭据（初始密码只出现这一次） */
+export interface ProvisionedLogin {
+  user_id: number
+  username: string
+  password?: string
 }
 
 export interface EnterpriseToken {
@@ -74,43 +105,36 @@ export interface EnterpriseToken {
   expired_time: number
   created_time: number
   accessed_time: number
-  employee_id: number
-  employee_name: string
-  department_name: string
-  project_id: number
-  project_name: string
+  team_id: number
+  team_name: string
+  member_id: number
+  member_name: string
 }
 
 export interface TokenCreatePayload {
   name: string
-  employee_id: number
-  project_id: number
+  team_id: number
+  member_id: number
   remain_quota: number
   unlimited_quota: boolean
   expired_time: number
 }
 
 export interface TokenAssignmentPayload {
-  employee_id: number
-  project_id: number
+  team_id: number
+  member_id: number
 }
 
-// 部门树节点（前端由扁平列表构建）
-export interface DepartmentNode extends Department {
-  depth: number
-  children: DepartmentNode[]
-}
-
-export interface EmployeeImportRow {
+export interface MemberImportRow {
   name: string
   email: string
   employee_no: string
-  department: string
+  team: string
 }
 
-export interface EmployeeImportResult {
+export interface MemberImportResult {
   created: number
-  created_departments: string[]
+  created_teams: string[]
   errors: { row: number; message: string }[]
 }
 
@@ -148,13 +172,7 @@ export interface EnterpriseOverview {
   open_period: CreditPeriod | null
 }
 
-export type UsageGroupBy =
-  | 'department'
-  | 'employee'
-  | 'project'
-  | 'model'
-  | 'token'
-  | 'day'
+export type UsageGroupBy = 'team' | 'member' | 'model' | 'token' | 'day'
 
 export interface UsageSummaryItem {
   key_id: number
@@ -162,6 +180,8 @@ export interface UsageSummaryItem {
   request_count: number
   prompt_tokens: number
   completion_tokens: number
+  cache_tokens: number
+  cache_creation_tokens: number
   quota: number
 }
 
@@ -181,6 +201,8 @@ export interface UsageSnapshotGroup {
   request_count: number
   prompt_tokens: number
   completion_tokens: number
+  cache_tokens?: number
+  cache_creation_tokens?: number
   quota: number
 }
 

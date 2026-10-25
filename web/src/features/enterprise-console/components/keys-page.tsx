@@ -3,9 +3,9 @@ import {
   useQuery,
   useQueryClient,
 } from '@tanstack/react-query'
-import { Link } from '@tanstack/react-router'
+import { getRouteApi, Link } from '@tanstack/react-router'
 import { Plus, UserCog } from 'lucide-react'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import {
@@ -22,44 +22,62 @@ import { requireServerSuccess } from '@/lib/server-error-message'
 
 import { listEnterpriseTokens } from '../api'
 import { useEnterpriseSelf } from '../hooks/use-enterprise-self'
-import { useProjectOptions } from '../hooks/use-project-options'
+import { useTeamOptions } from '../hooks/use-team-options'
+import { isTeamScoped } from '../lib/member-roles'
+import type { EnterpriseKeysSearch } from '../search-schema'
 import type { EnterpriseToken } from '../types'
-import { EMPLOYEE_PICKER_ANY, EmployeePicker } from './employee-picker'
 import { EnterpriseGuard } from './enterprise-guard'
 import { EntitySelect } from './entity-select'
+import { MEMBER_PICKER_ANY, MemberPicker } from './member-picker'
 import { TokenAssignDialog } from './token-assign-dialog'
 import { TokenCreateDialog } from './token-create-dialog'
 
 const PAGE_SIZE = 20
-// 筛选值：-1 不筛选，0 未分配，正数为具体 id
-const ANY = EMPLOYEE_PICKER_ANY
+// 筛选值：-1 不筛选，0 未指定持有人，正数为具体 id
+const ANY = MEMBER_PICKER_ANY
+
+const route = getRouteApi('/_authenticated/enterprise/keys')
 
 function KeysTable() {
   const { t } = useTranslation()
   const queryClient = useQueryClient()
-  const projectOptions = useProjectOptions()
-  const [keyword, setKeyword] = useState('')
+  const search = route.useSearch()
+  const navigate = route.useNavigate()
+  const { data: enterprise } = useEnterpriseSelf()
+  const teamOptions = useTeamOptions()
+  const teamScoped = isTeamScoped(enterprise?.actor)
+  const [keyword, setKeyword] = useState(search.q ?? '')
   const debouncedKeyword = useDebounce(keyword, 400)
-  const [employeeId, setEmployeeId] = useState(ANY)
-  const [projectId, setProjectId] = useState(ANY)
-  const [page, setPage] = useState(1)
   const [assigning, setAssigning] = useState<EnterpriseToken | null>(null)
 
+  const teamId = search.team_id ?? ANY
+  const memberId = search.member_id ?? ANY
+  const page = search.page ?? 1
+
+  const update = (patch: Partial<EnterpriseKeysSearch>) =>
+    void navigate({
+      search: (prev: EnterpriseKeysSearch) => ({ ...prev, page: 1, ...patch }),
+      replace: true,
+    })
+
+  // 关键字防抖后再写入 URL，避免每个字符都产生一次导航
+  useEffect(() => {
+    const next = debouncedKeyword || undefined
+    if (next === search.q) return
+    void navigate({
+      search: (prev: EnterpriseKeysSearch) => ({ ...prev, page: 1, q: next }),
+      replace: true,
+    })
+  }, [debouncedKeyword, search.q, navigate])
+
   const { data, isLoading } = useQuery({
-    queryKey: [
-      'enterprise',
-      'tokens',
-      debouncedKeyword,
-      employeeId,
-      projectId,
-      page,
-    ],
+    queryKey: ['enterprise', 'tokens', search.q, teamId, memberId, page],
     queryFn: async () =>
       requireServerSuccess(
         await listEnterpriseTokens({
-          keyword: debouncedKeyword || undefined,
-          employee_id: employeeId === ANY ? undefined : employeeId,
-          project_id: projectId === ANY ? undefined : projectId,
+          keyword: search.q || undefined,
+          team_id: teamId === ANY ? undefined : teamId,
+          member_id: memberId === ANY ? undefined : memberId,
           p: page,
           page_size: PAGE_SIZE,
         })
@@ -83,26 +101,19 @@ function KeysTable() {
       ),
     },
     {
-      id: 'employee',
-      header: t('Employee'),
-      cell: (row) =>
-        row.employee_id ? (
-          <div className='flex flex-col'>
-            <span>{row.employee_name}</span>
-            {row.department_name && (
-              <span className='text-muted-foreground text-xs'>
-                {row.department_name}
-              </span>
-            )}
-          </div>
-        ) : (
-          <span className='text-muted-foreground'>{t('Shared')}</span>
-        ),
+      id: 'team',
+      header: t('Team'),
+      cell: (row) => row.team_name || '—',
     },
     {
-      id: 'project',
-      header: t('Project'),
-      cell: (row) => row.project_name || '—',
+      id: 'holder',
+      header: t('Holder'),
+      cell: (row) =>
+        row.member_id ? (
+          row.member_name
+        ) : (
+          <span className='text-muted-foreground'>{t('Team key')}</span>
+        ),
     },
     {
       id: 'status',
@@ -149,45 +160,45 @@ function KeysTable() {
       <div className='flex flex-wrap items-center gap-2'>
         <Input
           className='max-w-xs'
-          placeholder={t('Search key, employee or project...')}
+          placeholder={t('Search key name or holder...')}
           aria-label={t('Search API keys')}
           value={keyword}
-          onChange={(event) => {
-            setKeyword(event.target.value)
-            setPage(1)
-          }}
+          onChange={(event) => setKeyword(event.target.value)}
         />
+        {!teamScoped && (
+          <div className='w-48'>
+            <EntitySelect
+              aria-label={t('Filter by team')}
+              value={teamId}
+              onChange={(value) =>
+                update({
+                  team_id: value === ANY ? undefined : value,
+                  member_id: undefined,
+                })
+              }
+              options={[{ value: ANY, label: t('All Teams') }, ...teamOptions]}
+              noneLabel={t('Default team')}
+            />
+          </div>
+        )}
         <div className='w-56'>
-          <EmployeePicker
-            aria-label={t('Filter by employee')}
-            value={employeeId}
-            onChange={(value) => {
-              setEmployeeId(value)
-              setPage(1)
-            }}
+          <MemberPicker
+            aria-label={t('Filter by holder')}
+            value={memberId}
+            onChange={(value) =>
+              update({ member_id: value === ANY ? undefined : value })
+            }
+            teamId={teamId > 0 ? teamId : undefined}
             allowAny
-            noneLabel={t('Shared (no employee)')}
-          />
-        </div>
-        <div className='w-48'>
-          <EntitySelect
-            aria-label={t('Filter by project')}
-            value={projectId}
-            onChange={(value) => {
-              setProjectId(value)
-              setPage(1)
-            }}
-            options={[
-              { value: ANY, label: t('All Projects') },
-              ...projectOptions,
-            ]}
-            noneLabel={t('No project')}
+            noneLabel={t('Team key (no holder)')}
           />
         </div>
         <div className='flex-1' />
-        <Button variant='link' size='sm' render={<Link to='/keys' />}>
-          {t('Advanced key settings')}
-        </Button>
+        {enterprise?.actor?.is_owner && (
+          <Button variant='link' size='sm' render={<Link to='/keys' />}>
+            {t('Advanced key settings')}
+          </Button>
+        )}
       </div>
       <StaticDataTable
         columns={columns}
@@ -202,7 +213,7 @@ function KeysTable() {
           variant='outline'
           size='sm'
           disabled={page <= 1}
-          onClick={() => setPage(page - 1)}
+          onClick={() => update({ page: page - 1 })}
         >
           {t('Previous')}
         </Button>
@@ -213,7 +224,7 @@ function KeysTable() {
           variant='outline'
           size='sm'
           disabled={page >= pageCount}
-          onClick={() => setPage(page + 1)}
+          onClick={() => update({ page: page + 1 })}
         >
           {t('Next')}
         </Button>
@@ -232,13 +243,14 @@ function KeysTable() {
 export function EnterpriseKeys() {
   const { t } = useTranslation()
   const queryClient = useQueryClient()
+  const search = route.useSearch()
   const { data: enterprise } = useEnterpriseSelf()
   const [creating, setCreating] = useState(false)
   return (
     <>
       <SectionPageLayout>
         <SectionPageLayout.Title>
-          {t('Employee API Keys')}
+          {t('Enterprise API Keys')}
         </SectionPageLayout.Title>
         <SectionPageLayout.Actions>
           {enterprise && (
@@ -257,6 +269,7 @@ export function EnterpriseKeys() {
       <TokenCreateDialog
         open={creating}
         onOpenChange={setCreating}
+        defaultTeamId={search.team_id}
         onCreated={() =>
           void queryClient.invalidateQueries({ queryKey: ['enterprise'] })
         }

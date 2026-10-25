@@ -3,6 +3,7 @@ package router
 import (
 	"github.com/QuantumNous/new-api/controller"
 	"github.com/QuantumNous/new-api/middleware"
+	"github.com/QuantumNous/new-api/model"
 
 	"github.com/gin-gonic/gin"
 )
@@ -43,38 +44,49 @@ func registerEnterpriseRoutes(apiRouter *gin.RouterGroup) {
 	// 营销页匿名留资：严格限流 + 请求体大小限制，服务端再按 IP 做日配额
 	apiRouter.POST("/enterprise/leads", middleware.CriticalRateLimit(), middleware.AnonymousRequestBodyLimit(), controller.CreateEnterpriseTrialLead)
 
-	// 当前用户的企业资料：非企业用户也可调用，返回 null
+	// 当前用户的企业资料与身份：非企业用户也可调用，返回 null
 	apiRouter.GET("/enterprise/self", middleware.UserAuth(), controller.GetEnterpriseSelf)
 
+	// 企业控制台：企业主账号与绑定了登录账号的成员；财务类只对企业主 / 企业管理员开放，组织与 key 的范围由 handler 按角色收窄
 	consoleRoute := apiRouter.Group("/enterprise")
-	consoleRoute.Use(middleware.UserAuth(), middleware.EnterpriseOwnerAuth())
+	consoleRoute.Use(middleware.UserAuth(), middleware.EnterpriseAuth())
 	{
 		consoleRoute.GET("/overview", controller.GetEnterpriseOverview)
-		consoleRoute.GET("/ledger", controller.ListEnterpriseLedgerSelf)
-		consoleRoute.GET("/credit-periods", controller.ListEnterpriseCreditPeriodsSelf)
 		consoleRoute.GET("/usage/summary", controller.GetEnterpriseUsageSummary)
 		consoleRoute.GET("/usage/export", controller.ExportEnterpriseUsageSelf)
-		consoleRoute.GET("/bills", controller.ListEnterpriseBillsSelf)
-		consoleRoute.GET("/bills/:id", controller.GetEnterpriseBillSelf)
 
-		consoleRoute.GET("/departments", controller.ListEnterpriseDepartments)
-		consoleRoute.POST("/departments", controller.CreateEnterpriseDepartment)
-		consoleRoute.PUT("/departments/:id", controller.UpdateEnterpriseDepartment)
-		consoleRoute.DELETE("/departments/:id", controller.DeleteEnterpriseDepartment)
+		financeRoute := consoleRoute.Group("", middleware.RequireEnterpriseRole(model.EnterpriseMemberRoleEnterpriseAdmin))
+		{
+			financeRoute.GET("/ledger", controller.ListEnterpriseLedgerSelf)
+			financeRoute.GET("/credit-periods", controller.ListEnterpriseCreditPeriodsSelf)
+			financeRoute.GET("/bills", controller.ListEnterpriseBillsSelf)
+			financeRoute.GET("/bills/:id", controller.GetEnterpriseBillSelf)
+		}
 
-		consoleRoute.GET("/employees", controller.ListEnterpriseEmployees)
-		consoleRoute.POST("/employees", controller.CreateEnterpriseEmployee)
-		consoleRoute.POST("/employees/import", controller.ImportEnterpriseEmployees)
-		consoleRoute.PUT("/employees/:id", controller.UpdateEnterpriseEmployee)
-		consoleRoute.DELETE("/employees/:id", controller.DeleteEnterpriseEmployee)
+		consoleRoute.GET("/teams", controller.ListEnterpriseTeams)
+		teamAdminRoute := consoleRoute.Group("", middleware.RequireEnterpriseRole(model.EnterpriseMemberRoleEnterpriseAdmin))
+		{
+			teamAdminRoute.POST("/teams", controller.CreateEnterpriseTeam)
+			teamAdminRoute.PUT("/teams/:id", controller.UpdateEnterpriseTeam)
+			teamAdminRoute.POST("/teams/:id/archive", controller.ArchiveEnterpriseTeam)
+			teamAdminRoute.DELETE("/teams/:id", controller.DeleteEnterpriseTeam)
+		}
 
-		consoleRoute.GET("/projects", controller.ListEnterpriseProjects)
-		consoleRoute.POST("/projects", controller.CreateEnterpriseProject)
-		consoleRoute.PUT("/projects/:id", controller.UpdateEnterpriseProject)
-		consoleRoute.DELETE("/projects/:id", controller.DeleteEnterpriseProject)
+		consoleRoute.GET("/members", controller.ListEnterpriseMembers)
+		memberAdminRoute := consoleRoute.Group("", middleware.RequireEnterpriseRole(model.EnterpriseMemberRoleTeamAdmin))
+		{
+			memberAdminRoute.POST("/members", controller.CreateEnterpriseMember)
+			memberAdminRoute.POST("/members/import", controller.ImportEnterpriseMembers)
+			memberAdminRoute.PUT("/members/:id", controller.UpdateEnterpriseMember)
+			memberAdminRoute.DELETE("/members/:id", controller.DeleteEnterpriseMember)
+			memberAdminRoute.POST("/members/:id/login", controller.SetEnterpriseMemberLogin)
+			memberAdminRoute.DELETE("/members/:id/login", controller.RemoveEnterpriseMemberLogin)
+			memberAdminRoute.PUT("/members/:id/role", controller.SetEnterpriseMemberRole)
+		}
 
 		consoleRoute.GET("/tokens", controller.ListEnterpriseTokens)
 		consoleRoute.POST("/tokens", controller.CreateEnterpriseToken)
 		consoleRoute.PUT("/tokens/:id/assignment", controller.UpdateEnterpriseTokenAssignment)
+		consoleRoute.POST("/tokens/:id/key", controller.GetEnterpriseTokenKey)
 	}
 }

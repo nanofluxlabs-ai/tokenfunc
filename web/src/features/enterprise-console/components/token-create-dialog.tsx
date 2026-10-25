@@ -18,19 +18,23 @@ import {
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
 import { Switch } from '@/components/ui/switch'
-import { fetchTokenKey } from '@/features/keys/api'
 import { getCurrencyLabel } from '@/lib/currency'
 import { parseQuotaFromDollars } from '@/lib/format'
 import { handleServerError } from '@/lib/handle-server-error'
 
-import { createEnterpriseToken } from '../api'
-import { useProjectOptions } from '../hooks/use-project-options'
-import { EmployeePicker } from './employee-picker'
+import { createEnterpriseToken, fetchEnterpriseTokenKey } from '../api'
+import { useTeamOptions } from '../hooks/use-team-options'
+import type { Member } from '../types'
 import { EntitySelect } from './entity-select'
+import { MemberPicker } from './member-picker'
 
 type TokenCreateDialogProps = {
   open: boolean
   onOpenChange: (open: boolean) => void
+  /** 从成员行发起时固定持有人与团队 */
+  member?: Member
+  /** 从密钥页发起时的默认团队 */
+  defaultTeamId?: number
   onCreated: () => void
 }
 
@@ -38,7 +42,7 @@ export function TokenCreateDialog(props: TokenCreateDialogProps) {
   const { t } = useTranslation()
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [createdKey, setCreatedKey] = useState<string | null>(null)
-  const projectOptions = useProjectOptions()
+  const teamOptions = useTeamOptions()
   const schema = useMemo(
     () =>
       z.object({
@@ -47,8 +51,8 @@ export function TokenCreateDialog(props: TokenCreateDialogProps) {
           .trim()
           .min(1, t('Key name is required'))
           .max(50, t('Name must be at most 50 characters')),
-        employee_id: z.number().int().min(0),
-        project_id: z.number().int().min(0),
+        team_id: z.number().int().min(0),
+        member_id: z.number().int().min(0),
         unlimited_quota: z.boolean(),
         quota_dollars: z.number().min(0, t('Quota cannot be negative')),
       }),
@@ -59,33 +63,34 @@ export function TokenCreateDialog(props: TokenCreateDialogProps) {
     resolver: zodResolver(schema),
     defaultValues: {
       name: '',
-      employee_id: 0,
-      project_id: 0,
+      team_id: 0,
+      member_id: 0,
       unlimited_quota: true,
       quota_dollars: 0,
     },
   })
   const unlimited = useWatch({ control: form.control, name: 'unlimited_quota' })
+  const teamId = useWatch({ control: form.control, name: 'team_id' })
 
   useEffect(() => {
     if (!props.open) return
     setCreatedKey(null)
     form.reset({
-      name: '',
-      employee_id: 0,
-      project_id: 0,
+      name: props.member ? props.member.name : '',
+      team_id: props.member?.team_id ?? props.defaultTeamId ?? 0,
+      member_id: props.member?.id ?? 0,
       unlimited_quota: true,
       quota_dollars: 0,
     })
-  }, [props.open, form])
+  }, [props.open, props.member, props.defaultTeamId, form])
 
   const onSubmit = async (values: Values) => {
     setIsSubmitting(true)
     try {
       const result = await createEnterpriseToken({
         name: values.name,
-        employee_id: values.employee_id,
-        project_id: values.project_id,
+        team_id: values.team_id,
+        member_id: values.member_id,
         unlimited_quota: values.unlimited_quota,
         remain_quota: values.unlimited_quota
           ? 0
@@ -97,7 +102,7 @@ export function TokenCreateDialog(props: TokenCreateDialogProps) {
         return
       }
       props.onCreated()
-      const keyResult = await fetchTokenKey(result.data.id)
+      const keyResult = await fetchEnterpriseTokenKey(result.data.id)
       if (keyResult.success && keyResult.data) {
         setCreatedKey(`sk-${keyResult.data.key}`)
       } else {
@@ -117,7 +122,7 @@ export function TokenCreateDialog(props: TokenCreateDialogProps) {
         onOpenChange={props.onOpenChange}
         title={t('API Key Created')}
         description={t(
-          'Copy the key and hand it to the employee through a secure channel.'
+          'Copy the key and hand it to the member through a secure channel.'
         )}
         contentClassName='sm:max-w-lg'
         footer={
@@ -138,9 +143,13 @@ export function TokenCreateDialog(props: TokenCreateDialogProps) {
     <Dialog
       open={props.open}
       onOpenChange={props.onOpenChange}
-      title={t('Create API Key')}
+      title={
+        props.member
+          ? t('Issue API Key to {{name}}', { name: props.member.name })
+          : t('Create API Key')
+      }
       description={t(
-        'Usage of this key is billed to the enterprise and attributed to the selected employee and project.'
+        'Usage of this key is billed to the enterprise and attributed to the selected team and holder.'
       )}
       contentClassName='sm:max-w-lg'
       footer={
@@ -172,37 +181,46 @@ export function TokenCreateDialog(props: TokenCreateDialogProps) {
               </FormItem>
             )}
           />
-          <FormField
-            control={form.control}
-            name='employee_id'
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>{t('Employee')}</FormLabel>
-                <EmployeePicker
-                  value={field.value}
-                  onChange={field.onChange}
-                  noneLabel={t('Shared (no employee)')}
-                  aria-label={t('Employee')}
-                />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name='project_id'
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>{t('Project')}</FormLabel>
-                <EntitySelect
-                  value={field.value}
-                  onChange={field.onChange}
-                  options={projectOptions}
-                  noneLabel={t('No project')}
-                  aria-label={t('Project')}
-                />
-              </FormItem>
-            )}
-          />
+          {!props.member && (
+            <>
+              <FormField
+                control={form.control}
+                name='team_id'
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>{t('Team')}</FormLabel>
+                    <EntitySelect
+                      value={field.value}
+                      onChange={(value) => {
+                        field.onChange(value)
+                        // 换团队后持有人要重选（持有人必须属于该团队）
+                        form.setValue('member_id', 0)
+                      }}
+                      options={teamOptions}
+                      noneLabel={t('Default team')}
+                      aria-label={t('Team')}
+                    />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name='member_id'
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>{t('Holder')}</FormLabel>
+                    <MemberPicker
+                      value={field.value}
+                      onChange={field.onChange}
+                      teamId={teamId}
+                      noneLabel={t('Team key (no holder)')}
+                      aria-label={t('Holder')}
+                    />
+                  </FormItem>
+                )}
+              />
+            </>
+          )}
           <FormField
             control={form.control}
             name='unlimited_quota'

@@ -50,7 +50,7 @@ func setupChannelUsagePostgres(t *testing.T) *gorm.DB {
 }
 
 var channelUsageTestTables = []any{
-	&User{}, &Log{}, &Channel{}, &Enterprise{}, &EnterpriseCreditPeriod{}, &EnterpriseCreditNotifyRecord{}, &EnterpriseLedgerEntry{},
+	&User{}, &Log{}, &Channel{}, &Enterprise{}, &EnterpriseTeam{}, &EnterpriseCreditPeriod{}, &EnterpriseCreditNotifyRecord{}, &EnterpriseLedgerEntry{},
 	&SubscriptionPlan{}, &UserSubscription{}, &ChannelHourlyUsage{}, &ChannelDailyDimUsage{}, &ChannelUsageTotal{},
 }
 

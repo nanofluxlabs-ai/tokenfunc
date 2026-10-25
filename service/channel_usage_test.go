@@ -29,7 +29,7 @@ func setupChannelUsagePostgres(t *testing.T) {
 	require.NoError(t, err)
 	tables := []any{
 		&model.User{}, &model.Token{}, &model.Log{}, &model.Channel{}, &model.Option{},
-		&model.Enterprise{}, &model.EnterpriseCreditPeriod{}, &model.EnterpriseCreditNotifyRecord{}, &model.EnterpriseLedgerEntry{},
+		&model.Enterprise{}, &model.EnterpriseTeam{}, &model.EnterpriseCreditPeriod{}, &model.EnterpriseCreditNotifyRecord{}, &model.EnterpriseLedgerEntry{},
 		&model.SubscriptionPlan{}, &model.UserSubscription{},
 		&model.ChannelHourlyUsage{}, &model.ChannelDailyDimUsage{}, &model.ChannelUsageTotal{},
 	}

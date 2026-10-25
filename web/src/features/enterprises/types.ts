@@ -108,6 +108,18 @@ export interface TopupPayload {
   remark: string
 }
 
+/** 人工调账对象：预付企业余额 / 未结清的授信账单 */
+export type AdjustmentKind = 'wallet' | 'bill'
+
+export interface AdjustmentPayload {
+  kind: AdjustmentKind
+  /** kind = bill 时必填 */
+  bill_id?: number
+  /** 可负；备注至少 4 个字 */
+  amount_usd: number
+  remark: string
+}
+
 /** 营销页提交的企业试用申请 */
 export interface TrialLead {
   id: number

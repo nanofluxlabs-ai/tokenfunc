@@ -2,8 +2,8 @@
 
 - 日期：2026-10-25
 - 分支：feat/k8s-deploy
-- PR：
-- 关键 commit：
+- PR：#37
+- 关键 commit：d8c69f366
 
 ## 背景
 

@@ -963,7 +963,6 @@
     "Upper bound for the number of tokens generated in the completion.": "Giới hạn trên của số token được sinh trong phần hoàn tất.",
     "Upstream Failed": "Upstream thất bại",
     "Usage Report": "Báo cáo sử dụng",
-    "Usage by department": "Sử dụng theo phòng ban",
     "Usage by model": "Sử dụng theo mô hình",
     "Usage dashboard": "Usage dashboard",
     "Usage detail": "Usage detail",
@@ -1207,6 +1206,14 @@
     "Usage of this key is billed to the enterprise and attributed to the selected team and holder.": "Mức sử dụng của key này được tính cho doanh nghiệp và gán cho nhóm và người giữ đã chọn.",
     "{{name}} signs in as {{username}}.": "{{name}} đăng nhập với tên {{username}}.",
     "View your enterprise teams, members, and API keys.": "Xem nhóm, thành viên và API key của doanh nghiệp.",
-    "Manage enterprise teams, members, member logins, and API key assignments.": "Quản lý nhóm, thành viên, đăng nhập của thành viên và phân bổ API key của doanh nghiệp."
+    "Manage enterprise teams, members, member logins, and API key assignments.": "Quản lý nhóm, thành viên, đăng nhập của thành viên và phân bổ API key của doanh nghiệp.",
+    "Export invoice": "Xuất hóa đơn",
+    "Usage by day": "Sử dụng theo ngày",
+    "Usage by team": "Sử dụng theo nhóm",
+    "The breakdown below comes from request logs; it may differ from the billed amount by requests still in flight when the period closed.": "Chi tiết bên dưới lấy từ nhật ký yêu cầu; có thể chênh lệch với số tiền hóa đơn do các yêu cầu còn đang xử lý khi kỳ kết thúc.",
+    "This bill was issued before unit prices were snapshotted; price and daily breakdowns are not available.": "Hóa đơn này được phát hành trước khi chụp đơn giá; không có chi tiết đơn giá và theo ngày.",
+    "Settled bill: the breakdown below is the usage snapshot frozen at issue time.": "Hóa đơn đã chốt: chi tiết bên dưới là ảnh chụp mức sử dụng được đóng băng khi phát hành.",
+    "Row-level detail for settled bills follows the archived statement snapshot.": "Chi tiết từng dòng của hóa đơn đã chốt theo ảnh chụp sao kê đã lưu trữ.",
+    "This bill was issued without a usage breakdown snapshot and cannot be exported": "Hóa đơn này được phát hành mà không có ảnh chụp chi tiết sử dụng nên không thể xuất"
   }
 }

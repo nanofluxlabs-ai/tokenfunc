@@ -963,7 +963,6 @@
     "Upper bound for the number of tokens generated in the completion.": "補全產生詞元數量的上限。",
     "Upstream Failed": "上游失敗",
     "Usage Report": "用量報表",
-    "Usage by department": "按部門用量",
     "Usage by model": "按模型用量",
     "Usage dashboard": "用量看板",
     "Usage detail": "消費明細",
@@ -1207,6 +1206,14 @@
     "Usage of this key is billed to the enterprise and attributed to the selected team and holder.": "該金鑰的用量計入企業帳單，並歸屬到所選團隊和持有人。",
     "{{name}} signs in as {{username}}.": "{{name}} 使用帳號 {{username}} 登入。",
     "View your enterprise teams, members, and API keys.": "檢視企業的團隊、成員和 API 金鑰。",
-    "Manage enterprise teams, members, member logins, and API key assignments.": "管理企業的團隊、成員、成員登入和 API 金鑰歸屬。"
+    "Manage enterprise teams, members, member logins, and API key assignments.": "管理企業的團隊、成員、成員登入和 API 金鑰歸屬。",
+    "Export invoice": "匯出發票",
+    "Usage by day": "按日用量",
+    "Usage by team": "按團隊用量",
+    "The breakdown below comes from request logs; it may differ from the billed amount by requests still in flight when the period closed.": "下方明細來自請求日誌，與帳單金額之間可能存在帳期結束時在途請求帶來的尾差。",
+    "This bill was issued before unit prices were snapshotted; price and daily breakdowns are not available.": "該帳單出帳時尚未凍結單價快照，沒有單價與按日明細。",
+    "Settled bill: the breakdown below is the usage snapshot frozen at issue time.": "已結算帳單：下方明細為出帳時凍結的用量快照。",
+    "Row-level detail for settled bills follows the archived statement snapshot.": "已結算帳單的逐條明細以歸檔凍結件為準。",
+    "This bill was issued without a usage breakdown snapshot and cannot be exported": "該帳單出帳時沒有用量明細快照，無法匯出"
   }
 }

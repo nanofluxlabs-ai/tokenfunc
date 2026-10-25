@@ -57,8 +57,14 @@ func init() {
 		"PUT /api/enterprise/members/:id/role":      accessTokenScopeRule("enterprise:write"),
 		"GET /api/enterprise/tokens":                accessTokenScopeRule("enterprise:read"),
 		"POST /api/enterprise/tokens":               accessTokenScopeRule("enterprise:write"),
+		"GET /api/enterprise/tokens/options":        accessTokenScopeRule("enterprise:read"),
+		"PUT /api/enterprise/tokens/:id":            accessTokenScopeRule("enterprise:write"),
+		"PUT /api/enterprise/tokens/:id/status":     accessTokenScopeRule("enterprise:write"),
 		"PUT /api/enterprise/tokens/:id/assignment": accessTokenScopeRule("enterprise:write"),
+		"DELETE /api/enterprise/tokens/:id":         accessTokenScopeRule("enterprise:write"),
 		"POST /api/enterprise/tokens/:id/key":       accessTokenScopeRule("enterprise:read"),
+		"POST /api/enterprise/tokens/batch-status":  accessTokenScopeRule("enterprise:write"),
+		"POST /api/enterprise/tokens/batch-delete":  accessTokenScopeRule("enterprise:write"),
 	} {
 		accessTokenRouteRules[key] = rule
 	}

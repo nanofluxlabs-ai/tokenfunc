@@ -100,8 +100,10 @@ type Enterprise struct {
 	BillingProfile     EnterpriseBillingProfile `json:"billing_profile" gorm:"type:jsonb"`
 	Status             string                   `json:"status" gorm:"type:varchar(16);not null;index"`
 	Remark             string                   `json:"remark" gorm:"type:text"`
-	CreatedAt          int64                    `json:"created_at" gorm:"not null"`
-	UpdatedAt          int64                    `json:"updated_at" gorm:"not null"`
+	// MaxTokens 企业 key 总数上限；0 表示沿用站点的每用户上限，大于站点上限时以本值为准
+	MaxTokens int   `json:"max_tokens" gorm:"not null;default:0"`
+	CreatedAt int64 `json:"created_at" gorm:"not null"`
+	UpdatedAt int64 `json:"updated_at" gorm:"not null"`
 }
 
 // EnterpriseListItem 管理员企业客户列表行：企业资料 + 主账号摘要 + 授信企业的当前账期额度（预付企业为 0）

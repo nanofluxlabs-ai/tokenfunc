@@ -3,56 +3,179 @@ import {
   useQuery,
   useQueryClient,
 } from '@tanstack/react-query'
-import { getRouteApi, Link } from '@tanstack/react-router'
-import { Plus, UserCog } from 'lucide-react'
-import { useEffect, useState } from 'react'
-import { useTranslation } from 'react-i18next'
-
+import { getRouteApi } from '@tanstack/react-router'
 import {
+  Copy,
+  Edit,
+  Loader2,
+  Plus,
+  Power,
+  PowerOff,
+  Trash2,
+} from 'lucide-react'
+import { useEffect, useMemo, useState } from 'react'
+import { useTranslation } from 'react-i18next'
+import { toast } from 'sonner'
+
+import { ConfirmDialog } from '@/components/confirm-dialog'
+import {
+  DataTableRowActionMenu,
   StaticDataTable,
   type StaticDataTableColumn,
 } from '@/components/data-table'
 import { SectionPageLayout } from '@/components/layout'
 import { StatusBadge } from '@/components/status-badge'
+import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
+import { Checkbox } from '@/components/ui/checkbox'
+import { DropdownMenuItem } from '@/components/ui/dropdown-menu'
 import { Input } from '@/components/ui/input'
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import { ApiKeyQuotaCell } from '@/features/keys/components/api-key-quota-cell'
+import { API_KEY_STATUS, API_KEY_STATUSES } from '@/features/keys/constants'
+import type { ApiKey } from '@/features/keys/types'
 import { useDebounce } from '@/hooks/use-debounce'
+import { useStatus } from '@/hooks/use-status'
+import { toIntlLocale } from '@/i18n/languages'
+import { encodeChannelConnectionInfo } from '@/lib/channel-connection-info'
+import { copyToClipboard } from '@/lib/copy-to-clipboard'
 import { formatQuotaWithCurrency } from '@/lib/currency'
+import { formatTimestampRelative } from '@/lib/format'
+import { handleServerError } from '@/lib/handle-server-error'
 import { requireServerSuccess } from '@/lib/server-error-message'
+import { cn } from '@/lib/utils'
 
-import { listEnterpriseTokens } from '../api'
+import {
+  batchDeleteEnterpriseTokens,
+  batchUpdateEnterpriseTokenStatus,
+  deleteEnterpriseToken,
+  fetchEnterpriseTokenKey,
+  getEnterpriseTokenOptions,
+  listEnterpriseTokens,
+  updateEnterpriseTokenStatus,
+} from '../api'
 import { useEnterpriseSelf } from '../hooks/use-enterprise-self'
 import { useTeamOptions } from '../hooks/use-team-options'
-import { isTeamScoped } from '../lib/member-roles'
+import { isTeamScoped, MEMBER_ROLE_LABELS } from '../lib/member-roles'
 import type { EnterpriseKeysSearch } from '../search-schema'
 import type { EnterpriseToken } from '../types'
 import { EnterpriseGuard } from './enterprise-guard'
 import { EntitySelect } from './entity-select'
 import { MEMBER_PICKER_ANY, MemberPicker } from './member-picker'
-import { TokenAssignDialog } from './token-assign-dialog'
-import { TokenCreateDialog } from './token-create-dialog'
+import { TokenMutateSheet } from './token-mutate-sheet'
 
 const PAGE_SIZE = 20
 // 筛选值：-1 不筛选，0 未指定持有人，正数为具体 id
 const ANY = MEMBER_PICKER_ANY
+const STATUS_ANY = '0'
+/** 总数达到上限的九成时提示 */
+const LIMIT_WARN_RATIO = 0.9
 
 const route = getRouteApi('/_authenticated/enterprise/keys')
 
-function KeysTable() {
+/** 列表行映射成上游 ApiKey 形状，复用上游的额度单元格 */
+function toApiKey(row: EnterpriseToken): ApiKey {
+  return {
+    id: row.id,
+    name: row.name,
+    key: row.key,
+    status: row.status,
+    remain_quota: row.remain_quota,
+    used_quota: row.used_quota,
+    unlimited_quota: row.unlimited_quota,
+    expired_time: row.expired_time,
+    created_time: row.created_time,
+    accessed_time: row.accessed_time,
+    group: row.group,
+    auto_groups: null,
+    cross_group_retry: false,
+    model_limits_enabled: row.model_limits_enabled,
+    model_limits: row.model_limits,
+    allow_ips: row.allow_ips,
+    allow_user_quota_query: false,
+  }
+}
+
+/** 本月消耗 + 环比（上月为 0 时不显示环比） */
+function MonthQuotaCell(props: { row: EnterpriseToken }) {
+  const { t, i18n } = useTranslation()
+  const locale = toIntlLocale(i18n.resolvedLanguage || i18n.language)
+  const current = props.row.month_quota
+  const previous = props.row.prev_month_quota
+  let delta: string | null = null
+  if (previous > 0) {
+    const percent = ((current - previous) / previous) * 100
+    delta = new Intl.NumberFormat(locale, {
+      maximumFractionDigits: 0,
+      signDisplay: 'always',
+    }).format(percent)
+  }
+  return (
+    <div className='flex flex-col'>
+      <span className='font-mono'>{formatQuotaWithCurrency(current)}</span>
+      {delta !== null && (
+        <span
+          className={cn(
+            'text-xs',
+            current > previous ? 'text-rose-500' : 'text-emerald-600'
+          )}
+          title={t('Compared with last month')}
+        >
+          {delta}%
+        </span>
+      )}
+    </div>
+  )
+}
+
+/** 限制列：分组 · N 个模型 · N 个 IP */
+function RestrictionsCell(props: { row: EnterpriseToken }) {
   const { t } = useTranslation()
+  const models = props.row.model_limits
+    ? props.row.model_limits.split(',').filter(Boolean).length
+    : 0
+  const ips = props.row.allow_ips
+    ? props.row.allow_ips.split('\n').filter((line) => line.trim()).length
+    : 0
+  const parts = [
+    props.row.group || t('Follow enterprise group'),
+    models > 0 ? t('{{count}} models', { count: models }) : t('All models'),
+    ips > 0 ? t('{{count}} IPs', { count: ips }) : null,
+  ].filter(Boolean)
+  return (
+    <span className='text-muted-foreground text-xs'>{parts.join(' · ')}</span>
+  )
+}
+
+function KeysTable(props: { onEdit: (token: EnterpriseToken) => void }) {
+  const { t, i18n } = useTranslation()
+  const locale = toIntlLocale(i18n.resolvedLanguage || i18n.language)
   const queryClient = useQueryClient()
   const search = route.useSearch()
   const navigate = route.useNavigate()
   const { data: enterprise } = useEnterpriseSelf()
+  const { status: siteStatus } = useStatus()
   const teamOptions = useTeamOptions()
   const teamScoped = isTeamScoped(enterprise?.actor)
   const [keyword, setKeyword] = useState(search.q ?? '')
   const debouncedKeyword = useDebounce(keyword, 400)
-  const [assigning, setAssigning] = useState<EnterpriseToken | null>(null)
+  const [selected, setSelected] = useState<Set<number>>(() => new Set())
+  const [toggling, setToggling] = useState<number | null>(null)
+  const [deleting, setDeleting] = useState<EnterpriseToken | null>(null)
+  const [bulkDeleting, setBulkDeleting] = useState(false)
+  const [bulkBusy, setBulkBusy] = useState(false)
 
   const teamId = search.team_id ?? ANY
   const memberId = search.member_id ?? ANY
   const page = search.page ?? 1
+  const now = Date.now()
 
   const update = (patch: Partial<EnterpriseKeysSearch>) =>
     void navigate({
@@ -71,23 +194,182 @@ function KeysTable() {
   }, [debouncedKeyword, search.q, navigate])
 
   const { data, isLoading } = useQuery({
-    queryKey: ['enterprise', 'tokens', search.q, teamId, memberId, page],
+    queryKey: [
+      'enterprise',
+      'tokens',
+      search.q,
+      teamId,
+      memberId,
+      search.status,
+      search.expiring,
+      page,
+    ],
     queryFn: async () =>
       requireServerSuccess(
         await listEnterpriseTokens({
           keyword: search.q || undefined,
           team_id: teamId === ANY ? undefined : teamId,
           member_id: memberId === ANY ? undefined : memberId,
+          status: search.status,
+          expiring: search.expiring || undefined,
           p: page,
           page_size: PAGE_SIZE,
         })
       ).data ?? { items: [], total: 0 },
     placeholderData: keepPreviousData,
   })
+  const items = useMemo(() => data?.items ?? [], [data])
   const total = data?.total ?? 0
   const pageCount = Math.max(1, Math.ceil(total / PAGE_SIZE))
 
+  const options = useQuery({
+    queryKey: ['enterprise', 'token-options'],
+    queryFn: async () =>
+      requireServerSuccess(await getEnterpriseTokenOptions()).data ?? null,
+    staleTime: 30 * 1000,
+  })
+  const limit = options.data?.limit ?? 0
+  const nearLimit =
+    limit > 0 && (options.data?.total ?? 0) >= limit * LIMIT_WARN_RATIO
+
+  // 翻页 / 筛选后清掉已选
+  useEffect(() => {
+    setSelected(new Set())
+  }, [search.q, teamId, memberId, search.status, search.expiring, page])
+
+  const refresh = () =>
+    void queryClient.invalidateQueries({ queryKey: ['enterprise'] })
+
+  const resolveRealKey = async (id: number) => {
+    const result = await fetchEnterpriseTokenKey(id)
+    if (!result.success || !result.data) {
+      handleServerError(result)
+      return null
+    }
+    return `sk-${result.data.key}`
+  }
+
+  const handleToggle = async (row: EnterpriseToken) => {
+    const enable = row.status !== API_KEY_STATUS.ENABLED
+    setToggling(row.id)
+    try {
+      const result = await updateEnterpriseTokenStatus(
+        row.id,
+        enable ? API_KEY_STATUS.ENABLED : API_KEY_STATUS.DISABLED
+      )
+      if (!result.success) {
+        handleServerError(result)
+        return
+      }
+      toast.success(enable ? t('API Key enabled') : t('API Key disabled'))
+      refresh()
+    } catch (error) {
+      handleServerError(error)
+    } finally {
+      setToggling(null)
+    }
+  }
+
+  const handleDelete = async () => {
+    if (!deleting) return
+    try {
+      const result = await deleteEnterpriseToken(deleting.id)
+      if (!result.success) {
+        handleServerError(result)
+        return
+      }
+      toast.success(t('API Key deleted'))
+      setDeleting(null)
+      refresh()
+    } catch (error) {
+      handleServerError(error)
+    }
+  }
+
+  const handleBulkStatus = async (status: number) => {
+    setBulkBusy(true)
+    try {
+      const result = await batchUpdateEnterpriseTokenStatus(
+        [...selected],
+        status
+      )
+      if (!result.success || !result.data) {
+        handleServerError(result)
+        return
+      }
+      toast.success(
+        t('Updated {{count}} keys', { count: result.data.updated }) +
+          (result.data.skipped.length > 0
+            ? ` · ${t('{{count}} skipped (expired or exhausted)', { count: result.data.skipped.length })}`
+            : '')
+      )
+      setSelected(new Set())
+      refresh()
+    } catch (error) {
+      handleServerError(error)
+    } finally {
+      setBulkBusy(false)
+    }
+  }
+
+  const handleBulkDelete = async () => {
+    setBulkBusy(true)
+    try {
+      const result = await batchDeleteEnterpriseTokens([...selected])
+      if (!result.success || !result.data) {
+        handleServerError(result)
+        return
+      }
+      toast.success(t('Deleted {{count}} keys', { count: result.data.deleted }))
+      setBulkDeleting(false)
+      setSelected(new Set())
+      refresh()
+    } catch (error) {
+      handleServerError(error)
+    } finally {
+      setBulkBusy(false)
+    }
+  }
+
+  const allSelected =
+    items.length > 0 && items.every((row) => selected.has(row.id))
+  const toggleAll = () =>
+    setSelected(allSelected ? new Set() : new Set(items.map((row) => row.id)))
+  const toggleOne = (id: number) =>
+    setSelected((prev) => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+
+  const statusOptions = [
+    { value: STATUS_ANY, label: t('All statuses') },
+    ...Object.values(API_KEY_STATUSES).map((config) => ({
+      value: String(config.value),
+      label: t(config.label),
+    })),
+  ]
+
   const columns: StaticDataTableColumn<EnterpriseToken>[] = [
+    {
+      id: 'select',
+      header: (
+        <Checkbox
+          aria-label={t('Select all')}
+          checked={allSelected}
+          onCheckedChange={toggleAll}
+        />
+      ),
+      className: 'w-8',
+      cell: (row) => (
+        <Checkbox
+          aria-label={t('Select {{name}}', { name: row.name })}
+          checked={selected.has(row.id)}
+          onCheckedChange={() => toggleOne(row.id)}
+        />
+      ),
+    },
     {
       id: 'name',
       header: t('Name'),
@@ -101,62 +383,153 @@ function KeysTable() {
       ),
     },
     {
-      id: 'team',
-      header: t('Team'),
-      cell: (row) => row.team_name || '—',
+      id: 'owner',
+      header: t('Team · Holder'),
+      cell: (row) => (
+        <div className='flex flex-col'>
+          <span>
+            {row.team_name || '—'}
+            {row.team_status === 'archived' && (
+              <span className='text-muted-foreground ml-1 text-xs'>
+                ({t('Archived')})
+              </span>
+            )}
+          </span>
+          <span className='text-muted-foreground text-xs'>
+            {row.member_id ? row.member_name : t('Team key')}
+          </span>
+        </div>
+      ),
     },
     {
-      id: 'holder',
-      header: t('Holder'),
-      cell: (row) =>
-        row.member_id ? (
-          row.member_name
-        ) : (
-          <span className='text-muted-foreground'>{t('Team key')}</span>
-        ),
+      id: 'quota',
+      header: t('Quota'),
+      cell: (row) => <ApiKeyQuotaCell apiKey={toApiKey(row)} now={now} />,
+    },
+    {
+      id: 'month',
+      header: t('This month'),
+      cell: (row) => <MonthQuotaCell row={row} />,
+    },
+    {
+      id: 'restrictions',
+      header: t('Restrictions'),
+      cell: (row) => <RestrictionsCell row={row} />,
     },
     {
       id: 'status',
       header: t('Status'),
-      cell: (row) => (
-        <StatusBadge
-          label={row.status === 1 ? t('Enabled') : t('Disabled')}
-          variant={row.status === 1 ? 'success' : 'neutral'}
-          copyable={false}
-        />
-      ),
+      cell: (row) => {
+        const config = API_KEY_STATUSES[row.status]
+        return (
+          <StatusBadge
+            label={config ? t(config.label) : String(row.status)}
+            variant={config?.variant ?? 'neutral'}
+            copyable={false}
+          />
+        )
+      },
     },
     {
-      id: 'used',
-      header: t('Used'),
-      cell: (row) => formatQuotaWithCurrency(row.used_quota),
-    },
-    {
-      id: 'remain',
-      header: t('Remaining'),
+      id: 'accessed',
+      header: t('Last used'),
       cell: (row) =>
-        row.unlimited_quota
-          ? t('Unlimited')
-          : formatQuotaWithCurrency(row.remain_quota),
+        row.accessed_time > 0 && row.accessed_time !== row.created_time
+          ? formatTimestampRelative(row.accessed_time, 'seconds', locale)
+          : '—',
     },
     {
       id: 'actions',
       header: t('Actions'),
-      cell: (row) => (
-        <Button
-          variant='ghost'
-          size='icon-sm'
-          aria-label={t('Assign API Key')}
-          onClick={() => setAssigning(row)}
-        >
-          <UserCog />
-        </Button>
-      ),
+      cell: (row) => {
+        const enabled = row.status === API_KEY_STATUS.ENABLED
+        let statusIcon = <Power className='size-4' />
+        if (toggling === row.id) {
+          statusIcon = <Loader2 className='size-4 animate-spin' />
+        } else if (enabled) {
+          statusIcon = <PowerOff className='size-4' />
+        }
+        return (
+          <div className='-ml-1.5 flex items-center gap-1'>
+            <Button
+              variant='ghost'
+              size='icon-sm'
+              aria-label={enabled ? t('Disable') : t('Enable')}
+              disabled={toggling === row.id}
+              className={
+                enabled
+                  ? 'text-destructive hover:text-destructive'
+                  : 'text-emerald-600 hover:text-emerald-600'
+              }
+              onClick={() => void handleToggle(row)}
+            >
+              {statusIcon}
+            </Button>
+            <Button
+              variant='ghost'
+              size='icon-sm'
+              aria-label={t('Edit')}
+              onClick={() => props.onEdit(row)}
+            >
+              <Edit className='size-4' />
+            </Button>
+            <DataTableRowActionMenu ariaLabel={t('Open menu')} modal={false}>
+              <DropdownMenuItem
+                onClick={async () => {
+                  const key = await resolveRealKey(row.id)
+                  if (key && (await copyToClipboard(key))) {
+                    toast.success(t('Copied'))
+                  }
+                }}
+              >
+                <Copy className='size-4' /> {t('Copy key')}
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={async () => {
+                  const key = await resolveRealKey(row.id)
+                  const baseUrl =
+                    (siteStatus?.server_address as string | undefined) ||
+                    window.location.origin
+                  if (
+                    key &&
+                    (await copyToClipboard(
+                      encodeChannelConnectionInfo(key, baseUrl)
+                    ))
+                  ) {
+                    toast.success(t('Copied'))
+                  }
+                }}
+              >
+                <Copy className='size-4' /> {t('Copy connection info')}
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                variant='destructive'
+                onClick={() => setDeleting(row)}
+              >
+                <Trash2 className='size-4' /> {t('Delete')}
+              </DropdownMenuItem>
+            </DataTableRowActionMenu>
+          </div>
+        )
+      },
     },
   ]
 
   return (
     <div className='flex flex-col gap-3'>
+      {nearLimit && (
+        <Alert>
+          <AlertDescription>
+            {t(
+              '{{total}} of {{limit}} API keys used. Contact your account manager to raise the limit.',
+              {
+                total: options.data?.total ?? 0,
+                limit,
+              }
+            )}
+          </AlertDescription>
+        </Alert>
+      )}
       <div className='flex flex-wrap items-center gap-2'>
         <Input
           className='max-w-xs'
@@ -166,7 +539,7 @@ function KeysTable() {
           onChange={(event) => setKeyword(event.target.value)}
         />
         {!teamScoped && (
-          <div className='w-48'>
+          <div className='w-44'>
             <EntitySelect
               aria-label={t('Filter by team')}
               value={teamId}
@@ -181,7 +554,7 @@ function KeysTable() {
             />
           </div>
         )}
-        <div className='w-56'>
+        <div className='w-52'>
           <MemberPicker
             aria-label={t('Filter by holder')}
             value={memberId}
@@ -193,18 +566,85 @@ function KeysTable() {
             noneLabel={t('Team key (no holder)')}
           />
         </div>
+        <div className='w-36'>
+          <Select
+            items={statusOptions}
+            value={search.status ? String(search.status) : STATUS_ANY}
+            onValueChange={(value) =>
+              update({
+                status:
+                  value && value !== STATUS_ANY ? Number(value) : undefined,
+              })
+            }
+          >
+            <SelectTrigger
+              aria-label={t('Filter by status')}
+              className='w-full'
+            >
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent alignItemWithTrigger={false}>
+              <SelectGroup>
+                {statusOptions.map((option) => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectGroup>
+            </SelectContent>
+          </Select>
+        </div>
+        <Button
+          variant={search.expiring ? 'default' : 'outline'}
+          size='sm'
+          aria-pressed={Boolean(search.expiring)}
+          onClick={() =>
+            update({ expiring: search.expiring ? undefined : true })
+          }
+        >
+          {t('Expiring soon')}
+        </Button>
         <div className='flex-1' />
-        {enterprise?.actor?.is_owner && (
-          <Button variant='link' size='sm' render={<Link to='/keys' />}>
-            {t('Advanced key settings')}
-          </Button>
+        {selected.size > 0 && (
+          <div className='flex items-center gap-1'>
+            <span className='text-muted-foreground text-sm'>
+              {t('{{count}} selected', { count: selected.size })}
+            </span>
+            <Button
+              variant='outline'
+              size='sm'
+              aria-label={t('Enable selected')}
+              disabled={bulkBusy}
+              onClick={() => void handleBulkStatus(API_KEY_STATUS.ENABLED)}
+            >
+              {t('Enable')}
+            </Button>
+            <Button
+              variant='outline'
+              size='sm'
+              aria-label={t('Disable selected')}
+              disabled={bulkBusy}
+              onClick={() => void handleBulkStatus(API_KEY_STATUS.DISABLED)}
+            >
+              {t('Disable')}
+            </Button>
+            <Button
+              variant='destructive'
+              size='sm'
+              aria-label={t('Delete selected')}
+              disabled={bulkBusy}
+              onClick={() => setBulkDeleting(true)}
+            >
+              {t('Delete')}
+            </Button>
+          </div>
         )}
       </div>
       <StaticDataTable
         columns={columns}
-        data={data?.items ?? []}
+        data={items}
         getRowKey={(row) => row.id}
-        empty={!isLoading && (data?.items.length ?? 0) === 0}
+        empty={!isLoading && items.length === 0}
         emptyContent={t('No API keys yet')}
       />
       <div className='text-muted-foreground flex items-center justify-end gap-2 text-sm'>
@@ -229,12 +669,27 @@ function KeysTable() {
           {t('Next')}
         </Button>
       </div>
-      <TokenAssignDialog
-        token={assigning}
-        onOpenChange={(open) => !open && setAssigning(null)}
-        onSaved={() =>
-          void queryClient.invalidateQueries({ queryKey: ['enterprise'] })
-        }
+      <ConfirmDialog
+        open={deleting !== null}
+        onOpenChange={(open) => !open && setDeleting(null)}
+        title={t('Delete API Key')}
+        desc={t(
+          'The key stops working immediately. Its usage history stays in reports and bills.'
+        )}
+        destructive
+        confirmText={t('Delete')}
+        handleConfirm={() => void handleDelete()}
+      />
+      <ConfirmDialog
+        open={bulkDeleting}
+        onOpenChange={setBulkDeleting}
+        title={t('Delete {{count}} API keys', { count: selected.size })}
+        desc={t(
+          'The keys stop working immediately. Their usage history stays in reports and bills.'
+        )}
+        destructive
+        confirmText={t('Delete')}
+        handleConfirm={() => void handleBulkDelete()}
       />
     </div>
   )
@@ -245,16 +700,27 @@ export function EnterpriseKeys() {
   const queryClient = useQueryClient()
   const search = route.useSearch()
   const { data: enterprise } = useEnterpriseSelf()
-  const [creating, setCreating] = useState(false)
+  const [sheet, setSheet] = useState<{ token?: EnterpriseToken } | null>(null)
+  let roleLabel = ''
+  if (enterprise?.actor?.is_owner) {
+    roleLabel = t('Owner')
+  } else if (enterprise?.actor) {
+    roleLabel = t(MEMBER_ROLE_LABELS[enterprise.actor.role])
+  }
   return (
     <>
       <SectionPageLayout>
         <SectionPageLayout.Title>
-          {t('Enterprise API Keys')}
+          <span className='flex items-center gap-2'>
+            {t('API Keys')}
+            {roleLabel && (
+              <StatusBadge label={roleLabel} variant='info' copyable={false} />
+            )}
+          </span>
         </SectionPageLayout.Title>
         <SectionPageLayout.Actions>
           {enterprise && (
-            <Button size='sm' onClick={() => setCreating(true)}>
+            <Button size='sm' onClick={() => setSheet({})}>
               <Plus className='h-4 w-4' />
               {t('Create API Key')}
             </Button>
@@ -262,15 +728,16 @@ export function EnterpriseKeys() {
         </SectionPageLayout.Actions>
         <SectionPageLayout.Content>
           <EnterpriseGuard>
-            <KeysTable />
+            <KeysTable onEdit={(token) => setSheet({ token })} />
           </EnterpriseGuard>
         </SectionPageLayout.Content>
       </SectionPageLayout>
-      <TokenCreateDialog
-        open={creating}
-        onOpenChange={setCreating}
+      <TokenMutateSheet
+        open={sheet !== null}
+        onOpenChange={(open) => !open && setSheet(null)}
+        token={sheet?.token}
         defaultTeamId={search.team_id}
-        onCreated={() =>
+        onSaved={() =>
           void queryClient.invalidateQueries({ queryKey: ['enterprise'] })
         }
       />

@@ -169,10 +169,14 @@ type enterpriseOverview struct {
 	OpenPeriod   *model.EnterpriseCreditPeriod `json:"open_period"`
 }
 
-// GetEnterpriseOverview 概览：预付显示余额，授信显示当前账期的额度/已用
+// GetEnterpriseOverview 概览：预付显示余额，授信显示当前账期的额度/已用；团队角色看不到财务字段
 func GetEnterpriseOverview(c *gin.Context) {
 	enterprise := currentEnterprise(c)
 	overview := enterpriseOverview{Enterprise: enterprise}
+	if !currentActor(c).AtLeast(model.EnterpriseMemberRoleEnterpriseAdmin) {
+		common.ApiSuccess(c, overview)
+		return
+	}
 	if enterprise.BillingMode == model.EnterpriseBillingModeCredit {
 		period, err := model.GetOpenCreditPeriod(enterprise.Id)
 		if err != nil && !errors.Is(err, model.ErrEnterpriseCreditNoOpenPeriod) {

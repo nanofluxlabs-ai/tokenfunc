@@ -339,6 +339,10 @@ func migrateDB() error {
 		common.SysError(common.LogText("failed to migrate options primary key: %s", err.Error()))
 	}
 
+	// 企业组织模型 v2：改名必须在 AutoMigrate 之前（TokenFunc 二开）
+	if err := migrateEnterpriseOrgV2Before(); err != nil {
+		return err
+	}
 	err := DB.AutoMigrate(
 		&Channel{},
 		&Token{},
@@ -377,9 +381,8 @@ func migrateDB() error {
 		&AuthzRole{},
 		&UserAccessToken{},
 		&Enterprise{},
-		&EnterpriseDepartment{},
-		&EnterpriseEmployee{},
-		&EnterpriseProject{},
+		&EnterpriseTeam{},
+		&EnterpriseMember{},
 		&EnterpriseTokenAssignment{},
 		&EnterpriseCreditPeriod{},
 		&EnterpriseLedgerEntry{},
@@ -405,6 +408,9 @@ func migrateDB() error {
 	}
 	if err := MigrateLogDailyRollupV2(); err != nil {
 		return fmt.Errorf("migrate log daily rollup schema: %w", err)
+	}
+	if err := migrateEnterpriseOrgV2After(); err != nil {
+		return err
 	}
 	if err := dropLegacyEnterpriseQuoteTable(); err != nil {
 		return err

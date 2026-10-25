@@ -11,52 +11,78 @@ import (
 	"gorm.io/gorm/clause"
 )
 
-// 员工状态
+// 企业组织模型（TokenFunc 二开，三层）：团队（workspace，扁平）→ 成员 → key。
+// 成员一张表覆盖四种人：不登录只持 key 的员工（user_id=0）、团队开发者、团队管理员、企业管理员。
+// key 必属一个团队，可选归属一个持有人成员；计费主体始终是企业主账号（tokens.user_id）。
+
+// 团队状态
 const (
-	EnterpriseEmployeeStatusActive   = "active"
-	EnterpriseEmployeeStatusDisabled = "disabled"
+	EnterpriseTeamStatusActive   = "active"
+	EnterpriseTeamStatusArchived = "archived"
 )
 
-// 项目状态
+// 成员状态
 const (
-	EnterpriseProjectStatusActive   = "active"
-	EnterpriseProjectStatusArchived = "archived"
+	EnterpriseMemberStatusActive   = "active"
+	EnterpriseMemberStatusDisabled = "disabled"
 )
 
-// 部门树最大深度，防止异常数据导致无限向上追溯
-const enterpriseDepartmentMaxDepth = 16
+// 成员角色：none 不能登录控制台；其余三种要求绑定了登录账号
+const (
+	EnterpriseMemberRoleNone            = "none"
+	EnterpriseMemberRoleDeveloper       = "developer"
+	EnterpriseMemberRoleTeamAdmin       = "team_admin"
+	EnterpriseMemberRoleEnterpriseAdmin = "enterprise_admin"
+)
+
+// EnterpriseDefaultTeamName 每个企业自动拥有的默认团队名（不可删、不可归档）
+const EnterpriseDefaultTeamName = "Default"
 
 var (
-	ErrEnterpriseResourceNotFound  = errors.New("resource not found in this enterprise")
-	ErrEnterpriseDepartmentInUse   = errors.New("department still has sub-departments or employees")
-	ErrEnterpriseDepartmentCycle   = errors.New("a department cannot be moved under itself or its descendants")
-	ErrEnterpriseDuplicateName     = errors.New("name already exists")
-	ErrEnterpriseEmployeeNotActive = errors.New("employee is disabled")
-	ErrEnterpriseProjectArchived   = errors.New("project is archived")
+	ErrEnterpriseResourceNotFound   = errors.New("resource not found in this enterprise")
+	ErrEnterpriseTeamInUse          = errors.New("team still has members or API keys")
+	ErrEnterpriseTeamDefault        = errors.New("the default team cannot be deleted or archived")
+	ErrEnterpriseTeamArchived       = errors.New("team is archived")
+	ErrEnterpriseDuplicateName      = errors.New("name already exists")
+	ErrEnterpriseMemberNotActive    = errors.New("member is disabled")
+	ErrEnterpriseMemberTeamMismatch = errors.New("member does not belong to this team")
+	ErrEnterpriseMemberNoLogin      = errors.New("member has no login account")
+	ErrEnterpriseMemberHasLogin     = errors.New("member already has a login account")
+	ErrEnterpriseLoginUserTaken     = errors.New("this account already belongs to an enterprise")
+	ErrEnterpriseLoginUserInvalid   = errors.New("this account cannot be used as an enterprise member")
+	ErrEnterpriseInvalidRole        = errors.New("invalid member role")
+	ErrEnterpriseNoAccess           = errors.New("enterprise access required")
 )
 
-// EnterpriseDepartment 部门（树形，parent_id=0 为顶级）
-type EnterpriseDepartment struct {
-	Id           int            `json:"id"`
-	EnterpriseId int            `json:"enterprise_id" gorm:"not null;index:idx_ent_dept_parent,priority:1;uniqueIndex:uk_ent_dept_name,priority:1,where:deleted_at IS NULL"`
-	ParentId     int            `json:"parent_id" gorm:"not null;default:0;index:idx_ent_dept_parent,priority:2;uniqueIndex:uk_ent_dept_name,priority:2,where:deleted_at IS NULL"`
-	Name         string         `json:"name" gorm:"type:varchar(64);not null;uniqueIndex:uk_ent_dept_name,priority:3,where:deleted_at IS NULL"`
-	Sort         int            `json:"sort" gorm:"not null;default:0"`
-	CreatedAt    int64          `json:"created_at" gorm:"not null"`
-	UpdatedAt    int64          `json:"updated_at" gorm:"not null"`
-	DeletedAt    gorm.DeletedAt `json:"-" gorm:"index"`
+// EnterpriseTeam 团队（扁平，不嵌套）；预算字段由团队预算模块使用
+type EnterpriseTeam struct {
+	Id                 int            `json:"id"`
+	EnterpriseId       int            `json:"enterprise_id" gorm:"not null;index;uniqueIndex:uk_ent_team_name,priority:1,where:deleted_at IS NULL;uniqueIndex:uk_ent_team_default,where:is_default AND deleted_at IS NULL"`
+	Name               string         `json:"name" gorm:"type:varchar(64);not null;uniqueIndex:uk_ent_team_name,priority:2,where:deleted_at IS NULL"`
+	Sort               int            `json:"sort" gorm:"not null;default:0"`
+	IsDefault          bool           `json:"is_default" gorm:"not null;default:false"`
+	Status             string         `json:"status" gorm:"type:varchar(16);not null;default:'active'"`
+	MonthlyBudgetQuota int64          `json:"monthly_budget_quota" gorm:"not null;default:0"`
+	BudgetAlertPercent int            `json:"budget_alert_percent" gorm:"not null;default:80"`
+	BudgetEnforce      bool           `json:"budget_enforce" gorm:"not null;default:false"`
+	CreatedAt          int64          `json:"created_at" gorm:"not null"`
+	UpdatedAt          int64          `json:"updated_at" gorm:"not null"`
+	DeletedAt          gorm.DeletedAt `json:"-" gorm:"index"`
 }
 
-func (EnterpriseDepartment) TableName() string { return "ent_departments" }
+func (EnterpriseTeam) TableName() string { return "ent_teams" }
 
-// EnterpriseEmployee 员工（企业主账号下的子账号，不能登录，只通过分配的 API Key 调用）
-type EnterpriseEmployee struct {
+// EnterpriseMember 成员：不登录时等价于 service account，只通过分配的 key 调用；绑定登录账号后按 role 使用控制台
+type EnterpriseMember struct {
 	Id           int            `json:"id"`
 	EnterpriseId int            `json:"enterprise_id" gorm:"not null;index;uniqueIndex:uk_ent_employee_no,priority:1,where:employee_no <> '' AND deleted_at IS NULL"`
-	DepartmentId int            `json:"department_id" gorm:"not null;default:0;index"`
+	TeamId       int            `json:"team_id" gorm:"not null;default:0;index"`
 	Name         string         `json:"name" gorm:"type:varchar(64);not null"`
 	Email        string         `json:"email" gorm:"type:varchar(128);not null;default:''"`
 	EmployeeNo   string         `json:"employee_no" gorm:"type:varchar(64);not null;default:'';uniqueIndex:uk_ent_employee_no,priority:2,where:employee_no <> '' AND deleted_at IS NULL"`
+	UserId       int            `json:"user_id" gorm:"not null;default:0;uniqueIndex:uk_ent_member_user,where:user_id > 0 AND deleted_at IS NULL"`
+	Role         string         `json:"role" gorm:"type:varchar(16);not null;default:'none'"`
+	Provisioned  bool           `json:"provisioned" gorm:"not null;default:false"`
 	Status       string         `json:"status" gorm:"type:varchar(16);not null"`
 	Remark       string         `json:"remark" gorm:"type:text"`
 	CreatedAt    int64          `json:"created_at" gorm:"not null"`
@@ -64,29 +90,14 @@ type EnterpriseEmployee struct {
 	DeletedAt    gorm.DeletedAt `json:"-" gorm:"index"`
 }
 
-func (EnterpriseEmployee) TableName() string { return "ent_employees" }
+func (EnterpriseMember) TableName() string { return "ent_members" }
 
-// EnterpriseProject 项目，仅用于消耗统计归因，不做额度拦截
-type EnterpriseProject struct {
-	Id           int            `json:"id"`
-	EnterpriseId int            `json:"enterprise_id" gorm:"not null;index;uniqueIndex:uk_ent_project_name,priority:1,where:deleted_at IS NULL"`
-	Name         string         `json:"name" gorm:"type:varchar(64);not null;uniqueIndex:uk_ent_project_name,priority:2,where:deleted_at IS NULL"`
-	Code         string         `json:"code" gorm:"type:varchar(64);not null;default:''"`
-	Status       string         `json:"status" gorm:"type:varchar(16);not null"`
-	Remark       string         `json:"remark" gorm:"type:text"`
-	CreatedAt    int64          `json:"created_at" gorm:"not null"`
-	UpdatedAt    int64          `json:"updated_at" gorm:"not null"`
-	DeletedAt    gorm.DeletedAt `json:"-" gorm:"index"`
-}
-
-func (EnterpriseProject) TableName() string { return "ent_projects" }
-
-// EnterpriseTokenAssignment API Key 的归属（员工 / 项目），独立成表以免给上游 tokens 表加列
+// EnterpriseTokenAssignment key 的归属：必属一个团队，可选持有人；独立成表以免给上游 tokens 表加列
 type EnterpriseTokenAssignment struct {
 	TokenId      int   `json:"token_id" gorm:"primaryKey;autoIncrement:false"`
 	EnterpriseId int   `json:"enterprise_id" gorm:"not null;index"`
-	EmployeeId   int   `json:"employee_id" gorm:"not null;default:0;index"`
-	ProjectId    int   `json:"project_id" gorm:"not null;default:0;index"`
+	TeamId       int   `json:"team_id" gorm:"not null;default:0;index"`
+	MemberId     int   `json:"member_id" gorm:"not null;default:0;index"`
 	CreatedAt    int64 `json:"created_at" gorm:"not null"`
 	UpdatedAt    int64 `json:"updated_at" gorm:"not null"`
 }
@@ -107,57 +118,201 @@ func normalizeEnterpriseName(name string, maxLen int) (string, error) {
 }
 
 // ---------------------------------------------------------------------------
-// 部门
+// 范围（team_admin / developer 只能看自己的团队）
 // ---------------------------------------------------------------------------
 
-func ListEnterpriseDepartments(enterpriseId int) ([]*EnterpriseDepartment, error) {
-	departments := make([]*EnterpriseDepartment, 0)
-	err := DB.Where("enterprise_id = ?", enterpriseId).Order("sort ASC, id ASC").Find(&departments).Error
-	return departments, err
+// EnterpriseScope 控制台查询范围：TeamId 为 nil 表示全企业
+type EnterpriseScope struct {
+	TeamId *int
 }
 
-func getEnterpriseDepartment(tx *gorm.DB, enterpriseId int, id int) (*EnterpriseDepartment, error) {
-	var department EnterpriseDepartment
-	err := tx.Where("enterprise_id = ? AND id = ?", enterpriseId, id).First(&department).Error
+// Allows 该范围是否覆盖某个团队
+func (s EnterpriseScope) Allows(teamId int) bool {
+	return s.TeamId == nil || *s.TeamId == teamId
+}
+
+func scopeTeam(teamId int) EnterpriseScope { return EnterpriseScope{TeamId: &teamId} }
+
+// EnterpriseActor 当前登录者在企业里的身份
+type EnterpriseActor struct {
+	MemberId    int    `json:"member_id"`
+	Role        string `json:"role"`
+	TeamId      int    `json:"team_id"`
+	IsOwner     bool   `json:"is_owner"`
+	Provisioned bool   `json:"provisioned"`
+}
+
+// Scope 主账号与企业管理员看全企业，其余只看本团队
+func (a EnterpriseActor) Scope() EnterpriseScope {
+	if a.IsOwner || a.Role == EnterpriseMemberRoleEnterpriseAdmin {
+		return EnterpriseScope{}
+	}
+	return scopeTeam(a.TeamId)
+}
+
+// enterpriseRoleRank 角色高低：owner > enterprise_admin > team_admin > developer > none
+func enterpriseRoleRank(role string) int {
+	switch role {
+	case EnterpriseMemberRoleDeveloper:
+		return 1
+	case EnterpriseMemberRoleTeamAdmin:
+		return 2
+	case EnterpriseMemberRoleEnterpriseAdmin:
+		return 3
+	}
+	return 0
+}
+
+// Rank 主账号视为最高
+func (a EnterpriseActor) Rank() int {
+	if a.IsOwner {
+		return 4
+	}
+	return enterpriseRoleRank(a.Role)
+}
+
+// AtLeast 是否不低于某个角色
+func (a EnterpriseActor) AtLeast(role string) bool { return a.Rank() >= enterpriseRoleRank(role) }
+
+// GetEnterpriseAccess 解析登录用户的企业身份：主账号，或绑定了登录账号且角色不为 none 的在职成员
+func GetEnterpriseAccess(userId int) (*Enterprise, *EnterpriseActor, error) {
+	enterprise, err := GetEnterpriseByUserId(userId)
+	if err == nil {
+		return enterprise, &EnterpriseActor{IsOwner: true, Role: EnterpriseMemberRoleEnterpriseAdmin}, nil
+	}
+	if !errors.Is(err, gorm.ErrRecordNotFound) {
+		return nil, nil, err
+	}
+	var member EnterpriseMember
+	err = DB.Where("user_id = ? AND role <> ? AND status = ?", userId, EnterpriseMemberRoleNone, EnterpriseMemberStatusActive).First(&member).Error
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return nil, nil, ErrEnterpriseNoAccess
+	}
+	if err != nil {
+		return nil, nil, err
+	}
+	enterprise, err = GetEnterpriseById(member.EnterpriseId)
+	if err != nil {
+		return nil, nil, err
+	}
+	return enterprise, &EnterpriseActor{MemberId: member.Id, Role: member.Role, TeamId: member.TeamId, Provisioned: member.Provisioned}, nil
+}
+
+// ---------------------------------------------------------------------------
+// 团队
+// ---------------------------------------------------------------------------
+
+// EnterpriseTeamListItem 团队列表行：附带成员数与 key 数
+type EnterpriseTeamListItem struct {
+	EnterpriseTeam
+	MemberCount int `json:"member_count"`
+	TokenCount  int `json:"token_count"`
+}
+
+func ListEnterpriseTeams(enterpriseId int, scope EnterpriseScope) ([]*EnterpriseTeamListItem, error) {
+	query := DB.Table("ent_teams").Where("ent_teams.enterprise_id = ? AND ent_teams.deleted_at IS NULL", enterpriseId)
+	if scope.TeamId != nil {
+		query = query.Where("ent_teams.id = ?", *scope.TeamId)
+	}
+	items := make([]*EnterpriseTeamListItem, 0)
+	err := query.
+		Select(`ent_teams.*,
+			(SELECT COUNT(*) FROM ent_members m WHERE m.team_id = ent_teams.id AND m.deleted_at IS NULL) AS member_count,
+			(SELECT COUNT(*) FROM ent_token_assignments a JOIN tokens t ON t.id = a.token_id AND t.deleted_at IS NULL
+			 WHERE a.team_id = ent_teams.id) AS token_count`).
+		Order("ent_teams.is_default DESC, ent_teams.sort ASC, ent_teams.id ASC").
+		Scan(&items).Error
+	return items, err
+}
+
+func getEnterpriseTeam(tx *gorm.DB, enterpriseId int, id int) (*EnterpriseTeam, error) {
+	var team EnterpriseTeam
+	err := tx.Where("enterprise_id = ? AND id = ?", enterpriseId, id).First(&team).Error
 	if errors.Is(err, gorm.ErrRecordNotFound) {
 		return nil, ErrEnterpriseResourceNotFound
 	}
-	return &department, err
+	return &team, err
 }
 
-// ensureDepartmentParent 校验父部门属于本企业，且（移动时）不会形成环
-func ensureDepartmentParent(tx *gorm.DB, enterpriseId int, departmentId int, parentId int) error {
-	current := parentId
-	for range enterpriseDepartmentMaxDepth {
-		if current == 0 {
-			return nil
-		}
-		if departmentId != 0 && current == departmentId {
-			return ErrEnterpriseDepartmentCycle
-		}
-		parent, err := getEnterpriseDepartment(tx, enterpriseId, current)
-		if err != nil {
-			return err
-		}
-		current = parent.ParentId
+// GetEnterpriseTeam 读取团队（范围外视为不存在）
+func GetEnterpriseTeam(enterpriseId int, id int, scope EnterpriseScope) (*EnterpriseTeam, error) {
+	if !scope.Allows(id) {
+		return nil, ErrEnterpriseResourceNotFound
 	}
-	return errors.New("department tree is too deep")
+	return getEnterpriseTeam(DB, enterpriseId, id)
 }
 
-func CreateEnterpriseDepartment(department *EnterpriseDepartment) error {
-	name, err := normalizeEnterpriseName(department.Name, 64)
+// ensureDefaultTeam 返回企业的默认团队 id，不存在则创建（企业建立时、迁移时与兜底路径共用）
+func ensureDefaultTeam(tx *gorm.DB, enterpriseId int) (int, error) {
+	var team EnterpriseTeam
+	err := tx.Where("enterprise_id = ? AND is_default = ?", enterpriseId, true).First(&team).Error
+	if err == nil {
+		return team.Id, nil
+	}
+	if !errors.Is(err, gorm.ErrRecordNotFound) {
+		return 0, err
+	}
+	now := common.GetTimestamp()
+	team = EnterpriseTeam{EnterpriseId: enterpriseId, Name: EnterpriseDefaultTeamName, IsDefault: true, Status: EnterpriseTeamStatusActive, BudgetAlertPercent: 80, CreatedAt: now, UpdatedAt: now}
+	if err := tx.Create(&team).Error; err != nil {
+		if !isUniqueViolation(err) {
+			return 0, err
+		}
+		// 同名团队已存在（历史数据）：把它提升为默认团队
+		if err := tx.Model(&EnterpriseTeam{}).Where("enterprise_id = ? AND name = ?", enterpriseId, EnterpriseDefaultTeamName).Update("is_default", true).Error; err != nil {
+			return 0, err
+		}
+		if err := tx.Where("enterprise_id = ? AND is_default = ?", enterpriseId, true).First(&team).Error; err != nil {
+			return 0, err
+		}
+	}
+	return team.Id, nil
+}
+
+// EnsureDefaultTeam 对外入口（企业建立后调用）
+func EnsureDefaultTeam(enterpriseId int) (int, error) {
+	return ensureDefaultTeam(DB, enterpriseId)
+}
+
+// resolveTeamId 0 表示默认团队
+func resolveTeamId(tx *gorm.DB, enterpriseId int, teamId int) (int, error) {
+	if teamId != 0 {
+		return teamId, nil
+	}
+	return ensureDefaultTeam(tx, enterpriseId)
+}
+
+func (t *EnterpriseTeam) normalize() error {
+	name, err := normalizeEnterpriseName(t.Name, 64)
 	if err != nil {
 		return err
 	}
-	department.Name = name
-	if err := ensureDepartmentParent(DB, department.EnterpriseId, 0, department.ParentId); err != nil {
+	t.Name = name
+	if t.Status == "" {
+		t.Status = EnterpriseTeamStatusActive
+	}
+	if t.Status != EnterpriseTeamStatusActive && t.Status != EnterpriseTeamStatusArchived {
+		return fmt.Errorf("invalid team status: %s", t.Status)
+	}
+	if t.MonthlyBudgetQuota < 0 {
+		return errors.New("monthly budget cannot be negative")
+	}
+	if t.BudgetAlertPercent < 0 || t.BudgetAlertPercent > 99 {
+		return errors.New("budget alert percent must be between 0 and 99")
+	}
+	return nil
+}
+
+func CreateEnterpriseTeam(team *EnterpriseTeam) error {
+	if err := team.normalize(); err != nil {
 		return err
 	}
 	now := common.GetTimestamp()
-	department.Id = 0
-	department.CreatedAt = now
-	department.UpdatedAt = now
-	if err := DB.Create(department).Error; err != nil {
+	team.Id = 0
+	team.IsDefault = false
+	team.CreatedAt = now
+	team.UpdatedAt = now
+	if err := DB.Create(team).Error; err != nil {
 		if isUniqueViolation(err) {
 			return ErrEnterpriseDuplicateName
 		}
@@ -166,22 +321,21 @@ func CreateEnterpriseDepartment(department *EnterpriseDepartment) error {
 	return nil
 }
 
-func UpdateEnterpriseDepartment(enterpriseId int, id int, name string, parentId int, sort int) error {
-	name, err := normalizeEnterpriseName(name, 64)
-	if err != nil {
+// UpdateEnterpriseTeam 更新名称、排序与预算配置（默认团队可改预算，不可改名为空）
+func UpdateEnterpriseTeam(team *EnterpriseTeam) error {
+	if err := team.normalize(); err != nil {
 		return err
 	}
-	if _, err := getEnterpriseDepartment(DB, enterpriseId, id); err != nil {
+	if _, err := getEnterpriseTeam(DB, team.EnterpriseId, team.Id); err != nil {
 		return err
 	}
-	if err := ensureDepartmentParent(DB, enterpriseId, id, parentId); err != nil {
-		return err
-	}
-	err = DB.Model(&EnterpriseDepartment{}).Where("enterprise_id = ? AND id = ?", enterpriseId, id).Updates(map[string]any{
-		"name":       name,
-		"parent_id":  parentId,
-		"sort":       sort,
-		"updated_at": common.GetTimestamp(),
+	err := DB.Model(&EnterpriseTeam{}).Where("enterprise_id = ? AND id = ?", team.EnterpriseId, team.Id).Updates(map[string]any{
+		"name":                 team.Name,
+		"sort":                 team.Sort,
+		"monthly_budget_quota": team.MonthlyBudgetQuota,
+		"budget_alert_percent": team.BudgetAlertPercent,
+		"budget_enforce":       team.BudgetEnforce,
+		"updated_at":           common.GetTimestamp(),
 	}).Error
 	if isUniqueViolation(err) {
 		return ErrEnterpriseDuplicateName
@@ -189,140 +343,25 @@ func UpdateEnterpriseDepartment(enterpriseId int, id int, name string, parentId 
 	return err
 }
 
-// DeleteEnterpriseDepartment 软删除部门；仍有子部门或在职员工时拒绝
-func DeleteEnterpriseDepartment(enterpriseId int, id int) error {
-	return DB.Transaction(func(tx *gorm.DB) error {
-		if _, err := getEnterpriseDepartment(lockForUpdate(tx), enterpriseId, id); err != nil {
-			return err
-		}
-		var children, employees int64
-		if err := tx.Model(&EnterpriseDepartment{}).Where("enterprise_id = ? AND parent_id = ?", enterpriseId, id).Count(&children).Error; err != nil {
-			return err
-		}
-		if err := tx.Model(&EnterpriseEmployee{}).Where("enterprise_id = ? AND department_id = ?", enterpriseId, id).Count(&employees).Error; err != nil {
-			return err
-		}
-		if children > 0 || employees > 0 {
-			return ErrEnterpriseDepartmentInUse
-		}
-		return tx.Where("enterprise_id = ? AND id = ?", enterpriseId, id).Delete(&EnterpriseDepartment{}).Error
-	})
+// disableTeamTokens 停用团队名下全部启用中的 key（归档团队时）
+func disableTeamTokens(tx *gorm.DB, enterpriseId int, teamId int) error {
+	return disableAssignedTokens(tx, "a.enterprise_id = ? AND a.team_id = ?", enterpriseId, teamId)
 }
 
-// ---------------------------------------------------------------------------
-// 员工
-// ---------------------------------------------------------------------------
-
-// EnterpriseEmployeeListItem 员工列表行：附带部门名与名下 key 数量
-type EnterpriseEmployeeListItem struct {
-	EnterpriseEmployee
-	DepartmentName string `json:"department_name"`
-	TokenCount     int    `json:"token_count"`
-}
-
-type EnterpriseEmployeeFilter struct {
-	DepartmentId *int
-	Keyword      string
-	Status       string
-}
-
-func ListEnterpriseEmployees(enterpriseId int, filter EnterpriseEmployeeFilter, startIdx int, num int) ([]*EnterpriseEmployeeListItem, int64, error) {
-	query := DB.Table("ent_employees").
-		Where("ent_employees.enterprise_id = ? AND ent_employees.deleted_at IS NULL", enterpriseId)
-	if filter.DepartmentId != nil {
-		query = query.Where("ent_employees.department_id = ?", *filter.DepartmentId)
-	}
-	if filter.Status != "" {
-		query = query.Where("ent_employees.status = ?", filter.Status)
-	}
-	if keyword := strings.TrimSpace(filter.Keyword); keyword != "" {
-		like := "%" + keyword + "%"
-		query = query.Where("(ent_employees.name ILIKE ? OR ent_employees.email ILIKE ? OR ent_employees.employee_no ILIKE ?)", like, like, like)
-	}
-	var total int64
-	if err := query.Count(&total).Error; err != nil {
-		return nil, 0, err
-	}
-	items := make([]*EnterpriseEmployeeListItem, 0)
-	err := query.
-		Select(`ent_employees.*, COALESCE(d.name, '') AS department_name,
-			(SELECT COUNT(*) FROM ent_token_assignments a JOIN tokens t ON t.id = a.token_id AND t.deleted_at IS NULL
-			 WHERE a.employee_id = ent_employees.id) AS token_count`).
-		Joins("LEFT JOIN ent_departments d ON d.id = ent_employees.department_id AND d.deleted_at IS NULL").
-		Order("ent_employees.id DESC").
-		Limit(num).Offset(startIdx).
-		Scan(&items).Error
-	return items, total, err
-}
-
-func getEnterpriseEmployee(tx *gorm.DB, enterpriseId int, id int) (*EnterpriseEmployee, error) {
-	var employee EnterpriseEmployee
-	err := tx.Where("enterprise_id = ? AND id = ?", enterpriseId, id).First(&employee).Error
-	if errors.Is(err, gorm.ErrRecordNotFound) {
-		return nil, ErrEnterpriseResourceNotFound
-	}
-	return &employee, err
-}
-
-func (e *EnterpriseEmployee) normalize() error {
-	name, err := normalizeEnterpriseName(e.Name, 64)
-	if err != nil {
-		return err
-	}
-	e.Name = name
-	e.Email = strings.TrimSpace(e.Email)
-	e.EmployeeNo = strings.TrimSpace(e.EmployeeNo)
-	if len(e.Email) > 128 || len(e.EmployeeNo) > 64 {
-		return errors.New("email or employee number is too long")
-	}
-	if e.Status == "" {
-		e.Status = EnterpriseEmployeeStatusActive
-	}
-	if e.Status != EnterpriseEmployeeStatusActive && e.Status != EnterpriseEmployeeStatusDisabled {
-		return fmt.Errorf("invalid employee status: %s", e.Status)
-	}
-	return nil
-}
-
-func ensureEmployeeDepartment(tx *gorm.DB, enterpriseId int, departmentId int) error {
-	if departmentId == 0 {
-		return nil
-	}
-	_, err := getEnterpriseDepartment(tx, enterpriseId, departmentId)
-	return err
-}
-
-func CreateEnterpriseEmployee(employee *EnterpriseEmployee) error {
-	if err := employee.normalize(); err != nil {
-		return err
-	}
-	if err := ensureEmployeeDepartment(DB, employee.EnterpriseId, employee.DepartmentId); err != nil {
-		return err
-	}
-	now := common.GetTimestamp()
-	employee.Id = 0
-	employee.CreatedAt = now
-	employee.UpdatedAt = now
-	err := DB.Create(employee).Error
-	if isUniqueViolation(err) {
-		return ErrEnterpriseDuplicateName
-	}
-	return err
-}
-
-// disableEmployeeTokens 停用员工名下所有 key：先失效缓存（设置 fence）再写库，防止并发读者回填旧状态
-func disableEmployeeTokens(tx *gorm.DB, enterpriseId int, employeeId int) error {
+// disableAssignedTokens 按归属条件停用 key：先失效缓存（设置 fence）再写库，防止并发读者回填旧状态
+func disableAssignedTokens(tx *gorm.DB, where string, args ...any) error {
 	var tokens []Token
 	err := tx.Model(&Token{}).
 		Select("tokens.id", "tokens."+commonKeyCol).
 		Joins("JOIN ent_token_assignments a ON a.token_id = tokens.id").
-		Where("a.enterprise_id = ? AND a.employee_id = ? AND tokens.status = ?", enterpriseId, employeeId, common.TokenStatusEnabled).
+		Where(where, args...).
+		Where("tokens.status = ?", common.TokenStatusEnabled).
 		Find(&tokens).Error
 	if err != nil || len(tokens) == 0 {
 		return err
 	}
 	if err := invalidateTokensCache(tokens); err != nil {
-		common.SysLog("failed to invalidate employee token cache: " + err.Error())
+		common.SysLog("failed to invalidate enterprise token cache: " + err.Error())
 	}
 	ids := make([]int, 0, len(tokens))
 	for _, token := range tokens {
@@ -331,27 +370,235 @@ func disableEmployeeTokens(tx *gorm.DB, enterpriseId int, employeeId int) error 
 	return tx.Model(&Token{}).Where("id IN ?", ids).Update("status", common.TokenStatusDisabled).Error
 }
 
-// UpdateEnterpriseEmployee 更新员工资料；状态改为停用时同步停用其名下全部 key（重新启用员工不会自动启用 key）
-func UpdateEnterpriseEmployee(employee *EnterpriseEmployee) error {
-	if err := employee.normalize(); err != nil {
-		return err
-	}
-	err := DB.Transaction(func(tx *gorm.DB) error {
-		existing, err := getEnterpriseEmployee(lockForUpdate(tx), employee.EnterpriseId, employee.Id)
+// ArchiveEnterpriseTeam 归档团队：停用其全部 key，成员保留但不能再分配新 key；默认团队不可归档
+func ArchiveEnterpriseTeam(enterpriseId int, id int) error {
+	return DB.Transaction(func(tx *gorm.DB) error {
+		team, err := getEnterpriseTeam(lockForUpdate(tx), enterpriseId, id)
 		if err != nil {
 			return err
 		}
-		if err := ensureEmployeeDepartment(tx, employee.EnterpriseId, employee.DepartmentId); err != nil {
+		if team.IsDefault {
+			return ErrEnterpriseTeamDefault
+		}
+		if err := disableTeamTokens(tx, enterpriseId, id); err != nil {
 			return err
 		}
-		err = tx.Model(&EnterpriseEmployee{}).Where("id = ?", employee.Id).Updates(map[string]any{
-			"department_id": employee.DepartmentId,
-			"name":          employee.Name,
-			"email":         employee.Email,
-			"employee_no":   employee.EmployeeNo,
-			"status":        employee.Status,
-			"remark":        employee.Remark,
-			"updated_at":    common.GetTimestamp(),
+		return tx.Model(&EnterpriseTeam{}).Where("id = ?", id).Updates(map[string]any{"status": EnterpriseTeamStatusArchived, "updated_at": common.GetTimestamp()}).Error
+	})
+}
+
+// DeleteEnterpriseTeam 软删除团队；默认团队、仍有成员或 key 的团队拒绝
+func DeleteEnterpriseTeam(enterpriseId int, id int) error {
+	return DB.Transaction(func(tx *gorm.DB) error {
+		team, err := getEnterpriseTeam(lockForUpdate(tx), enterpriseId, id)
+		if err != nil {
+			return err
+		}
+		if team.IsDefault {
+			return ErrEnterpriseTeamDefault
+		}
+		var members, keys int64
+		if err := tx.Model(&EnterpriseMember{}).Where("enterprise_id = ? AND team_id = ?", enterpriseId, id).Count(&members).Error; err != nil {
+			return err
+		}
+		if err := tx.Table("ent_token_assignments a").Joins("JOIN tokens t ON t.id = a.token_id AND t.deleted_at IS NULL").
+			Where("a.enterprise_id = ? AND a.team_id = ?", enterpriseId, id).Count(&keys).Error; err != nil {
+			return err
+		}
+		if members > 0 || keys > 0 {
+			return ErrEnterpriseTeamInUse
+		}
+		return tx.Where("enterprise_id = ? AND id = ?", enterpriseId, id).Delete(&EnterpriseTeam{}).Error
+	})
+}
+
+// ---------------------------------------------------------------------------
+// 成员
+// ---------------------------------------------------------------------------
+
+// EnterpriseMemberListItem 成员列表行：附带团队名、登录账号名与名下 key 数量
+type EnterpriseMemberListItem struct {
+	EnterpriseMember
+	TeamName   string `json:"team_name"`
+	Username   string `json:"username"`
+	TokenCount int    `json:"token_count"`
+}
+
+type EnterpriseMemberFilter struct {
+	TeamId   *int
+	Keyword  string
+	Status   string
+	HasLogin *bool
+}
+
+func ListEnterpriseMembers(enterpriseId int, scope EnterpriseScope, filter EnterpriseMemberFilter, startIdx int, num int) ([]*EnterpriseMemberListItem, int64, error) {
+	query := DB.Table("ent_members").
+		Where("ent_members.enterprise_id = ? AND ent_members.deleted_at IS NULL", enterpriseId)
+	if scope.TeamId != nil {
+		query = query.Where("ent_members.team_id = ?", *scope.TeamId)
+	}
+	if filter.TeamId != nil {
+		query = query.Where("ent_members.team_id = ?", *filter.TeamId)
+	}
+	if filter.Status != "" {
+		query = query.Where("ent_members.status = ?", filter.Status)
+	}
+	if filter.HasLogin != nil {
+		if *filter.HasLogin {
+			query = query.Where("ent_members.user_id > 0")
+		} else {
+			query = query.Where("ent_members.user_id = 0")
+		}
+	}
+	if keyword := strings.TrimSpace(filter.Keyword); keyword != "" {
+		like := "%" + keyword + "%"
+		query = query.Where("(ent_members.name ILIKE ? OR ent_members.email ILIKE ? OR ent_members.employee_no ILIKE ?)", like, like, like)
+	}
+	var total int64
+	if err := query.Count(&total).Error; err != nil {
+		return nil, 0, err
+	}
+	items := make([]*EnterpriseMemberListItem, 0)
+	err := query.
+		Select(`ent_members.*, COALESCE(tm.name, '') AS team_name, COALESCE(u.username, '') AS username,
+			(SELECT COUNT(*) FROM ent_token_assignments a JOIN tokens t ON t.id = a.token_id AND t.deleted_at IS NULL
+			 WHERE a.member_id = ent_members.id) AS token_count`).
+		Joins("LEFT JOIN ent_teams tm ON tm.id = ent_members.team_id").
+		Joins("LEFT JOIN users u ON u.id = ent_members.user_id AND ent_members.user_id > 0").
+		Order("ent_members.id DESC").
+		Limit(num).Offset(startIdx).
+		Scan(&items).Error
+	return items, total, err
+}
+
+func getEnterpriseMember(tx *gorm.DB, enterpriseId int, id int) (*EnterpriseMember, error) {
+	var member EnterpriseMember
+	err := tx.Where("enterprise_id = ? AND id = ?", enterpriseId, id).First(&member).Error
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return nil, ErrEnterpriseResourceNotFound
+	}
+	return &member, err
+}
+
+// GetEnterpriseMember 读取成员（范围外视为不存在）
+func GetEnterpriseMember(enterpriseId int, id int, scope EnterpriseScope) (*EnterpriseMember, error) {
+	member, err := getEnterpriseMember(DB, enterpriseId, id)
+	if err != nil {
+		return nil, err
+	}
+	if !scope.Allows(member.TeamId) {
+		return nil, ErrEnterpriseResourceNotFound
+	}
+	return member, nil
+}
+
+func (m *EnterpriseMember) normalize() error {
+	name, err := normalizeEnterpriseName(m.Name, 64)
+	if err != nil {
+		return err
+	}
+	m.Name = name
+	m.Email = strings.TrimSpace(m.Email)
+	m.EmployeeNo = strings.TrimSpace(m.EmployeeNo)
+	if len(m.Email) > 128 || len(m.EmployeeNo) > 64 {
+		return errors.New("email or employee number is too long")
+	}
+	if m.Status == "" {
+		m.Status = EnterpriseMemberStatusActive
+	}
+	if m.Status != EnterpriseMemberStatusActive && m.Status != EnterpriseMemberStatusDisabled {
+		return fmt.Errorf("invalid member status: %s", m.Status)
+	}
+	if m.Role == "" {
+		m.Role = EnterpriseMemberRoleNone
+	}
+	return nil
+}
+
+// ensureMemberTeam 校验团队属于本企业且未归档，返回解析后的团队 id（0 → 默认团队）
+func ensureMemberTeam(tx *gorm.DB, enterpriseId int, teamId int) (int, error) {
+	teamId, err := resolveTeamId(tx, enterpriseId, teamId)
+	if err != nil {
+		return 0, err
+	}
+	team, err := getEnterpriseTeam(tx, enterpriseId, teamId)
+	if err != nil {
+		return 0, err
+	}
+	if team.Status != EnterpriseTeamStatusActive {
+		return 0, ErrEnterpriseTeamArchived
+	}
+	return team.Id, nil
+}
+
+func CreateEnterpriseMember(member *EnterpriseMember) error {
+	if err := member.normalize(); err != nil {
+		return err
+	}
+	member.UserId = 0
+	member.Role = EnterpriseMemberRoleNone
+	member.Provisioned = false
+	return DB.Transaction(func(tx *gorm.DB) error {
+		teamId, err := ensureMemberTeam(tx, member.EnterpriseId, member.TeamId)
+		if err != nil {
+			return err
+		}
+		member.TeamId = teamId
+		now := common.GetTimestamp()
+		member.Id = 0
+		member.CreatedAt = now
+		member.UpdatedAt = now
+		if err := tx.Create(member).Error; err != nil {
+			if isUniqueViolation(err) {
+				return ErrEnterpriseDuplicateName
+			}
+			return err
+		}
+		return nil
+	})
+}
+
+func disableMemberTokens(tx *gorm.DB, enterpriseId int, memberId int) error {
+	return disableAssignedTokens(tx, "a.enterprise_id = ? AND a.member_id = ?", enterpriseId, memberId)
+}
+
+// disableProvisionedLogin 停用企业开通的登录账号（绑定的已有账号不动）
+func disableProvisionedLogin(tx *gorm.DB, member *EnterpriseMember) error {
+	if member.UserId == 0 || !member.Provisioned {
+		return nil
+	}
+	if err := tx.Model(&User{}).Where("id = ?", member.UserId).Update("status", common.UserStatusDisabled).Error; err != nil {
+		return err
+	}
+	if err := invalidateUserCache(member.UserId); err != nil {
+		common.SysLog("failed to invalidate member user cache: " + err.Error())
+	}
+	return nil
+}
+
+// UpdateEnterpriseMember 更新资料；换团队时名下 key 的团队归属同步更新；状态改为停用时停用其全部 key 与企业开通的登录账号
+func UpdateEnterpriseMember(member *EnterpriseMember) error {
+	if err := member.normalize(); err != nil {
+		return err
+	}
+	err := DB.Transaction(func(tx *gorm.DB) error {
+		existing, err := getEnterpriseMember(lockForUpdate(tx), member.EnterpriseId, member.Id)
+		if err != nil {
+			return err
+		}
+		teamId, err := ensureMemberTeam(tx, member.EnterpriseId, member.TeamId)
+		if err != nil {
+			return err
+		}
+		member.TeamId = teamId
+		err = tx.Model(&EnterpriseMember{}).Where("id = ?", member.Id).Updates(map[string]any{
+			"team_id":     member.TeamId,
+			"name":        member.Name,
+			"email":       member.Email,
+			"employee_no": member.EmployeeNo,
+			"status":      member.Status,
+			"remark":      member.Remark,
+			"updated_at":  common.GetTimestamp(),
 		}).Error
 		if isUniqueViolation(err) {
 			return ErrEnterpriseDuplicateName
@@ -359,8 +606,17 @@ func UpdateEnterpriseEmployee(employee *EnterpriseEmployee) error {
 		if err != nil {
 			return err
 		}
-		if existing.Status == EnterpriseEmployeeStatusActive && employee.Status == EnterpriseEmployeeStatusDisabled {
-			return disableEmployeeTokens(tx, employee.EnterpriseId, employee.Id)
+		if existing.TeamId != member.TeamId {
+			if err := tx.Model(&EnterpriseTokenAssignment{}).Where("enterprise_id = ? AND member_id = ?", member.EnterpriseId, member.Id).
+				Updates(map[string]any{"team_id": member.TeamId, "updated_at": common.GetTimestamp()}).Error; err != nil {
+				return err
+			}
+		}
+		if existing.Status == EnterpriseMemberStatusActive && member.Status == EnterpriseMemberStatusDisabled {
+			if err := disableMemberTokens(tx, member.EnterpriseId, member.Id); err != nil {
+				return err
+			}
+			return disableProvisionedLogin(tx, existing)
 		}
 		return nil
 	})
@@ -370,117 +626,212 @@ func UpdateEnterpriseEmployee(employee *EnterpriseEmployee) error {
 	return err
 }
 
-// DeleteEnterpriseEmployee 软删除员工并停用其名下 key；key 归属保留，历史统计不受影响
-func DeleteEnterpriseEmployee(enterpriseId int, id int) error {
+// DeleteEnterpriseMember 软删除成员并停用其名下 key 与企业开通的登录账号；key 归属保留，历史统计不受影响
+func DeleteEnterpriseMember(enterpriseId int, id int) error {
 	return DB.Transaction(func(tx *gorm.DB) error {
-		if _, err := getEnterpriseEmployee(lockForUpdate(tx), enterpriseId, id); err != nil {
+		member, err := getEnterpriseMember(lockForUpdate(tx), enterpriseId, id)
+		if err != nil {
 			return err
 		}
-		if err := disableEmployeeTokens(tx, enterpriseId, id); err != nil {
+		if err := disableMemberTokens(tx, enterpriseId, id); err != nil {
 			return err
 		}
-		return tx.Where("enterprise_id = ? AND id = ?", enterpriseId, id).Delete(&EnterpriseEmployee{}).Error
+		if err := disableProvisionedLogin(tx, member); err != nil {
+			return err
+		}
+		return tx.Where("enterprise_id = ? AND id = ?", enterpriseId, id).Delete(&EnterpriseMember{}).Error
 	})
 }
 
 // ---------------------------------------------------------------------------
-// 项目
+// 成员登录账号与角色
 // ---------------------------------------------------------------------------
 
-type EnterpriseProjectListItem struct {
-	EnterpriseProject
-	TokenCount int `json:"token_count"`
+// validateEnterpriseRole 角色取值校验（none 由解绑路径设置，不接受外部直接设置）
+func validateEnterpriseRole(role string) error {
+	switch role {
+	case EnterpriseMemberRoleDeveloper, EnterpriseMemberRoleTeamAdmin, EnterpriseMemberRoleEnterpriseAdmin:
+		return nil
+	}
+	return ErrEnterpriseInvalidRole
 }
 
-func ListEnterpriseProjects(enterpriseId int, keyword string, status string) ([]*EnterpriseProjectListItem, error) {
-	query := DB.Table("ent_projects").
-		Where("ent_projects.enterprise_id = ? AND ent_projects.deleted_at IS NULL", enterpriseId)
-	if status != "" {
-		query = query.Where("ent_projects.status = ?", status)
-	}
-	if keyword = strings.TrimSpace(keyword); keyword != "" {
-		like := "%" + keyword + "%"
-		query = query.Where("(ent_projects.name ILIKE ? OR ent_projects.code ILIKE ?)", like, like)
-	}
-	items := make([]*EnterpriseProjectListItem, 0)
-	err := query.
-		Select(`ent_projects.*,
-			(SELECT COUNT(*) FROM ent_token_assignments a JOIN tokens t ON t.id = a.token_id AND t.deleted_at IS NULL
-			 WHERE a.project_id = ent_projects.id) AS token_count`).
-		Order("ent_projects.id DESC").
-		Scan(&items).Error
-	return items, err
+// isEnterpriseOwnerUser 该用户是否是任何企业的主账号
+func isEnterpriseOwnerUser(tx *gorm.DB, userId int) (bool, error) {
+	var count int64
+	err := tx.Model(&Enterprise{}).Where("user_id = ?", userId).Count(&count).Error
+	return count > 0, err
 }
 
-func getEnterpriseProject(tx *gorm.DB, enterpriseId int, id int) (*EnterpriseProject, error) {
-	var project EnterpriseProject
-	err := tx.Where("enterprise_id = ? AND id = ?", enterpriseId, id).First(&project).Error
+// FindUserForEnterpriseLogin 按用户名或邮箱精确查找可绑定的登录账号：普通用户、已启用、不是企业主账号
+func FindUserForEnterpriseLogin(identifier string) (*User, error) {
+	identifier = strings.TrimSpace(identifier)
+	if identifier == "" {
+		return nil, ErrEnterpriseLoginUserInvalid
+	}
+	var user User
+	err := DB.Where("username = ? OR (email <> '' AND LOWER(email) = LOWER(?))", identifier, identifier).Order("id ASC").First(&user).Error
 	if errors.Is(err, gorm.ErrRecordNotFound) {
 		return nil, ErrEnterpriseResourceNotFound
 	}
-	return &project, err
+	if err != nil {
+		return nil, err
+	}
+	if user.Role != common.RoleCommonUser || user.Status != common.UserStatusEnabled {
+		return nil, ErrEnterpriseLoginUserInvalid
+	}
+	owner, err := isEnterpriseOwnerUser(DB, user.Id)
+	if err != nil {
+		return nil, err
+	}
+	if owner {
+		return nil, ErrEnterpriseLoginUserInvalid
+	}
+	return &user, nil
 }
 
-func (p *EnterpriseProject) normalize() error {
-	name, err := normalizeEnterpriseName(p.Name, 64)
+// bindMemberLogin 把登录账号写到成员上（事务内）；唯一索引保证一个账号只属一个成员
+func bindMemberLogin(tx *gorm.DB, enterpriseId int, memberId int, userId int, role string, provisioned bool) error {
+	if err := validateEnterpriseRole(role); err != nil {
+		return err
+	}
+	member, err := getEnterpriseMember(lockForUpdate(tx), enterpriseId, memberId)
 	if err != nil {
 		return err
 	}
-	p.Name = name
-	p.Code = strings.TrimSpace(p.Code)
-	if len(p.Code) > 64 {
-		return errors.New("project code is too long")
+	if member.UserId != 0 {
+		return ErrEnterpriseMemberHasLogin
 	}
-	if p.Status == "" {
-		p.Status = EnterpriseProjectStatusActive
+	if member.Status != EnterpriseMemberStatusActive {
+		return ErrEnterpriseMemberNotActive
 	}
-	if p.Status != EnterpriseProjectStatusActive && p.Status != EnterpriseProjectStatusArchived {
-		return fmt.Errorf("invalid project status: %s", p.Status)
-	}
-	return nil
-}
-
-func CreateEnterpriseProject(project *EnterpriseProject) error {
-	if err := project.normalize(); err != nil {
-		return err
-	}
-	now := common.GetTimestamp()
-	project.Id = 0
-	project.CreatedAt = now
-	project.UpdatedAt = now
-	err := DB.Create(project).Error
-	if isUniqueViolation(err) {
-		return ErrEnterpriseDuplicateName
-	}
-	return err
-}
-
-func UpdateEnterpriseProject(project *EnterpriseProject) error {
-	if err := project.normalize(); err != nil {
-		return err
-	}
-	if _, err := getEnterpriseProject(DB, project.EnterpriseId, project.Id); err != nil {
-		return err
-	}
-	err := DB.Model(&EnterpriseProject{}).Where("enterprise_id = ? AND id = ?", project.EnterpriseId, project.Id).Updates(map[string]any{
-		"name":       project.Name,
-		"code":       project.Code,
-		"status":     project.Status,
-		"remark":     project.Remark,
-		"updated_at": common.GetTimestamp(),
+	err = tx.Model(&EnterpriseMember{}).Where("id = ?", memberId).Updates(map[string]any{
+		"user_id":     userId,
+		"role":        role,
+		"provisioned": provisioned,
+		"updated_at":  common.GetTimestamp(),
 	}).Error
 	if isUniqueViolation(err) {
-		return ErrEnterpriseDuplicateName
+		return ErrEnterpriseLoginUserTaken
 	}
 	return err
 }
 
-// DeleteEnterpriseProject 软删除项目；key 上的项目归属保留，历史统计不受影响
-func DeleteEnterpriseProject(enterpriseId int, id int) error {
-	if _, err := getEnterpriseProject(DB, enterpriseId, id); err != nil {
+// BindEnterpriseMemberLogin 绑定已有账号
+func BindEnterpriseMemberLogin(enterpriseId int, memberId int, user *User, role string) error {
+	return DB.Transaction(func(tx *gorm.DB) error {
+		owner, err := isEnterpriseOwnerUser(tx, user.Id)
+		if err != nil {
+			return err
+		}
+		if owner {
+			return ErrEnterpriseLoginUserInvalid
+		}
+		return bindMemberLogin(tx, enterpriseId, memberId, user.Id, role, false)
+	})
+}
+
+// ProvisionedLogin 一键开通返回的凭据（初始密码只出现这一次）
+type ProvisionedLogin struct {
+	UserId   int    `json:"user_id"`
+	Username string `json:"username"`
+	Password string `json:"password"`
+}
+
+// ProvisionEnterpriseMemberLogin 为成员一键开通登录账号：普通用户、余额 0、不发新人赠送额度，随机初始密码
+func ProvisionEnterpriseMemberLogin(enterpriseId int, memberId int, role string) (*ProvisionedLogin, error) {
+	member, err := getEnterpriseMember(DB, enterpriseId, memberId)
+	if err != nil {
+		return nil, err
+	}
+	if member.UserId != 0 {
+		return nil, ErrEnterpriseMemberHasLogin
+	}
+	if err := validateEnterpriseRole(role); err != nil {
+		return nil, err
+	}
+	password := common.GetRandomString(16)
+	user := &User{
+		Username:    enterpriseProvisionedUsername(enterpriseId, memberId, member.Email),
+		Password:    password,
+		DisplayName: member.Name,
+		Email:       member.Email,
+		Role:        common.RoleCommonUser,
+		Status:      common.UserStatusEnabled,
+	}
+	err = DB.Transaction(func(tx *gorm.DB) error {
+		if err := user.InsertWithTx(tx, 0); err != nil {
+			return err
+		}
+		if err := tx.Model(&User{}).Where("id = ?", user.Id).Update("quota", 0).Error; err != nil {
+			return err
+		}
+		return bindMemberLogin(tx, enterpriseId, memberId, user.Id, role, true)
+	})
+	if err != nil {
+		return nil, err
+	}
+	user.FinishInsert(0)
+	return &ProvisionedLogin{UserId: user.Id, Username: user.Username, Password: password}, nil
+}
+
+// enterpriseProvisionedUsername 开通账号的用户名：邮箱前缀优先，带企业与成员 id 后缀保证唯一且不与注册用户撞名
+func enterpriseProvisionedUsername(enterpriseId int, memberId int, email string) string {
+	prefix := "member"
+	if local, _, found := strings.Cut(email, "@"); found {
+		cleaned := strings.Builder{}
+		for _, r := range strings.ToLower(local) {
+			if (r >= 'a' && r <= 'z') || (r >= '0' && r <= '9') || r == '_' || r == '-' || r == '.' {
+				cleaned.WriteRune(r)
+			}
+		}
+		if cleaned.Len() > 0 {
+			prefix = cleaned.String()
+		}
+	}
+	if len(prefix) > 20 {
+		prefix = prefix[:20]
+	}
+	return fmt.Sprintf("%s-e%dm%d", prefix, enterpriseId, memberId)
+}
+
+// UnbindEnterpriseMemberLogin 解绑登录账号：角色归 none；企业开通的账号同时停用
+func UnbindEnterpriseMemberLogin(enterpriseId int, memberId int) error {
+	return DB.Transaction(func(tx *gorm.DB) error {
+		member, err := getEnterpriseMember(lockForUpdate(tx), enterpriseId, memberId)
+		if err != nil {
+			return err
+		}
+		if member.UserId == 0 {
+			return ErrEnterpriseMemberNoLogin
+		}
+		if err := disableProvisionedLogin(tx, member); err != nil {
+			return err
+		}
+		return tx.Model(&EnterpriseMember{}).Where("id = ?", memberId).Updates(map[string]any{
+			"user_id":     0,
+			"role":        EnterpriseMemberRoleNone,
+			"provisioned": false,
+			"updated_at":  common.GetTimestamp(),
+		}).Error
+	})
+}
+
+// SetEnterpriseMemberRole 改角色（成员必须已绑定登录账号）
+func SetEnterpriseMemberRole(enterpriseId int, memberId int, role string) error {
+	if err := validateEnterpriseRole(role); err != nil {
 		return err
 	}
-	return DB.Where("enterprise_id = ? AND id = ?", enterpriseId, id).Delete(&EnterpriseProject{}).Error
+	return DB.Transaction(func(tx *gorm.DB) error {
+		member, err := getEnterpriseMember(lockForUpdate(tx), enterpriseId, memberId)
+		if err != nil {
+			return err
+		}
+		if member.UserId == 0 {
+			return ErrEnterpriseMemberNoLogin
+		}
+		return tx.Model(&EnterpriseMember{}).Where("id = ?", memberId).Updates(map[string]any{"role": role, "updated_at": common.GetTimestamp()}).Error
+	})
 }
 
 // ---------------------------------------------------------------------------
@@ -499,35 +850,40 @@ type EnterpriseTokenListItem struct {
 	ExpiredTime    int64  `json:"expired_time"`
 	CreatedTime    int64  `json:"created_time"`
 	AccessedTime   int64  `json:"accessed_time"`
-	EmployeeId     int    `json:"employee_id"`
-	EmployeeName   string `json:"employee_name"`
-	DepartmentName string `json:"department_name"`
-	ProjectId      int    `json:"project_id"`
-	ProjectName    string `json:"project_name"`
+	TeamId         int    `json:"team_id"`
+	TeamName       string `json:"team_name"`
+	MemberId       int    `json:"member_id"`
+	MemberName     string `json:"member_name"`
 }
 
 type EnterpriseTokenFilter struct {
-	EmployeeId *int
-	ProjectId  *int
-	Keyword    string
+	TeamId   *int
+	MemberId *int
+	Status   *int
+	Keyword  string
 }
 
-func ListEnterpriseTokens(enterpriseId int, ownerUserId int, filter EnterpriseTokenFilter, startIdx int, num int) ([]*EnterpriseTokenListItem, int64, error) {
+func ListEnterpriseTokens(enterpriseId int, ownerUserId int, scope EnterpriseScope, filter EnterpriseTokenFilter, startIdx int, num int) ([]*EnterpriseTokenListItem, int64, error) {
 	query := DB.Table("tokens").
 		Joins("LEFT JOIN ent_token_assignments a ON a.token_id = tokens.id AND a.enterprise_id = ?", enterpriseId).
-		Joins("LEFT JOIN ent_employees e ON e.id = a.employee_id").
-		Joins("LEFT JOIN ent_departments d ON d.id = e.department_id AND d.deleted_at IS NULL").
-		Joins("LEFT JOIN ent_projects p ON p.id = a.project_id").
+		Joins("LEFT JOIN ent_teams tm ON tm.id = a.team_id").
+		Joins("LEFT JOIN ent_members m ON m.id = a.member_id").
 		Where("tokens.user_id = ? AND tokens.deleted_at IS NULL", ownerUserId)
-	if filter.EmployeeId != nil {
-		query = query.Where("COALESCE(a.employee_id, 0) = ?", *filter.EmployeeId)
+	if scope.TeamId != nil {
+		query = query.Where("a.team_id = ?", *scope.TeamId)
 	}
-	if filter.ProjectId != nil {
-		query = query.Where("COALESCE(a.project_id, 0) = ?", *filter.ProjectId)
+	if filter.TeamId != nil {
+		query = query.Where("COALESCE(a.team_id, 0) = ?", *filter.TeamId)
+	}
+	if filter.MemberId != nil {
+		query = query.Where("COALESCE(a.member_id, 0) = ?", *filter.MemberId)
+	}
+	if filter.Status != nil {
+		query = query.Where("tokens.status = ?", *filter.Status)
 	}
 	if keyword := strings.TrimSpace(filter.Keyword); keyword != "" {
 		like := "%" + keyword + "%"
-		query = query.Where("(tokens.name ILIKE ? OR e.name ILIKE ? OR p.name ILIKE ?)", like, like, like)
+		query = query.Where("(tokens.name ILIKE ? OR m.name ILIKE ? OR tm.name ILIKE ?)", like, like, like)
 	}
 	var total int64
 	if err := query.Count(&total).Error; err != nil {
@@ -537,9 +893,8 @@ func ListEnterpriseTokens(enterpriseId int, ownerUserId int, filter EnterpriseTo
 	err := query.
 		Select(`tokens.id, tokens.name, tokens.` + commonKeyCol + ` AS token_key, tokens.status, tokens.remain_quota,
 			tokens.unlimited_quota, tokens.used_quota, tokens.expired_time, tokens.created_time, tokens.accessed_time,
-			COALESCE(a.employee_id, 0) AS employee_id, COALESCE(e.name, '') AS employee_name,
-			COALESCE(d.name, '') AS department_name,
-			COALESCE(a.project_id, 0) AS project_id, COALESCE(p.name, '') AS project_name`).
+			COALESCE(a.team_id, 0) AS team_id, COALESCE(tm.name, '') AS team_name,
+			COALESCE(a.member_id, 0) AS member_id, COALESCE(m.name, '') AS member_name`).
 		Order("tokens.id DESC").
 		Limit(num).Offset(startIdx).
 		Scan(&items).Error
@@ -552,50 +907,45 @@ func ListEnterpriseTokens(enterpriseId int, ownerUserId int, filter EnterpriseTo
 	return items, total, nil
 }
 
-// validateTokenAssignmentTargets 校验员工/项目属于本企业且可分配（停用员工、归档项目不能再分配新 key）
-func validateTokenAssignmentTargets(tx *gorm.DB, enterpriseId int, employeeId int, projectId int) error {
-	if employeeId != 0 {
-		employee, err := getEnterpriseEmployee(tx, enterpriseId, employeeId)
+// validateTokenAssignmentTargets 校验团队未归档、持有人在职且属于该团队，返回解析后的团队 id
+func validateTokenAssignmentTargets(tx *gorm.DB, enterpriseId int, teamId int, memberId int) (int, error) {
+	teamId, err := ensureMemberTeam(tx, enterpriseId, teamId)
+	if err != nil {
+		return 0, err
+	}
+	if memberId != 0 {
+		member, err := getEnterpriseMember(tx, enterpriseId, memberId)
 		if err != nil {
-			return err
+			return 0, err
 		}
-		if employee.Status != EnterpriseEmployeeStatusActive {
-			return ErrEnterpriseEmployeeNotActive
+		if member.Status != EnterpriseMemberStatusActive {
+			return 0, ErrEnterpriseMemberNotActive
+		}
+		if member.TeamId != teamId {
+			return 0, ErrEnterpriseMemberTeamMismatch
 		}
 	}
-	if projectId != 0 {
-		project, err := getEnterpriseProject(tx, enterpriseId, projectId)
-		if err != nil {
-			return err
-		}
-		if project.Status != EnterpriseProjectStatusActive {
-			return ErrEnterpriseProjectArchived
-		}
-	}
-	return nil
+	return teamId, nil
 }
 
-func upsertTokenAssignment(tx *gorm.DB, enterpriseId int, tokenId int, employeeId int, projectId int) error {
-	if employeeId == 0 && projectId == 0 {
-		return tx.Where("token_id = ?", tokenId).Delete(&EnterpriseTokenAssignment{}).Error
-	}
+func upsertTokenAssignment(tx *gorm.DB, enterpriseId int, tokenId int, teamId int, memberId int) error {
 	now := common.GetTimestamp()
 	assignment := EnterpriseTokenAssignment{
 		TokenId:      tokenId,
 		EnterpriseId: enterpriseId,
-		EmployeeId:   employeeId,
-		ProjectId:    projectId,
+		TeamId:       teamId,
+		MemberId:     memberId,
 		CreatedAt:    now,
 		UpdatedAt:    now,
 	}
 	return tx.Clauses(clause.OnConflict{
 		Columns:   []clause.Column{{Name: "token_id"}},
-		DoUpdates: clause.AssignmentColumns([]string{"enterprise_id", "employee_id", "project_id", "updated_at"}),
+		DoUpdates: clause.AssignmentColumns([]string{"enterprise_id", "team_id", "member_id", "updated_at"}),
 	}).Create(&assignment).Error
 }
 
-// AssignEnterpriseToken 修改 key 的员工/项目归属，只影响之后的请求统计
-func AssignEnterpriseToken(enterpriseId int, ownerUserId int, tokenId int, employeeId int, projectId int) error {
+// AssignEnterpriseToken 修改 key 的团队/持有人归属，只影响之后的请求统计；范围外的 key 或目标团队视为不存在
+func AssignEnterpriseToken(enterpriseId int, ownerUserId int, scope EnterpriseScope, tokenId int, teamId int, memberId int) error {
 	err := DB.Transaction(func(tx *gorm.DB) error {
 		var count int64
 		if err := tx.Model(&Token{}).Where("id = ? AND user_id = ?", tokenId, ownerUserId).Count(&count).Error; err != nil {
@@ -604,77 +954,117 @@ func AssignEnterpriseToken(enterpriseId int, ownerUserId int, tokenId int, emplo
 		if count == 0 {
 			return ErrEnterpriseResourceNotFound
 		}
-		if err := validateTokenAssignmentTargets(tx, enterpriseId, employeeId, projectId); err != nil {
+		if scope.TeamId != nil {
+			var current EnterpriseTokenAssignment
+			if err := tx.Where("token_id = ?", tokenId).First(&current).Error; err != nil || current.TeamId != *scope.TeamId {
+				return ErrEnterpriseResourceNotFound
+			}
+		}
+		resolved, err := validateTokenAssignmentTargets(tx, enterpriseId, teamId, memberId)
+		if err != nil {
 			return err
 		}
-		return upsertTokenAssignment(tx, enterpriseId, tokenId, employeeId, projectId)
+		if !scope.Allows(resolved) {
+			return ErrEnterpriseResourceNotFound
+		}
+		return upsertTokenAssignment(tx, enterpriseId, tokenId, resolved, memberId)
 	})
 	InvalidateTokenAttribution(tokenId)
 	return err
 }
 
-// CreateEnterpriseToken 为企业主账号创建 key 并写入归属（同一事务）
-func CreateEnterpriseToken(enterpriseId int, token *Token, employeeId int, projectId int) error {
+// CreateEnterpriseToken 为企业主账号创建 key 并写入归属（同一事务）；teamId 为 0 落默认团队
+func CreateEnterpriseToken(enterpriseId int, scope EnterpriseScope, token *Token, teamId int, memberId int) error {
 	return DB.Transaction(func(tx *gorm.DB) error {
-		if err := validateTokenAssignmentTargets(tx, enterpriseId, employeeId, projectId); err != nil {
+		resolved, err := validateTokenAssignmentTargets(tx, enterpriseId, teamId, memberId)
+		if err != nil {
 			return err
+		}
+		if !scope.Allows(resolved) {
+			return ErrEnterpriseResourceNotFound
 		}
 		if err := tx.Create(token).Error; err != nil {
 			return err
 		}
-		return upsertTokenAssignment(tx, enterpriseId, token.Id, employeeId, projectId)
+		return upsertTokenAssignment(tx, enterpriseId, token.Id, resolved, memberId)
 	})
 }
 
+// GetEnterpriseTokenAssignment key 的归属（没有归属行返回 nil）
+func GetEnterpriseTokenAssignment(tokenId int) (*EnterpriseTokenAssignment, error) {
+	var assignment EnterpriseTokenAssignment
+	err := DB.Where("token_id = ?", tokenId).First(&assignment).Error
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return nil, nil
+	}
+	return &assignment, err
+}
+
 // ---------------------------------------------------------------------------
-// 员工批量导入
+// 成员批量导入
 // ---------------------------------------------------------------------------
 
-const EnterpriseEmployeeImportMaxRows = 1000
+const EnterpriseMemberImportMaxRows = 1000
 
-// EnterpriseEmployeeImportRow 导入的一行；Department 按名称匹配已有部门，找不到则新建为顶级部门
-type EnterpriseEmployeeImportRow struct {
+// EnterpriseMemberImportRow 导入的一行；Team 按名称匹配已有团队，找不到则新建；留空落默认团队
+type EnterpriseMemberImportRow struct {
 	Name       string `json:"name"`
 	Email      string `json:"email"`
 	EmployeeNo string `json:"employee_no"`
-	Department string `json:"department"`
+	Team       string `json:"team"`
 }
 
-// EnterpriseEmployeeImportError 行级错误，Row 从 1 开始计数
-type EnterpriseEmployeeImportError struct {
+// EnterpriseMemberImportError 行级错误，Row 从 1 开始计数
+type EnterpriseMemberImportError struct {
 	Row     int    `json:"row"`
 	Message string `json:"message"`
 }
 
-type EnterpriseEmployeeImportResult struct {
-	Created            int                             `json:"created"`
-	CreatedDepartments []string                        `json:"created_departments"`
-	Errors             []EnterpriseEmployeeImportError `json:"errors"`
+type EnterpriseMemberImportResult struct {
+	Created      int                           `json:"created"`
+	CreatedTeams []string                      `json:"created_teams"`
+	Errors       []EnterpriseMemberImportError `json:"errors"`
 }
 
-// ImportEnterpriseEmployees 批量导入员工：先整体校验，任一行有错则全部不写入（全成功或全失败）
-func ImportEnterpriseEmployees(enterpriseId int, rows []EnterpriseEmployeeImportRow) (*EnterpriseEmployeeImportResult, error) {
-	result := &EnterpriseEmployeeImportResult{CreatedDepartments: []string{}, Errors: []EnterpriseEmployeeImportError{}}
+// errImportRejected 用于回滚事务：行校验失败时不写入任何数据
+var errImportRejected = errors.New("import rejected")
+
+// ImportEnterpriseMembers 批量导入成员：先整体校验，任一行有错则全部不写入（全成功或全失败）。
+// scope 限定团队时，所有行只能落在该团队（Team 列必须为空或等于该团队名），且不自动建团队。
+func ImportEnterpriseMembers(enterpriseId int, scope EnterpriseScope, rows []EnterpriseMemberImportRow) (*EnterpriseMemberImportResult, error) {
+	result := &EnterpriseMemberImportResult{CreatedTeams: []string{}, Errors: []EnterpriseMemberImportError{}}
 	if len(rows) == 0 {
 		return result, errors.New("no rows to import")
 	}
-	if len(rows) > EnterpriseEmployeeImportMaxRows {
-		return result, fmt.Errorf("at most %d rows per import", EnterpriseEmployeeImportMaxRows)
+	if len(rows) > EnterpriseMemberImportMaxRows {
+		return result, fmt.Errorf("at most %d rows per import", EnterpriseMemberImportMaxRows)
 	}
 	err := DB.Transaction(func(tx *gorm.DB) error {
-		var departments []EnterpriseDepartment
-		if err := tx.Where("enterprise_id = ?", enterpriseId).Order("sort ASC, id ASC").Find(&departments).Error; err != nil {
+		defaultTeamId, err := ensureDefaultTeam(tx, enterpriseId)
+		if err != nil {
 			return err
 		}
-		departmentIds := map[string]int{}
-		for _, department := range departments {
-			key := strings.ToLower(department.Name)
-			if _, exists := departmentIds[key]; !exists {
-				departmentIds[key] = department.Id
+		var teams []EnterpriseTeam
+		if err := tx.Where("enterprise_id = ? AND status = ?", enterpriseId, EnterpriseTeamStatusActive).Order("sort ASC, id ASC").Find(&teams).Error; err != nil {
+			return err
+		}
+		teamIds := map[string]int{}
+		for _, team := range teams {
+			key := strings.ToLower(team.Name)
+			if _, exists := teamIds[key]; !exists {
+				teamIds[key] = team.Id
 			}
 		}
+		scopedTeamName := ""
+		if scope.TeamId != nil {
+			team, err := getEnterpriseTeam(tx, enterpriseId, *scope.TeamId)
+			if err != nil {
+				return err
+			}
+			scopedTeamName = strings.ToLower(team.Name)
+		}
 		var existingNos []string
-		if err := tx.Model(&EnterpriseEmployee{}).Where("enterprise_id = ? AND employee_no <> ''", enterpriseId).Pluck("employee_no", &existingNos).Error; err != nil {
+		if err := tx.Model(&EnterpriseMember{}).Where("enterprise_id = ? AND employee_no <> ''", enterpriseId).Pluck("employee_no", &existingNos).Error; err != nil {
 			return err
 		}
 		usedNos := map[string]bool{}
@@ -682,68 +1072,76 @@ func ImportEnterpriseEmployees(enterpriseId int, rows []EnterpriseEmployeeImport
 			usedNos[no] = true
 		}
 
-		employees := make([]*EnterpriseEmployee, 0, len(rows))
-		departmentKeys := make([]string, 0, len(rows)) // 与 employees 一一对应的部门键（小写名），空表示未分配
-		newDepartments := map[string]string{}          // 小写名 -> 原始名
+		members := make([]*EnterpriseMember, 0, len(rows))
+		teamKeys := make([]string, 0, len(rows)) // 与 members 一一对应的团队键（小写名），空表示默认团队
+		newTeams := map[string]string{}          // 小写名 -> 原始名
 		for i, row := range rows {
-			employee := &EnterpriseEmployee{
+			member := &EnterpriseMember{
 				EnterpriseId: enterpriseId,
 				Name:         row.Name,
 				Email:        row.Email,
 				EmployeeNo:   row.EmployeeNo,
-				Status:       EnterpriseEmployeeStatusActive,
+				Status:       EnterpriseMemberStatusActive,
+				Role:         EnterpriseMemberRoleNone,
 			}
-			if err := employee.normalize(); err != nil {
-				result.Errors = append(result.Errors, EnterpriseEmployeeImportError{Row: i + 1, Message: err.Error()})
+			if err := member.normalize(); err != nil {
+				result.Errors = append(result.Errors, EnterpriseMemberImportError{Row: i + 1, Message: err.Error()})
 				continue
 			}
-			if employee.EmployeeNo != "" {
-				if usedNos[employee.EmployeeNo] {
-					result.Errors = append(result.Errors, EnterpriseEmployeeImportError{Row: i + 1, Message: "duplicate employee number: " + employee.EmployeeNo})
+			if member.EmployeeNo != "" {
+				if usedNos[member.EmployeeNo] {
+					result.Errors = append(result.Errors, EnterpriseMemberImportError{Row: i + 1, Message: "duplicate employee number: " + member.EmployeeNo})
 					continue
 				}
-				usedNos[employee.EmployeeNo] = true
+				usedNos[member.EmployeeNo] = true
 			}
-			departmentKey := ""
-			if departmentName := strings.TrimSpace(row.Department); departmentName != "" {
-				if len([]rune(departmentName)) > 64 {
-					result.Errors = append(result.Errors, EnterpriseEmployeeImportError{Row: i + 1, Message: "department name is too long"})
+			teamKey := ""
+			if teamName := strings.TrimSpace(row.Team); teamName != "" {
+				if len([]rune(teamName)) > 64 {
+					result.Errors = append(result.Errors, EnterpriseMemberImportError{Row: i + 1, Message: "team name is too long"})
 					continue
 				}
-				departmentKey = strings.ToLower(departmentName)
-				if _, exists := departmentIds[departmentKey]; !exists {
-					if _, pending := newDepartments[departmentKey]; !pending {
-						newDepartments[departmentKey] = departmentName // 首次出现的写法作为部门名
+				teamKey = strings.ToLower(teamName)
+				if scope.TeamId != nil && teamKey != scopedTeamName {
+					result.Errors = append(result.Errors, EnterpriseMemberImportError{Row: i + 1, Message: "team is outside your scope: " + teamName})
+					continue
+				}
+				if _, exists := teamIds[teamKey]; !exists {
+					if _, pending := newTeams[teamKey]; !pending {
+						newTeams[teamKey] = teamName // 首次出现的写法作为团队名
 					}
 				}
+			} else if scope.TeamId != nil {
+				teamKey = scopedTeamName
 			}
-			employees = append(employees, employee)
-			departmentKeys = append(departmentKeys, departmentKey)
+			members = append(members, member)
+			teamKeys = append(teamKeys, teamKey)
 		}
 		if len(result.Errors) > 0 {
 			return errImportRejected
 		}
 
 		now := common.GetTimestamp()
-		for key, name := range newDepartments {
-			department := &EnterpriseDepartment{EnterpriseId: enterpriseId, Name: name, CreatedAt: now, UpdatedAt: now}
-			if err := tx.Create(department).Error; err != nil {
+		for key, name := range newTeams {
+			team := &EnterpriseTeam{EnterpriseId: enterpriseId, Name: name, Status: EnterpriseTeamStatusActive, BudgetAlertPercent: 80, CreatedAt: now, UpdatedAt: now}
+			if err := tx.Create(team).Error; err != nil {
 				return err
 			}
-			departmentIds[key] = department.Id
-			result.CreatedDepartments = append(result.CreatedDepartments, name)
+			teamIds[key] = team.Id
+			result.CreatedTeams = append(result.CreatedTeams, name)
 		}
-		for i, employee := range employees {
-			if departmentKeys[i] != "" {
-				employee.DepartmentId = departmentIds[departmentKeys[i]]
+		for i, member := range members {
+			member.TeamId = defaultTeamId
+			if teamKeys[i] != "" {
+				member.TeamId = teamIds[teamKeys[i]]
 			}
-			employee.CreatedAt = now
-			employee.UpdatedAt = now
+			member.CreatedAt = now
+			member.UpdatedAt = now
 		}
-		if err := tx.Create(&employees).Error; err != nil {
+		if err := tx.Create(&members).Error; err != nil {
 			return err
 		}
-		result.Created = len(employees)
+		result.Created = len(members)
 		return nil
 	})
 	if errors.Is(err, errImportRejected) {
@@ -751,6 +1149,3 @@ func ImportEnterpriseEmployees(enterpriseId int, rows []EnterpriseEmployeeImport
 	}
 	return result, err
 }
-
-// errImportRejected 用于回滚事务：行校验失败时不写入任何数据
-var errImportRejected = errors.New("import rejected")

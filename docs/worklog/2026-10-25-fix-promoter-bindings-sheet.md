@@ -2,8 +2,8 @@
 
 - 日期：2026-10-25
 - 分支：fix/promoter-bindings-sheet
-- PR：
-- 关键 commit：
+- PR：#38
+- 关键 commit：035e2c746
 
 ## 背景
 

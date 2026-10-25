@@ -2,8 +2,8 @@
 
 - 日期：2026-10-26
 - 分支：feat/ent-docs
-- PR：
-- 关键 commit：
+- PR：#56
+- 关键 commit：3dc31b88c
 
 ## 背景
 

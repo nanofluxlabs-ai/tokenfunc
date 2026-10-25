@@ -1302,6 +1302,15 @@
     "Adjustment registered": "调账已登记",
     "Register adjustment": "登记调账",
     "Current balance: {{amount}}": "当前余额：{{amount}}",
-    "Enterprise balance adjustment": "企业余额调账"
+    "Enterprise balance adjustment": "企业余额调账",
+    "All members": "全部成员",
+    "Can sign in": "可登录",
+    "Filter by console access": "按登录状态筛选",
+    "Key only": "仅密钥",
+    "Member disabled": "成员已停用",
+    "Member enabled": "成员已启用",
+    "Only members who already have console access can be made team admins. Grant access from the member row first.": "只有已开通控制台登录的成员才能设为团队管理员，请先在成员行开通登录。",
+    "Select a member": "选择成员",
+    "Set team admin": "设团队管理员"
   }
 }

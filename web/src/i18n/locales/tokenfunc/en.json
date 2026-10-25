@@ -1302,6 +1302,15 @@
     "Adjustment registered": "Adjustment registered",
     "Register adjustment": "Register adjustment",
     "Current balance: {{amount}}": "Current balance: {{amount}}",
-    "Enterprise balance adjustment": "Enterprise balance adjustment"
+    "Enterprise balance adjustment": "Enterprise balance adjustment",
+    "All members": "All members",
+    "Can sign in": "Can sign in",
+    "Filter by console access": "Filter by console access",
+    "Key only": "Key only",
+    "Member disabled": "Member disabled",
+    "Member enabled": "Member enabled",
+    "Only members who already have console access can be made team admins. Grant access from the member row first.": "Only members who already have console access can be made team admins. Grant access from the member row first.",
+    "Select a member": "Select a member",
+    "Set team admin": "Set team admin"
   }
 }

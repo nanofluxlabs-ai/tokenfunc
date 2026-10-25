@@ -1302,6 +1302,15 @@
     "Adjustment registered": "調整を登録しました",
     "Register adjustment": "調整を登録",
     "Current balance: {{amount}}": "現在の残高：{{amount}}",
-    "Enterprise balance adjustment": "企業残高の調整"
+    "Enterprise balance adjustment": "企業残高の調整",
+    "All members": "すべてのメンバー",
+    "Can sign in": "ログイン可",
+    "Filter by console access": "ログイン状態で絞り込み",
+    "Key only": "キーのみ",
+    "Member disabled": "メンバーを無効にしました",
+    "Member enabled": "メンバーを有効にしました",
+    "Only members who already have console access can be made team admins. Grant access from the member row first.": "コンソールアクセスを持つメンバーのみチーム管理者にできます。先にメンバー行からアクセスを付与してください。",
+    "Select a member": "メンバーを選択",
+    "Set team admin": "チーム管理者を設定"
   }
 }

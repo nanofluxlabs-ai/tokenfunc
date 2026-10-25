@@ -1302,6 +1302,15 @@
     "Adjustment registered": "Ajustement enregistré",
     "Register adjustment": "Enregistrer l’ajustement",
     "Current balance: {{amount}}": "Solde actuel : {{amount}}",
-    "Enterprise balance adjustment": "Ajustement du solde entreprise"
+    "Enterprise balance adjustment": "Ajustement du solde entreprise",
+    "All members": "Tous les membres",
+    "Can sign in": "Peut se connecter",
+    "Filter by console access": "Filtrer par accès console",
+    "Key only": "Clé uniquement",
+    "Member disabled": "Membre désactivé",
+    "Member enabled": "Membre activé",
+    "Only members who already have console access can be made team admins. Grant access from the member row first.": "Seuls les membres ayant déjà accès à la console peuvent devenir admins d'équipe. Accordez d'abord l'accès depuis la ligne du membre.",
+    "Select a member": "Sélectionner un membre",
+    "Set team admin": "Définir l'admin d'équipe"
   }
 }

@@ -1302,6 +1302,15 @@
     "Adjustment registered": "Đã ghi nhận điều chỉnh",
     "Register adjustment": "Ghi nhận điều chỉnh",
     "Current balance: {{amount}}": "Số dư hiện tại: {{amount}}",
-    "Enterprise balance adjustment": "Điều chỉnh số dư doanh nghiệp"
+    "Enterprise balance adjustment": "Điều chỉnh số dư doanh nghiệp",
+    "All members": "Tất cả thành viên",
+    "Can sign in": "Có thể đăng nhập",
+    "Filter by console access": "Lọc theo quyền đăng nhập",
+    "Key only": "Chỉ có key",
+    "Member disabled": "Đã tắt thành viên",
+    "Member enabled": "Đã bật thành viên",
+    "Only members who already have console access can be made team admins. Grant access from the member row first.": "Chỉ thành viên đã có quyền truy cập bảng điều khiển mới có thể làm quản trị nhóm. Hãy cấp quyền từ dòng thành viên trước.",
+    "Select a member": "Chọn thành viên",
+    "Set team admin": "Đặt quản trị nhóm"
   }
 }

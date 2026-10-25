@@ -1,5 +1,5 @@
 import { useQueryClient } from '@tanstack/react-query'
-import { Archive, Pencil, Plus, Trash2 } from 'lucide-react'
+import { Archive, Pencil, Trash2, UserCog } from 'lucide-react'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
@@ -11,6 +11,7 @@ import { cn } from '@/lib/utils'
 
 import { archiveTeam, deleteTeam } from '../api'
 import type { Team } from '../types'
+import { TeamAdminDialog } from './team-admin-dialog'
 import { TeamBudgetMeter } from './team-budget-meter'
 import { TeamDialog } from './team-dialog'
 
@@ -21,7 +22,9 @@ type TeamPanelProps = {
   teams: Team[]
   selected: TeamSelection
   onSelect: (selection: TeamSelection) => void
-  /** 是否显示新建 / 编辑 / 归档 / 删除（企业主与企业管理员） */
+  /** 是否显示「全部成员」（团队角色只有本团队，不显示） */
+  showAll: boolean
+  /** 是否显示编辑 / 设管理员 / 归档 / 删除（企业主与企业管理员） */
   canManage: boolean
 }
 
@@ -31,6 +34,7 @@ function TeamRow(props: {
   canManage: boolean
   onSelect: (selection: TeamSelection) => void
   onEdit: (team: Team) => void
+  onSetAdmin: (team: Team) => void
   onArchive: (team: Team) => void
   onDelete: (team: Team) => void
 }) {
@@ -76,6 +80,16 @@ function TeamRow(props: {
           >
             <Pencil />
           </Button>
+          {!archived && (
+            <Button
+              variant='ghost'
+              size='icon-sm'
+              aria-label={t('Set team admin')}
+              onClick={() => props.onSetAdmin(team)}
+            >
+              <UserCog />
+            </Button>
+          )}
           {!team.is_default && !archived && (
             <Button
               variant='ghost'
@@ -106,6 +120,7 @@ export function TeamPanel(props: TeamPanelProps) {
   const { t } = useTranslation()
   const queryClient = useQueryClient()
   const [dialog, setDialog] = useState<{ team?: Team } | null>(null)
+  const [settingAdmin, setSettingAdmin] = useState<Team | null>(null)
   const [archiving, setArchiving] = useState<Team | null>(null)
   const [deleting, setDeleting] = useState<Team | null>(null)
 
@@ -150,29 +165,23 @@ export function TeamPanel(props: TeamPanelProps) {
 
   return (
     <div className='flex flex-col gap-2'>
-      <div className='flex items-center justify-between'>
-        <span className='text-sm font-medium'>{t('Teams')}</span>
-        {props.canManage && (
-          <Button variant='outline' size='sm' onClick={() => setDialog({})}>
-            <Plus className='h-4 w-4' />
-            {t('Add Team')}
-          </Button>
-        )}
-      </div>
+      <span className='text-sm font-medium'>{t('Teams')}</span>
       <nav aria-label={t('Teams')} className='flex flex-col gap-0.5'>
-        <button
-          type='button'
-          aria-pressed={props.selected === 'all'}
-          className={cn(
-            'w-full rounded-md px-2 py-1.5 text-left text-sm',
-            props.selected === 'all'
-              ? 'bg-accent text-accent-foreground'
-              : 'hover:bg-muted'
-          )}
-          onClick={() => props.onSelect('all')}
-        >
-          {t('All Members')}
-        </button>
+        {props.showAll && (
+          <button
+            type='button'
+            aria-pressed={props.selected === 'all'}
+            className={cn(
+              'w-full rounded-md px-2 py-1.5 text-left text-sm',
+              props.selected === 'all'
+                ? 'bg-accent text-accent-foreground'
+                : 'hover:bg-muted'
+            )}
+            onClick={() => props.onSelect('all')}
+          >
+            {t('All Members')}
+          </button>
+        )}
         {props.teams.map((team) => (
           <TeamRow
             key={team.id}
@@ -181,6 +190,7 @@ export function TeamPanel(props: TeamPanelProps) {
             canManage={props.canManage}
             onSelect={props.onSelect}
             onEdit={(target) => setDialog({ team: target })}
+            onSetAdmin={setSettingAdmin}
             onArchive={setArchiving}
             onDelete={setDeleting}
           />
@@ -191,6 +201,11 @@ export function TeamPanel(props: TeamPanelProps) {
         open={dialog !== null}
         onOpenChange={(open) => !open && setDialog(null)}
         team={dialog?.team}
+        onSaved={refresh}
+      />
+      <TeamAdminDialog
+        team={settingAdmin}
+        onOpenChange={(open) => !open && setSettingAdmin(null)}
         onSaved={refresh}
       />
       <ConfirmDialog

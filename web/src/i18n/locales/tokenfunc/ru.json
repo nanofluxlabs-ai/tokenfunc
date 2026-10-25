@@ -1302,6 +1302,15 @@
     "Adjustment registered": "Корректировка зарегистрирована",
     "Register adjustment": "Зарегистрировать корректировку",
     "Current balance: {{amount}}": "Текущий баланс: {{amount}}",
-    "Enterprise balance adjustment": "Корректировка баланса компании"
+    "Enterprise balance adjustment": "Корректировка баланса компании",
+    "All members": "Все участники",
+    "Can sign in": "Может входить",
+    "Filter by console access": "Фильтр по доступу к консоли",
+    "Key only": "Только ключ",
+    "Member disabled": "Участник отключён",
+    "Member enabled": "Участник включён",
+    "Only members who already have console access can be made team admins. Grant access from the member row first.": "Админом команды может стать только участник с доступом к консоли. Сначала выдайте доступ в строке участника.",
+    "Select a member": "Выберите участника",
+    "Set team admin": "Назначить админа команды"
   }
 }

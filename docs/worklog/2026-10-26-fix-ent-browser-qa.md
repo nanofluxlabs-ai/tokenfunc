@@ -3,7 +3,7 @@
 - 日期：2026-10-26
 - 分支：main（直接提交）
 - PR：（无，用户选择直接在 main 上收尾）
-- 关键 commit：<待填>
+- 关键 commit：cab2d2ec7（8 处修复）、本条（邮件链接）
 
 ## 背景
 
@@ -33,6 +33,7 @@
 - 管理端企业列表：列表刷新后把打开中的 `currentRow` 同步回 provider，Billing 抽屉的余额与调账对话框即时更新。
 - 企业侧账单详情：旧快照（无 v2 财务块）且账期 logs 未清理时，`EnterpriseBill.WithLiveUsageSnapshot` 按当前 logs 现算 v2 块（不落库，`snapshot_source=live`），前端渲染同一套 `BillSnapshotSection` 并提示「按当前日志实时计算」；与财务中心对旧账单的实时口径一致。
 - 用量页：从团队页深链带 `team_id / member_id` 时顶部显示「团队：x / 成员：y」筛选条与「清除筛选」；成员列表接口新增 `member_id` 精确筛选供取成员名。
+- 团队预算通知邮件里的链接从已重定向的 `/enterprise/organization?team_id=` 改为 `/enterprise/teams?team_id=`（重定向会丢 `team_id`，设计文档回写时核对发现）。
 - 文案：七语言新增 `Error code`、`HTTP status`、`Requests and quota consumed today and this month by this key.`、实时计算提示；删除旧键 `Quota consumed today and this month by this key.`。
 
 ## Bug 根因

@@ -82,7 +82,7 @@ func sendTeamBudgetAlert(alert model.TeamBudgetAlert) {
 	if alert.BudgetQuota > 0 {
 		usedPercent = alert.UsedQuota * 100 / alert.BudgetQuota
 	}
-	link := strings.TrimRight(system_setting.ServerAddress, "/") + fmt.Sprintf("/enterprise/organization?team_id=%d", alert.TeamId)
+	link := strings.TrimRight(system_setting.ServerAddress, "/") + fmt.Sprintf("/enterprise/teams?team_id=%d", alert.TeamId)
 	subject := fmt.Sprintf("[%s] Team budget alert: %s reached %d%% of its monthly budget", common.SystemName, teamName, alert.AlertPercent)
 	headline := fmt.Sprintf("Team %s has used %d%% of its monthly budget.", teamName, alert.AlertPercent)
 	if alert.Kind == model.TeamBudgetKindExceeded {

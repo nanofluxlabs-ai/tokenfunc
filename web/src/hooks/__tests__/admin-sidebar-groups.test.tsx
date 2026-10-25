@@ -67,7 +67,11 @@ describe('admin sidebar grouping', () => {
     const items = adminGroup().items
     const operations = items[4] as NavCollapsible
     expect(operations.requiredRole).toBe(ROLE.SUPER_ADMIN)
-    expect(subUrls(operations)).toEqual(['/system-info', '/task-plugins'])
+    expect(subUrls(operations)).toEqual([
+      '/system-info',
+      '/task-plugins',
+      '/log-archive',
+    ])
     expect(items[2]).toMatchObject({ url: '/finance/overview' })
     expect(items[5]).toMatchObject({
       url: '/system-settings/site',

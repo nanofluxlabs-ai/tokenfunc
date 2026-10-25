@@ -281,4 +281,39 @@ func TestCreditBillingEndpoints(t *testing.T) {
 			assert.Equal(t, "insufficient_user_quota", creditBillingErrorCode(body), path)
 		}
 	})
+
+	t.Run("quota based credit has no period end and reports awaiting payment", func(t *testing.T) {
+		owner, enterprise := newCreditBillingEnterprise(t, "credit-quota", model.EnterpriseBillingModePrepaid)
+		require.NoError(t, model.ConfigureEnterpriseCredit(enterprise.Id, model.EnterpriseCreditConfig{CycleType: model.EnterpriseCreditCycleQuotaBased, LimitQuota: 1000, AutoReset: false}, 1))
+		model.InvalidateEnterpriseBillingInfo(owner.Id)
+		newCreditBillingKey(t, owner, enterprise, "creditquotakey", 0, 0)
+		period, err := model.GetOpenCreditPeriod(enterprise.Id)
+		require.NoError(t, err)
+
+		status, body := creditBillingRequest(t, router, "subscription", "creditquotakey")
+		require.Equal(t, http.StatusOK, status, body)
+		assert.InDelta(t, 1000/unit, body["hard_limit_usd"], 1e-9)
+		assert.EqualValues(t, 0, body["access_until"], "quota based periods never expire by time")
+		status, body = creditBillingRequest(t, router, "credit", "creditquotakey")
+		require.Equal(t, http.StatusOK, status, body)
+		assert.Equal(t, model.EnterpriseCreditCycleQuotaBased, body["credit_cycle_type"])
+		assert.Equal(t, false, body["credit_auto_reset"])
+		assert.EqualValues(t, period.StartAt, body["period_start"])
+		assert.EqualValues(t, 0, body["period_end"])
+
+		// 用满翻转且 auto_reset=false：没有 open 期，额度接口返回待支付而不是账期不存在
+		applied, err := model.AddCreditUsage(period.Id, 1000, 0, true)
+		require.NoError(t, err)
+		require.True(t, applied)
+		_, rolled, err := model.RolloverExhaustedCreditPeriod(enterprise.Id, period.Id)
+		require.NoError(t, err)
+		require.True(t, rolled)
+		model.InvalidateEnterpriseBillingInfo(owner.Id)
+		status, body = creditBillingRequest(t, router, "credit", "creditquotakey")
+		assert.Equal(t, http.StatusForbidden, status)
+		assert.Equal(t, billingErrorCodeCreditAwaitingPayment, creditBillingErrorCode(body))
+		status, body = creditBillingRequest(t, router, "subscription", "creditquotakey")
+		require.Equal(t, http.StatusOK, status, body)
+		assert.EqualValues(t, 0, body["hard_limit_usd"])
+	})
 }

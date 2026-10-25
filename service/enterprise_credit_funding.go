@@ -33,13 +33,16 @@ type CreditFunding struct {
 
 func (f *CreditFunding) Source() string { return BillingSourceCredit }
 
-// PreConsume 在 open 期上原子预扣；缓存里的账期可能已滚动，未命中时刷新一次再试
+// PreConsume 在 open 期上原子预扣。未命中时依次处理三种情况：缓存里的账期已滚动（换成最新 open 期重试）、
+// 没有 open 期（按周期类型开期，额度信用待收款则直接拒绝）、同一 open 期额度不足（额度信用翻转后在新期重试，
+// 其余周期类型 403）。额度判定始终靠 SQL 条件，缓存只决定先试哪一期；每次请求最多翻转一次。
 func (f *CreditFunding) PreConsume(amount int) error {
 	if amount < 0 {
 		return fmt.Errorf("credit pre-consume amount cannot be negative: %d", amount)
 	}
-	for attempt := range 2 {
-		if f.periodId == 0 || attempt == 1 {
+	rolled := false
+	for range 3 {
+		if f.periodId == 0 {
 			period, err := model.EnsureOpenCreditPeriod(f.enterpriseId)
 			if err != nil {
 				return err
@@ -56,16 +59,35 @@ func (f *CreditFunding) PreConsume(amount int) error {
 			f.checkCreditAlert(state, false)
 			return nil
 		}
-		// 未命中：要么额度不足，要么账期已滚动；用最新 open 期再判断一次
-		period, err := model.GetOpenCreditPeriod(f.enterpriseId)
-		if err != nil && !errors.Is(err, model.ErrEnterpriseCreditNoOpenPeriod) {
+		open, err := model.GetOpenCreditPeriod(f.enterpriseId)
+		if errors.Is(err, model.ErrEnterpriseCreditNoOpenPeriod) {
+			f.periodId = 0
+			continue
+		}
+		if err != nil {
 			return err
 		}
-		if err == nil && period.Id == f.periodId {
-			// 预扣被拒即将 403：直接按「用尽」告警
-			f.checkCreditAlert(model.CreditUsageState{PeriodId: period.Id, UsedQuota: period.UsedQuota, LimitQuota: period.LimitQuota}, true)
+		if open.Id != f.periodId {
+			f.periodId = open.Id
+			continue
+		}
+		if rolled {
+			break
+		}
+		// 同一 open 期额度不足：先按「用尽」告警（额度信用也只发这一次），再尝试翻转
+		f.checkCreditAlert(model.CreditUsageState{PeriodId: open.Id, UsedQuota: open.UsedQuota, LimitQuota: open.LimitQuota}, true)
+		next, ok, err := model.RolloverExhaustedCreditPeriod(f.enterpriseId, f.periodId)
+		if err != nil {
+			return err
+		}
+		if !ok {
 			return ErrInsufficientCreditQuota
 		}
+		if next == nil {
+			return model.ErrEnterpriseCreditAwaitingPayment
+		}
+		rolled = true
+		f.periodId = next.Id
 	}
 	return ErrInsufficientCreditQuota
 }

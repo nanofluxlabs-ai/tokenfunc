@@ -87,7 +87,14 @@ func sendCreditAlert(enterpriseId int, state model.CreditUsageState, kind string
 	headline := fmt.Sprintf("Credit usage has reached %d%% of the period limit.", percent)
 	if kind == model.CreditNotifyKindExhausted {
 		subject = fmt.Sprintf("[%s] Credit limit exhausted: %s", common.SystemName, enterprise.Name)
-		headline = "The credit limit of the current period is exhausted. New requests are rejected until the limit is raised or the next period starts."
+		switch {
+		case enterprise.CreditCycleType == model.EnterpriseCreditCycleQuotaBased && enterprise.CreditAutoReset:
+			headline = "The credit limit of the current period is exhausted. The period has been billed and the next period was opened automatically."
+		case enterprise.CreditCycleType == model.EnterpriseCreditCycleQuotaBased:
+			headline = "The credit limit of the current period is exhausted. The period has been billed; new requests are rejected until the bill is paid or the next period is opened manually."
+		default:
+			headline = "The credit limit of the current period is exhausted. New requests are rejected until the limit is raised or the next period starts."
+		}
 	}
 	content := fmt.Sprintf(`<p>%s</p><p>Enterprise: <b>%s</b><br/>Period: #%d<br/>Used: <b>%s USD</b> / %s USD (%d%%)</p><p><a href="%s">%s</a></p>`,
 		headline, enterprise.Name, periodNo, model.QuotaToUSD(state.UsedQuota).StringFixed(2), model.QuotaToUSD(state.LimitQuota).StringFixed(2), usedPercent, link, link)

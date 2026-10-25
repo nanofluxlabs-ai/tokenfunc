@@ -2,6 +2,7 @@ package model
 
 import (
 	"os"
+	"sync"
 	"testing"
 	"time"
 
@@ -516,4 +517,168 @@ func TestEnterpriseTrialLeadLifecycle(t *testing.T) {
 
 	require.ErrorIs(t, UpdateEnterpriseTrialLeadStatus(lead.Id, "bogus", ""), ErrEnterpriseLeadInvalid)
 	require.ErrorIs(t, UpdateEnterpriseTrialLeadStatus(lead.Id+999, EnterpriseLeadStatusClosed, ""), gorm.ErrRecordNotFound)
+}
+
+// 额度信用：账期没有截止（end_at=0），额度用满翻转；auto_reset=false 时用满后待收款
+func TestEnterpriseQuotaBasedCredit(t *testing.T) {
+	setupEnterprisePostgres(t)
+	owner := createEnterpriseTestUser(t, "quotaowner", common.RoleCommonUser)
+	require.NoError(t, UpgradeUserToEnterprise(owner.Id, &Enterprise{Name: "Quota Co"}))
+	ent, err := GetEnterpriseByUserId(owner.Id)
+	require.NoError(t, err)
+	configure := func(limit int64, autoReset bool) {
+		t.Helper()
+		require.NoError(t, ConfigureEnterpriseCredit(ent.Id, EnterpriseCreditConfig{CycleType: EnterpriseCreditCycleQuotaBased, LimitQuota: limit, AutoReset: autoReset}, 1))
+	}
+	fill := func(periodId int64, amount int64) {
+		t.Helper()
+		ok, err := AddCreditUsage(periodId, amount, 0, true)
+		require.NoError(t, err)
+		require.True(t, ok)
+	}
+
+	// 额度为 0 的额度信用会在首次预扣就翻转成死循环，必须拒绝；开通后首期无截止
+	assert.ErrorIs(t, ConfigureEnterpriseCredit(ent.Id, EnterpriseCreditConfig{CycleType: EnterpriseCreditCycleQuotaBased, LimitQuota: 0}, 1), ErrEnterpriseCreditConfig)
+	configure(1000, true)
+	stored, err := GetEnterpriseById(ent.Id)
+	require.NoError(t, err)
+	assert.True(t, stored.CreditAutoReset)
+	first, err := GetOpenCreditPeriod(ent.Id)
+	require.NoError(t, err)
+	assert.Equal(t, 1, first.PeriodNo)
+	assert.Zero(t, first.EndAt)
+	assert.Equal(t, int64(1000), first.LimitQuota)
+
+	// 定时任务不按时间滚动额度信用期；零消费期不翻转（单笔请求超过整期额度时不能留下空期）
+	rolled, err := RolloverDueCreditPeriods(common.GetTimestamp() + 400*86400)
+	require.NoError(t, err)
+	assert.Zero(t, rolled)
+	next, ok, err := RolloverExhaustedCreditPeriod(ent.Id, first.Id)
+	require.NoError(t, err)
+	assert.False(t, ok)
+	assert.Nil(t, next)
+	first, _ = GetCreditPeriodById(first.Id)
+	assert.Equal(t, EnterpriseCreditPeriodOpen, first.Status)
+
+	// 恰好用满：旧期 closing、新期 no+1 / used=0 / end_at=0；在途结算仍可记到 closing 期
+	fill(first.Id, 1000)
+	second, ok, err := RolloverExhaustedCreditPeriod(ent.Id, first.Id)
+	require.NoError(t, err)
+	require.True(t, ok)
+	require.NotNil(t, second)
+	assert.Equal(t, 2, second.PeriodNo)
+	assert.Zero(t, second.EndAt)
+	assert.Zero(t, second.UsedQuota)
+	assert.Equal(t, int64(1000), second.LimitQuota)
+	first, _ = GetCreditPeriodById(first.Id)
+	assert.Equal(t, EnterpriseCreditPeriodClosing, first.Status)
+	assert.NotZero(t, first.ClosedAt)
+	ok, err = AddCreditUsage(first.Id, 50, 0, false)
+	require.NoError(t, err)
+	assert.True(t, ok)
+	info, err := GetEnterpriseBillingInfo(owner.Id)
+	require.NoError(t, err)
+	assert.Equal(t, second.Id, info.OpenPeriodId, "rollover invalidates the billing info cache")
+
+	// 并发翻转同一期：只产生一个新期，两边拿到同一个 open 期
+	fill(second.Id, 1000)
+	results := make([]*EnterpriseCreditPeriod, 2)
+	var wg sync.WaitGroup
+	for i := range results {
+		wg.Go(func() {
+			period, ok, err := RolloverExhaustedCreditPeriod(ent.Id, second.Id)
+			assert.NoError(t, err)
+			assert.True(t, ok)
+			results[i] = period
+		})
+	}
+	wg.Wait()
+	require.NotNil(t, results[0])
+	require.NotNil(t, results[1])
+	assert.Equal(t, results[0].Id, results[1].Id)
+	assert.Equal(t, 3, results[0].PeriodNo)
+	var openCount int64
+	require.NoError(t, DB.Model(&EnterpriseCreditPeriod{}).Where("enterprise_id = ? AND status = ?", ent.Id, EnterpriseCreditPeriodOpen).Count(&openCount).Error)
+	assert.Equal(t, int64(1), openCount)
+	third := results[0]
+
+	// 结算补扣推到额度但没有新请求：定时任务兜底翻转
+	fill(third.Id, 1000)
+	rolled, err = RolloverDueCreditPeriods(common.GetTimestamp())
+	require.NoError(t, err)
+	assert.Equal(t, 1, rolled)
+	fourth, err := GetOpenCreditPeriod(ent.Id)
+	require.NoError(t, err)
+	assert.Equal(t, 4, fourth.PeriodNo)
+
+	// 出账：额度信用期的账单周期以关闭时刻为止
+	bill, err := IssueCreditBill(first.Id)
+	require.NoError(t, err)
+	require.NotNil(t, bill)
+	assert.Equal(t, first.StartAt, bill.PeriodStart)
+	assert.Equal(t, first.ClosedAt, bill.PeriodEnd)
+	assert.Equal(t, int64(1050), bill.AmountQuota)
+
+	// auto_reset=false：用满后只关闭不开新期，进入待收款；改额度不放行；已出账期的差额只留流水
+	configure(1000, false)
+	fill(fourth.Id, 1000)
+	next, ok, err = RolloverExhaustedCreditPeriod(ent.Id, fourth.Id)
+	require.NoError(t, err)
+	assert.True(t, ok)
+	assert.Nil(t, next)
+	_, err = GetOpenCreditPeriod(ent.Id)
+	assert.ErrorIs(t, err, ErrEnterpriseCreditNoOpenPeriod)
+	_, err = EnsureOpenCreditPeriod(ent.Id)
+	assert.ErrorIs(t, err, ErrEnterpriseCreditAwaitingPayment)
+	configure(2000, false)
+	_, err = GetOpenCreditPeriod(ent.Id)
+	assert.ErrorIs(t, err, ErrEnterpriseCreditNoOpenPeriod, "changing the limit does not release an enterprise awaiting payment")
+	carried, err := ApplyCreditSettlement(ent.Id, first.Id, 70, 0)
+	require.NoError(t, err)
+	assert.Zero(t, carried.PeriodId)
+	entries, total, err := ListEnterpriseLedger(ent.Id, EnterpriseLedgerCrossPeriodAdjustment, 0, 10)
+	require.NoError(t, err)
+	assert.Equal(t, int64(1), total)
+	assert.Equal(t, int64(70), entries[0].AmountQuota)
+
+	// 收款：部分付款不开期，结清后自动开下一期（额度按企业当前配置）
+	bill, err = IssueCreditBill(fourth.Id)
+	require.NoError(t, err)
+	require.NotNil(t, bill)
+	_, err = RegisterBillPayment(bill.Id, bill.TotalUSD.Div(decimal.NewFromInt(2)), 9, "WIRE-A", "")
+	require.NoError(t, err)
+	_, err = GetOpenCreditPeriod(ent.Id)
+	assert.ErrorIs(t, err, ErrEnterpriseCreditNoOpenPeriod)
+	paid, err := RegisterBillPayment(bill.Id, bill.TotalUSD.Div(decimal.NewFromInt(2)), 9, "WIRE-B", "")
+	require.NoError(t, err)
+	assert.Equal(t, EnterpriseBillPaid, paid.Status)
+	fifth, err := GetOpenCreditPeriod(ent.Id)
+	require.NoError(t, err)
+	assert.Equal(t, 5, fifth.PeriodNo)
+	assert.Equal(t, int64(2000), fifth.LimitQuota)
+	assert.Zero(t, fifth.EndAt)
+	entries, _, err = ListEnterpriseLedger(ent.Id, EnterpriseLedgerCreditLimitChange, 0, 1)
+	require.NoError(t, err)
+	assert.Contains(t, string(entries[0].Detail), `"bill_paid"`)
+	info, _ = GetEnterpriseBillingInfo(owner.Id)
+	assert.Equal(t, fifth.Id, info.OpenPeriodId)
+
+	// 管理员手动开期：待收款时放行一次，已有 open 期时拒绝
+	fill(fifth.Id, 2000)
+	_, ok, err = RolloverExhaustedCreditPeriod(ent.Id, fifth.Id)
+	require.NoError(t, err)
+	require.True(t, ok)
+	sixth, err := OpenNextCreditPeriod(ent.Id, 9, "manual")
+	require.NoError(t, err)
+	assert.Equal(t, 6, sixth.PeriodNo)
+	_, err = OpenNextCreditPeriod(ent.Id, 9, "manual")
+	assert.ErrorIs(t, err, ErrEnterpriseCreditPeriodAlreadyOpen)
+
+	// 从预付重新开通为 auto_reset=false 的额度信用：直接开第一期，不会卡在待收款
+	require.NoError(t, SwitchEnterpriseToPrepaid(ent.Id, 1))
+	configure(500, false)
+	reopened, err := GetOpenCreditPeriod(ent.Id)
+	require.NoError(t, err)
+	assert.Equal(t, 7, reopened.PeriodNo)
+	assert.Equal(t, int64(500), reopened.LimitQuota)
 }

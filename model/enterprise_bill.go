@@ -216,12 +216,17 @@ func IssueCreditBill(periodId int64) (*EnterpriseBill, error) {
 		if terms <= 0 {
 			terms = EnterpriseDefaultPaymentTermsDays
 		}
+		// 额度信用期没有固定截止（end_at=0），账单周期以用满关闭时刻为止
+		periodEnd := period.EndAt
+		if periodEnd == 0 {
+			periodEnd = period.ClosedAt
+		}
 		bill = &EnterpriseBill{
 			EnterpriseId:       period.EnterpriseId,
 			PeriodId:           period.Id,
 			BillType:           EnterpriseBillTypeCredit,
 			PeriodStart:        period.StartAt,
-			PeriodEnd:          period.EndAt,
+			PeriodEnd:          periodEnd,
 			AmountQuota:        period.UsedQuota,
 			AmountUSD:          amountUSD,
 			TotalUSD:           amountUSD,
@@ -276,12 +281,14 @@ func FindClosingPeriodsReadyToBill(now int64) ([]*EnterpriseCreditPeriod, error)
 	return periods, err
 }
 
-// RegisterBillPayment 登记收款（支持部分付款），写 bill_payment 流水
+// RegisterBillPayment 登记收款（支持部分付款），写 bill_payment 流水。
+// 账单结清时，额度信用（auto_reset=false）用满后等待收款的企业在同一事务内自动开下一期恢复服务。
 func RegisterBillPayment(billId int64, amountUSD decimal.Decimal, operatorId int, reference string, remark string) (*EnterpriseBill, error) {
 	if !amountUSD.IsPositive() {
 		return nil, errors.New("payment amount must be positive")
 	}
 	var bill EnterpriseBill
+	reopened := false
 	err := DB.Transaction(func(tx *gorm.DB) error {
 		if err := lockForUpdate(tx).First(&bill, "id = ?", billId).Error; err != nil {
 			return err
@@ -306,7 +313,7 @@ func RegisterBillPayment(billId int64, amountUSD decimal.Decimal, operatorId int
 			return err
 		}
 		amountQuota := amountUSD.Mul(decimal.NewFromFloat(common.QuotaPerUnit)).Round(0).IntPart()
-		return recordEnterpriseLedger(tx, &EnterpriseLedgerEntry{
+		if err := recordEnterpriseLedger(tx, &EnterpriseLedgerEntry{
 			EnterpriseId: bill.EnterpriseId,
 			Type:         EnterpriseLedgerBillPayment,
 			AmountQuota:  amountQuota,
@@ -315,10 +322,32 @@ func RegisterBillPayment(billId int64, amountUSD decimal.Decimal, operatorId int
 			OperatorId:   operatorId,
 			Reference:    reference,
 			Remark:       remark,
-		})
+		}); err != nil {
+			return err
+		}
+		if bill.Status != EnterpriseBillPaid {
+			return nil
+		}
+		// 锁序与其他路径一致（企业行 → 账期行）；账单行锁只在本函数与作废里用，不构成环
+		enterprise, err := lockEnterprise(tx, bill.EnterpriseId)
+		if err != nil {
+			return err
+		}
+		if enterprise.BillingMode != EnterpriseBillingModeCredit || enterprise.CreditCycleType != EnterpriseCreditCycleQuotaBased || enterprise.CreditAutoReset {
+			return nil
+		}
+		_, err = openNextCreditPeriodTx(tx, enterprise, now, operatorId, "bill_paid")
+		if errors.Is(err, ErrEnterpriseCreditPeriodAlreadyOpen) {
+			return nil
+		}
+		reopened = err == nil
+		return err
 	})
 	if err != nil {
 		return nil, err
+	}
+	if reopened {
+		InvalidateEnterpriseBillingInfoByEnterprise(bill.EnterpriseId)
 	}
 	return &bill, nil
 }

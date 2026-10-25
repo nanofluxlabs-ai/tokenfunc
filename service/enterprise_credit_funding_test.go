@@ -275,3 +275,94 @@ func TestCreditFundingAlerts(t *testing.T) {
 	require.NoError(t, session.Settle(1600))
 	assert.Len(t, recorder.snapshot(), 4)
 }
+
+// 额度信用：预扣被拒时用满翻转，新期继续；auto_reset=false 用满后 403 待收款，收款结清自动恢复
+func TestCreditFundingQuotaBasedRollover(t *testing.T) {
+	setupCreditFundingPostgres(t)
+	recorder := &creditAlertRecorder{}
+	recorder.install(t)
+	// 直接从预付开通额度信用：从自然月改类型时当前时间期会保留到期末（周期类型从下一期生效）
+	owner, ent := newCreditEnterprise(t, "quotaflow", model.EnterpriseBillingModePrepaid)
+	configure := func(limit int64, autoReset bool) {
+		t.Helper()
+		require.NoError(t, model.ConfigureEnterpriseCredit(ent.Id, model.EnterpriseCreditConfig{CycleType: model.EnterpriseCreditCycleQuotaBased, LimitQuota: limit, AlertPercent: 80, AutoReset: autoReset}, 1))
+		model.InvalidateEnterpriseBillingInfo(owner.Id)
+	}
+	relayInfo := func() *relaycommon.RelayInfo {
+		return &relaycommon.RelayInfo{UserId: owner.Id, IsPlayground: true, RequestId: "req"}
+	}
+	configure(1000, true)
+	first, err := model.GetOpenCreditPeriod(ent.Id)
+	require.NoError(t, err)
+	assert.Zero(t, first.EndAt)
+
+	// 恰好用满本期：预扣成功并发一次用尽告警；下一笔预扣被拒 → 翻转到新期继续，归属新期
+	full, apiErr := NewBillingSession(newCreditTestContext(), relayInfo(), 1000)
+	require.Nil(t, apiErr)
+	assert.Equal(t, []string{model.CreditNotifyKindExhausted}, recorder.snapshot())
+	info := relayInfo()
+	session, apiErr := NewBillingSession(newCreditTestContext(), info, 300)
+	require.Nil(t, apiErr)
+	second, err := model.GetOpenCreditPeriod(ent.Id)
+	require.NoError(t, err)
+	assert.NotEqual(t, first.Id, second.Id)
+	assert.Equal(t, 2, second.PeriodNo)
+	assert.Equal(t, second.Id, info.CreditPeriodId)
+	assert.Equal(t, int64(300), second.UsedQuota)
+	assert.Equal(t, []string{model.CreditNotifyKindExhausted}, recorder.snapshot(), "exhausted is sent once per period")
+	closed, err := model.GetCreditPeriodById(first.Id)
+	require.NoError(t, err)
+	assert.Equal(t, model.EnterpriseCreditPeriodClosing, closed.Status)
+	require.NoError(t, session.Settle(300))
+
+	// 旧期的在途请求在翻转后结算：差额记回 closing 期，不影响新期
+	require.NoError(t, full.Settle(1050))
+	closed, _ = model.GetCreditPeriodById(first.Id)
+	assert.Equal(t, int64(1050), closed.UsedQuota)
+	assert.Zero(t, closed.InflightCount)
+	second, _ = model.GetCreditPeriodById(second.Id)
+	assert.Equal(t, int64(300), second.UsedQuota)
+
+	// 单笔请求超过整期额度：有消费的期翻一次，零消费的新期不再翻，403 且不留空期
+	_, apiErr = NewBillingSession(newCreditTestContext(), relayInfo(), 1500)
+	require.NotNil(t, apiErr)
+	assert.Equal(t, 403, apiErr.StatusCode)
+	third, err := model.GetOpenCreditPeriod(ent.Id)
+	require.NoError(t, err)
+	assert.Equal(t, 3, third.PeriodNo)
+	assert.Zero(t, third.UsedQuota)
+	_, apiErr = NewBillingSession(newCreditTestContext(), relayInfo(), 1500)
+	require.NotNil(t, apiErr)
+	assert.Equal(t, 403, apiErr.StatusCode)
+	again, err := model.GetOpenCreditPeriod(ent.Id)
+	require.NoError(t, err)
+	assert.Equal(t, third.Id, again.Id, "a period without usage is never rolled over")
+	assert.Zero(t, again.InflightCount)
+
+	// auto_reset=false：用满后拒绝请求，直到账单结清自动开下一期
+	configure(1000, false)
+	session, apiErr = NewBillingSession(newCreditTestContext(), relayInfo(), 1000)
+	require.Nil(t, apiErr)
+	require.NoError(t, session.Settle(1000))
+	for range 2 {
+		_, apiErr = NewBillingSession(newCreditTestContext(), relayInfo(), 1)
+		require.NotNil(t, apiErr)
+		assert.Equal(t, 403, apiErr.StatusCode)
+		assert.Equal(t, types.ErrorCodeInsufficientUserQuota, apiErr.GetErrorCode())
+	}
+	_, err = model.GetOpenCreditPeriod(ent.Id)
+	assert.ErrorIs(t, err, model.ErrEnterpriseCreditNoOpenPeriod)
+	bill, err := model.IssueCreditBill(third.Id)
+	require.NoError(t, err)
+	require.NotNil(t, bill)
+	_, err = model.RegisterBillPayment(bill.Id, bill.TotalUSD, 1, "WIRE", "")
+	require.NoError(t, err)
+	info = relayInfo()
+	session, apiErr = NewBillingSession(newCreditTestContext(), info, 100)
+	require.Nil(t, apiErr)
+	fourth, err := model.GetOpenCreditPeriod(ent.Id)
+	require.NoError(t, err)
+	assert.Equal(t, 4, fourth.PeriodNo)
+	assert.Equal(t, fourth.Id, info.CreditPeriodId)
+	require.NoError(t, session.Settle(100))
+}

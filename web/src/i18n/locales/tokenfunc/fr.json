@@ -1131,5 +1131,8 @@
     "— the key is wrong or exhausted. Check the key value and its quota on the keys page.": "— la clé est erronée ou épuisée. Vérifiez sa valeur et son quota sur la page des clés.",
     "— the key may not include the model you selected. Compare /model entries with the models endpoint or Model Square.": "— la clé n'inclut peut-être pas le modèle sélectionné. Comparez les entrées de /model avec l'endpoint models ou Model Square.",
     "— verify the apiKey value and that the model id in the models array exists on this site (compare with the models endpoint).": "— vérifiez la valeur de apiKey et que l'id de modèle du tableau models existe sur ce site (comparez avec l'endpoint models)."
-  }
+  },
+  "Cannot bind: the promoter themselves, admins, or users already assigned to another promoter": "Impossible de lier : le promoteur lui-même, les administrateurs ou les utilisateurs déjà rattachés à un autre promoteur",
+  "Month consumption": "Consommation du mois",
+  "Search by username / ID / email to add": "Rechercher par nom d’utilisateur / ID / e-mail pour ajouter"
 }

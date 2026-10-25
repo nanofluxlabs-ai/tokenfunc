@@ -3,7 +3,7 @@
 - 日期：2026-10-25
 - 分支：feat/bill-archive（基于 feat/logarchive-import）
 - PR：#41
-- 关键 commit：
+- 关键 commit：53e54a1fb
 
 ## 背景
 

@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Trash2 } from 'lucide-react'
+import { ChevronDown, Trash2 } from 'lucide-react'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
@@ -15,6 +15,11 @@ import {
 import { StatusBadge } from '@/components/status-badge'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from '@/components/ui/collapsible'
 import { Label } from '@/components/ui/label'
 import {
   Sheet,
@@ -30,6 +35,7 @@ import type { PromoterCenterUser } from '@/features/promoter-center/types'
 import { formatQuota, formatTimestampToDate } from '@/lib/format'
 import { handleServerError } from '@/lib/handle-server-error'
 import { requireServerSuccess } from '@/lib/server-error-message'
+import { cn } from '@/lib/utils'
 
 import {
   bindPromoterUsers,
@@ -64,6 +70,7 @@ export function BindingsSheet(props: BindingsSheetProps) {
   const [picked, setPicked] = useState<PickedUser | null>(null)
   const [includeHistory, setIncludeHistory] = useState(false)
   const [batchText, setBatchText] = useState('')
+  const [batchOpen, setBatchOpen] = useState(false)
   const [lastResult, setLastResult] = useState<PromoterBindResult | null>(null)
   const [unbinding, setUnbinding] = useState<PromoterCenterUser | null>(null)
 
@@ -134,19 +141,6 @@ export function BindingsSheet(props: BindingsSheetProps) {
       ]
     : []
 
-  const historyToggle = (id: string) => (
-    <div className='flex items-center gap-2'>
-      <Checkbox
-        id={id}
-        checked={includeHistory}
-        onCheckedChange={(checked) => setIncludeHistory(checked === true)}
-      />
-      <Label htmlFor={id} className='text-sm font-normal'>
-        {t('Include historical consumption')}
-      </Label>
-    </div>
-  )
-
   return (
     <>
       <Sheet open={props.open} onOpenChange={props.onOpenChange}>
@@ -171,61 +165,100 @@ export function BindingsSheet(props: BindingsSheetProps) {
           </SheetHeader>
           <div className='flex min-h-0 flex-1 flex-col gap-6 overflow-y-auto px-4 py-4 sm:px-6'>
             <SideDrawerSection>
-              <SideDrawerSectionHeader title={t('Add user')} />
-              <div className='flex flex-col gap-3'>
-                <UserPicker
-                  id='binding-user'
-                  value={picked}
-                  onChange={setPicked}
-                  disabledIds={[props.promoter?.user_id ?? 0, ...boundIds]}
-                />
-                <div className='flex flex-wrap items-center justify-between gap-3'>
-                  {historyToggle('binding-include-history')}
-                  <Button
-                    size='sm'
-                    disabled={!picked || bind.isPending}
-                    onClick={() => picked && bind.mutate([String(picked.id)])}
-                  >
-                    {t('Bind')}
-                  </Button>
+              <Collapsible open={batchOpen} onOpenChange={setBatchOpen}>
+                <div className='flex flex-col gap-2'>
+                  <div className='flex flex-wrap items-center gap-2'>
+                    <div className='min-w-0 flex-1 basis-60'>
+                      <UserPicker
+                        id='binding-user'
+                        value={picked}
+                        onChange={setPicked}
+                        disabledIds={[
+                          props.promoter?.user_id ?? 0,
+                          ...boundIds,
+                        ]}
+                        placeholder={t(
+                          'Search by username / ID / email to add'
+                        )}
+                      />
+                    </div>
+                    <Button
+                      size='sm'
+                      disabled={!picked || bind.isPending}
+                      onClick={() => picked && bind.mutate([String(picked.id)])}
+                    >
+                      {t('Add')}
+                    </Button>
+                    <CollapsibleTrigger
+                      render={<Button size='sm' variant='outline' />}
+                    >
+                      {t('Batch bind')}
+                      <ChevronDown
+                        aria-hidden='true'
+                        className={cn(
+                          'transition-transform',
+                          batchOpen && 'rotate-180'
+                        )}
+                      />
+                    </CollapsibleTrigger>
+                  </div>
+                  <p className='text-muted-foreground text-xs'>
+                    {t(
+                      'Cannot bind: the promoter themselves, admins, or users already assigned to another promoter'
+                    )}
+                  </p>
+                  <div className='flex items-center gap-2'>
+                    <Checkbox
+                      id='binding-include-history'
+                      checked={includeHistory}
+                      onCheckedChange={(checked) =>
+                        setIncludeHistory(checked === true)
+                      }
+                    />
+                    <Label
+                      htmlFor='binding-include-history'
+                      className='text-sm font-normal'
+                    >
+                      {t('Include historical consumption')}
+                    </Label>
+                  </div>
                 </div>
-              </div>
-            </SideDrawerSection>
-
-            <SideDrawerSection>
-              <SideDrawerSectionHeader
-                title={t('Batch bind')}
-                description={t(
-                  'One username or user ID per line, at most {{max}} per batch.',
-                  { max: PROMOTER_BATCH_BIND_MAX }
-                )}
-              />
-              <Textarea
-                aria-label={t('Batch bind')}
-                value={batchText}
-                rows={4}
-                onChange={(event) => setBatchText(event.target.value)}
-                placeholder={'alice\n1024'}
-              />
-              <div className='flex flex-wrap items-center justify-between gap-3'>
-                <span className='text-muted-foreground text-xs'>
-                  {batchTooLarge
-                    ? t('At most {{max}} users per batch', {
-                        max: PROMOTER_BATCH_BIND_MAX,
-                      })
-                    : t('{{count}} entries', { count: batchInputs.length })}
-                </span>
-                <Button
-                  size='sm'
-                  variant='outline'
-                  disabled={
-                    batchInputs.length === 0 || batchTooLarge || bind.isPending
-                  }
-                  onClick={() => bind.mutate(batchInputs)}
-                >
-                  {t('Bind all')}
-                </Button>
-              </div>
+                <CollapsibleContent className='mt-3 flex flex-col gap-3 rounded-lg border p-3'>
+                  <p className='text-muted-foreground text-xs'>
+                    {t(
+                      'One username or user ID per line, at most {{max}} per batch.',
+                      { max: PROMOTER_BATCH_BIND_MAX }
+                    )}
+                  </p>
+                  <Textarea
+                    aria-label={t('Batch bind')}
+                    value={batchText}
+                    rows={4}
+                    onChange={(event) => setBatchText(event.target.value)}
+                    placeholder={'alice\n1024'}
+                  />
+                  <div className='flex flex-wrap items-center justify-between gap-3'>
+                    <span className='text-muted-foreground text-xs'>
+                      {batchTooLarge
+                        ? t('At most {{max}} users per batch', {
+                            max: PROMOTER_BATCH_BIND_MAX,
+                          })
+                        : t('{{count}} entries', { count: batchInputs.length })}
+                    </span>
+                    <Button
+                      size='sm'
+                      disabled={
+                        batchInputs.length === 0 ||
+                        batchTooLarge ||
+                        bind.isPending
+                      }
+                      onClick={() => bind.mutate(batchInputs)}
+                    >
+                      {t('Bind all')}
+                    </Button>
+                  </div>
+                </CollapsibleContent>
+              </Collapsible>
               {resultRows.length > 0 && (
                 <StaticDataTable
                   columns={[
@@ -287,7 +320,22 @@ export function BindingsSheet(props: BindingsSheetProps) {
                     ),
                   },
                   {
-                    id: 'scope',
+                    id: 'group',
+                    header: t('Group'),
+                    cell: (user: PromoterCenterUser) =>
+                      user.group ? (
+                        <StatusBadge
+                          label={user.group}
+                          variant='neutral'
+                          size='sm'
+                          copyable={false}
+                        />
+                      ) : (
+                        <span className='text-muted-foreground'>-</span>
+                      ),
+                  },
+                  {
+                    id: 'source',
                     header: t('Source'),
                     cell: (user: PromoterCenterUser) => (
                       <div className='flex flex-col text-xs'>
@@ -303,20 +351,20 @@ export function BindingsSheet(props: BindingsSheetProps) {
                   {
                     id: 'bound_at',
                     header: t('Bound at'),
-                    cell: (user: PromoterCenterUser) => (
-                      <div className='flex flex-col text-xs'>
-                        <span>{formatTimestampToDate(user.bound_at)}</span>
-                        {user.bound_by_username && (
-                          <span className='text-muted-foreground'>
-                            {user.bound_by_username}
-                          </span>
-                        )}
-                      </div>
-                    ),
+                    cell: (user: PromoterCenterUser) =>
+                      formatTimestampToDate(user.bound_at),
+                  },
+                  {
+                    id: 'operator',
+                    header: t('Operator'),
+                    cell: (user: PromoterCenterUser) =>
+                      user.bound_by_username || (
+                        <span className='text-muted-foreground'>-</span>
+                      ),
                   },
                   {
                     id: 'month',
-                    header: t('This month'),
+                    header: t('Month consumption'),
                     className: 'text-right',
                     cellClassName: 'text-right font-mono tabular-nums',
                     cell: (user: PromoterCenterUser) =>
@@ -339,6 +387,7 @@ export function BindingsSheet(props: BindingsSheetProps) {
                   },
                 ]}
                 data={bindings.data ?? []}
+                tableClassName='min-w-[760px]'
                 getRowKey={(user) => user.user_id}
                 empty={
                   !bindings.isLoading && (bindings.data ?? []).length === 0

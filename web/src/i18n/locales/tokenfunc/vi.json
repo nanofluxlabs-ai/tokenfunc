@@ -1130,6 +1130,9 @@
     "— the env_key variable is not exported in the shell where codex runs, or the key value is wrong.": "— biến env_key chưa được export trong shell chạy codex, hoặc giá trị khóa bị sai.",
     "— the key is wrong or exhausted. Check the key value and its quota on the keys page.": "— khóa sai hoặc đã cạn. Kiểm tra giá trị khóa và hạn mức tại trang khóa.",
     "— the key may not include the model you selected. Compare /model entries with the models endpoint or Model Square.": "— khóa có thể không chứa mô hình bạn đã chọn. Đối chiếu các mục /model với endpoint models hoặc Model Square.",
-    "— verify the apiKey value and that the model id in the models array exists on this site (compare with the models endpoint).": "— kiểm tra giá trị apiKey và đảm bảo id mô hình trong mảng models tồn tại trên trang này (đối chiếu với endpoint models)."
+    "— verify the apiKey value and that the model id in the models array exists on this site (compare with the models endpoint).": "— kiểm tra giá trị apiKey và đảm bảo id mô hình trong mảng models tồn tại trên trang này (đối chiếu với endpoint models).",
+    "Cannot bind: the promoter themselves, admins, or users already assigned to another promoter": "Không thể liên kết: chính người quảng bá, quản trị viên, hoặc người dùng đã thuộc người quảng bá khác",
+    "Month consumption": "Tiêu thụ tháng này",
+    "Search by username / ID / email to add": "Tìm theo tên người dùng / ID / email để thêm"
   }
 }

@@ -1130,6 +1130,9 @@
     "— the env_key variable is not exported in the shell where codex runs, or the key value is wrong.": "— the env_key variable is not exported in the shell where codex runs, or the key value is wrong.",
     "— the key is wrong or exhausted. Check the key value and its quota on the keys page.": "— the key is wrong or exhausted. Check the key value and its quota on the keys page.",
     "— the key may not include the model you selected. Compare /model entries with the models endpoint or Model Square.": "— the key may not include the model you selected. Compare /model entries with the models endpoint or Model Square.",
-    "— verify the apiKey value and that the model id in the models array exists on this site (compare with the models endpoint).": "— verify the apiKey value and that the model id in the models array exists on this site (compare with the models endpoint)."
+    "— verify the apiKey value and that the model id in the models array exists on this site (compare with the models endpoint).": "— verify the apiKey value and that the model id in the models array exists on this site (compare with the models endpoint).",
+    "Cannot bind: the promoter themselves, admins, or users already assigned to another promoter": "Cannot bind: the promoter themselves, admins, or users already assigned to another promoter",
+    "Month consumption": "Month consumption",
+    "Search by username / ID / email to add": "Search by username / ID / email to add"
   }
 }

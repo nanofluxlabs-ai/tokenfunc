@@ -71,6 +71,7 @@ beforeEach(() => {
           total_tokens: 100,
           last_consume_day: '2026-03-10',
           email: 'alice@example.com',
+          group: 'vip',
           bound_by_username: 'root',
         },
       ],
@@ -97,24 +98,63 @@ afterEach(() => {
   apiMock.unbindPromoterUser.mockReset()
 })
 
-test('lists bound users with their source, scope and operator', async () => {
+test('lists bound users with group, source, scope, operator and month consumption columns', async () => {
   renderSheet()
   expect(await screen.findByText('alice@example.com')).toBeInTheDocument()
+  for (const header of [
+    'Group',
+    'Source',
+    'Bound at',
+    'Operator',
+    'Month consumption',
+  ]) {
+    expect(
+      screen.getByRole('columnheader', { name: header })
+    ).toBeInTheDocument()
+  }
+  expect(screen.getByText('vip')).toBeInTheDocument()
+  // 七列在抽屉宽度内放不下：表格保底宽度，由 Table 外层 overflow-x-auto 容器横向滚动
+  expect(screen.getByRole('table').className).toMatch(/min-w-\[/)
   expect(screen.getByText('Admin binding')).toBeInTheDocument()
   expect(screen.getByText('All history')).toBeInTheDocument()
   expect(screen.getByText('root')).toBeInTheDocument()
   expect(apiMock.listPromoterBindings).toHaveBeenCalledWith(3)
 })
 
+test('batch bind panel is collapsed by default and expands from the toolbar button', async () => {
+  renderSheet()
+  await screen.findByText('alice@example.com')
+  expect(
+    screen.queryByRole('textbox', { name: 'Batch bind' })
+  ).not.toBeInTheDocument()
+  expect(
+    screen.getByText(
+      'Cannot bind: the promoter themselves, admins, or users already assigned to another promoter'
+    )
+  ).toBeInTheDocument()
+
+  const toggle = screen.getByRole('button', { name: 'Batch bind' })
+  expect(toggle).toHaveAttribute('aria-expanded', 'false')
+  fireEvent.click(toggle)
+
+  expect(toggle).toHaveAttribute('aria-expanded', 'true')
+  expect(
+    await screen.findByRole('textbox', { name: 'Batch bind' })
+  ).toBeInTheDocument()
+})
+
 test('batch bind sends one entry per line and honours the include-history toggle, then shows per-item results', async () => {
   renderSheet()
   await screen.findByText('alice@example.com')
+  fireEvent.click(screen.getByRole('button', { name: 'Batch bind' }))
 
-  fireEvent.change(screen.getByRole('textbox', { name: 'Batch bind' }), {
+  fireEvent.change(await screen.findByRole('textbox', { name: 'Batch bind' }), {
     target: { value: 'bob\nroot\n\nbob' },
   })
-  // 两个区块各有一个「包含历史消耗」勾选框，批量区是第二个；两者共用同一个状态
-  fireEvent.click(screen.getAllByLabelText('Include historical consumption')[1])
+  // 单个添加与批量绑定共用同一个「包含历史消耗」勾选框
+  fireEvent.click(
+    screen.getByRole('checkbox', { name: 'Include historical consumption' })
+  )
   fireEvent.click(screen.getByRole('button', { name: 'Bind all' }))
 
   await waitFor(() =>
@@ -127,9 +167,10 @@ test('batch bind sends one entry per line and honours the include-history toggle
   expect(screen.getByText('Admin accounts cannot be bound')).toBeInTheDocument()
 })
 
-test('bind button stays disabled until a user is picked and the batch button until text is entered', async () => {
+test('add button stays disabled until a user is picked and the batch button until text is entered', async () => {
   renderSheet()
   await screen.findByText('alice@example.com')
-  expect(screen.getByRole('button', { name: 'Bind' })).toBeDisabled()
-  expect(screen.getByRole('button', { name: 'Bind all' })).toBeDisabled()
+  expect(screen.getByRole('button', { name: 'Add' })).toBeDisabled()
+  fireEvent.click(screen.getByRole('button', { name: 'Batch bind' }))
+  expect(await screen.findByRole('button', { name: 'Bind all' })).toBeDisabled()
 })

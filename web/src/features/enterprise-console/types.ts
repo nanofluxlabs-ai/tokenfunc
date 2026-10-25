@@ -111,19 +111,45 @@ export interface EnterpriseToken {
   expired_time: number
   created_time: number
   accessed_time: number
+  group: string
+  model_limits_enabled: boolean
+  model_limits: string
+  allow_ips: string
   team_id: number
   team_name: string
+  team_status: TeamStatus | ''
   member_id: number
   member_name: string
+  /** 本月 / 上月消耗（quota），从 ent_usage_daily 回填 */
+  month_quota: number
+  prev_month_quota: number
 }
 
-export interface TokenCreatePayload {
+/** 新建 / 编辑共用的请求体 */
+export interface TokenMutatePayload {
   name: string
   team_id: number
   member_id: number
   remain_quota: number
   unlimited_quota: boolean
   expired_time: number
+  group: string
+  model_limits: string[]
+  allow_ips: string
+}
+
+export interface TokenOptions {
+  owner_group: string
+  groups: { value: string; desc: string; ratio: number }[]
+  /** 各分组启用的模型；空字符串键 = 不选分组时（按主账号分组路由） */
+  models_by_group: Record<string, string[]>
+  limit: number
+  total: number
+}
+
+export interface TokenBatchResult {
+  updated: number
+  skipped: number[]
 }
 
 export interface TokenAssignmentPayload {

@@ -6,10 +6,12 @@ import (
 	"strconv"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/QuantumNous/new-api/common"
 	"github.com/QuantumNous/new-api/middleware"
 	"github.com/QuantumNous/new-api/model"
+	"github.com/QuantumNous/new-api/setting/operation_setting"
 	"github.com/QuantumNous/new-api/setting/ratio_setting"
 
 	"github.com/gin-gonic/gin"
@@ -29,7 +31,15 @@ func newEnterpriseConsoleRouter() *gin.Engine {
 	console.POST("/members", middleware.RequireEnterpriseRole(model.EnterpriseMemberRoleTeamAdmin), CreateEnterpriseMember)
 	console.PUT("/members/:id/role", middleware.RequireEnterpriseRole(model.EnterpriseMemberRoleTeamAdmin), SetEnterpriseMemberRole)
 	console.GET("/bills", middleware.RequireEnterpriseRole(model.EnterpriseMemberRoleEnterpriseAdmin), ListEnterpriseBillsSelf)
+	console.GET("/tokens", ListEnterpriseTokens)
+	console.GET("/tokens/options", GetEnterpriseTokenOptions)
 	console.POST("/tokens", CreateEnterpriseToken)
+	console.PUT("/tokens/:id", UpdateEnterpriseToken)
+	console.PUT("/tokens/:id/status", UpdateEnterpriseTokenStatus)
+	console.DELETE("/tokens/:id", DeleteEnterpriseToken)
+	console.POST("/tokens/:id/key", GetEnterpriseTokenKey)
+	console.POST("/tokens/batch-status", BatchUpdateEnterpriseTokenStatus)
+	console.POST("/tokens/batch-delete", BatchDeleteEnterpriseTokens)
 	return router
 }
 
@@ -123,6 +133,159 @@ func TestEnterpriseConsoleMemberRoles(t *testing.T) {
 
 func itoa(value int) string {
 	return strconv.Itoa(value)
+}
+
+// 企业密钥页：访问限制校验、编辑含归属、启停校验、删除清归属、批量范围、成员取明文、本月消耗回填、key 上限按企业覆盖
+func TestEnterpriseConsoleTokenManagement(t *testing.T) {
+	setupAccessTokenAudit(t)
+	// GetUserGroup / 列表 SELECT 用到带引号的 group / key 列名
+	model.InitColumnNames()
+	require.NoError(t, model.DB.AutoMigrate(&model.Token{}, &model.Ability{}, &model.Enterprise{}, &model.EnterpriseTeam{}, &model.EnterpriseMember{}, &model.EnterpriseTokenAssignment{}, &model.EnterpriseUsageDaily{}))
+	require.NoError(t, model.DB.Create(&model.Ability{Group: "default", Model: "gpt-4o", ChannelId: 1, Enabled: true}).Error)
+	owner := &model.User{Username: "key-owner", Password: "placeholder", Role: common.RoleCommonUser, Status: common.UserStatusEnabled, Group: "default", AuthVersion: 1, AffCode: "key-own"}
+	require.NoError(t, model.DB.Create(owner).Error)
+	require.NoError(t, model.UpgradeUserToEnterprise(owner.Id, &model.Enterprise{Name: "Key Co"}))
+	ent, err := model.GetEnterpriseByUserId(owner.Id)
+	require.NoError(t, err)
+	rd := &model.EnterpriseTeam{EnterpriseId: ent.Id, Name: "Research"}
+	require.NoError(t, model.CreateEnterpriseTeam(rd))
+	qa := &model.EnterpriseTeam{EnterpriseId: ent.Id, Name: "QA"}
+	require.NoError(t, model.CreateEnterpriseTeam(qa))
+	alice := &model.EnterpriseMember{EnterpriseId: ent.Id, TeamId: rd.Id, Name: "Alice"}
+	require.NoError(t, model.CreateEnterpriseMember(alice))
+	tester := &model.EnterpriseMember{EnterpriseId: ent.Id, TeamId: qa.Id, Name: "Tester"}
+	require.NoError(t, model.CreateEnterpriseMember(tester))
+	leadUser := &model.User{Username: "key-lead", Password: "placeholder", Role: common.RoleCommonUser, Status: common.UserStatusEnabled, Group: "default", AuthVersion: 1, AffCode: "key-ld"}
+	require.NoError(t, model.DB.Create(leadUser).Error)
+	require.NoError(t, model.BindEnterpriseMemberLogin(ent.Id, alice.Id, leadUser, model.EnterpriseMemberRoleTeamAdmin))
+
+	router := newEnterpriseConsoleRouter()
+	ownerToken, _ := createScopedAccessToken(t, owner.Id, 0, "enterprise:read", "enterprise:write")
+	leadToken, _ := createScopedAccessToken(t, leadUser.Id, 0, "enterprise:read", "enterprise:write")
+	call := func(method, path, token, body string) (int, map[string]any) {
+		response := accessTokenRequest(router, method, path, token, "", body)
+		var parsed map[string]any
+		require.NoError(t, common.Unmarshal(response.Body.Bytes(), &parsed), response.Body.String())
+		return response.Code, parsed
+	}
+	dataOf := func(parsed map[string]any) map[string]any {
+		data, _ := parsed["data"].(map[string]any)
+		return data
+	}
+
+	// 选项：主账号分组、分组模型、上限
+	code, body := call("GET", "/api/enterprise/tokens/options", ownerToken, "")
+	require.Equal(t, http.StatusOK, code)
+	assert.Equal(t, "default", dataOf(body)["owner_group"])
+	assert.Contains(t, dataOf(body)["models_by_group"].(map[string]any)[""], "gpt-4o")
+
+	// 校验：非法 CIDR、越权分组、模型不在分组、持有人不属团队
+	for _, test := range []struct{ name, body string }{
+		{"invalid cidr", `{"name":"k","unlimited_quota":true,"allow_ips":"10.0.0.0/99"}`},
+		{"group not selectable", `{"name":"k","unlimited_quota":true,"group":"ghost-group"}`},
+		{"model not in group", `{"name":"k","unlimited_quota":true,"model_limits":["claude-9"]}`},
+		{"holder not in team", `{"name":"k","unlimited_quota":true,"team_id":` + itoa(rd.Id) + `,"member_id":` + itoa(tester.Id) + `}`},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			code, body := call("POST", "/api/enterprise/tokens", ownerToken, test.body)
+			assert.Equal(t, http.StatusOK, code)
+			assert.Equal(t, false, body["success"], body["message"])
+		})
+	}
+
+	// 创建：带模型白名单、CIDR、分组，归属研发团队 Alice
+	code, body = call("POST", "/api/enterprise/tokens", ownerToken, `{"name":"alice-key","unlimited_quota":true,"team_id":`+itoa(rd.Id)+`,"member_id":`+itoa(alice.Id)+`,"group":"default","model_limits":["gpt-4o","gpt-4o"],"allow_ips":"10.0.0.0/8\n 192.168.1.1 \n"}`)
+	require.Equal(t, http.StatusOK, code)
+	require.Equal(t, true, body["success"], body["message"])
+	keyId := int(dataOf(body)["id"].(float64))
+	created, err := model.GetTokenById(keyId)
+	require.NoError(t, err)
+	assert.True(t, created.ModelLimitsEnabled)
+	assert.Equal(t, "gpt-4o", created.ModelLimits)
+	assert.Equal(t, "10.0.0.0/8\n192.168.1.1", *created.AllowIps)
+	assert.Equal(t, "default", created.Group)
+
+	// 本月消耗回填
+	require.NoError(t, model.DB.Create(&model.EnterpriseUsageDaily{Day: model.EnterpriseMonthStartDay(time.Now()), EnterpriseId: ent.Id, TokenId: keyId, ModelName: "gpt-4o", TeamId: rd.Id, MemberId: alice.Id, RequestCount: 2, Quota: 1500, UpdatedAt: 1}).Error)
+	code, body = call("GET", "/api/enterprise/tokens?member_id="+itoa(alice.Id), ownerToken, "")
+	require.Equal(t, http.StatusOK, code)
+	items := dataOf(body)["items"].([]any)
+	require.Len(t, items, 1)
+	row := items[0].(map[string]any)
+	assert.Equal(t, float64(1500), row["month_quota"])
+	assert.Equal(t, "Research", row["team_name"])
+	assert.Equal(t, "gpt-4o", row["model_limits"])
+
+	// 编辑：改名 + 挪到 QA 团队公共 key + 固定额度 0（之后不能启用）
+	code, body = call("PUT", "/api/enterprise/tokens/"+itoa(keyId), ownerToken, `{"name":"qa-key","unlimited_quota":false,"remain_quota":0,"team_id":`+itoa(qa.Id)+`}`)
+	require.Equal(t, http.StatusOK, code)
+	require.Equal(t, true, body["success"], body["message"])
+	assignment, err := model.GetEnterpriseTokenAssignment(keyId)
+	require.NoError(t, err)
+	assert.Equal(t, qa.Id, assignment.TeamId)
+	assert.Equal(t, 0, assignment.MemberId)
+	updated, err := model.GetTokenById(keyId)
+	require.NoError(t, err)
+	assert.Equal(t, "qa-key", updated.Name)
+	assert.False(t, updated.ModelLimitsEnabled, "model limits cleared when omitted")
+
+	// 启停：停用成功；耗尽的 key 不能启用；团队管理员看不到别的团队的 key
+	code, body = call("PUT", "/api/enterprise/tokens/"+itoa(keyId)+"/status", ownerToken, `{"status":2}`)
+	require.Equal(t, http.StatusOK, code)
+	assert.Equal(t, true, body["success"], body["message"])
+	code, body = call("PUT", "/api/enterprise/tokens/"+itoa(keyId)+"/status", ownerToken, `{"status":1}`)
+	require.Equal(t, http.StatusOK, code)
+	assert.Equal(t, false, body["success"], "exhausted key cannot be enabled")
+	code, _ = call("PUT", "/api/enterprise/tokens/"+itoa(keyId)+"/status", leadToken, `{"status":2}`)
+	assert.Equal(t, http.StatusNotFound, code)
+	code, _ = call("POST", "/api/enterprise/tokens/"+itoa(keyId)+"/key", leadToken, "")
+	assert.Equal(t, http.StatusNotFound, code)
+
+	// 团队管理员在本团队发 key 并取明文；批量操作混入范围外 id 整批 404
+	code, body = call("POST", "/api/enterprise/tokens", leadToken, `{"name":"lead-key","unlimited_quota":true,"member_id":`+itoa(alice.Id)+`}`)
+	require.Equal(t, http.StatusOK, code)
+	require.Equal(t, true, body["success"], body["message"])
+	leadKeyId := int(dataOf(body)["id"].(float64))
+	code, body = call("POST", "/api/enterprise/tokens/"+itoa(leadKeyId)+"/key", leadToken, "")
+	require.Equal(t, http.StatusOK, code)
+	assert.NotEmpty(t, dataOf(body)["key"])
+	code, _ = call("POST", "/api/enterprise/tokens/batch-status", leadToken, `{"ids":[`+itoa(leadKeyId)+`,`+itoa(keyId)+`],"status":2}`)
+	assert.Equal(t, http.StatusNotFound, code)
+	code, body = call("POST", "/api/enterprise/tokens/batch-status", ownerToken, `{"ids":[`+itoa(leadKeyId)+`,`+itoa(keyId)+`],"status":1}`)
+	require.Equal(t, http.StatusOK, code)
+	assert.Equal(t, float64(1), dataOf(body)["updated"], "exhausted key is skipped")
+	assert.Len(t, dataOf(body)["skipped"], 1)
+
+	// 删除：清归属；批量删除
+	code, body = call("DELETE", "/api/enterprise/tokens/"+itoa(keyId), ownerToken, "")
+	require.Equal(t, http.StatusOK, code)
+	assert.Equal(t, true, body["success"], body["message"])
+	assignment, err = model.GetEnterpriseTokenAssignment(keyId)
+	require.NoError(t, err)
+	assert.Nil(t, assignment)
+	_, err = model.GetTokenById(keyId)
+	assert.Error(t, err, "token is soft-deleted")
+	code, body = call("POST", "/api/enterprise/tokens/batch-delete", ownerToken, `{"ids":[`+itoa(leadKeyId)+`]}`)
+	require.Equal(t, http.StatusOK, code)
+	assert.Equal(t, float64(1), dataOf(body)["deleted"])
+
+	// key 上限：企业上限 1 时（站点上限更大则以站点为准），把站点上限压到 1 验证拦截
+	previous := operation_setting.GetTokenSetting().MaxUserTokens
+	operation_setting.GetTokenSetting().MaxUserTokens = 1
+	t.Cleanup(func() { operation_setting.GetTokenSetting().MaxUserTokens = previous })
+	code, body = call("POST", "/api/enterprise/tokens", ownerToken, `{"name":"one","unlimited_quota":true}`)
+	require.Equal(t, http.StatusOK, code)
+	require.Equal(t, true, body["success"], body["message"])
+	code, body = call("POST", "/api/enterprise/tokens", ownerToken, `{"name":"two","unlimited_quota":true}`)
+	require.Equal(t, http.StatusOK, code)
+	assert.Equal(t, false, body["success"], "site limit reached")
+	require.NoError(t, model.DB.Model(&model.Enterprise{}).Where("id = ?", ent.Id).Update("max_tokens", 5).Error)
+	refreshed, err := model.GetEnterpriseById(ent.Id)
+	require.NoError(t, err)
+	require.Equal(t, 5, refreshed.MaxTokens)
+	code, body = call("POST", "/api/enterprise/tokens", ownerToken, `{"name":"two","unlimited_quota":true}`)
+	require.Equal(t, http.StatusOK, code)
+	assert.Equal(t, true, body["success"], "enterprise limit overrides site limit")
 }
 
 // 企业主账号（预付 / 授信）在线充值入口一律 403，普通用户放行；升级为企业后负缓存立即失效

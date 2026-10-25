@@ -32,7 +32,7 @@ import { MemberDialog } from './member-dialog'
 import { MemberImportDialog } from './member-import-dialog'
 import { MemberLoginDialog } from './member-login-dialog'
 import type { TeamSelection } from './team-panel'
-import { TokenCreateDialog } from './token-create-dialog'
+import { TokenMutateSheet } from './token-mutate-sheet'
 
 const PAGE_SIZE = 20
 
@@ -279,11 +279,11 @@ export function MembersSection(props: {
         onOpenChange={(open) => !open && setLogin(null)}
         onSaved={refresh}
       />
-      <TokenCreateDialog
+      <TokenMutateSheet
         open={issuingKey !== null}
         onOpenChange={(open) => !open && setIssuingKey(null)}
         member={issuingKey ?? undefined}
-        onCreated={refresh}
+        onSaved={refresh}
       />
       <MemberImportDialog
         open={importing}

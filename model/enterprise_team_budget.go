@@ -72,14 +72,6 @@ func EnterpriseBudgetMonth(now time.Time) string {
 	return now.In(enterpriseBillingLocation).Format("2006-01")
 }
 
-// enterpriseMonthRange 当前自然月的首末日（账期时区），供日聚合按 day 区间求和
-func enterpriseMonthRange(now time.Time) (string, string) {
-	local := now.In(enterpriseBillingLocation)
-	first := time.Date(local.Year(), local.Month(), 1, 0, 0, 0, 0, enterpriseBillingLocation)
-	last := first.AddDate(0, 1, -1)
-	return first.Format("2006-01-02"), last.Format("2006-01-02")
-}
-
 // loadEnterpriseTeamBudgets 读取企业内设了预算的团队；团队表尚未建立（未迁移的测试库）时按无预算处理
 func loadEnterpriseTeamBudgets(enterpriseId int) (map[int]EnterpriseTeamBudget, error) {
 	rows := make([]struct {
@@ -135,7 +127,8 @@ func GetTeamMonthUsage(enterpriseId int, teamId int) (int64, error) {
 	if ok && entry.month == month && now.Before(entry.expiresAt) {
 		return entry.quota, nil
 	}
-	first, last := enterpriseMonthRange(now)
+	// 复用列表页的月区间（本月 1 日 .. 今天，账期时区）
+	first, last, _, _ := enterpriseMonthRange(now)
 	sums, err := SumEnterpriseUsageByColumn(enterpriseId, "team_id", []int{teamId}, first, last)
 	if err != nil {
 		return 0, err
@@ -260,7 +253,7 @@ func fillTeamBudgetStates(enterpriseId int, items []*EnterpriseTeamListItem) err
 	for _, item := range items {
 		ids = append(ids, item.Id)
 	}
-	first, last := enterpriseMonthRange(time.Now())
+	first, last, _, _ := enterpriseMonthRange(time.Now())
 	usage, err := SumEnterpriseUsageByColumn(enterpriseId, "team_id", ids, first, last)
 	if err != nil {
 		return err

@@ -27,6 +27,8 @@
 
 与方案的偏差：方案写「上调预算后清当月 warn 记录」，实现为上调时同时清 warn 与 exceeded（上调到用量之上后再次用尽是新事件，应再通知）；改阈值只清 warn。
 
+合并 main（#51 M3 密钥页重做合入后）：`keys-page.tsx` 以 M3 新页为准，「Blocked by budget」徽标搬进新页 `status` 列的 `API_KEY_STATUSES` 徽标旁（`useTeams` / `blockedTeamIds` 自动合并保留）；M3 在 `enterprise_org.go` 也加了 `enterpriseMonthRange`（返回本月 + 上月四个日期），删掉本分支同名两值版本改为复用；i18n 七文件自动合并。复跑六包 PG ok、typecheck 通过、vitest 13 文件 47 例通过。
+
 合并 main（#47 M7 / #48 M8 合入后）：`EnterpriseBillingInfo` 取两边字段并集（`CreditAlertPercent` + `TeamBudgets`），model / service 两个测试夹具的表列表取并集，`enterprise_credit_funding_test.go` 末尾两个追加的用例都保留；通知收件邮箱改为复用 #48 的 `enterpriseNoticeReceiver`，删掉临时的 `teamBudgetNoticeReceiver`。
 
 ## 验证

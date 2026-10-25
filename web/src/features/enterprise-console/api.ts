@@ -19,7 +19,9 @@ import type {
   Team,
   TeamPayload,
   TokenAssignmentPayload,
-  TokenCreatePayload,
+  TokenBatchResult,
+  TokenMutatePayload,
+  TokenOptions,
   UsageGroupBy,
   UsageSummary,
 } from './types'
@@ -140,6 +142,7 @@ export async function listEnterpriseTokens(params: {
   team_id?: number
   member_id?: number
   status?: number
+  expiring?: boolean
   keyword?: string
   p?: number
   page_size?: number
@@ -148,10 +151,54 @@ export async function listEnterpriseTokens(params: {
   return res.data
 }
 
+/** 新建 / 编辑抽屉的可选项：分组、各分组模型、key 上限与当前总数 */
+export async function getEnterpriseTokenOptions(): Promise<
+  ApiResponse<TokenOptions>
+> {
+  const res = await api.get(`${BASE}/tokens/options`)
+  return res.data
+}
+
 export async function createEnterpriseToken(
-  payload: TokenCreatePayload
+  payload: TokenMutatePayload
 ): Promise<ApiResponse<{ id: number }>> {
   const res = await api.post(`${BASE}/tokens`, payload)
+  return res.data
+}
+
+export async function updateEnterpriseToken(
+  id: number,
+  payload: TokenMutatePayload
+): Promise<ApiResponse> {
+  const res = await api.put(`${BASE}/tokens/${id}`, payload)
+  return res.data
+}
+
+export async function updateEnterpriseTokenStatus(
+  id: number,
+  status: number
+): Promise<ApiResponse> {
+  const res = await api.put(`${BASE}/tokens/${id}/status`, { status })
+  return res.data
+}
+
+export async function deleteEnterpriseToken(id: number): Promise<ApiResponse> {
+  const res = await api.delete(`${BASE}/tokens/${id}`)
+  return res.data
+}
+
+export async function batchUpdateEnterpriseTokenStatus(
+  ids: number[],
+  status: number
+): Promise<ApiResponse<TokenBatchResult>> {
+  const res = await api.post(`${BASE}/tokens/batch-status`, { ids, status })
+  return res.data
+}
+
+export async function batchDeleteEnterpriseTokens(
+  ids: number[]
+): Promise<ApiResponse<{ deleted: number }>> {
+  const res = await api.post(`${BASE}/tokens/batch-delete`, { ids })
   return res.data
 }
 

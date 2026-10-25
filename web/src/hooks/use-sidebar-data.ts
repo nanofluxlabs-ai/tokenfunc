@@ -128,7 +128,7 @@ export function useSidebarData(): SidebarData {
             icon: Building2,
           },
           {
-            title: t('Enterprise API Keys'),
+            title: t('API Keys'),
             url: '/enterprise/keys',
             icon: KeyRound,
           },

@@ -21,37 +21,40 @@ import { Switch } from '@/components/ui/switch'
 import { Textarea } from '@/components/ui/textarea'
 import { handleServerError } from '@/lib/handle-server-error'
 
-import { createEmployee, updateEmployee } from '../api'
-import { flattenDepartmentTree } from '../lib/department-tree'
-import type { DepartmentNode, Employee } from '../types'
+import { createMember, updateMember } from '../api'
+import { useTeamOptions } from '../hooks/use-team-options'
+import type { Member } from '../types'
 import { EntitySelect } from './entity-select'
 
-type EmployeeDialogProps = {
+type MemberDialogProps = {
   open: boolean
   onOpenChange: (open: boolean) => void
-  tree: DepartmentNode[]
-  employee?: Employee
-  defaultDepartmentId?: number
+  member?: Member
+  /** 新建时默认归属的团队（0 = 默认团队） */
+  defaultTeamId?: number
+  /** 团队角色不能把成员挪到别的团队 */
+  lockTeam?: boolean
   onSaved: () => void
 }
 
-export function EmployeeDialog(props: EmployeeDialogProps) {
+export function MemberDialog(props: MemberDialogProps) {
   const { t } = useTranslation()
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const teamOptions = useTeamOptions()
   const schema = useMemo(
     () =>
       z.object({
         name: z
           .string()
           .trim()
-          .min(1, t('Employee name is required'))
+          .min(1, t('Member name is required'))
           .max(64, t('Name must be at most 64 characters')),
         email: z.union([
           z.literal(''),
           z.string().trim().email(t('Invalid email address')),
         ]),
         employee_no: z.string().trim().max(64),
-        department_id: z.number().int().min(0),
+        team_id: z.number().int().min(0),
         active: z.boolean(),
         remark: z.string(),
       }),
@@ -64,7 +67,7 @@ export function EmployeeDialog(props: EmployeeDialogProps) {
       name: '',
       email: '',
       employee_no: '',
-      department_id: 0,
+      team_id: 0,
       active: true,
       remark: '',
     },
@@ -72,25 +75,16 @@ export function EmployeeDialog(props: EmployeeDialogProps) {
 
   useEffect(() => {
     if (!props.open) return
-    const employee = props.employee
+    const member = props.member
     form.reset({
-      name: employee?.name ?? '',
-      email: employee?.email ?? '',
-      employee_no: employee?.employee_no ?? '',
-      department_id: employee?.department_id ?? props.defaultDepartmentId ?? 0,
-      active: employee ? employee.status === 'active' : true,
-      remark: employee?.remark ?? '',
+      name: member?.name ?? '',
+      email: member?.email ?? '',
+      employee_no: member?.employee_no ?? '',
+      team_id: member?.team_id ?? props.defaultTeamId ?? 0,
+      active: member ? member.status === 'active' : true,
+      remark: member?.remark ?? '',
     })
-  }, [props.open, props.employee, props.defaultDepartmentId, form])
-
-  const departmentOptions = useMemo(
-    () =>
-      flattenDepartmentTree(props.tree).map((node) => ({
-        value: node.id,
-        label: `${'— '.repeat(node.depth)}${node.name}`,
-      })),
-    [props.tree]
-  )
+  }, [props.open, props.member, props.defaultTeamId, form])
 
   const onSubmit = async (values: Values) => {
     setIsSubmitting(true)
@@ -99,18 +93,18 @@ export function EmployeeDialog(props: EmployeeDialogProps) {
         name: values.name,
         email: values.email,
         employee_no: values.employee_no,
-        department_id: values.department_id,
+        team_id: values.team_id,
         status: values.active ? ('active' as const) : ('disabled' as const),
         remark: values.remark,
       }
-      const result = props.employee
-        ? await updateEmployee(props.employee.id, payload)
-        : await createEmployee(payload)
+      const result = props.member
+        ? await updateMember(props.member.id, payload)
+        : await createMember(payload)
       if (!result.success) {
         handleServerError(result)
         return
       }
-      toast.success(t('Employee saved'))
+      toast.success(t('Member saved'))
       props.onOpenChange(false)
       props.onSaved()
     } catch (error) {
@@ -124,20 +118,20 @@ export function EmployeeDialog(props: EmployeeDialogProps) {
     <Dialog
       open={props.open}
       onOpenChange={props.onOpenChange}
-      title={props.employee ? t('Edit Employee') : t('Add Employee')}
+      title={props.member ? t('Edit Member') : t('Add Member')}
       description={t(
-        'Employees do not sign in. They call the API with the keys you assign to them.'
+        'Members call the API with the keys issued to them. Console access is optional and granted separately.'
       )}
       contentClassName='sm:max-w-lg'
       footer={
-        <Button type='submit' form='employee-form' disabled={isSubmitting}>
+        <Button type='submit' form='member-form' disabled={isSubmitting}>
           {isSubmitting ? t('Saving...') : t('Save')}
         </Button>
       }
     >
       <Form {...form}>
         <form
-          id='employee-form'
+          id='member-form'
           className='flex flex-col gap-4'
           onSubmit={(event) => void form.handleSubmit(onSubmit)(event)}
         >
@@ -182,24 +176,33 @@ export function EmployeeDialog(props: EmployeeDialogProps) {
               )}
             />
           </div>
-          <FormField
-            control={form.control}
-            name='department_id'
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>{t('Department')}</FormLabel>
-                <EntitySelect
-                  value={field.value}
-                  onChange={field.onChange}
-                  options={departmentOptions}
-                  noneLabel={t('Unassigned')}
-                  aria-label={t('Department')}
-                />
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          {props.employee && (
+          {!props.lockTeam && (
+            <FormField
+              control={form.control}
+              name='team_id'
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>{t('Team')}</FormLabel>
+                  <EntitySelect
+                    value={field.value}
+                    onChange={field.onChange}
+                    options={teamOptions}
+                    noneLabel={t('Default team')}
+                    aria-label={t('Team')}
+                  />
+                  {props.member && props.member.token_count > 0 && (
+                    <FormDescription>
+                      {t(
+                        'Moving a member also moves their API keys to the new team.'
+                      )}
+                    </FormDescription>
+                  )}
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          )}
+          {props.member && (
             <FormField
               control={form.control}
               name='active'
@@ -209,7 +212,7 @@ export function EmployeeDialog(props: EmployeeDialogProps) {
                     <FormLabel>{t('Active')}</FormLabel>
                     <FormDescription>
                       {t(
-                        'Disabling an employee also disables all of their API keys.'
+                        'Disabling a member also disables all of their API keys.'
                       )}
                     </FormDescription>
                   </div>

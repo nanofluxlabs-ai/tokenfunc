@@ -13,8 +13,8 @@ func init() {
 		group:    AccessTokenGroupPersonal,
 		minRole:  common.RoleCommonUser,
 		Actions: []authz.ActionDefinition{
-			accessTokenView("View your enterprise departments, employees, projects, and employee API keys."),
-			accessTokenEdit("Manage enterprise departments, employees, projects, and employee API key assignments."),
+			accessTokenView("View your enterprise teams, members, and API keys."),
+			accessTokenEdit("Manage enterprise teams, members, member logins, and API key assignments."),
 		},
 	})
 }

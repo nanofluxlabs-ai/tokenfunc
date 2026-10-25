@@ -17,7 +17,7 @@ import (
 // ContextKeyEnterpriseCreditPeriod gin 上下文里的预扣账期 id（授信企业），用量聚合按它归期
 const ContextKeyEnterpriseCreditPeriod = "enterprise_credit_period_id"
 
-// EnterpriseUsageDaily 企业用量日聚合：员工/部门/项目在写入时快照（并作为主键的一部分），历史不随组织调整漂移
+// EnterpriseUsageDaily 企业用量日聚合：团队/持有人在写入时快照（并作为主键的一部分），历史不随组织调整漂移
 type EnterpriseUsageDaily struct {
 	Day          string `json:"day" gorm:"type:varchar(10);primaryKey;index:idx_ent_usage_enterprise_day,priority:2"`
 	EnterpriseId int    `json:"enterprise_id" gorm:"primaryKey;autoIncrement:false;index:idx_ent_usage_enterprise_day,priority:1"`
@@ -25,14 +25,15 @@ type EnterpriseUsageDaily struct {
 	ModelName    string `json:"model_name" gorm:"type:varchar(128);primaryKey"`
 	PeriodId     int64  `json:"period_id" gorm:"primaryKey;autoIncrement:false;index"`
 	// 归属维度也是主键的一部分：归属变更后新用量落到新行，历史行不受影响
-	EmployeeId       int   `json:"employee_id" gorm:"primaryKey;autoIncrement:false"`
-	DepartmentId     int   `json:"department_id" gorm:"primaryKey;autoIncrement:false"`
-	ProjectId        int   `json:"project_id" gorm:"primaryKey;autoIncrement:false"`
-	RequestCount     int64 `json:"request_count" gorm:"not null;default:0"`
-	PromptTokens     int64 `json:"prompt_tokens" gorm:"not null;default:0"`
-	CompletionTokens int64 `json:"completion_tokens" gorm:"not null;default:0"`
-	Quota            int64 `json:"quota" gorm:"not null;default:0"`
-	UpdatedAt        int64 `json:"updated_at" gorm:"not null"`
+	TeamId              int   `json:"team_id" gorm:"primaryKey;autoIncrement:false"`
+	MemberId            int   `json:"member_id" gorm:"primaryKey;autoIncrement:false"`
+	RequestCount        int64 `json:"request_count" gorm:"not null;default:0"`
+	PromptTokens        int64 `json:"prompt_tokens" gorm:"not null;default:0"`
+	CompletionTokens    int64 `json:"completion_tokens" gorm:"not null;default:0"`
+	CacheTokens         int64 `json:"cache_tokens" gorm:"not null;default:0"`
+	CacheCreationTokens int64 `json:"cache_creation_tokens" gorm:"not null;default:0"`
+	Quota               int64 `json:"quota" gorm:"not null;default:0"`
+	UpdatedAt           int64 `json:"updated_at" gorm:"not null"`
 }
 
 func (EnterpriseUsageDaily) TableName() string { return "ent_usage_daily" }
@@ -42,14 +43,19 @@ func enterpriseUsageDay(timestamp int64) string {
 	return time.Unix(timestamp, 0).In(enterpriseBillingLocation).Format("2006-01-02")
 }
 
+// EnterpriseMonthStartDay 当前自然月的第一天（账期时区）
+func EnterpriseMonthStartDay(now time.Time) string {
+	local := now.In(enterpriseBillingLocation)
+	return time.Date(local.Year(), local.Month(), 1, 0, 0, 0, 0, enterpriseBillingLocation).Format("2006-01-02")
+}
+
 // ---------------------------------------------------------------------------
-// key 归属缓存（token_id -> 员工/部门/项目），短 TTL，归属变更最多延迟一个 TTL
+// key 归属缓存（token_id -> 团队/持有人），短 TTL，归属变更最多延迟一个 TTL
 // ---------------------------------------------------------------------------
 
 type tokenAttribution struct {
-	EmployeeId   int
-	DepartmentId int
-	ProjectId    int
+	TeamId   int
+	MemberId int
 }
 
 type tokenAttributionEntry struct {
@@ -70,8 +76,7 @@ func getTokenAttribution(tokenId int) (tokenAttribution, error) {
 	}
 	var value tokenAttribution
 	err := DB.Table("ent_token_assignments a").
-		Select("a.employee_id, COALESCE(e.department_id, 0) AS department_id, a.project_id").
-		Joins("LEFT JOIN ent_employees e ON e.id = a.employee_id").
+		Select("a.team_id, a.member_id").
 		Where("a.token_id = ?", tokenId).
 		Scan(&value).Error
 	if err != nil {
@@ -81,18 +86,18 @@ func getTokenAttribution(tokenId int) (tokenAttribution, error) {
 	return value, nil
 }
 
-// IsEnterpriseEmployeeToken 该 key 是否已分配给员工；企业主自建且未分配或仅归属项目的 key 返回 false
+// IsEnterpriseEmployeeToken 该 key 是否分配给了具体成员；企业主自建的团队公共 key 返回 false
 func IsEnterpriseEmployeeToken(tokenId int) (bool, error) {
 	attribution, err := getTokenAttribution(tokenId)
-	return attribution.EmployeeId != 0, err
+	return attribution.MemberId != 0, err
 }
 
-// InvalidateTokenAttribution 归属或员工部门变更后调用，让后续请求立刻按新归属统计
+// InvalidateTokenAttribution 归属变更后调用，让后续请求立刻按新归属统计
 func InvalidateTokenAttribution(tokenId int) {
 	tokenAttributionCache.Delete(tokenId)
 }
 
-// InvalidateAllTokenAttribution 员工换部门等影响多把 key 的变更后整体失效
+// InvalidateAllTokenAttribution 成员换团队等影响多把 key 的变更后整体失效
 func InvalidateAllTokenAttribution() {
 	tokenAttributionCache.Range(func(key, _ any) bool {
 		tokenAttributionCache.Delete(key)
@@ -106,14 +111,16 @@ func InvalidateAllTokenAttribution() {
 
 // EnterpriseUsageEvent 一次消费日志对应的聚合输入
 type EnterpriseUsageEvent struct {
-	UserId           int
-	TokenId          int
-	ModelName        string
-	PromptTokens     int
-	CompletionTokens int
-	Quota            int
-	CreatedAt        int64
-	CreditPeriodId   int64
+	UserId              int
+	TokenId             int
+	ModelName           string
+	PromptTokens        int
+	CompletionTokens    int
+	CacheTokens         int
+	CacheCreationTokens int
+	Quota               int
+	CreatedAt           int64
+	CreditPeriodId      int64
 }
 
 // RecordEnterpriseUsage 同步写入日聚合（非企业用户直接返回）；消费日志路径用 RecordEnterpriseUsageAsync
@@ -135,33 +142,51 @@ func RecordEnterpriseUsage(event EnterpriseUsageEvent) error {
 		periodId = 0
 	}
 	row := EnterpriseUsageDaily{
-		Day:              enterpriseUsageDay(event.CreatedAt),
-		EnterpriseId:     info.EnterpriseId,
-		TokenId:          event.TokenId,
-		ModelName:        modelName,
-		PeriodId:         periodId,
-		EmployeeId:       attribution.EmployeeId,
-		DepartmentId:     attribution.DepartmentId,
-		ProjectId:        attribution.ProjectId,
-		RequestCount:     1,
-		PromptTokens:     int64(event.PromptTokens),
-		CompletionTokens: int64(event.CompletionTokens),
-		Quota:            int64(event.Quota),
-		UpdatedAt:        common.GetTimestamp(),
+		Day:                 enterpriseUsageDay(event.CreatedAt),
+		EnterpriseId:        info.EnterpriseId,
+		TokenId:             event.TokenId,
+		ModelName:           modelName,
+		PeriodId:            periodId,
+		TeamId:              attribution.TeamId,
+		MemberId:            attribution.MemberId,
+		RequestCount:        1,
+		PromptTokens:        int64(event.PromptTokens),
+		CompletionTokens:    int64(event.CompletionTokens),
+		CacheTokens:         int64(event.CacheTokens),
+		CacheCreationTokens: int64(event.CacheCreationTokens),
+		Quota:               int64(event.Quota),
+		UpdatedAt:           common.GetTimestamp(),
 	}
 	return DB.Clauses(clause.OnConflict{
 		Columns: []clause.Column{
 			{Name: "day"}, {Name: "enterprise_id"}, {Name: "token_id"}, {Name: "model_name"}, {Name: "period_id"},
-			{Name: "employee_id"}, {Name: "department_id"}, {Name: "project_id"},
+			{Name: "team_id"}, {Name: "member_id"},
 		},
 		DoUpdates: clause.Assignments(map[string]any{
-			"request_count":     gorm.Expr("ent_usage_daily.request_count + EXCLUDED.request_count"),
-			"prompt_tokens":     gorm.Expr("ent_usage_daily.prompt_tokens + EXCLUDED.prompt_tokens"),
-			"completion_tokens": gorm.Expr("ent_usage_daily.completion_tokens + EXCLUDED.completion_tokens"),
-			"quota":             gorm.Expr("ent_usage_daily.quota + EXCLUDED.quota"),
-			"updated_at":        row.UpdatedAt,
+			"request_count":         gorm.Expr("ent_usage_daily.request_count + EXCLUDED.request_count"),
+			"prompt_tokens":         gorm.Expr("ent_usage_daily.prompt_tokens + EXCLUDED.prompt_tokens"),
+			"completion_tokens":     gorm.Expr("ent_usage_daily.completion_tokens + EXCLUDED.completion_tokens"),
+			"cache_tokens":          gorm.Expr("ent_usage_daily.cache_tokens + EXCLUDED.cache_tokens"),
+			"cache_creation_tokens": gorm.Expr("ent_usage_daily.cache_creation_tokens + EXCLUDED.cache_creation_tokens"),
+			"quota":                 gorm.Expr("ent_usage_daily.quota + EXCLUDED.quota"),
+			"updated_at":            row.UpdatedAt,
 		}),
 	}).Create(&row).Error
+}
+
+// logOtherInt 从消费日志 other 的公开字段取整数（缺失或类型不符按 0）
+func logOtherInt(other map[string]any, key string) int {
+	switch v := other[key].(type) {
+	case int:
+		return v
+	case int64:
+		return int(v)
+	case float64:
+		return int(v)
+	case float32:
+		return int(v)
+	}
+	return 0
 }
 
 // RecordEnterpriseUsageAsync 消费日志钩子：异步写入，失败重试 3 次后记错误日志
@@ -182,6 +207,11 @@ func RecordEnterpriseUsageAsync(c *gin.Context, userId int, params RecordConsume
 		CompletionTokens: params.CompletionTokens,
 		Quota:            params.Quota,
 		CreatedAt:        common.GetTimestamp(),
+	}
+	if params.Other != nil {
+		other := params.Other.Snapshot()
+		event.CacheTokens = logOtherInt(other, "cache_tokens")
+		event.CacheCreationTokens = logOtherInt(other, "cache_creation_tokens")
 	}
 	if periodId, ok := c.Get(ContextKeyEnterpriseCreditPeriod); ok {
 		if id, isInt64 := periodId.(int64); isInt64 {
@@ -206,25 +236,43 @@ func RecordEnterpriseUsageAsync(c *gin.Context, userId int, params RecordConsume
 
 // 用量汇总的分组维度
 const (
-	EnterpriseUsageGroupDepartment = "department"
-	EnterpriseUsageGroupEmployee   = "employee"
-	EnterpriseUsageGroupProject    = "project"
-	EnterpriseUsageGroupModel      = "model"
-	EnterpriseUsageGroupToken      = "token"
-	EnterpriseUsageGroupDay        = "day"
+	EnterpriseUsageGroupTeam   = "team"
+	EnterpriseUsageGroupMember = "member"
+	EnterpriseUsageGroupModel  = "model"
+	EnterpriseUsageGroupToken  = "token"
+	EnterpriseUsageGroupDay    = "day"
 )
 
 var ErrEnterpriseUsageGroup = errors.New("invalid usage group")
 
+// EnterpriseUsageFilter 按归属过滤（下钻用）；scope 限定团队时由调用方合并进 TeamId
+type EnterpriseUsageFilter struct {
+	TeamId   *int
+	MemberId *int
+}
+
+// WithScope 把范围并进过滤条件：范围限定团队时强制按该团队过滤
+func (f EnterpriseUsageFilter) WithScope(scope EnterpriseScope) EnterpriseUsageFilter {
+	if scope.TeamId != nil {
+		f.TeamId = scope.TeamId
+	}
+	return f
+}
+
 // EnterpriseUsageSummaryItem 汇总行；KeyId 对维度为 model/day 时为 0，KeyName 为模型名/日期
 type EnterpriseUsageSummaryItem struct {
-	KeyId            int    `json:"key_id"`
-	KeyName          string `json:"key_name"`
-	RequestCount     int64  `json:"request_count"`
-	PromptTokens     int64  `json:"prompt_tokens"`
-	CompletionTokens int64  `json:"completion_tokens"`
-	Quota            int64  `json:"quota"`
+	KeyId               int    `json:"key_id"`
+	KeyName             string `json:"key_name"`
+	RequestCount        int64  `json:"request_count"`
+	PromptTokens        int64  `json:"prompt_tokens"`
+	CompletionTokens    int64  `json:"completion_tokens"`
+	CacheTokens         int64  `json:"cache_tokens"`
+	CacheCreationTokens int64  `json:"cache_creation_tokens"`
+	Quota               int64  `json:"quota"`
 }
+
+const enterpriseUsageSums = "SUM(u.request_count) AS request_count, SUM(u.prompt_tokens) AS prompt_tokens, SUM(u.completion_tokens) AS completion_tokens, " +
+	"SUM(u.cache_tokens) AS cache_tokens, SUM(u.cache_creation_tokens) AS cache_creation_tokens, SUM(u.quota) AS quota"
 
 // ValidateEnterpriseUsageDay 校验 YYYY-MM-DD
 func ValidateEnterpriseUsageDay(day string) error {
@@ -240,26 +288,32 @@ func DefaultEnterpriseUsageRange() (string, string) {
 	return now.AddDate(0, 0, -29).Format("2006-01-02"), now.Format("2006-01-02")
 }
 
-func SummarizeEnterpriseUsage(enterpriseId int, groupBy string, fromDay string, toDay string) ([]*EnterpriseUsageSummaryItem, error) {
-	base := DB.Table("ent_usage_daily u").Where("u.enterprise_id = ? AND u.day BETWEEN ? AND ?", enterpriseId, fromDay, toDay)
-	sums := "SUM(u.request_count) AS request_count, SUM(u.prompt_tokens) AS prompt_tokens, SUM(u.completion_tokens) AS completion_tokens, SUM(u.quota) AS quota"
+func applyEnterpriseUsageFilter(query *gorm.DB, filter EnterpriseUsageFilter) *gorm.DB {
+	if filter.TeamId != nil {
+		query = query.Where("u.team_id = ?", *filter.TeamId)
+	}
+	if filter.MemberId != nil {
+		query = query.Where("u.member_id = ?", *filter.MemberId)
+	}
+	return query
+}
+
+func SummarizeEnterpriseUsage(enterpriseId int, groupBy string, fromDay string, toDay string, filter EnterpriseUsageFilter) ([]*EnterpriseUsageSummaryItem, error) {
+	base := applyEnterpriseUsageFilter(DB.Table("ent_usage_daily u").Where("u.enterprise_id = ? AND u.day BETWEEN ? AND ?", enterpriseId, fromDay, toDay), filter)
 	switch groupBy {
-	case EnterpriseUsageGroupDepartment:
-		base = base.Select("u.department_id AS key_id, COALESCE(MAX(d.name), '') AS key_name, " + sums).
-			Joins("LEFT JOIN ent_departments d ON d.id = u.department_id").Group("u.department_id")
-	case EnterpriseUsageGroupEmployee:
-		base = base.Select("u.employee_id AS key_id, COALESCE(MAX(e.name), '') AS key_name, " + sums).
-			Joins("LEFT JOIN ent_employees e ON e.id = u.employee_id").Group("u.employee_id")
-	case EnterpriseUsageGroupProject:
-		base = base.Select("u.project_id AS key_id, COALESCE(MAX(p.name), '') AS key_name, " + sums).
-			Joins("LEFT JOIN ent_projects p ON p.id = u.project_id").Group("u.project_id")
+	case EnterpriseUsageGroupTeam:
+		base = base.Select("u.team_id AS key_id, COALESCE(MAX(tm.name), '') AS key_name, " + enterpriseUsageSums).
+			Joins("LEFT JOIN ent_teams tm ON tm.id = u.team_id").Group("u.team_id")
+	case EnterpriseUsageGroupMember:
+		base = base.Select("u.member_id AS key_id, COALESCE(MAX(m.name), '') AS key_name, " + enterpriseUsageSums).
+			Joins("LEFT JOIN ent_members m ON m.id = u.member_id").Group("u.member_id")
 	case EnterpriseUsageGroupToken:
-		base = base.Select("u.token_id AS key_id, COALESCE(MAX(t.name), '') AS key_name, " + sums).
+		base = base.Select("u.token_id AS key_id, COALESCE(MAX(t.name), '') AS key_name, " + enterpriseUsageSums).
 			Joins("LEFT JOIN tokens t ON t.id = u.token_id").Group("u.token_id")
 	case EnterpriseUsageGroupModel:
-		base = base.Select("0 AS key_id, u.model_name AS key_name, " + sums).Group("u.model_name")
+		base = base.Select("0 AS key_id, u.model_name AS key_name, " + enterpriseUsageSums).Group("u.model_name")
 	case EnterpriseUsageGroupDay:
-		base = base.Select("0 AS key_id, u.day AS key_name, " + sums).Group("u.day")
+		base = base.Select("0 AS key_id, u.day AS key_name, " + enterpriseUsageSums).Group("u.day")
 	default:
 		return nil, ErrEnterpriseUsageGroup
 	}
@@ -272,33 +326,73 @@ func SummarizeEnterpriseUsage(enterpriseId int, groupBy string, fromDay string, 
 	return items, err
 }
 
-// EnterpriseUsageExportRow 导出明细（最细粒度：日 × key × 模型）
-type EnterpriseUsageExportRow struct {
-	Day              string `json:"day"`
-	DepartmentName   string `json:"department_name"`
-	EmployeeName     string `json:"employee_name"`
-	ProjectName      string `json:"project_name"`
-	TokenName        string `json:"token_name"`
-	ModelName        string `json:"model_name"`
-	RequestCount     int64  `json:"request_count"`
-	PromptTokens     int64  `json:"prompt_tokens"`
-	CompletionTokens int64  `json:"completion_tokens"`
-	Quota            int64  `json:"quota"`
+// SumEnterpriseUsageTotal 区间合计（环比与概览用）
+func SumEnterpriseUsageTotal(enterpriseId int, fromDay string, toDay string, filter EnterpriseUsageFilter) (*EnterpriseUsageSummaryItem, error) {
+	var total EnterpriseUsageSummaryItem
+	err := applyEnterpriseUsageFilter(DB.Table("ent_usage_daily u").Where("u.enterprise_id = ? AND u.day BETWEEN ? AND ?", enterpriseId, fromDay, toDay), filter).
+		Select("COALESCE(SUM(u.request_count), 0) AS request_count, COALESCE(SUM(u.prompt_tokens), 0) AS prompt_tokens, COALESCE(SUM(u.completion_tokens), 0) AS completion_tokens, " +
+			"COALESCE(SUM(u.cache_tokens), 0) AS cache_tokens, COALESCE(SUM(u.cache_creation_tokens), 0) AS cache_creation_tokens, COALESCE(SUM(u.quota), 0) AS quota").
+		Scan(&total).Error
+	return &total, err
 }
 
-func ExportEnterpriseUsage(enterpriseId int, fromDay string, toDay string) ([]*EnterpriseUsageExportRow, error) {
-	rows := make([]*EnterpriseUsageExportRow, 0)
+// SumEnterpriseUsageByColumn 按某个归属列对一组 id 求区间消耗（列表页回填本月消耗用）；column 只接受固定取值
+func SumEnterpriseUsageByColumn(enterpriseId int, column string, ids []int, fromDay string, toDay string) (map[int]int64, error) {
+	result := map[int]int64{}
+	if len(ids) == 0 {
+		return result, nil
+	}
+	switch column {
+	case "team_id", "member_id", "token_id":
+	default:
+		return nil, fmt.Errorf("unsupported usage column: %s", column)
+	}
+	rows := make([]struct {
+		KeyId int   `gorm:"column:key_id"`
+		Quota int64 `gorm:"column:quota"`
+	}, 0)
 	err := DB.Table("ent_usage_daily u").
-		Select(`u.day, COALESCE(d.name, '') AS department_name, COALESCE(e.name, '') AS employee_name,
-			COALESCE(p.name, '') AS project_name, COALESCE(t.name, '') AS token_name, u.model_name,
+		Select("u."+column+" AS key_id, SUM(u.quota) AS quota").
+		Where("u.enterprise_id = ? AND u.day BETWEEN ? AND ? AND u."+column+" IN ?", enterpriseId, fromDay, toDay, ids).
+		Group("u." + column).
+		Scan(&rows).Error
+	if err != nil {
+		return nil, err
+	}
+	for _, row := range rows {
+		result[row.KeyId] = row.Quota
+	}
+	return result, nil
+}
+
+// EnterpriseUsageExportRow 导出明细（最细粒度：日 × key × 模型）
+type EnterpriseUsageExportRow struct {
+	Day                 string `json:"day"`
+	TeamName            string `json:"team_name"`
+	MemberName          string `json:"member_name"`
+	TokenName           string `json:"token_name"`
+	ModelName           string `json:"model_name"`
+	RequestCount        int64  `json:"request_count"`
+	PromptTokens        int64  `json:"prompt_tokens"`
+	CompletionTokens    int64  `json:"completion_tokens"`
+	CacheTokens         int64  `json:"cache_tokens"`
+	CacheCreationTokens int64  `json:"cache_creation_tokens"`
+	Quota               int64  `json:"quota"`
+}
+
+func ExportEnterpriseUsage(enterpriseId int, fromDay string, toDay string, filter EnterpriseUsageFilter) ([]*EnterpriseUsageExportRow, error) {
+	rows := make([]*EnterpriseUsageExportRow, 0)
+	err := applyEnterpriseUsageFilter(DB.Table("ent_usage_daily u"), filter).
+		Select(`u.day, COALESCE(tm.name, '') AS team_name, COALESCE(m.name, '') AS member_name,
+			COALESCE(t.name, '') AS token_name, u.model_name,
 			SUM(u.request_count) AS request_count, SUM(u.prompt_tokens) AS prompt_tokens,
-			SUM(u.completion_tokens) AS completion_tokens, SUM(u.quota) AS quota`).
-		Joins("LEFT JOIN ent_departments d ON d.id = u.department_id").
-		Joins("LEFT JOIN ent_employees e ON e.id = u.employee_id").
-		Joins("LEFT JOIN ent_projects p ON p.id = u.project_id").
+			SUM(u.completion_tokens) AS completion_tokens, SUM(u.cache_tokens) AS cache_tokens,
+			SUM(u.cache_creation_tokens) AS cache_creation_tokens, SUM(u.quota) AS quota`).
+		Joins("LEFT JOIN ent_teams tm ON tm.id = u.team_id").
+		Joins("LEFT JOIN ent_members m ON m.id = u.member_id").
 		Joins("LEFT JOIN tokens t ON t.id = u.token_id").
 		Where("u.enterprise_id = ? AND u.day BETWEEN ? AND ?", enterpriseId, fromDay, toDay).
-		Group("u.day, d.name, e.name, p.name, t.name, u.model_name").
+		Group("u.day, tm.name, m.name, t.name, u.model_name").
 		Order("u.day ASC, quota DESC").
 		Limit(50000).
 		Scan(&rows).Error

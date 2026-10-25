@@ -1,7 +1,7 @@
 # TokenFunc 企业模块详细设计
 
 > 状态：v1.0 已实现（2026-10-09，E1–E6 与报价单均已合入 feat/enterprise 分支）；本文为设计基线，实现差异见「13. 实现备注」
-> 范围：企业账户、组织架构（部门/员工/项目）、预付与授信计费、账期出账、Invoice、对账统计、后台企业客户管理
+> 范围：企业账户、组织模型（团队 / 成员 / key 三层，2026-10-25 起）、预付与授信计费、账期出账、Invoice、对账统计、后台企业客户管理
 > 不在范围：主题/品牌（等设计系统）；报价单见第 11 节
 > 前提：只支持 PostgreSQL；部署 docker → 腾讯云 TKE（多副本）；已获 new-api 商业授权
 
@@ -12,12 +12,12 @@
 | # | 决策 | 理由 |
 |---|---|---|
 | D1 | **企业 = 一个可登录的主账号（users 行）+ 1:1 的 `enterprises` 资料表** | 所有 key 的 `user_id` 天然就是企业主账号，上游扣费链路零改动即可归集 |
-| D2 | **员工不是 users，是 `ent_employees` 记录**，不能登录 | 需求确认：员工只用 key |
+| D2 | **组织模型 = 团队 / 成员 / key 三层**（2026-10-25 改，对齐 OpenAI Projects / Anthropic Workspaces）：`ent_teams` 扁平、每企业一个 Default；成员默认不登录只持 key，可选绑定或开通登录账号并授予 developer / team_admin / enterprise_admin；项目与部门树删除 | 原部门树 + 项目 + 员工 + 负责人五个概念过重；行业只有三个 |
 | D3 | **key 与员工/项目的关系放独立映射表 `ent_token_assignments`**，不给上游 `tokens` 表加列 | 减少与上游合并冲突 |
 | D4 | **授信 = 新增 `CreditFunding` 资金源**，实现上游 `FundingSource` 接口 | 上游已把钱包/订阅抽象成资金源，授信是第三种，侵入最小 |
 | D5 | **预扣时确定账期 `period_id`**，结算/退款都记到同一期 | 根治 tokensolo"按时间 SUM 日志出账导致跨期丢账" |
 | D6 | **账单金额以账期计数器为准**，明细取日聚合表，出账时二者对账 | 不扫 logs；不一致即告警 |
-| D7 | **统计归因在写入时快照**（员工→部门、key→项目），写入 `ent_usage_daily` | 员工换部门后历史不漂移；对账查小表 |
+| D7 | **统计归因在写入时快照**（key → 团队 / 持有人），写入 `ent_usage_daily` | 成员换团队后历史不漂移；对账查小表 |
 | D8 | **所有资金变动进 `ent_ledger` 流水** | 财务对账的唯一事实来源 |
 | D9 | 金额内部用 quota（int64），展示/账单用 USD `numeric(20,6)` | 与上游一致；账单不溢出 |
 | D10 | 时区统一 `Asia/Shanghai`（可配置），自然月/日聚合都按此 | 避免跨日/跨月口径不一致 |
@@ -31,8 +31,8 @@
                    │ 用户管理[普通用户|企业用户]  企业详情  授信配置  账单/收款  Invoice 设置 │
                    └──────────────────────────────────┬──────────────────────────────────┘
                                                       │ /api/admin/enterprise/*
-┌──────── 企业控制台（企业主账号）────────┐            │
-│ 概览 组织架构 员工 项目 API Key 用量分析 │──/api/enterprise/*──┐
+┌──── 企业控制台（企业主 + 已开通登录的成员）────┐      │
+│ 概览 团队(成员) API 密钥 用量报表 账单          │──/api/enterprise/*──┐
 │ 账单/Invoice  资金流水  充值             │                    │
 └─────────────────────────────────────────┘                    ▼
                                                   ┌─────────────────────────────┐
@@ -74,30 +74,47 @@
 
 > 是否企业 = `enterprises` 存在且 status 有效。**不在 users 表加字段**。
 
-### 2.2 ent_departments — 部门树
-`id, enterprise_id, parent_id(0=根), name, sort, created_at, deleted_at`
-- 索引 `(enterprise_id, parent_id)`；同级同名唯一（部分唯一索引 `WHERE deleted_at IS NULL`）
-- 删除部门：有子部门或员工时拒绝
+### 2.2 ent_teams — 团队（扁平）
+`id, enterprise_id, name, sort, is_default, status(active/archived), monthly_budget_quota, budget_alert_percent, budget_enforce, created_at, updated_at, deleted_at`
+- 每企业恰好一个 `is_default` 团队（名 `Default`，建企业时创建，不可删、不可归档）；企业内团队名唯一（部分唯一索引 `WHERE deleted_at IS NULL`）
+- 归档：成员与历史保留，其 key 停止工作、不能再加 key / 成员；删除：仍有成员或 key 时拒绝
+- 月度预算：`monthly_budget_quota = 0` 不设预算；`budget_alert_percent` 告警阈值；`budget_enforce` 勾选后超限拦截（告警与拦截逻辑见 M14）
 
-### 2.3 ent_employees — 员工（子账号，无登录）
-`id, enterprise_id, department_id, name, email, employee_no, status(active/disabled), remark, created_at, deleted_at`
-- 停用/删除员工 → 其名下 key 全部禁用（事务内）
-- 软删除，历史统计保留
+### 2.3 ent_members — 成员（不登录员工与登录角色同一张表）
+`id, enterprise_id, team_id, name, email, employee_no, user_id, role(none/developer/team_admin/enterprise_admin), provisioned, status(active/disabled), remark, created_at, updated_at, deleted_at`
+- `user_id = 0`：不登录，只持 key（原「员工」）；`user_id > 0`：已绑定登录账号，`role` 决定控制台范围
+- 登录两种方式：绑定站内已有账号（邮箱 / 用户名查找，不能是另一企业的主账号或成员）；一键开通（`provisioned = true`，用户名 `<邮箱前缀>-e<企业>m<成员>`，随机密码只返回一次，个人余额 0）
+- 解绑：`user_id/role` 清零；开通的账号同时停用
+- 停用 / 删除成员 → 其名下 key 全部禁用（事务内）；删除同时解绑登录。软删除，历史统计保留
+- 成员换团队 → 其 key 的 `team_id` 事务内同步更新，历史聚合不变
+- 一人只属一个团队；`(enterprise_id, employee_no)`、`user_id` 部分唯一
 
-### 2.4 ent_projects — 项目
-`id, enterprise_id, name, code, status(active/archived), remark, created_at, deleted_at`
+### 2.4 角色与范围（EnterpriseActor）
+| 能力 | owner（主账号） | enterprise_admin | team_admin（本团队） | developer（本团队） |
+|---|---|---|---|---|
+| 团队增删改 / 预算 | ✓ | ✓ | 只读 | 只读 |
+| 成员增删改、导入、登录与角色 | ✓ | ✓（≤ team_admin） | ✓（≤ developer，不能挪出团队） | 只读 |
+| key 创建 / 改归属 / 明文 | ✓ | ✓ | ✓ | ✓ |
+| 用量 | 全部 | 全部 | 本团队 | 本团队 |
+| 账单 / 流水 / 账期 / 概览财务卡 | ✓ | ✓ | 403 | 403 |
+
+- `middleware.EnterpriseAuth()` 由登录用户解析 `Enterprise + EnterpriseActor{MemberId, Role, TeamId, IsOwner, Provisioned}`；team_admin / developer 的 `EnterpriseScope{TeamId}` 贯穿所有控制台查询与写入，越权一律 404
+- `RequireEnterpriseRole(role)` / `RequireEnterpriseOwner()` 守路由；财务类路由要求 enterprise_admin
 
 ### 2.5 ent_token_assignments — key 归属（替代给 tokens 加列）
 | 字段 | 说明 |
 |---|---|
 | token_id PK | 上游 tokens.id |
 | enterprise_id | 冗余，便于校验/查询 |
-| employee_id | 可空（企业公共 key） |
-| project_id | 可空 |
+| team_id | 必填（0 回填为 Default） |
+| member_id | 可空：0 = 团队公共 key；非 0 时成员必须属于 `team_id` |
 | created_at / updated_at | |
 
-- 一个 key 至多属于一个员工、一个项目；一个员工可有多个 key（对应不同项目）
-- key 改项目/改员工：允许，**只影响之后的请求**（历史已快照）
+- key 的 `user_id` 仍是企业主账号（计费主体不变）；主账号在上游 `/keys` 自建的 key 启动时回填到 Default 团队
+- 改归属：允许，**只影响之后的请求**（历史已快照）
+
+### 2.5.1 从旧模型的一次性迁移（`model/enterprise_org_migration.go`）
+生产无流量时执行，幂等、仅 PG：`ent_departments` → `ent_teams`（子部门拍平为「父 / 子」）；`ent_employees` → `ent_members`（`department_id` → `team_id`）；assignments `employee_id` → `member_id`、删 `project_id`、补 `team_id`；`ent_usage_daily` 按新主键 GROUP BY 重建，旧表保留为 `ent_usage_daily_legacy`（删掉 `department_id` 列作为「已迁移」标记）；`DROP ent_projects`。
 
 ### 2.6 ent_credit_periods — 授信账期
 | 字段 | 说明 |
@@ -149,13 +166,12 @@
 - `cross_period_adjustment`：出账后才到达的结算差额
 
 ### 2.9 ent_usage_daily — 用量日聚合
-主键：`(day, enterprise_id, token_id, model_name, period_id)`
-冗余维度：`employee_id, department_id, project_id`（写入时快照）
-指标：`request_count, prompt_tokens, completion_tokens, cache_tokens, quota`
+主键：`(day, enterprise_id, token_id, model_name, period_id, team_id, member_id)`（团队 / 持有人写入时快照）
+指标：`request_count, prompt_tokens, completion_tokens, cache_tokens, cache_creation_tokens, quota`
 
 - 写入：`INSERT ... ON CONFLICT DO UPDATE SET x = x + EXCLUDED.x`
 - 预付企业 `period_id = 0`
-- 部门维度随员工快照：员工换部门后，新数据落新部门，旧数据不变
+- 团队维度随 key 归属快照：成员换团队后，新数据落新团队，旧数据不变
 
 ---
 
@@ -274,11 +290,11 @@ Finish()          -> 结算差额为 0 时也要 inflight_count -= 1
 - 钩子位置：`model.RecordConsumeLog` 首行（覆盖文本、音频、WSS、违规费等所有消费日志路径）
 - 输入：`userId, tokenId, modelName, promptTokens, completionTokens, quota, created_at`，以及 context 里的 `periodId`
 - 非企业用户：直接返回（缓存判断，无 DB 开销）
-- 维度解析：`token_id → (employee_id, project_id)`（缓存）→ `employee_id → department_id`（缓存）
+- 维度解析：`token_id → (team_id, member_id)`（JOIN `ent_token_assignments`，30s 缓存）；cache 两列从 `Other` 快照的 `cache_tokens` / `cache_creation_tokens` 读
 - 写入方式：异步 goroutine 执行 upsert；失败重试 3 次后记错误日志并计入告警指标
 
 ### 5.2 企业控制台报表
-- 维度：时间（日/月）× 部门 / 员工 / 项目 / key / 模型
+- 维度：时间（日）× 团队 / 成员 / key / 模型；过滤 `team_id` / `member_id`（团队角色强制本团队）
 - 指标：请求数、输入/输出/缓存 token、金额（USD）
 - 明细下钻：直接查上游 `logs`（企业主账号的 user_id 下全部 key，按 token_id 集合过滤），**无需新表**
 - 导出：CSV（汇总 + 明细）
@@ -305,15 +321,17 @@ Finish()          -> 结算差额为 0 时也要 inflight_count -= 1
 ### 7.1 企业控制台 `/api/enterprise/*`（企业主账号登录，中间件校验企业身份）
 ```
 GET    /overview                     本期额度/已用/余额、近 30 天趋势
-GET    /departments                  部门树
-POST   /departments  PUT /departments/:id  DELETE /departments/:id
-GET    /employees?dept=&q=&status=   POST /employees  PUT /employees/:id  DELETE /employees/:id
-POST   /employees/import             CSV 批量导入
-GET    /projects  POST /projects  PUT /projects/:id  DELETE /projects/:id
-GET    /tokens?employee=&project=    企业 key 列表（含归属）
-POST   /tokens                       创建 key 并指定员工/项目（复用上游 token 创建逻辑）
+GET    /self                         企业资料 + 当前身份 actor（非企业用户 data=null）
+GET    /teams                        团队列表（团队角色只见本团队）
+POST   /teams  PUT /teams/:id  POST /teams/:id/archive  DELETE /teams/:id   （enterprise_admin+）
+GET    /members?team_id=&keyword=&status=&has_login=   POST /members  PUT /members/:id  DELETE /members/:id （写操作 team_admin+）
+POST   /members/import               CSV 批量导入（name,email,employee_no,team）
+POST   /members/:id/login {mode: bind|provision, identifier, role}   DELETE /members/:id/login   PUT /members/:id/role
+GET    /tokens?team_id=&member_id=&status=&keyword=    企业 key 列表（含团队 / 持有人）
+POST   /tokens                       创建 key 并指定团队 / 持有人（复用上游 token 创建逻辑）
 PUT    /tokens/:id/assignment        修改归属
-GET    /usage/summary?group_by=department|employee|project|model|token&from=&to=
+POST   /tokens/:id/key               key 明文（成员账号无法走上游 /api/token/:id/key）
+GET    /usage/summary?group_by=team|member|token|model|day&from=&to=&team_id=&member_id=
 GET    /usage/export
 GET    /bills  GET /bills/:id        账单与 Invoice 数据
 GET    /ledger                       资金流水
@@ -364,7 +382,7 @@ GET /api/usage/token/                    令牌自身额度，上游原样
 - `*_quota` 为内部额度原值；`limit / used / available` 按站点「额度展示类型」换算（USD 除以 QuotaPerUnit，CNY 再乘汇率，TOKENS 为原值），`quota_display_type` 告知单位；`currency` 是开票币种，两者独立。
 - `available_quota = max(limit - used, 0)`：出账后到达的结算差额会无条件累加，已用可能超过额度。
 - 账期滚动空窗（上一期已 closing、下一期尚未创建）：`subscription` / `usage` 返回 0，`credit` 返回 404 `credit_period_not_found`。查询接口只读，不会像 relay 预扣那样顺带开期。
-- 权限：只允许主账号自建的 key（`ent_token_assignments.employee_id = 0`，无归属或仅归属项目）；分配给员工的 key 三条路由统一 403 `access_denied`。企业停用时 403 `insufficient_user_quota`，与 relay 入口一致。
+- 权限：只允许团队公共 key（`ent_token_assignments.member_id = 0`）；分配给成员的 key 三条路由统一 403 `access_denied`（成员自查走 M7 的 `/v1/enterprise/employee/me`）。企业停用时 403 `insufficient_user_quota`，与 relay 入口一致。
 - 非企业用户与预付企业：`subscription` / `usage` 保持上游行为（受 `DisplayTokenStatEnabled` 影响），`credit` 返回 403 `enterprise_credit_not_enabled`。授信分支优先于 `DisplayTokenStatEnabled`。
 - 错误体为 OpenAI error 格式 `{"error": {"message", "type": "new_api_error", "code"}}`，使用真实 HTTP 状态码；上游两条接口原有的「200 + error」错误路径未改。
 - 已知坑（上游既有）：展示类型为 TOKENS 时 `*_usd` 字段的值是 tokens 数，`total_usage` 为 tokens × 100。
@@ -375,13 +393,13 @@ GET /api/usage/token/                    令牌自身额度，上游原样
 ## 8. 前端（React 19 + TanStack，遵循 web/AGENTS.md，优先复用现有组件）
 
 ```
-web/src/features/enterprise/          企业控制台
-  overview/  org/(部门树 + 员工表)  projects/  tokens/  usage/  bills/(含 invoice 打印页)  ledger/
+web/src/features/enterprise-console/  企业控制台
+  overview-page  organization-page(团队列表 + 成员表，含登录与角色、发放密钥)  keys-page(团队 / 持有人筛选进 URL)  usage-page  bills-page / bill-detail-page
 web/src/features/admin-enterprise/    管理员：企业客户列表、详情、授信配置、账单收款、Invoice 设置
 web/src/routes/_authenticated/enterprise/...
 web/src/routes/_authenticated/admin/enterprises/...
 ```
-- 侧边栏：企业主账号显示"企业管理"分组；隐藏 Midjourney、任务日志入口（不做视频/任务类模型）
+- 侧边栏：企业主与已开通登录的成员显示"企业"分组，账单项仅 owner / enterprise_admin；`/enterprise/projects` 旧链接重定向到团队页
 - 所有文案走 i18n（en/zh 必填）
 
 ---

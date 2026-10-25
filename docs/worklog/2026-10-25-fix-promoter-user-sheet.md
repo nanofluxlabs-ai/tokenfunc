@@ -2,8 +2,8 @@
 
 - 日期：2026-10-25
 - 分支：fix/promoter-user-sheet
-- PR：
-- 关键 commit：
+- PR：#36
+- 关键 commit：0d80093d7
 
 ## 背景
 

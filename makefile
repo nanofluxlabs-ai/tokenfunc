@@ -50,7 +50,7 @@ PKG ?= $(ROOT_PACKAGES)
 
 .DEFAULT_GOAL := help
 .PHONY: help env infra db-schemas api-build api api-stop web dev stop down reset logs psql redis-cli \
-	build-web test test-db test-web up up-build up-down up-logs reset-setup \
+	build-web test test-db test-web up up-build up-down up-logs reset-setup logarchive-import \
 	upstream-fetch upstream-status upstream-diff upstream-merge
 
 help: ## 列出所有目标
@@ -150,6 +150,9 @@ test-db: infra ## 需要 PostgreSQL 的 Go 测试，跑在 test schema / redis d
 
 test-web: ## 前端 vitest
 	@cd $(WEB_DIR) && bun run test
+
+logarchive-import: infra ## 把 COS 归档导回 dev 库的回放表 tf_logs_archive（ARGS='-day 2026-07-01'，COS 凭据取 .env）
+	@SQL_DSN='$(DEV_SQL_DSN)' GOWORK=off go run ./cmd/logarchive-import $(ARGS)
 
 # ---------- 上游同步（QuantumNous/new-api） ----------
 # 只合上游 rc tag（v1.0.0-rc.N），不合 upstream/main HEAD；节奏、门禁与例外通道见 development.md §4.6，

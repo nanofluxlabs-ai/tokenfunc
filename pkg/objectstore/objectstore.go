@@ -38,8 +38,10 @@ type Client struct {
 
 // ObjectInfo HeadObject 返回的大小与 ETag（ETag 去掉引号）
 type ObjectInfo struct {
-	Size int64
-	ETag string
+	// Metadata 上传时写入的用户元数据（key 已小写，如 sha256）
+	Metadata map[string]string
+	Size     int64
+	ETag     string
 }
 
 // IsMD5ETag 单段上传的 ETag 是内容 MD5（32 位十六进制）；分段上传或加密桶不是，调用方据此决定是否核对
@@ -125,7 +127,23 @@ func (c *Client) Head(ctx context.Context, key string) (ObjectInfo, error) {
 	if err != nil {
 		return ObjectInfo{}, fmt.Errorf("objectstore: head %s: %w", key, err)
 	}
-	return ObjectInfo{Size: aws.ToInt64(out.ContentLength), ETag: strings.Trim(aws.ToString(out.ETag), `"`)}, nil
+	return ObjectInfo{Size: aws.ToInt64(out.ContentLength), ETag: strings.Trim(aws.ToString(out.ETag), `"`), Metadata: out.Metadata}, nil
+}
+
+// List 列出前缀下全部对象 key（自动翻页）
+func (c *Client) List(ctx context.Context, prefix string) ([]string, error) {
+	keys := make([]string, 0)
+	paginator := s3.NewListObjectsV2Paginator(c.s3, &s3.ListObjectsV2Input{Bucket: aws.String(c.bucket), Prefix: aws.String(prefix)})
+	for paginator.HasMorePages() {
+		page, err := paginator.NextPage(ctx)
+		if err != nil {
+			return nil, fmt.Errorf("objectstore: list %s: %w", prefix, err)
+		}
+		for _, object := range page.Contents {
+			keys = append(keys, aws.ToString(object.Key))
+		}
+	}
+	return keys, nil
 }
 
 // Get 读对象正文（调用方 Close）

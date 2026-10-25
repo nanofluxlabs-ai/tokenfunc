@@ -49,6 +49,7 @@ var auditContentTemplates = map[string]string{
 	"option.update":             "Updated system setting ${key}",
 
 	"promoter.create":   "Set user ${username} (ID: ${user_id}) as promoter",
+	"promoter.update":   "Updated promoter ${username} (ID: ${user_id}): remark ${remark}, share rate ${share_rate}%",
 	"promoter.remove":   "Removed promoter ${username} (ID: ${user_id}) and unbound ${unbound} users",
 	"promoter.bind":     "Bound ${bound} users to promoter ${username} (ID: ${user_id})",
 	"promoter.unbind":   "Unbound user ${target_username} (ID: ${target_user_id}) from promoter ${username}",

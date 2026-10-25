@@ -1142,6 +1142,15 @@
     "Archiving...": "Archivage…",
     "Archive to object storage": "Archiver dans le stockage objet",
     "Raw logs of this period have been archived and purged; the breakdown below may be incomplete. Use the archived statement snapshot as the source of truth.": "Les journaux bruts de cette période ont été archivés et purgés ; le détail ci-dessous peut être incomplet. Faites foi au relevé figé archivé.",
-    "Day {{day}} belongs to a billing period whose bill is not archived yet": "Le jour {{day}} appartient à une période dont la facture n’est pas encore archivée"
+    "Day {{day}} belongs to a billing period whose bill is not archived yet": "Le jour {{day}} appartient à une période dont la facture n’est pas encore archivée",
+    "Share rate": "Taux de partage",
+    "Share rate (%)": "Taux de partage (%)",
+    "Share rate {{rate}}%": "Taux de partage {{rate}} %",
+    "Share rate must be between 0 and 100": "Le taux de partage doit être compris entre 0 et 100",
+    "Edit promoter": "Modifier le promoteur",
+    "Promoter updated": "Promoteur mis à jour",
+    "Failed to update promoter": "Échec de la mise à jour du promoteur",
+    "Informational only. Payouts are calculated offline on net profit; the system never computes the amount.": "À titre indicatif. Les versements sont calculés hors ligne sur le bénéfice net ; le système ne calcule jamais le montant.",
+    "Payouts are calculated on net profit after operating and resource costs; the settlement records are authoritative.": "Les versements sont calculés sur le bénéfice net après coûts d’exploitation et de ressources ; les relevés de règlement font foi."
   }
 }

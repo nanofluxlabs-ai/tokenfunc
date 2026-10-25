@@ -1142,6 +1142,15 @@
     "Archiving...": "Đang lưu trữ…",
     "Archive to object storage": "Lưu trữ vào kho đối tượng",
     "Raw logs of this period have been archived and purged; the breakdown below may be incomplete. Use the archived statement snapshot as the source of truth.": "Nhật ký gốc của kỳ này đã được lưu trữ và xóa; phần chi tiết bên dưới có thể không đầy đủ. Hãy lấy bản sao kê cố định đã lưu trữ làm chuẩn.",
-    "Day {{day}} belongs to a billing period whose bill is not archived yet": "Ngày {{day}} thuộc kỳ thanh toán có hóa đơn chưa được lưu trữ"
+    "Day {{day}} belongs to a billing period whose bill is not archived yet": "Ngày {{day}} thuộc kỳ thanh toán có hóa đơn chưa được lưu trữ",
+    "Share rate": "Tỷ lệ chia sẻ",
+    "Share rate (%)": "Tỷ lệ chia sẻ (%)",
+    "Share rate {{rate}}%": "Tỷ lệ chia sẻ {{rate}}%",
+    "Share rate must be between 0 and 100": "Tỷ lệ chia sẻ phải nằm trong khoảng 0–100",
+    "Edit promoter": "Sửa người quảng bá",
+    "Promoter updated": "Đã cập nhật người quảng bá",
+    "Failed to update promoter": "Cập nhật người quảng bá thất bại",
+    "Informational only. Payouts are calculated offline on net profit; the system never computes the amount.": "Chỉ để tham khảo. Khoản chia được tính ngoại tuyến theo lợi nhuận ròng; hệ thống không tính số tiền.",
+    "Payouts are calculated on net profit after operating and resource costs; the settlement records are authoritative.": "Khoản chia được tính trên lợi nhuận ròng sau chi phí vận hành và tài nguyên; hồ sơ quyết toán là căn cứ cuối cùng."
   }
 }

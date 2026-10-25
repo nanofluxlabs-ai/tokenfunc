@@ -45,7 +45,13 @@ export interface PromoterBindingsResponse {
   items: PromoterCenterUser[]
 }
 
-export type PromotersDialogType = 'create' | 'bindings' | 'remove'
+export type PromotersDialogType = 'create' | 'edit' | 'bindings' | 'remove'
+
+/** 添加 / 编辑推广人共用的可编辑字段 */
+export interface PromoterEditableFields {
+  remark: string
+  share_rate: number
+}
 
 /** 用户选择器选中的用户摘要 */
 export interface PickedUser {

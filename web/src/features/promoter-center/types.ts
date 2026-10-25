@@ -14,6 +14,8 @@ export interface PromoterProfile {
   display_name: string
   aff_code: string
   remark: string
+  /** 分成比例（百分比，0 = 未设置），只做标识 */
+  share_rate: number
   created_at: number
 }
 

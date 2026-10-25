@@ -67,14 +67,25 @@ func TestPromoterRulesAndLifecycle(t *testing.T) {
 	bob := newPromoterTestUser(t, "bob", common.RoleCommonUser)
 
 	// 设为推广人：管理员不行、不存在不行、重复不行
-	assert.Equal(t, errPromoterAdmin, messageKey(t, func() error { _, err := SetPromoter(operator, admin.Id, ""); return err }()))
-	assert.Equal(t, errPromoterUserMissing, messageKey(t, func() error { _, err := SetPromoter(operator, 99999, ""); return err }()))
-	promoter, err := SetPromoter(operator, promoterUser.Id, " 线下渠道 ")
+	assert.Equal(t, errPromoterAdmin, messageKey(t, func() error { _, err := SetPromoter(operator, admin.Id, "", 0); return err }()))
+	assert.Equal(t, errPromoterUserMissing, messageKey(t, func() error { _, err := SetPromoter(operator, 99999, "", 0); return err }()))
+	assert.Equal(t, errPromoterShareRate, messageKey(t, func() error { _, err := SetPromoter(operator, promoterUser.Id, "", 100.5); return err }()))
+	promoter, err := SetPromoter(operator, promoterUser.Id, " 线下渠道 ", 20.125)
 	require.NoError(t, err)
 	assert.Equal(t, "线下渠道", promoter.Remark)
-	assert.Equal(t, errPromoterExists, messageKey(t, func() error { _, err := SetPromoter(operator, promoterUser.Id, ""); return err }()))
-	otherPromoter, err := SetPromoter(operator, otherPromoterUser.Id, "")
+	assert.Equal(t, 20.13, promoter.ShareRate, "share rate keeps two decimals")
+	assert.Equal(t, errPromoterExists, messageKey(t, func() error { _, err := SetPromoter(operator, promoterUser.Id, "", 0); return err }()))
+	otherPromoter, err := SetPromoter(operator, otherPromoterUser.Id, "", 0)
 	require.NoError(t, err)
+
+	// 修改备注与分成比例：越界拒绝、成功后库里与内存对象一致
+	assert.Equal(t, errPromoterShareRate, messageKey(t, UpdatePromoter(promoter, "x", -1)))
+	require.NoError(t, UpdatePromoter(promoter, " 新备注 ", 15))
+	stored, err := model.GetActivePromoterById(promoter.Id)
+	require.NoError(t, err)
+	assert.Equal(t, "新备注", stored.Remark)
+	assert.Equal(t, float64(15), stored.ShareRate)
+	assert.Equal(t, float64(15), promoter.ShareRate)
 
 	// 批量绑定：自己 / 管理员 / 不存在 失败，alice 成功，同一批重复输入只算一次；不含历史 → usage_since > 0
 	before := common.GetTimestamp()
@@ -134,8 +145,9 @@ func TestPromoterRulesAndLifecycle(t *testing.T) {
 	assert.ErrorIs(t, err, gorm.ErrRecordNotFound)
 	_, err = model.GetActiveBindingByUserId(bob.Id)
 	assert.ErrorIs(t, err, gorm.ErrRecordNotFound)
-	_, err = SetPromoter(operator, promoterUser.Id, "again")
+	_, err = SetPromoter(operator, promoterUser.Id, "again", 0)
 	require.NoError(t, err)
+	assert.Equal(t, errPromoterNotFound, messageKey(t, UpdatePromoter(promoter, "stale", 1)), "removed promoter cannot be updated")
 	_ = otherPromoter
 }
 
@@ -143,7 +155,7 @@ func TestBindPromoterOnRegister(t *testing.T) {
 	setupPromoterPostgres(t)
 	promoterUser := newPromoterTestUser(t, "promo", common.RoleCommonUser)
 	plainInviter := newPromoterTestUser(t, "plain", common.RoleCommonUser)
-	_, err := SetPromoter(1, promoterUser.Id, "")
+	_, err := SetPromoter(1, promoterUser.Id, "", 0)
 	require.NoError(t, err)
 
 	// 邀请人不是推广人：不绑
@@ -181,7 +193,7 @@ func TestPromoterCenterStats(t *testing.T) {
 	eve := newPromoterTestUser(t, "eve", common.RoleCommonUser)     // usage_since 在区间中间
 	outsider := newPromoterTestUser(t, "outsider", common.RoleCommonUser)
 	require.NoError(t, model.DB.Create(&model.Enterprise{UserId: carol.Id, Name: "Carol Inc", BillingMode: "prepaid", Currency: "USD"}).Error)
-	promoter, err := SetPromoter(1, promoterUser.Id, "")
+	promoter, err := SetPromoter(1, promoterUser.Id, "", 0)
 	require.NoError(t, err)
 
 	logAt := func(user *model.User, logType int, modelName string, quota int, prompt int, completion int, at int64) {

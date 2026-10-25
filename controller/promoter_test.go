@@ -67,6 +67,7 @@ func newPromoterTestRouter(user *model.User) *gin.Engine {
 	admin := api.Group("/admin/promoter", asUser)
 	admin.POST("/promoters", AdminCreatePromoter)
 	one := admin.Group("/promoters/:id", middleware.PromoterFromParam())
+	one.PUT("", AdminUpdatePromoter)
 	one.POST("/bindings", AdminBindPromoterUsers)
 	one.GET("/center/overview", GetPromoterCenterOverview)
 	return engine
@@ -103,12 +104,24 @@ func TestPromoterEndpointsAuthAndBindingContract(t *testing.T) {
 
 	// 管理员设推广人；对不存在的 id 404
 	adminRouter := newPromoterTestRouter(admin)
-	rec, payload = doPromoterRequest(t, adminRouter, http.MethodPost, "/api/admin/promoter/promoters", `{"user_id":`+common.Interface2String(promo.Id)+`,"remark":"r1"}`)
+	rec, payload = doPromoterRequest(t, adminRouter, http.MethodPost, "/api/admin/promoter/promoters", `{"user_id":`+common.Interface2String(promo.Id)+`,"remark":"r1","share_rate":20}`)
 	assert.Equal(t, http.StatusOK, rec.Code)
 	require.Equal(t, true, payload["success"], payload["message"])
 	profile := payload["data"].(map[string]any)
 	promoterId := int(profile["id"].(float64))
 	assert.Equal(t, "prm", profile["aff_code"])
+	assert.Equal(t, float64(20), profile["share_rate"])
+
+	// 编辑备注与分成比例：越界是业务错误（HTTP 200 + success=false），合法值回显
+	rec, payload = doPromoterRequest(t, adminRouter, http.MethodPut, "/api/admin/promoter/promoters/"+common.Interface2String(promoterId), `{"remark":"r2","share_rate":101}`)
+	assert.Equal(t, http.StatusOK, rec.Code)
+	assert.Equal(t, false, payload["success"])
+	assert.Equal(t, "Share rate must be between 0 and 100", payload["message"])
+	rec, payload = doPromoterRequest(t, adminRouter, http.MethodPut, "/api/admin/promoter/promoters/"+common.Interface2String(promoterId), `{"remark":"r2","share_rate":12.5}`)
+	assert.Equal(t, http.StatusOK, rec.Code)
+	require.Equal(t, true, payload["success"], payload["message"])
+	assert.Equal(t, "r2", payload["data"].(map[string]any)["remark"])
+	assert.Equal(t, 12.5, payload["data"].(map[string]any)["share_rate"])
 	rec, _ = doPromoterRequest(t, adminRouter, http.MethodGet, "/api/admin/promoter/promoters/99999/center/overview", "")
 	assert.Equal(t, http.StatusNotFound, rec.Code)
 

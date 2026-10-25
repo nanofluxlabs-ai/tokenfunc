@@ -77,6 +77,19 @@ export function usePromotersColumns(): ColumnDef<PromoterListItem>[] {
       size: 110,
     },
     {
+      accessorKey: 'share_rate',
+      header: () => <div className='text-right'>{t('Share rate')}</div>,
+      meta: { mobileHidden: true },
+      cell: ({ row }) => (
+        <div className='text-right tabular-nums'>
+          {row.original.share_rate > 0
+            ? `${row.original.share_rate}%`
+            : EMPTY_CELL}
+        </div>
+      ),
+      size: 100,
+    },
+    {
       accessorKey: 'month_net_quota',
       header: () => <div className='text-right'>{t('Month consumption')}</div>,
       cell: ({ row }) => (

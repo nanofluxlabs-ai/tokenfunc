@@ -1142,6 +1142,15 @@
     "Archiving...": "归档中…",
     "Archive to object storage": "归档到对象存储",
     "Raw logs of this period have been archived and purged; the breakdown below may be incomplete. Use the archived statement snapshot as the source of truth.": "本账期的原始日志已归档删除，下方明细可能不完整，请以归档的对账单冻结件为准。",
-    "Day {{day}} belongs to a billing period whose bill is not archived yet": "{{day}} 属于尚未归档账单的账期"
+    "Day {{day}} belongs to a billing period whose bill is not archived yet": "{{day}} 属于尚未归档账单的账期",
+    "Share rate": "分成比例",
+    "Share rate (%)": "分成比例 (%)",
+    "Share rate {{rate}}%": "分成比例 {{rate}}%",
+    "Share rate must be between 0 and 100": "分成比例必须在 0～100 之间",
+    "Edit promoter": "编辑推广人",
+    "Promoter updated": "推广人已更新",
+    "Failed to update promoter": "更新推广人失败",
+    "Informational only. Payouts are calculated offline on net profit; the system never computes the amount.": "仅作标识。分成按净利润线下核算，系统不计算金额。",
+    "Payouts are calculated on net profit after operating and resource costs; the settlement records are authoritative.": "分成按净利润（扣除运营与资源成本）计算，以结算记录为准。"
   }
 }

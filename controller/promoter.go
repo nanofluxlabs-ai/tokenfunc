@@ -170,8 +170,9 @@ func AdminListPromoters(c *gin.Context) {
 }
 
 type adminPromoterRequest struct {
-	UserId int    `json:"user_id"`
-	Remark string `json:"remark"`
+	UserId    int     `json:"user_id"`
+	Remark    string  `json:"remark"`
+	ShareRate float64 `json:"share_rate"`
 }
 
 // AdminCreatePromoter 设为推广人
@@ -185,7 +186,7 @@ func AdminCreatePromoter(c *gin.Context) {
 		common.ApiErrorMsg(c, "remark too long")
 		return
 	}
-	promoter, err := service.SetPromoter(c.GetInt("id"), req.UserId, req.Remark)
+	promoter, err := service.SetPromoter(c.GetInt("id"), req.UserId, req.Remark, req.ShareRate)
 	if err != nil {
 		common.ApiError(c, err)
 		return
@@ -195,7 +196,32 @@ func AdminCreatePromoter(c *gin.Context) {
 		common.ApiError(c, err)
 		return
 	}
-	recordManageAuditFor(c, promoter.UserId, "promoter.create", map[string]any{"username": profile.Username, "user_id": promoter.UserId, "remark": promoter.Remark})
+	recordManageAuditFor(c, promoter.UserId, "promoter.create", map[string]any{"username": profile.Username, "user_id": promoter.UserId, "remark": promoter.Remark, "share_rate": promoter.ShareRate})
+	common.ApiSuccess(c, profile)
+}
+
+// AdminUpdatePromoter 修改备注与分成比例（比例只做标识，不参与计算）
+func AdminUpdatePromoter(c *gin.Context) {
+	promoter := promoterFromContext(c)
+	var req adminPromoterRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		common.ApiErrorMsg(c, "invalid request")
+		return
+	}
+	if len(req.Remark) > 255 {
+		common.ApiErrorMsg(c, "remark too long")
+		return
+	}
+	if err := service.UpdatePromoter(promoter, req.Remark, req.ShareRate); err != nil {
+		common.ApiError(c, err)
+		return
+	}
+	profile, err := service.GetPromoterProfile(promoter)
+	if err != nil {
+		common.ApiError(c, err)
+		return
+	}
+	recordManageAuditFor(c, promoter.UserId, "promoter.update", map[string]any{"username": profile.Username, "user_id": promoter.UserId, "remark": promoter.Remark, "share_rate": promoter.ShareRate})
 	common.ApiSuccess(c, profile)
 }
 

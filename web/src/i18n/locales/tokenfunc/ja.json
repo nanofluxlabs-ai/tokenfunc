@@ -1142,6 +1142,15 @@
     "Archiving...": "アーカイブ中…",
     "Archive to object storage": "オブジェクトストレージへアーカイブ",
     "Raw logs of this period have been archived and purged; the breakdown below may be incomplete. Use the archived statement snapshot as the source of truth.": "この期間の生ログはアーカイブ後に削除されています。以下の内訳は不完全な場合があります。アーカイブ済みの明細書スナップショットを正とします。",
-    "Day {{day}} belongs to a billing period whose bill is not archived yet": "{{day}} はまだアーカイブされていない請求書の期間に含まれます"
+    "Day {{day}} belongs to a billing period whose bill is not archived yet": "{{day}} はまだアーカイブされていない請求書の期間に含まれます",
+    "Share rate": "分配率",
+    "Share rate (%)": "分配率 (%)",
+    "Share rate {{rate}}%": "分配率 {{rate}}%",
+    "Share rate must be between 0 and 100": "分配率は 0～100 の範囲で指定してください",
+    "Edit promoter": "プロモーターを編集",
+    "Promoter updated": "プロモーターを更新しました",
+    "Failed to update promoter": "プロモーターの更新に失敗しました",
+    "Informational only. Payouts are calculated offline on net profit; the system never computes the amount.": "表示用のみ。分配額は純利益に基づきオフラインで算出され、システムは金額を計算しません。",
+    "Payouts are calculated on net profit after operating and resource costs; the settlement records are authoritative.": "分配額は運営費・リソース費を差し引いた純利益に基づいて算出され、精算記録が正となります。"
   }
 }

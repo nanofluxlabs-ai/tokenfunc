@@ -12,6 +12,7 @@ import { requireServerSuccess } from '@/lib/server-error-message'
 import { removePromoter } from './api'
 import { AddPromoterDialog } from './components/add-promoter-dialog'
 import { BindingsSheet } from './components/bindings-sheet'
+import { EditPromoterDialog } from './components/edit-promoter-dialog'
 import {
   PromotersProvider,
   usePromoters,
@@ -62,6 +63,11 @@ function PromotersContent() {
       <AddPromoterDialog
         open={open === 'create'}
         onOpenChange={(isOpen) => !isOpen && setOpen(null)}
+      />
+      <EditPromoterDialog
+        open={open === 'edit'}
+        onOpenChange={(isOpen) => !isOpen && setOpen(null)}
+        promoter={open === 'edit' ? currentRow : null}
       />
       <BindingsSheet
         open={open === 'bindings'}

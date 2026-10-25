@@ -29,7 +29,9 @@ type PromoterProfile struct {
 	DisplayName string `json:"display_name"`
 	AffCode     string `json:"aff_code"`
 	Remark      string `json:"remark"`
-	CreatedAt   int64  `json:"created_at"`
+	// ShareRate 分成比例（百分比，0 = 未设置），仅展示
+	ShareRate float64 `json:"share_rate"`
+	CreatedAt int64   `json:"created_at"`
 }
 
 // PromoterCenterSummary 区间汇总
@@ -223,7 +225,7 @@ func promoterRange(r model.FinanceRange) PromoterCenterRange {
 
 // GetPromoterProfile 推广人档案 + 用户信息
 func GetPromoterProfile(promoter *model.Promoter) (PromoterProfile, error) {
-	profile := PromoterProfile{Id: promoter.Id, UserId: promoter.UserId, Remark: promoter.Remark, CreatedAt: promoter.CreatedAt}
+	profile := PromoterProfile{Id: promoter.Id, UserId: promoter.UserId, Remark: promoter.Remark, ShareRate: promoter.ShareRate, CreatedAt: promoter.CreatedAt}
 	user, err := model.GetUserById(promoter.UserId, false)
 	if err != nil {
 		return profile, err

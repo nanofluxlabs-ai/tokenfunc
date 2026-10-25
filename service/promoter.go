@@ -2,6 +2,7 @@ package service
 
 import (
 	"errors"
+	"math"
 	"strings"
 
 	"github.com/QuantumNous/new-api/common"
@@ -26,10 +27,24 @@ var (
 	errPromoterBindSame      = "Already bound to this promoter"
 	errPromoterBindingNotFnd = "Binding not found"
 	errPromoterBatchTooLarge = "At most {{max}} users per batch"
+	errPromoterShareRate     = "Share rate must be between 0 and 100"
+	errPromoterNotFound      = "Promoter not found"
 )
 
+// normalizePromoterShareRate 分成比例校验：0～100，保留两位小数
+func normalizePromoterShareRate(rate float64) (float64, error) {
+	if rate < 0 || rate > 100 {
+		return 0, common.NewMessage(errPromoterShareRate)
+	}
+	return math.Round(rate*100) / 100, nil
+}
+
 // SetPromoter 把普通用户设为推广人
-func SetPromoter(operatorId int, userId int, remark string) (*model.Promoter, error) {
+func SetPromoter(operatorId int, userId int, remark string, shareRate float64) (*model.Promoter, error) {
+	shareRate, err := normalizePromoterShareRate(shareRate)
+	if err != nil {
+		return nil, err
+	}
 	user, err := model.GetUserById(userId, false)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -46,7 +61,7 @@ func SetPromoter(operatorId int, userId int, remark string) (*model.Promoter, er
 		return nil, err
 	}
 	now := common.GetTimestamp()
-	promoter := &model.Promoter{UserId: userId, Remark: strings.TrimSpace(remark), CreatedBy: operatorId, CreatedAt: now, UpdatedAt: now}
+	promoter := &model.Promoter{UserId: userId, Remark: strings.TrimSpace(remark), ShareRate: shareRate, CreatedBy: operatorId, CreatedAt: now, UpdatedAt: now}
 	if err := model.CreatePromoter(promoter); err != nil {
 		// 并发下撞部分唯一索引：再查一次给出稳定的业务错误
 		if _, again := model.GetActivePromoterByUserId(userId); again == nil {
@@ -57,11 +72,29 @@ func SetPromoter(operatorId int, userId int, remark string) (*model.Promoter, er
 	return promoter, nil
 }
 
+// UpdatePromoter 修改备注与分成比例；成功后 promoter 就地更新
+func UpdatePromoter(promoter *model.Promoter, remark string, shareRate float64) error {
+	shareRate, err := normalizePromoterShareRate(shareRate)
+	if err != nil {
+		return err
+	}
+	remark = strings.TrimSpace(remark)
+	now := common.GetTimestamp()
+	if err := model.UpdatePromoter(promoter.Id, remark, shareRate, now); err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return common.NewMessage(errPromoterNotFound)
+		}
+		return err
+	}
+	promoter.Remark, promoter.ShareRate, promoter.UpdatedAt = remark, shareRate, now
+	return nil
+}
+
 // UnsetPromoter 移除推广人身份并解绑名下全部用户，返回解绑数
 func UnsetPromoter(operatorId int, promoter *model.Promoter) (int64, error) {
 	unbound, err := model.RemovePromoterWithBindings(promoter, operatorId, common.GetTimestamp())
 	if errors.Is(err, gorm.ErrRecordNotFound) {
-		return 0, common.NewMessage("Promoter not found")
+		return 0, common.NewMessage(errPromoterNotFound)
 	}
 	return unbound, err
 }

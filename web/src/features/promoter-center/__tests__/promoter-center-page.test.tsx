@@ -33,6 +33,7 @@ function overviewPayload(boundUserCount: number) {
       display_name: 'Promo',
       aff_code: 'PRM7',
       remark: '',
+      share_rate: 12.5,
       created_at: 0,
     },
     range: { start: 0, end_excl: 0, start_day: '', end_day: '' },
@@ -158,6 +159,16 @@ test('self scope reads the self center endpoints and exposes the referral link c
   )
   expect(
     await screen.findByRole('button', { name: 'Copy referral link' })
+  ).toBeInTheDocument()
+})
+
+test('shows the share rate with the net-profit disclaimer when a rate is configured', async () => {
+  await renderPage({ scope: 'self' })
+  expect(await screen.findByText(/Share rate 12\.5%/)).toBeInTheDocument()
+  expect(
+    screen.getByText(
+      /calculated on net profit after operating and resource costs/
+    )
   ).toBeInTheDocument()
 })
 

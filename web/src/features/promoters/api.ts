@@ -7,6 +7,7 @@ import type {
   PagedData,
   PromoterBindResult,
   PromoterBindingsResponse,
+  PromoterEditableFields,
   PromoterListItem,
   PromoterProfile,
 } from './types'
@@ -20,11 +21,18 @@ export async function listPromoters(params: {
   return res.data
 }
 
-export async function createPromoter(payload: {
-  user_id: number
-  remark: string
-}): Promise<ApiResponse<PromoterProfile>> {
+export async function createPromoter(
+  payload: PromoterEditableFields & { user_id: number }
+): Promise<ApiResponse<PromoterProfile>> {
   const res = await api.post(ADMIN_PROMOTER_BASE, payload)
+  return res.data
+}
+
+export async function updatePromoter(
+  id: number,
+  payload: PromoterEditableFields
+): Promise<ApiResponse<PromoterProfile>> {
+  const res = await api.put(`${ADMIN_PROMOTER_BASE}/${id}`, payload)
   return res.data
 }
 

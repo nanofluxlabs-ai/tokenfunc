@@ -1142,6 +1142,15 @@
     "Archiving...": "Архивация…",
     "Archive to object storage": "Архивировать в объектное хранилище",
     "Raw logs of this period have been archived and purged; the breakdown below may be incomplete. Use the archived statement snapshot as the source of truth.": "Сырые логи этого периода заархивированы и удалены; разбивка ниже может быть неполной. Ориентируйтесь на архивный снимок выписки.",
-    "Day {{day}} belongs to a billing period whose bill is not archived yet": "День {{day}} относится к расчётному периоду, счёт за который ещё не заархивирован"
+    "Day {{day}} belongs to a billing period whose bill is not archived yet": "День {{day}} относится к расчётному периоду, счёт за который ещё не заархивирован",
+    "Share rate": "Доля выплат",
+    "Share rate (%)": "Доля выплат (%)",
+    "Share rate {{rate}}%": "Доля выплат {{rate}}%",
+    "Share rate must be between 0 and 100": "Доля выплат должна быть от 0 до 100",
+    "Edit promoter": "Изменить промоутера",
+    "Promoter updated": "Промоутер обновлён",
+    "Failed to update promoter": "Не удалось обновить промоутера",
+    "Informational only. Payouts are calculated offline on net profit; the system never computes the amount.": "Только для справки. Выплаты рассчитываются офлайн по чистой прибыли; система не вычисляет сумму.",
+    "Payouts are calculated on net profit after operating and resource costs; the settlement records are authoritative.": "Выплаты рассчитываются из чистой прибыли после операционных и ресурсных затрат; записи о расчётах имеют приоритет."
   }
 }

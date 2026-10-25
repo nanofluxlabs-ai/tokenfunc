@@ -1142,6 +1142,15 @@
     "Archiving...": "Archiving...",
     "Archive to object storage": "Archive to object storage",
     "Raw logs of this period have been archived and purged; the breakdown below may be incomplete. Use the archived statement snapshot as the source of truth.": "Raw logs of this period have been archived and purged; the breakdown below may be incomplete. Use the archived statement snapshot as the source of truth.",
-    "Day {{day}} belongs to a billing period whose bill is not archived yet": "Day {{day}} belongs to a billing period whose bill is not archived yet"
+    "Day {{day}} belongs to a billing period whose bill is not archived yet": "Day {{day}} belongs to a billing period whose bill is not archived yet",
+    "Share rate": "Share rate",
+    "Share rate (%)": "Share rate (%)",
+    "Share rate {{rate}}%": "Share rate {{rate}}%",
+    "Share rate must be between 0 and 100": "Share rate must be between 0 and 100",
+    "Edit promoter": "Edit promoter",
+    "Promoter updated": "Promoter updated",
+    "Failed to update promoter": "Failed to update promoter",
+    "Informational only. Payouts are calculated offline on net profit; the system never computes the amount.": "Informational only. Payouts are calculated offline on net profit; the system never computes the amount.",
+    "Payouts are calculated on net profit after operating and resource costs; the settlement records are authoritative.": "Payouts are calculated on net profit after operating and resource costs; the settlement records are authoritative."
   }
 }

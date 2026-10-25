@@ -151,6 +151,15 @@ export function PromoterCenterPage(props: PromoterCenterPageProps) {
                 'Consumption of users bound to this promoter, net of refunds. Users who signed up through the referral link are bound automatically.'
               )}
             </p>
+            {profile && (
+              <p className='text-muted-foreground -mt-2 text-sm'>
+                {profile.share_rate > 0 &&
+                  `${t('Share rate {{rate}}%', { rate: profile.share_rate })}. `}
+                {t(
+                  'Payouts are calculated on net profit after operating and resource costs; the settlement records are authoritative.'
+                )}
+              </p>
+            )}
             <div className='grid gap-3 sm:grid-cols-2 lg:grid-cols-4'>
               <MetricCard
                 label={t('Bound users')}

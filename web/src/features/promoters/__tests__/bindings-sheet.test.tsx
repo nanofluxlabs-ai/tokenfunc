@@ -31,6 +31,7 @@ const promoter: PromoterListItem = {
   display_name: 'Promo',
   aff_code: 'PRM',
   remark: '',
+  share_rate: 0,
   created_at: 0,
   email: '',
   deleted: false,

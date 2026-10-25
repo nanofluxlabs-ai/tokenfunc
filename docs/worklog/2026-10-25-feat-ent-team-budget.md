@@ -2,7 +2,7 @@
 
 - 日期：2026-10-25
 - 分支：feat/ent-team-budget
-- PR：
+- PR：#50
 - 关键 commit：439826d5e（后端）、e682b7d74（前端）
 
 ## 背景

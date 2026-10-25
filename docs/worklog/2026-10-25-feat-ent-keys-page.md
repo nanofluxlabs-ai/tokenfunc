@@ -2,8 +2,8 @@
 
 - 日期：2026-10-25
 - 分支：feat/ent-keys-page
-- PR：
-- 关键 commit：b716caae4（后端）、（前端）
+- PR：#51
+- 关键 commit：b716caae4（后端）、177724c33（前端）
 
 ## 背景
 

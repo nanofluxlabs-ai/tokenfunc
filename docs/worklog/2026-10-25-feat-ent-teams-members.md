@@ -2,8 +2,8 @@
 
 - 日期：2026-10-25
 - 分支：feat/ent-teams-members
-- PR：
-- 关键 commit：6bc4266f1（后端 + 迁移）、（前端）
+- PR：#49
+- 关键 commit：6bc4266f1（后端 + 迁移）、f66532b2e（前端 + 文档）
 
 ## 背景
 

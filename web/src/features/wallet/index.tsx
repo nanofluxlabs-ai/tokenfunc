@@ -149,16 +149,19 @@ export function Wallet(props: WalletProps) {
   // Initialize topup amount when topup info is loaded
   const topupAmountInitializedRef = useRef(false)
   useEffect(() => {
-    if (topupInfo && !topupAmountInitializedRef.current) {
-      topupAmountInitializedRef.current = true
-      const minTopup = getMinTopupAmount(topupInfo)
-      setTopupAmount(minTopup)
-
-      // Calculate initial payment amount with default payment type
-      const defaultPaymentType = getDefaultPaymentType(topupInfo)
-      calculatePaymentAmount(minTopup, defaultPaymentType)
+    if (!topupInfo || enterpriseLoading || topupAmountInitializedRef.current) {
+      return
     }
-  }, [topupInfo, calculatePaymentAmount])
+    topupAmountInitializedRef.current = true
+    const minTopup = getMinTopupAmount(topupInfo)
+    setTopupAmount(minTopup)
+
+    // 企业主账号的在线充值被服务端拦截（/api/user/amount 403），充值区也不展示，不预算金额
+    if (isEnterpriseOwner) return
+    // Calculate initial payment amount with default payment type
+    const defaultPaymentType = getDefaultPaymentType(topupInfo)
+    calculatePaymentAmount(minTopup, defaultPaymentType)
+  }, [topupInfo, calculatePaymentAmount, enterpriseLoading, isEnterpriseOwner])
 
   // Get current payment type (selected or default)
   const getCurrentPaymentType = useCallback(() => {

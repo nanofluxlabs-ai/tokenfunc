@@ -25,6 +25,7 @@
 前端
 - `features/enterprises`：行操作加「充值」按钮（授信企业禁用并提示），复用 `@/features/users/components/dialogs/user-topup-dialog`（用户页已有 `UsersProvider` 提供二次验证）；删除 `topup-form.tsx`、`registerEnterpriseTopup`、账务抽屉的「登记充值」区块，抽屉预付说明改为指向企业行的充值操作。
 - `features/finance/components/orders/orders-columns.tsx`：订单号下方不再渲染合成 id；支付方式列保留。
+- 钱包页（`features/wallet/index.tsx`）：企业主账号打开钱包时不再预算在线充值金额（原来照旧调 `/api/user/amount`，被 `RejectEnterpriseOwner` 拦成 403，页面已显示线下充值提示，这次请求纯多余）；用户验证时看到的 403 即来源于此。
 - 账务抽屉授信模式布局（用户截图反馈）：「账户」区左侧补本期授信额度 / 已用摘要，不再只剩一个「停用企业」按钮；`CreditConfigForm` 加 `secondaryAction`，「切回预付」与「更新授信」并排在同一按钮行。
 - 文案写入 `web/src/i18n/locales/tokenfunc/*.json` 七个语言文件。
 

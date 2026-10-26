@@ -20,6 +20,7 @@ import { EnterpriseGuard } from './enterprise-guard'
 import { MemberDialog } from './member-dialog'
 import { MemberImportDialog } from './member-import-dialog'
 import { MembersSection } from './members-section'
+import { TeamBudgetMeter } from './team-budget-meter'
 import { TeamDialog } from './team-dialog'
 import { type TeamSelection, TeamPanel } from './team-panel'
 
@@ -27,7 +28,7 @@ const route = getRouteApi('/_authenticated/enterprise/teams')
 
 /**
  * 团队页：左边团队（人数、本月消耗、预算），右边成员；选中团队与成员筛选都在 URL 里。
- * team_admin / developer 只看本团队，没有「全部」。
+ * team_admin / developer 一人只属一个团队，不显示团队列表，改为一行团队页头（名称、人数、预算）+ 整行宽的成员表。
  */
 export function EnterpriseTeams() {
   const { t } = useTranslation()
@@ -44,6 +45,9 @@ export function EnterpriseTeams() {
 
   let selected: TeamSelection = search.team_id ?? 'all'
   if (teamScoped && actor) selected = actor.team_id
+  const ownTeam = teamScoped
+    ? teams.data?.find((team) => team.id === selected)
+    : undefined
 
   const updateSearch = (patch: Partial<EnterpriseTeamsSearch>) =>
     void navigate({
@@ -92,29 +96,59 @@ export function EnterpriseTeams() {
         </SectionPageLayout.Actions>
         <SectionPageLayout.Content>
           <EnterpriseGuard>
-            <div className='grid gap-4 lg:grid-cols-[300px_minmax(0,1fr)]'>
-              <Card>
-                <CardContent>
-                  <TeamPanel
-                    teams={teams.data ?? []}
-                    selected={selected}
-                    showAll={!teamScoped}
-                    onSelect={(selection) =>
-                      updateSearch({
-                        team_id: selection === 'all' ? undefined : selection,
-                      })
-                    }
-                    canManage={canManageTeams(actor)}
-                  />
-                </CardContent>
-              </Card>
-              <MembersSection
-                team={selected}
-                actor={actor}
-                search={search}
-                onSearchChange={updateSearch}
-              />
-            </div>
+            {teamScoped ? (
+              <div className='flex flex-col gap-4'>
+                {ownTeam && (
+                  <Card>
+                    <CardContent className='flex flex-wrap items-center gap-x-6 gap-y-2'>
+                      <div className='flex items-baseline gap-2'>
+                        <span className='text-base font-semibold'>
+                          {ownTeam.name}
+                        </span>
+                        <span className='text-muted-foreground text-sm'>
+                          {t('{{count}} members', {
+                            count: ownTeam.member_count,
+                          })}
+                        </span>
+                      </div>
+                      <div className='min-w-64 flex-1'>
+                        <TeamBudgetMeter team={ownTeam} />
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+                <MembersSection
+                  team={selected}
+                  actor={actor}
+                  search={search}
+                  onSearchChange={updateSearch}
+                />
+              </div>
+            ) : (
+              <div className='grid gap-4 lg:grid-cols-[300px_minmax(0,1fr)]'>
+                <Card>
+                  <CardContent>
+                    <TeamPanel
+                      teams={teams.data ?? []}
+                      selected={selected}
+                      showAll
+                      onSelect={(selection) =>
+                        updateSearch({
+                          team_id: selection === 'all' ? undefined : selection,
+                        })
+                      }
+                      canManage={canManageTeams(actor)}
+                    />
+                  </CardContent>
+                </Card>
+                <MembersSection
+                  team={selected}
+                  actor={actor}
+                  search={search}
+                  onSearchChange={updateSearch}
+                />
+              </div>
+            )}
           </EnterpriseGuard>
         </SectionPageLayout.Content>
       </SectionPageLayout>

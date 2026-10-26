@@ -240,6 +240,9 @@ describe('EnterpriseTeams', () => {
     expect(screen.queryByRole('button', { name: 'Add Member' })).toBeNull()
     expect(screen.queryByRole('button', { name: 'Open menu' })).toBeNull()
     expect(screen.queryByRole('button', { name: 'Team actions' })).toBeNull()
+    // 团队角色不显示团队列表，只有一行本团队页头
+    expect(screen.queryByRole('button', { name: /Research/ })).toBeNull()
+    expect(screen.getByText('2 members')).toBeInTheDocument()
     expect(
       screen.getAllByRole('button', { name: 'Issue API Key' })
     ).toHaveLength(2)

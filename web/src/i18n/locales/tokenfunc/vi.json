@@ -1427,6 +1427,7 @@
     "Error code": "Mã lỗi",
     "HTTP status": "Trạng thái HTTP",
     "This bill was issued before unit prices were snapshotted; the breakdown below is computed from current logs.": "Hóa đơn này được phát hành trước khi đơn giá được chốt; phần chi tiết bên dưới được tính từ nhật ký hiện tại.",
-    "Team actions": "Thao tác nhóm"
+    "Team actions": "Thao tác nhóm",
+    "{{count}} members": "{{count}} thành viên"
   }
 }

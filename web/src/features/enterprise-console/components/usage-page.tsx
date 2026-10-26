@@ -8,7 +8,9 @@ import { Button } from '@/components/ui/button'
 import { requireServerSuccess } from '@/lib/server-error-message'
 
 import { getUsageSummary, listMembers, USAGE_EXPORT_URL } from '../api'
+import { useEnterpriseSelf } from '../hooks/use-enterprise-self'
 import { useTeams } from '../hooks/use-team-options'
+import { isTeamScoped } from '../lib/member-roles'
 import { EnterpriseGuard } from './enterprise-guard'
 import { UsagePanel } from './usage-panel'
 
@@ -56,6 +58,8 @@ function UsageFilterBar(props: { teamId?: number; memberId?: number }) {
 export function EnterpriseUsage() {
   const { t } = useTranslation()
   const search = route.useSearch()
+  const { data: enterprise } = useEnterpriseSelf()
+  const teamScoped = isTeamScoped(enterprise?.actor)
   return (
     <SectionPageLayout>
       <SectionPageLayout.Title>{t('Usage Report')}</SectionPageLayout.Title>
@@ -71,6 +75,7 @@ export function EnterpriseUsage() {
               fetchSummary={getUsageSummary}
               exportUrl={USAGE_EXPORT_URL}
               initialGroupBy={search.group_by}
+              hideTeamDimension={teamScoped}
               filter={{ team_id: search.team_id, member_id: search.member_id }}
             />
           </div>

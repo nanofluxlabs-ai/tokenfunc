@@ -1427,6 +1427,7 @@
     "Error code": "エラーコード",
     "HTTP status": "HTTP ステータス",
     "This bill was issued before unit prices were snapshotted; the breakdown below is computed from current logs.": "この請求書は単価スナップショットの凍結前に発行されたため、以下の内訳は現在のログから算出しています。",
-    "Team actions": "チームの操作"
+    "Team actions": "チームの操作",
+    "{{count}} members": "メンバー {{count}} 名"
   }
 }

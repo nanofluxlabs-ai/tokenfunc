@@ -1427,6 +1427,7 @@
     "Error code": "錯誤碼",
     "HTTP status": "HTTP 狀態",
     "This bill was issued before unit prices were snapshotted; the breakdown below is computed from current logs.": "該帳單出帳時尚未凍結單價快照，以下明細依目前日誌即時計算。",
-    "Team actions": "團隊操作"
+    "Team actions": "團隊操作",
+    "{{count}} members": "{{count}} 名成員"
   }
 }

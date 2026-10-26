@@ -42,6 +42,8 @@ type UsagePanelProps = {
   filter?: Pick<UsageQuery, 'team_id' | 'member_id'>
   /** 初始维度（深链进入时由 URL 指定） */
   initialGroupBy?: UsageGroupBy
+  /** 团队角色只有一个团队，不显示「所属团队」维度，默认落到成员 */
+  hideTeamDimension?: boolean
 }
 
 function defaultRange(): { from: Date; to: Date } {
@@ -56,9 +58,14 @@ export function UsagePanel(props: UsagePanelProps) {
   const { t, i18n } = useTranslation()
   const locale = toIntlLocale(i18n.resolvedLanguage || i18n.language)
   const [range, setRange] = useState(defaultRange)
-  const [groupBy, setGroupBy] = useState<UsageGroupBy>(
-    props.initialGroupBy ?? 'team'
-  )
+  const groupOptions = props.hideTeamDimension
+    ? GROUP_OPTIONS.filter((option) => option.value !== 'team')
+    : GROUP_OPTIONS
+  const [groupBy, setGroupBy] = useState<UsageGroupBy>(() => {
+    const initial = props.initialGroupBy ?? 'team'
+    if (props.hideTeamDimension && initial === 'team') return 'member'
+    return initial
+  })
   const filter = props.filter ?? {}
   const [exporting, setExporting] = useState(false)
   const from = formatDateStr(range.from)
@@ -229,7 +236,7 @@ export function UsagePanel(props: UsagePanelProps) {
         onValueChange={(value) => setGroupBy(value as UsageGroupBy)}
       >
         <TabsList className='max-w-full flex-wrap justify-start group-data-horizontal/tabs:h-auto'>
-          {GROUP_OPTIONS.map((option) => (
+          {groupOptions.map((option) => (
             <TabsTrigger key={option.value} value={option.value}>
               {t(option.labelKey)}
             </TabsTrigger>

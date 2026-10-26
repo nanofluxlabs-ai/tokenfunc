@@ -49,10 +49,11 @@ export function MemberDialog(props: MemberDialogProps) {
           .trim()
           .min(1, t('Member name is required'))
           .max(64, t('Name must be at most 64 characters')),
-        email: z.union([
-          z.literal(''),
-          z.string().trim().email(t('Invalid email address')),
-        ]),
+        email: z
+          .string()
+          .trim()
+          .min(1, t('Email is required'))
+          .email(t('Invalid email address')),
         employee_no: z.string().trim().max(64),
         team_id: z.number().int().min(0),
         active: z.boolean(),

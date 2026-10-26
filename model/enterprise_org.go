@@ -51,6 +51,7 @@ var (
 	ErrEnterpriseMemberHasLogin     = errors.New("member already has a login account")
 	ErrEnterpriseLoginUserTaken     = errors.New("this account already belongs to an enterprise")
 	ErrEnterpriseLoginUserInvalid   = errors.New("this account cannot be used as an enterprise member")
+	ErrEnterpriseLoginUserNotFound  = errors.New("no account found for this username or email")
 	ErrEnterpriseInvalidRole        = errors.New("invalid member role")
 	ErrEnterpriseNoAccess           = errors.New("enterprise access required")
 )
@@ -710,7 +711,7 @@ func FindUserForEnterpriseLogin(identifier string) (*User, error) {
 	var user User
 	err := DB.Where("username = ? OR (email <> '' AND LOWER(email) = LOWER(?))", identifier, identifier).Order("id ASC").First(&user).Error
 	if errors.Is(err, gorm.ErrRecordNotFound) {
-		return nil, ErrEnterpriseResourceNotFound
+		return nil, ErrEnterpriseLoginUserNotFound
 	}
 	if err != nil {
 		return nil, err

@@ -44,6 +44,7 @@ func enterpriseApiError(c *gin.Context, err error) {
 		model.ErrEnterpriseMemberHasLogin,
 		model.ErrEnterpriseLoginUserTaken,
 		model.ErrEnterpriseLoginUserInvalid,
+		model.ErrEnterpriseLoginUserNotFound,
 		model.ErrEnterpriseInvalidRole,
 		model.ErrEnterpriseTokenQuotaPolicy,
 	} {

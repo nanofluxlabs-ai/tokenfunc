@@ -12,6 +12,7 @@ import { useEnterpriseSelf } from '../hooks/use-enterprise-self'
 import { useTeams } from '../hooks/use-team-options'
 import { isTeamScoped } from '../lib/member-roles'
 import { EnterpriseGuard } from './enterprise-guard'
+import { EnterpriseRoleBadge } from './enterprise-role-badge'
 import { UsagePanel } from './usage-panel'
 
 const route = getRouteApi('/_authenticated/enterprise/usage')
@@ -62,7 +63,12 @@ export function EnterpriseUsage() {
   const teamScoped = isTeamScoped(enterprise?.actor)
   return (
     <SectionPageLayout>
-      <SectionPageLayout.Title>{t('Usage Report')}</SectionPageLayout.Title>
+      <SectionPageLayout.Title>
+        <span className='flex items-center gap-2'>
+          {t('Usage Report')}
+          <EnterpriseRoleBadge />
+        </span>
+      </SectionPageLayout.Title>
       <SectionPageLayout.Content>
         <EnterpriseGuard>
           <div className='flex flex-col gap-4'>

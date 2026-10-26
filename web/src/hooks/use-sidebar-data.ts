@@ -123,7 +123,7 @@ export function useSidebarData(): SidebarData {
             icon: Gauge,
           },
           {
-            title: t('Teams'),
+            title: t('Team Management'),
             url: '/enterprise/teams',
             icon: Building2,
           },

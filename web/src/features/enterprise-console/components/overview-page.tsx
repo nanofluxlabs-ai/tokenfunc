@@ -27,6 +27,7 @@ import { useEnterpriseSelf } from '../hooks/use-enterprise-self'
 import { isTeamScoped } from '../lib/member-roles'
 import { CreditPeriodsTable, LedgerTable } from './billing-tables'
 import { EnterpriseGuard } from './enterprise-guard'
+import { EnterpriseRoleBadge } from './enterprise-role-badge'
 import { OverviewKpiCards } from './overview-kpi-cards'
 import { OverviewTodos } from './overview-todos'
 
@@ -156,7 +157,10 @@ export function EnterpriseOverview() {
   return (
     <SectionPageLayout>
       <SectionPageLayout.Title>
-        {t('Enterprise Overview')}
+        <span className='flex items-center gap-2'>
+          {t('Enterprise Overview')}
+          <EnterpriseRoleBadge />
+        </span>
       </SectionPageLayout.Title>
       <SectionPageLayout.Content>
         <EnterpriseGuard>

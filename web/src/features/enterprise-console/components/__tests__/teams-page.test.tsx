@@ -221,7 +221,7 @@ describe('EnterpriseTeams', () => {
       screen.getByRole('button', { name: 'Add Member' })
     ).toBeInTheDocument()
     expect(
-      screen.getByRole('button', { name: 'Import CSV' })
+      screen.getByRole('button', { name: 'Import Members' })
     ).toBeInTheDocument()
     expect(screen.getAllByRole('button', { name: 'Open menu' })).toHaveLength(2)
     // 团队行的编辑 / 设管理员 / 归档 / 删除收进竖向三点菜单

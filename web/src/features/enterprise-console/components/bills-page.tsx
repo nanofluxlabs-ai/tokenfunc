@@ -10,6 +10,7 @@ import { requireServerSuccess } from '@/lib/server-error-message'
 import { listBills } from '../api'
 import { BillsTable } from './bills-table'
 import { EnterpriseGuard } from './enterprise-guard'
+import { EnterpriseRoleBadge } from './enterprise-role-badge'
 
 const PAGE_SIZE = 20
 
@@ -72,7 +73,12 @@ export function EnterpriseBills() {
   const { t } = useTranslation()
   return (
     <SectionPageLayout>
-      <SectionPageLayout.Title>{t('Bills')}</SectionPageLayout.Title>
+      <SectionPageLayout.Title>
+        <span className='flex items-center gap-2'>
+          {t('Bills')}
+          <EnterpriseRoleBadge />
+        </span>
+      </SectionPageLayout.Title>
       <SectionPageLayout.Content>
         <EnterpriseGuard>
           <BillsContent />

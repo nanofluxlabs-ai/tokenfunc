@@ -1,6 +1,6 @@
 import { useQueryClient } from '@tanstack/react-query'
 import { getRouteApi } from '@tanstack/react-router'
-import { Plus, Upload } from 'lucide-react'
+import { Plus, Upload, Users } from 'lucide-react'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
@@ -18,6 +18,7 @@ import {
 import type { EnterpriseTeamsSearch } from '../search-schema'
 import type { Team } from '../types'
 import { EnterpriseGuard } from './enterprise-guard'
+import { EnterpriseRoleBadge } from './enterprise-role-badge'
 import { MemberDialog } from './member-dialog'
 import { MemberImportDialog } from './member-import-dialog'
 import { MembersSection } from './members-section'
@@ -33,6 +34,12 @@ function TeamHeaderCard(props: { team: Team }) {
   return (
     <Card>
       <CardContent className='flex flex-wrap items-center gap-x-6 gap-y-2'>
+        <span
+          aria-hidden='true'
+          className='bg-primary/10 text-primary flex size-9 shrink-0 items-center justify-center rounded-full'
+        >
+          <Users className='size-4' />
+        </span>
         <div className='flex items-baseline gap-2'>
           <span className='text-base font-semibold'>{props.team.name}</span>
           <span className='text-muted-foreground text-sm'>
@@ -40,7 +47,7 @@ function TeamHeaderCard(props: { team: Team }) {
           </span>
         </div>
         <div className='min-w-64 flex-1'>
-          <TeamBudgetMeter team={props.team} />
+          <TeamBudgetMeter team={props.team} size='md' />
         </div>
       </CardContent>
     </Card>
@@ -86,7 +93,12 @@ export function EnterpriseTeams() {
   return (
     <>
       <SectionPageLayout>
-        <SectionPageLayout.Title>{t('Teams')}</SectionPageLayout.Title>
+        <SectionPageLayout.Title>
+          <span className='flex items-center gap-2'>
+            {t('Teams')}
+            <EnterpriseRoleBadge />
+          </span>
+        </SectionPageLayout.Title>
         <SectionPageLayout.Actions>
           {canManageMembers(actor) && (
             <>
@@ -96,7 +108,7 @@ export function EnterpriseTeams() {
                 onClick={() => setImporting(true)}
               >
                 <Upload className='h-4 w-4' />
-                {t('Import CSV')}
+                {t('Import Members')}
               </Button>
               <Button
                 variant='outline'
@@ -129,7 +141,7 @@ export function EnterpriseTeams() {
               </div>
             ) : (
               <div className='grid gap-4 lg:grid-cols-[300px_minmax(0,1fr)]'>
-                <Card>
+                <Card className='lg:sticky lg:top-4 lg:self-start'>
                   <CardContent>
                     <TeamPanel
                       teams={teams.data ?? []}

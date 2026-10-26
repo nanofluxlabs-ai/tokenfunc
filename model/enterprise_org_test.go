@@ -202,7 +202,7 @@ func TestEnterpriseMemberLoginAndAccess(t *testing.T) {
 	_, err = FindUserForEnterpriseLogin(admin.Username)
 	assert.ErrorIs(t, err, ErrEnterpriseLoginUserInvalid)
 	_, err = FindUserForEnterpriseLogin("nobody-here")
-	assert.ErrorIs(t, err, ErrEnterpriseResourceNotFound)
+	assert.ErrorIs(t, err, ErrEnterpriseLoginUserNotFound, "unregistered username or email")
 	found, err := FindUserForEnterpriseLogin("dev@example.com")
 	require.NoError(t, err)
 	assert.Equal(t, dev.Id, found.Id)

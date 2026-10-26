@@ -63,11 +63,12 @@ import {
 } from '../api'
 import { useEnterpriseSelf } from '../hooks/use-enterprise-self'
 import { useTeamOptions, useTeams } from '../hooks/use-team-options'
-import { isTeamScoped, MEMBER_ROLE_LABELS } from '../lib/member-roles'
+import { isTeamScoped } from '../lib/member-roles'
 import { isTeamBudgetBlocked } from '../lib/team-budget'
 import type { EnterpriseKeysSearch } from '../search-schema'
 import type { EnterpriseToken } from '../types'
 import { EnterpriseGuard } from './enterprise-guard'
+import { EnterpriseRoleBadge } from './enterprise-role-badge'
 import { EntitySelect } from './entity-select'
 import { MEMBER_PICKER_ANY, MemberPicker } from './member-picker'
 import { TokenMutateSheet } from './token-mutate-sheet'
@@ -745,21 +746,13 @@ export function EnterpriseKeys() {
   const [selectionVersion, setSelectionVersion] = useState(0)
   const refresh = () =>
     void queryClient.invalidateQueries({ queryKey: ['enterprise'] })
-  let roleLabel = ''
-  if (enterprise?.actor?.is_owner) {
-    roleLabel = t('Owner')
-  } else if (enterprise?.actor) {
-    roleLabel = t(MEMBER_ROLE_LABELS[enterprise.actor.role])
-  }
   return (
     <>
       <SectionPageLayout>
         <SectionPageLayout.Title>
           <span className='flex items-center gap-2'>
             {t('API Keys')}
-            {roleLabel && (
-              <StatusBadge label={roleLabel} variant='info' copyable={false} />
-            )}
+            <EnterpriseRoleBadge />
           </span>
         </SectionPageLayout.Title>
         <SectionPageLayout.Actions>

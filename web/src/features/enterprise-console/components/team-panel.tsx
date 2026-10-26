@@ -152,7 +152,6 @@ export function TeamPanel(props: TeamPanelProps) {
 
   return (
     <div className='flex flex-col gap-2'>
-      <span className='text-sm font-medium'>{t('Teams')}</span>
       <nav aria-label={t('Teams')} className='flex flex-col gap-0.5'>
         {props.showAll && (
           <button

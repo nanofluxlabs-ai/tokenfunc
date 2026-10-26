@@ -2,6 +2,7 @@ import type {
   Bill,
   CreditPeriod,
   LedgerEntry,
+  Member,
   SellerProfile,
   UsageGroupBy,
   UsageSummary,
@@ -19,6 +20,7 @@ import type {
   Enterprise,
   EnterpriseProfilePayload,
   EnterpriseStatus,
+  ListEnterpriseMembersParams,
   ListEnterprisesParams,
   ListEnterprisesResponse,
 } from './types'
@@ -29,6 +31,17 @@ export async function listEnterprises(
   params: ListEnterprisesParams
 ): Promise<ListEnterprisesResponse> {
   const res = await api.get(ADMIN_ENTERPRISE_BASE, { params })
+  return res.data
+}
+
+/** 管理员只读查看某企业的成员，范围为全企业 */
+export async function listEnterpriseMembers(
+  id: number,
+  params: ListEnterpriseMembersParams
+): Promise<ApiResponse<PageData<Member>>> {
+  const res = await api.get(`${ADMIN_ENTERPRISE_BASE}/${id}/members`, {
+    params,
+  })
   return res.data
 }
 

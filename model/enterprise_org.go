@@ -39,6 +39,11 @@ const (
 // EnterpriseDefaultTeamName 每个企业自动拥有的默认团队名（不可删、不可归档）
 const EnterpriseDefaultTeamName = "Default"
 
+// EnterpriseUnboundRemark 企业开通的登录账号被解绑 / 随成员删除后写入 users.remark 的固定备注：
+// 该账号已停用并回到系统管理员的个人用户列表，备注让管理员一眼识别出它是企业丢弃的员工账号，可按需清理。
+// 备注是展示给管理员看的数据，不走 i18n（站点管理员以中文为主）
+const EnterpriseUnboundRemark = "企业员工"
+
 var (
 	ErrEnterpriseResourceNotFound   = errors.New("resource not found in this enterprise")
 	ErrEnterpriseTeamInUse          = errors.New("team still has members or API keys")
@@ -615,6 +620,17 @@ func disableProvisionedLogin(tx *gorm.DB, member *EnterpriseMember) error {
 	return nil
 }
 
+// markProvisionedLoginUnbound 解绑 / 删除成员后，企业开通的账号成为孤儿：在 users.remark 写固定标识供系统管理员识别。
+// 管理员手写的备注不覆盖（只在备注为空或已是本标识时写入）；停用成员不走这里，账号仍归企业。
+func markProvisionedLoginUnbound(tx *gorm.DB, member *EnterpriseMember) error {
+	if member.UserId == 0 || !member.Provisioned {
+		return nil
+	}
+	return tx.Model(&User{}).
+		Where("id = ? AND (remark = '' OR remark IS NULL OR remark = ?)", member.UserId, EnterpriseUnboundRemark).
+		Update("remark", EnterpriseUnboundRemark).Error
+}
+
 // UpdateEnterpriseMember 更新资料；换团队时名下 key 的团队归属同步更新；状态改为停用时停用其全部 key 与企业开通的登录账号
 func UpdateEnterpriseMember(member *EnterpriseMember) error {
 	if err := member.normalize(); err != nil {
@@ -676,6 +692,9 @@ func DeleteEnterpriseMember(enterpriseId int, id int) error {
 			return err
 		}
 		if err := disableProvisionedLogin(tx, member); err != nil {
+			return err
+		}
+		if err := markProvisionedLoginUnbound(tx, member); err != nil {
 			return err
 		}
 		return tx.Where("enterprise_id = ? AND id = ?", enterpriseId, id).Delete(&EnterpriseMember{}).Error
@@ -810,13 +829,18 @@ func ProvisionEnterpriseMemberLogin(enterpriseId int, memberId int, role string)
 			if err := ensureEmailAvailableWithTx(tx, email, existing.Id); err != nil {
 				return err
 			}
-			if err := tx.Model(&User{}).Where("id = ?", existing.Id).Updates(map[string]any{
+			updates := map[string]any{
 				"password":     hash,
 				"status":       common.UserStatusEnabled,
 				"quota":        0,
 				"display_name": member.Name,
 				"email":        email,
-			}).Error; err != nil {
+			}
+			// 解绑时写的孤儿标识随重新开通清掉；管理员手写的备注保留
+			if existing.Remark == EnterpriseUnboundRemark {
+				updates["remark"] = ""
+			}
+			if err := tx.Model(&User{}).Where("id = ?", existing.Id).Updates(updates).Error; err != nil {
 				return err
 			}
 			return bindMemberLogin(tx, enterpriseId, memberId, existing.Id, role, true)
@@ -886,6 +910,9 @@ func UnbindEnterpriseMemberLogin(enterpriseId int, memberId int) error {
 		if err := disableProvisionedLogin(tx, member); err != nil {
 			return err
 		}
+		if err := markProvisionedLoginUnbound(tx, member); err != nil {
+			return err
+		}
 		return tx.Model(&EnterpriseMember{}).Where("id = ?", memberId).Updates(map[string]any{
 			"user_id":     0,
 			"role":        EnterpriseMemberRoleNone,
@@ -893,6 +920,37 @@ func UnbindEnterpriseMemberLogin(enterpriseId int, memberId int) error {
 			"updated_at":  common.GetTimestamp(),
 		}).Error
 	})
+}
+
+// EnterpriseAffiliation 一个登录账号与企业的归属关系：企业主账号或在职成员的登录账号
+type EnterpriseAffiliation struct {
+	EnterpriseId int
+	IsOwner      bool
+	MemberId     int
+}
+
+// GetUserEnterpriseAffiliation 查账号归属：先看是否企业主，再看是否在职成员（软删除的成员不算）；都不是返回 nil
+func GetUserEnterpriseAffiliation(userId int) (*EnterpriseAffiliation, error) {
+	if userId <= 0 {
+		return nil, nil
+	}
+	var enterprise Enterprise
+	err := DB.Select("id").Where("user_id = ?", userId).First(&enterprise).Error
+	if err == nil {
+		return &EnterpriseAffiliation{EnterpriseId: enterprise.Id, IsOwner: true}, nil
+	}
+	if !errors.Is(err, gorm.ErrRecordNotFound) {
+		return nil, err
+	}
+	var member EnterpriseMember
+	err = DB.Select("id", "enterprise_id").Where("user_id = ?", userId).First(&member).Error
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	return &EnterpriseAffiliation{EnterpriseId: member.EnterpriseId, MemberId: member.Id}, nil
 }
 
 // SetEnterpriseMemberRole 改角色（成员必须已绑定登录账号）

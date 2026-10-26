@@ -1,4 +1,4 @@
-import { Edit, HandCoins, Wallet } from 'lucide-react'
+import { Edit, HandCoins, Users, Wallet } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
 import { Button } from '@/components/ui/button'
@@ -55,6 +55,24 @@ export function EnterpriseRowActions(props: {
           <Wallet />
         </TooltipTrigger>
         <TooltipContent>{t('Billing')}</TooltipContent>
+      </Tooltip>
+      <Tooltip>
+        <TooltipTrigger
+          render={
+            <Button
+              variant='ghost'
+              size='icon-sm'
+              onClick={() => {
+                setCurrentRow(props.enterprise)
+                setOpen('members')
+              }}
+              aria-label={t('Members')}
+            />
+          }
+        >
+          <Users />
+        </TooltipTrigger>
+        <TooltipContent>{t('Members')}</TooltipContent>
       </Tooltip>
       <Tooltip>
         <TooltipTrigger

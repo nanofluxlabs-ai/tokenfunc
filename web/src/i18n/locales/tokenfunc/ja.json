@@ -1522,6 +1522,9 @@
     "Add members or import them to start issuing keys.": "メンバーを追加またはインポートするとキーを発行できます。",
     "Credit enterprises are settled by bill payment, not top-up": "与信企業は請求書の入金で精算され、チャージは行いません",
     "Credit enterprises are settled by bill payment": "与信企業は請求書の入金で精算されます",
-    "Prepaid billing: usage is deducted from the balance; register offline top-ups with the Top-up action on the enterprise row.": "プリペイド：利用分は残高から差し引かれます。オフライン入金は企業行の「チャージ」操作で登録してください。"
+    "Prepaid billing: usage is deducted from the balance; register offline top-ups with the Top-up action on the enterprise row.": "プリペイド：利用分は残高から差し引かれます。オフライン入金は企業行の「チャージ」操作で登録してください。",
+    "This account belongs to an enterprise, manage it from the enterprise module": "このアカウントは企業に属しています。企業モジュールから管理してください",
+    "{{members}} members, {{logins}} can sign in. Members are managed by the enterprise itself; this list is read-only.": "メンバー {{members}} 人、うち {{logins}} 人がログイン可能。メンバーは企業自身が管理し、この一覧は閲覧専用です。",
+    "This enterprise has not added any members in its console.": "この企業はコンソールでまだメンバーを追加していません。"
   }
 }

@@ -167,3 +167,50 @@ func AdminUpdateEnterprise(c *gin.Context) {
 	})
 	common.ApiSuccess(c, nil)
 }
+
+// rejectEnterpriseAffiliatedUser 系统管理员不得删除 / 禁用 / 提权企业账号（主账号与在职成员的登录账号）：
+// 企业员工由企业自治，主账号被删会让企业变孤儿。命中时已写响应并返回 true，调用方直接 return
+func rejectEnterpriseAffiliatedUser(c *gin.Context, userId int) bool {
+	affiliation, err := model.GetUserEnterpriseAffiliation(userId)
+	if err != nil {
+		common.ApiError(c, err)
+		return true
+	}
+	if affiliation == nil {
+		return false
+	}
+	common.ApiErrorT(c, "This account belongs to an enterprise, manage it from the enterprise module")
+	return true
+}
+
+// AdminListEnterpriseMembers 系统管理员只读查看某企业的成员（范围为全企业，不受团队限制）
+func AdminListEnterpriseMembers(c *gin.Context) {
+	id, ok := paramId(c)
+	if !ok {
+		return
+	}
+	enterprise, err := model.GetEnterpriseById(id)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			c.JSON(http.StatusNotFound, gin.H{"success": false, "message": "enterprise not found"})
+			return
+		}
+		common.ApiError(c, err)
+		return
+	}
+	pageInfo := common.GetPageQuery(c)
+	filter := model.EnterpriseMemberFilter{
+		TeamId:   optionalIntQuery(c, "team_id"),
+		Keyword:  c.Query("keyword"),
+		Status:   c.Query("status"),
+		HasLogin: optionalBoolQuery(c, "has_login"),
+	}
+	items, total, err := model.ListEnterpriseMembers(enterprise.Id, model.EnterpriseScope{}, filter, pageInfo.GetStartIdx(), pageInfo.GetPageSize())
+	if err != nil {
+		common.ApiError(c, err)
+		return
+	}
+	pageInfo.SetTotal(int(total))
+	pageInfo.SetItems(items)
+	common.ApiSuccess(c, pageInfo)
+}

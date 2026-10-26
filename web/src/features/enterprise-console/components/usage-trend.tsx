@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { type ReactNode, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import {
@@ -50,6 +50,8 @@ type UsageTrendProps = {
   metric: UsageMetric
   loading?: boolean
   className?: string
+  /** 脚注左侧（如下钻链接），右侧固定是峰值 / 日均 */
+  footer?: ReactNode
 }
 
 /** 按日趋势图 + 峰值 / 日均脚注（概览近 7 天与报表按日区块共用） */
@@ -103,7 +105,8 @@ export function UsageTrend(props: UsageTrendProps) {
         stacked={props.metric === 'tokens'}
         loading={props.loading}
       />
-      <div className='text-muted-foreground mt-2 flex justify-end gap-3 text-xs tabular-nums'>
+      <div className='text-muted-foreground mt-2 flex items-center gap-3 text-xs tabular-nums'>
+        <span className='flex-1'>{props.footer}</span>
         <span>
           {t('Peak')} {format(peak)}
         </span>

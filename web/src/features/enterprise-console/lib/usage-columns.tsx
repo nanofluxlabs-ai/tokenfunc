@@ -19,7 +19,7 @@ type UsageColumnsOptions<TRow extends UsageRow> = {
   t: TFunction
   locale: Intl.LocalesArgument
   nameHeader: string
-  nameCell: (row: TRow) => ReactNode
+  nameCell: (row: TRow, index: number) => ReactNode
   /** 占比分母：区间内全部消耗 */
   totalQuota: number
   /** 缓存列：hit 只有缓存命中，hit-write 再加缓存写入，none 不显示（按日表） */

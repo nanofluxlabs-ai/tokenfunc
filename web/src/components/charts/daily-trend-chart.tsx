@@ -35,20 +35,26 @@ type DailyTrendChartProps = {
   className?: string
 }
 
-/** 系列颜色依次取品牌预设的图表色；chart-2 / chart-3 是中性色，跳过 */
+/** 系列颜色依次取品牌预设的图表色（预设挂在 body 的 data-theme-preset 上，从 body 读）；chart-2 / chart-3 是中性色，跳过 */
 const SERIES_COLOR_VARS = ['--chart-1', '--chart-4', '--chart-5']
 const FALLBACK_COLORS = ['#1db954', '#2363c4', '#a35f00']
 
 function readSeriesColors(count: number): string[] {
   const style =
-    typeof document === 'undefined'
-      ? null
-      : getComputedStyle(document.documentElement)
+    typeof document === 'undefined' ? null : getComputedStyle(document.body)
   return Array.from({ length: count }, (_, index) => {
     const slot = index % SERIES_COLOR_VARS.length
     const value = style?.getPropertyValue(SERIES_COLOR_VARS[slot]).trim()
     return value || FALLBACK_COLORS[slot]
   })
+}
+
+/** #rrggbb → rgba；非 hex（如 oklch）原样返回，渐变退化为纯色 */
+function withAlpha(color: string, alpha: number): string {
+  const match = /^#([0-9a-f]{6})$/i.exec(color)
+  if (!match) return color
+  const value = Number.parseInt(match[1], 16)
+  return `rgba(${(value >> 16) & 255}, ${(value >> 8) & 255}, ${value & 255}, ${alpha})`
 }
 
 /** 按天趋势面积图：平滑曲线 + 渐变填充，多系列可堆叠；跟随应用主题与品牌色，全部为 0 时显示占位 */
@@ -65,6 +71,7 @@ export function DailyTrendChart(props: DailyTrendChartProps) {
       ? 'rgba(255, 255, 255, 0.12)'
       : 'rgba(15, 23, 42, 0.12)'
 
+  // 系列颜色在 memo 内从 body 读取；主题切换时 chartTextColor 随之变化，会触发重算
   const spec = useMemo(() => {
     const hasValue = props.data.some((row) =>
       props.series.some((serie) => Number(row[serie.field]) !== 0)
@@ -97,13 +104,10 @@ export function DailyTrendChart(props: DailyTrendChartProps) {
       line: {
         style: { curveType: 'monotone', lineWidth: 2 },
       },
+      // 常态不画点（点的底色会把曲线切断）；只有一天时连不成线，必须画点
       point: {
-        visible: props.data.length <= 10,
-        style: {
-          size: 6,
-          lineWidth: 2,
-          fill: resolvedTheme === 'dark' ? '#121212' : '#ffffff',
-        },
+        visible: props.data.length === 1,
+        style: { size: 10 },
       },
       area: {
         style: {
@@ -117,8 +121,11 @@ export function DailyTrendChart(props: DailyTrendChartProps) {
               x1: 0,
               y1: 1,
               stops: [
-                { offset: 0, color, opacity: multiSeries ? 0.22 : 0.32 },
-                { offset: 1, color, opacity: 0 },
+                {
+                  offset: 0,
+                  color: withAlpha(color, multiSeries ? 0.28 : 0.38),
+                },
+                { offset: 1, color: withAlpha(color, 0.02) },
               ],
             }
           },
@@ -195,7 +202,6 @@ export function DailyTrendChart(props: DailyTrendChartProps) {
     props.series,
     props.stacked,
     props.valueFormat,
-    resolvedTheme,
   ])
 
   let placeholder = props.emptyText ?? t('No consumption in this range')

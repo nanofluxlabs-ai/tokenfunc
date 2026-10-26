@@ -13,6 +13,10 @@ import {
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { toIntlLocale } from '@/i18n/languages'
 
+import {
+  readUsagePalette,
+  USAGE_OTHERS_COLOR,
+} from '../lib/usage-chart-palette'
 import { buildUsageColumns } from '../lib/usage-columns'
 import type { UsageDayItem, UsageGroupBy, UsageSummaryItem } from '../types'
 import { UsageDonutChart, UsageRankChart } from './usage-charts'
@@ -91,12 +95,21 @@ export const UsageModelSection = forwardRef<
       props.items.map((item) => ({ name: item.key_name, quota: item.quota })),
     [props.items]
   )
+  // 与环形图同一份调色板，按行序（消耗倒序）对应切片
+  const palette = readUsagePalette()
   const columns = buildUsageColumns<UsageSummaryItem>({
     t,
     locale,
     nameHeader: t('Model'),
-    nameCell: (row) => (
-      <span className='font-mono text-xs'>{row.key_name || '-'}</span>
+    nameCell: (row, index) => (
+      <span className='flex items-center gap-2'>
+        <span
+          className='size-2 shrink-0 rounded-full'
+          style={{ backgroundColor: palette[index] ?? USAGE_OTHERS_COLOR }}
+          aria-hidden='true'
+        />
+        <span className='font-mono text-xs'>{row.key_name || '-'}</span>
+      </span>
     ),
     totalQuota: props.totalQuota,
     cache: 'hit-write',

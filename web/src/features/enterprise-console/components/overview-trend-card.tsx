@@ -26,7 +26,7 @@ export function OverviewTrendCard(props: OverviewTrendCardProps) {
   const { t } = useTranslation()
   const [metric, setMetric] = useState<UsageMetric>('quota')
   return (
-    <Card>
+    <Card className='h-full'>
       <CardHeader>
         <CardTitle>{t('Last 7 days trend')}</CardTitle>
         <CardDescription>
@@ -42,17 +42,17 @@ export function OverviewTrendCard(props: OverviewTrendCardProps) {
           days={props.days}
           metric={metric}
           loading={props.loading}
+          footer={
+            <Link
+              to='/enterprise/usage'
+              search={{}}
+              className='hover:text-foreground inline-flex items-center gap-1'
+            >
+              {t('View longer range')}
+              <ArrowRight className='size-3' aria-hidden='true' />
+            </Link>
+          }
         />
-        <div className='mt-1 flex justify-end'>
-          <Link
-            to='/enterprise/usage'
-            search={{}}
-            className='text-muted-foreground hover:text-foreground inline-flex items-center gap-1 text-xs'
-          >
-            {t('View longer range')}
-            <ArrowRight className='size-3' aria-hidden='true' />
-          </Link>
-        </div>
       </CardContent>
     </Card>
   )

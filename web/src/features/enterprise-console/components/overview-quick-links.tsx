@@ -75,6 +75,7 @@ export function OverviewQuickLinks(props: OverviewQuickLinksProps) {
     <TitledCard
       title={t('Quick links')}
       description={t('Common pages, one click away')}
+      className='h-full'
       contentClassName='flex flex-col gap-1 p-2 sm:p-3'
     >
       <Link to='/enterprise/keys' search={{}} className={ROW_CLASS}>

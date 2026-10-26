@@ -67,17 +67,17 @@ function OverviewContent() {
       <OverviewTodos todos={data.todos} />
       <OverviewKpiCards snapshot={snapshot} loading={overview.isLoading} />
       <div className='grid gap-4 xl:grid-cols-3'>
-        <div className='flex min-w-0 flex-col gap-4 xl:col-span-2'>
+        <div className='min-w-0 xl:col-span-2'>
           <OverviewTrendCard
             days={snapshot.last7}
             loading={overview.isFetching}
           />
-          <OverviewModelTop today={snapshot.today.day} />
         </div>
         <div className='min-w-0'>
           <OverviewQuickLinks overview={data} teamScoped={teamScoped} />
         </div>
       </div>
+      <OverviewModelTop today={snapshot.today.day} />
     </div>
   )
 }

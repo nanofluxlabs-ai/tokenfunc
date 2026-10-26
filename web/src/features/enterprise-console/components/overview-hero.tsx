@@ -241,6 +241,8 @@ function TeamAccount(props: { overview: EnterpriseOverview }) {
       <div className='text-muted-foreground max-w-xl text-xs'>
         {budget ? (
           <TeamBudgetMeter
+            size='md'
+            showAmount={false}
             team={{
               monthly_budget_quota: budget.budget_quota,
               month_quota: budget.month_quota,

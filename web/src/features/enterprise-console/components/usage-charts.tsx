@@ -7,6 +7,11 @@ import { useChartTheme } from '@/lib/use-chart-theme'
 import { cn } from '@/lib/utils'
 import { VCHART_OPTION } from '@/lib/vchart'
 
+import {
+  readUsagePalette,
+  USAGE_DONUT_TOP,
+  USAGE_OTHERS_COLOR,
+} from '../lib/usage-chart-palette'
 import { sharePercent } from '../lib/usage-range'
 
 export type UsageChartSlice = { name: string; quota: number }
@@ -18,7 +23,6 @@ type UsageChartProps = {
   className?: string
 }
 
-const DONUT_TOP = 6
 const RANK_TOP = 10
 
 /** 主题就绪且有数据才画图，否则显示占位（jsdom 下 themeReady 为 false） */
@@ -50,7 +54,7 @@ function ThemedChart(props: {
   )
 }
 
-/** 消耗构成环形图：前 6 项 + 其他，中心显示合计 */
+/** 消耗构成环形图：前 6 项 + 其他，中心显示合计；不画图例，名称看旁边明细表 */
 export function UsageDonutChart(props: UsageChartProps) {
   const { t } = useTranslation()
   const { resolvedTheme } = useChartTheme()
@@ -61,9 +65,9 @@ export function UsageDonutChart(props: UsageChartProps) {
   const spec = useMemo(() => {
     const total = props.data.reduce((sum, item) => sum + item.quota, 0)
     if (total <= 0) return null
-    const head = props.data.slice(0, DONUT_TOP)
+    const head = props.data.slice(0, USAGE_DONUT_TOP)
     const restQuota = props.data
-      .slice(DONUT_TOP)
+      .slice(USAGE_DONUT_TOP)
       .reduce((sum, item) => sum + item.quota, 0)
     const values = head.map((item) => ({ name: item.name, quota: item.quota }))
     if (restQuota > 0) values.push({ name: t('Others'), quota: restQuota })
@@ -72,20 +76,18 @@ export function UsageDonutChart(props: UsageChartProps) {
       data: [{ id: props.id, values }],
       valueField: 'quota',
       categoryField: 'name',
-      outerRadius: 0.82,
-      innerRadius: 0.6,
+      // 颜色与明细表的色点一一对应：前 N 项取品牌色，「其他」固定灰
+      color: [...readUsagePalette(), USAGE_OTHERS_COLOR],
+      outerRadius: 0.92,
+      innerRadius: 0.68,
       padAngle: 0.6,
       pie: {
         style: { cornerRadius: 4 },
-        state: { hover: { outerRadius: 0.86 } },
+        state: { hover: { outerRadius: 0.96 } },
       },
       label: { visible: false },
-      legends: {
-        visible: true,
-        orient: 'bottom',
-        maxRow: 2,
-        item: { label: { style: { fill: textColor } } },
-      },
+      // 图例由旁边的明细表承担（名称前有同色色点）
+      legends: { visible: false },
       indicator: {
         visible: true,
         trigger: 'none',
@@ -146,9 +148,7 @@ export function UsageRankChart(props: UsageChartProps) {
     if (values.length === 0) return null
     const color =
       (typeof document !== 'undefined' &&
-        getComputedStyle(document.documentElement)
-          .getPropertyValue('--chart-1')
-          .trim()) ||
+        getComputedStyle(document.body).getPropertyValue('--chart-1').trim()) ||
       '#1db954'
     return {
       type: 'bar',

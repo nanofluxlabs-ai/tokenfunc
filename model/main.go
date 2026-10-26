@@ -412,6 +412,9 @@ func migrateDB() error {
 	if err := MigrateLogDailyRollupV2(); err != nil {
 		return fmt.Errorf("migrate log daily rollup schema: %w", err)
 	}
+	if err := backfillEnterpriseBillTokens(); err != nil {
+		return err
+	}
 	if err := migrateEnterpriseOrgV2After(); err != nil {
 		return err
 	}

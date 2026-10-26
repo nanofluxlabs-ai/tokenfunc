@@ -401,6 +401,9 @@ export interface Bill {
   reconcile_acked_at: number
   reconcile_acked_by: number
   reconcile_ack_note: string
+  /** 账期内 token 消耗，出账时从日聚合表冻结；prompt 为含缓存的原始输入 */
+  prompt_tokens: number
+  completion_tokens: number
   archive_info: BillArchiveInfo | null
   archived_at: number
   usage_snapshot: BillUsageSnapshot | null

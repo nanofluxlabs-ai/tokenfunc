@@ -453,6 +453,44 @@ func ExportEnterpriseUsage(enterpriseId int, fromDay string, toDay string, filte
 }
 
 // SumEnterpriseUsageByPeriod 某账期的明细合计（出账时与账期计数器对账）
+// EnterpriseTokenUsage 账期内 token 消耗；prompt 为含缓存的原始输入，总数 = prompt + completion
+type EnterpriseTokenUsage struct {
+	PromptTokens     int64 `json:"prompt_tokens"`
+	CompletionTokens int64 `json:"completion_tokens"`
+}
+
+// enterpriseUsageDetailTotals 出账时一次查出的明细聚合：quota 用于对账，token 冻结进账单
+type enterpriseUsageDetailTotals struct {
+	Quota            int64
+	PromptTokens     int64
+	CompletionTokens int64
+}
+
+const enterpriseUsageDetailTotalsSelect = "COALESCE(SUM(quota), 0) AS quota, COALESCE(SUM(prompt_tokens), 0) AS prompt_tokens, COALESCE(SUM(completion_tokens), 0) AS completion_tokens"
+
+// SumEnterpriseUsageTokensByPeriods 进行中账期的 token 消耗（财务中心列表页一次取本页账期），走 period_id 索引
+func SumEnterpriseUsageTokensByPeriods(periodIds []int64) (map[int64]EnterpriseTokenUsage, error) {
+	result := map[int64]EnterpriseTokenUsage{}
+	if len(periodIds) == 0 {
+		return result, nil
+	}
+	rows := make([]struct {
+		PeriodId         int64
+		PromptTokens     int64
+		CompletionTokens int64
+	}, 0, len(periodIds))
+	err := DB.Model(&EnterpriseUsageDaily{}).Where("period_id IN ?", periodIds).
+		Select("period_id, COALESCE(SUM(prompt_tokens), 0) AS prompt_tokens, COALESCE(SUM(completion_tokens), 0) AS completion_tokens").
+		Group("period_id").Scan(&rows).Error
+	if err != nil {
+		return nil, err
+	}
+	for _, row := range rows {
+		result[row.PeriodId] = EnterpriseTokenUsage{PromptTokens: row.PromptTokens, CompletionTokens: row.CompletionTokens}
+	}
+	return result, nil
+}
+
 func SumEnterpriseUsageByPeriod(enterpriseId int, periodId int64) (int64, error) {
 	var total int64
 	err := DB.Model(&EnterpriseUsageDaily{}).Where("enterprise_id = ? AND period_id = ?", enterpriseId, periodId).

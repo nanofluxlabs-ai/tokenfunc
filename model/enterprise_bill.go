@@ -63,6 +63,9 @@ type EnterpriseBill struct {
 	ReminderCount      int             `json:"reminder_count" gorm:"not null;default:0"`
 	LastRemindedAt     int64           `json:"last_reminded_at" gorm:"not null;default:0"`
 	ReconcileDiffQuota int64           `json:"reconcile_diff_quota" gorm:"not null;default:0"`
+	// PromptTokens / CompletionTokens 账期内 token 消耗，出账时从 ent_usage_daily 统计一次写入（prompt 为含缓存的原始输入）
+	PromptTokens     int64 `json:"prompt_tokens" gorm:"not null;default:0"`
+	CompletionTokens int64 `json:"completion_tokens" gorm:"not null;default:0"`
 	// ReconcileAckedAt / By / Note 管理员确认差异已人工核对；为 0 表示待处理
 	ReconcileAckedAt int64     `json:"reconcile_acked_at" gorm:"not null;default:0"`
 	ReconcileAckedBy int       `json:"reconcile_acked_by" gorm:"not null;default:0"`
@@ -196,11 +199,13 @@ func IssueCreditBill(periodId int64) (*EnterpriseBill, error) {
 			return err
 		}
 		now := common.GetTimestamp()
-		var detailTotal int64
+		// 明细聚合：对账用的 quota 与账单要冻结的 token 一次查出
+		var detail enterpriseUsageDetailTotals
 		if err := tx.Model(&EnterpriseUsageDaily{}).Where("enterprise_id = ? AND period_id = ?", period.EnterpriseId, period.Id).
-			Select("COALESCE(SUM(quota), 0)").Scan(&detailTotal).Error; err != nil {
+			Select(enterpriseUsageDetailTotalsSelect).Scan(&detail).Error; err != nil {
 			return err
 		}
+		detailTotal := detail.Quota
 		if period.UsedQuota <= 0 && detailTotal <= 0 {
 			// 本期没有消费：不出账单，账期直接结束
 			return tx.Model(&EnterpriseCreditPeriod{}).Where("id = ?", period.Id).Updates(map[string]any{
@@ -248,6 +253,8 @@ func IssueCreditBill(periodId int64) (*EnterpriseBill, error) {
 			IssuedAt:           now,
 			DueAt:              now + int64(terms)*86400,
 			ReconcileDiffQuota: period.UsedQuota - detailTotal,
+			PromptTokens:       detail.PromptTokens,
+			CompletionTokens:   detail.CompletionTokens,
 			UsageSnapshot:      JSONValue(usageJSON),
 			SellerSnapshot:     JSONValue(sellerJSON),
 			BuyerSnapshot:      JSONValue(buyerJSON),
@@ -520,11 +527,12 @@ func GenerateMonthlyStatements(now int64) (int, error) {
 		if exists > 0 {
 			continue
 		}
-		var consumption int64
+		var detail enterpriseUsageDetailTotals
 		if err := DB.Model(&EnterpriseUsageDaily{}).Where("enterprise_id = ? AND day BETWEEN ? AND ?", enterprise.Id, fromDay, toDay).
-			Select("COALESCE(SUM(quota), 0)").Scan(&consumption).Error; err != nil {
+			Select(enterpriseUsageDetailTotalsSelect).Scan(&detail).Error; err != nil {
 			return created, err
 		}
+		consumption := detail.Quota
 		var topups, adjustments int64
 		ledgerRange := DB.Model(&EnterpriseLedgerEntry{}).Where("enterprise_id = ? AND created_at >= ? AND created_at < ?", enterprise.Id, periodStart.Unix(), periodEnd.Unix())
 		if err := ledgerRange.Where("type = ?", EnterpriseLedgerTopup).Select("COALESCE(SUM(amount_quota), 0)").Scan(&topups).Error; err != nil {
@@ -555,22 +563,24 @@ func GenerateMonthlyStatements(now int64) (int, error) {
 		buyerJSON, _ := common.Marshal(map[string]any{"enterprise_name": enterprise.Name, "billing_profile": enterprise.BillingProfile})
 		sellerJSON, _ := common.Marshal(GetEnterpriseSellerProfile())
 		bill := &EnterpriseBill{
-			EnterpriseId:   enterprise.Id,
-			BillType:       EnterpriseBillTypeStatement,
-			PeriodStart:    periodStart.Unix(),
-			PeriodEnd:      periodEnd.Unix(),
-			AmountQuota:    consumption,
-			AmountUSD:      QuotaToUSD(consumption),
-			TotalUSD:       QuotaToUSD(consumption),
-			Currency:       EnterpriseDefaultCurrency,
-			Status:         EnterpriseBillPaid,
-			IssuedAt:       now,
-			PaidAt:         now,
-			UsageSnapshot:  JSONValue(snapshot),
-			SellerSnapshot: JSONValue(sellerJSON),
-			BuyerSnapshot:  JSONValue(buyerJSON),
-			CreatedAt:      now,
-			UpdatedAt:      now,
+			EnterpriseId:     enterprise.Id,
+			BillType:         EnterpriseBillTypeStatement,
+			PeriodStart:      periodStart.Unix(),
+			PeriodEnd:        periodEnd.Unix(),
+			AmountQuota:      consumption,
+			AmountUSD:        QuotaToUSD(consumption),
+			TotalUSD:         QuotaToUSD(consumption),
+			Currency:         EnterpriseDefaultCurrency,
+			Status:           EnterpriseBillPaid,
+			IssuedAt:         now,
+			PaidAt:           now,
+			PromptTokens:     detail.PromptTokens,
+			CompletionTokens: detail.CompletionTokens,
+			UsageSnapshot:    JSONValue(snapshot),
+			SellerSnapshot:   JSONValue(sellerJSON),
+			BuyerSnapshot:    JSONValue(buyerJSON),
+			CreatedAt:        now,
+			UpdatedAt:        now,
 		}
 		err = DB.Transaction(func(tx *gorm.DB) error {
 			if err := tx.Create(bill).Error; err != nil {

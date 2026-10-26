@@ -70,6 +70,8 @@ const diffBill: Bill = {
   reconcile_acked_at: 0,
   reconcile_acked_by: 0,
   reconcile_ack_note: '',
+  prompt_tokens: 1_200_000,
+  completion_tokens: 34_567,
   remark: '',
   archive_info: null,
   archived_at: 0,
@@ -98,6 +100,7 @@ const openPeriod: FinanceBillSummary = {
   due_at: 0,
   limit_quota: 250_000_000,
   used_quota: 500_000,
+  token_usage: { prompt_tokens: 9_000, completion_tokens: 1_000 },
 }
 
 const billRow: FinanceBillSummary = {
@@ -143,6 +146,9 @@ test('lists open periods and issued bills in one table, each linking to its own 
     screen.getByRole('link', { name: 'TF-202610-000007' })
   ).toHaveAttribute('href', '/finance/bills/bill-7')
   expect(screen.getByText('In progress')).toBeInTheDocument()
+  // Token 消耗：账单行取冻结的两列，账期行取日聚合求和，都显示输入 + 输出合计
+  expect(screen.getByText('1,234,567')).toBeInTheDocument()
+  expect(screen.getByText('10,000')).toBeInTheDocument()
   expect(screen.getByText(/^Diff /)).toBeInTheDocument()
   expect(screen.getByText('Total: 31')).toBeInTheDocument()
   expect(apiMock.listFinanceBills).toHaveBeenLastCalledWith({

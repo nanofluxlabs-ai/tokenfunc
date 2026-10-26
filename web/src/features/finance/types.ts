@@ -340,7 +340,11 @@ export interface FinanceBillSummary {
   used_quota: number
   /** 已出账行带完整账单，行操作直接用；账期行没有 */
   bill?: import('@/features/enterprise-console/types').Bill
+  /** 账期内 token 消耗：账单行取冻结的两列，进行中账期从日聚合表求和 */
+  token_usage?: TokenUsage
 }
+
+export type TokenUsage = { prompt_tokens: number; completion_tokens: number }
 
 /** 财务中心账单列表：进行中账期在前、已出账账单在后，同一分页序列 */
 export type FinanceBillList = PagedData<FinanceBillSummary>

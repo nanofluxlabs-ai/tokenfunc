@@ -481,7 +481,7 @@ func TestEnterpriseBillRemindersAndStatements(t *testing.T) {
 	monthStart := time.Date(current.Year(), current.Month(), 1, 0, 0, 0, 0, enterpriseBillingLocation)
 	lastMonth := monthStart.AddDate(0, -1, 0)
 	require.NoError(t, DB.Create(&EnterpriseLedgerEntry{EnterpriseId: ent.Id, Type: EnterpriseLedgerTopup, AmountQuota: 300, CreatedAt: lastMonth.Unix() + 3600}).Error)
-	require.NoError(t, DB.Create(&EnterpriseUsageDaily{Day: lastMonth.AddDate(0, 0, 2).Format("2006-01-02"), EnterpriseId: ent.Id, TokenId: 1, ModelName: "m", RequestCount: 1, Quota: 120, UpdatedAt: now}).Error)
+	require.NoError(t, DB.Create(&EnterpriseUsageDaily{Day: lastMonth.AddDate(0, 0, 2).Format("2006-01-02"), EnterpriseId: ent.Id, TokenId: 1, ModelName: "m", RequestCount: 1, PromptTokens: 700, CompletionTokens: 300, Quota: 120, UpdatedAt: now}).Error)
 	created, err := GenerateMonthlyStatements(now)
 	require.NoError(t, err)
 	assert.Equal(t, 1, created)
@@ -493,6 +493,8 @@ func TestEnterpriseBillRemindersAndStatements(t *testing.T) {
 	require.Equal(t, int64(1), total)
 	assert.Regexp(t, `^ST-\d{6}-\d{6}$`, statements[0].BillNo)
 	assert.Equal(t, lastMonth.Unix(), statements[0].PeriodStart)
+	assert.Equal(t, int64(700), statements[0].PromptTokens, "对账单冻结账期内 token 消耗")
+	assert.Equal(t, int64(300), statements[0].CompletionTokens)
 	// 对账单快照：余额变动五项 + 归因块（by_team / by_member 来自 ent_usage_daily 按自然月取）；日志库不可用时没有 v2 财务块
 	var snapshot struct {
 		Opening     int64                         `json:"opening_quota"`

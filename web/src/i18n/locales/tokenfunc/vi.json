@@ -1534,6 +1534,7 @@
     "Enterprise / User": "Doanh nghiệp / Người dùng",
     "Due {{date}}": "Hạn {{date}}",
     "Period no.": "Số kỳ",
-    "Copy {{name}}": "Sao chép {{name}}"
+    "Copy {{name}}": "Sao chép {{name}}",
+    "Token usage": "Token đã dùng"
   }
 }

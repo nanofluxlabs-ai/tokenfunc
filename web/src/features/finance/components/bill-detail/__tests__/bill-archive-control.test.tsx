@@ -41,6 +41,8 @@ const baseBill: Bill = {
   reconcile_acked_at: 0,
   reconcile_acked_by: 0,
   reconcile_ack_note: '',
+  prompt_tokens: 0,
+  completion_tokens: 0,
   remark: '',
   archive_info: null,
   archived_at: 0,

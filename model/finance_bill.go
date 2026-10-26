@@ -48,6 +48,8 @@ type FinanceBillSummary struct {
 	UsedQuota      int64  `json:"used_quota"`
 	// Bill 列表里已出账的行带完整账单，行操作（发票 / CSV / 收款 / 调账 / 作废）不用再查
 	Bill *EnterpriseBill `json:"bill,omitempty"`
+	// TokenUsage 账期内 token 消耗：账单行取出账时冻结的两列，账期行读时从 ent_usage_daily 求和
+	TokenUsage *EnterpriseTokenUsage `json:"token_usage,omitempty"`
 }
 
 // FinanceBillList bills 接口返回：进行中 / 待出账账期排在前面，之后是已出账账单，同一分页序列，Total 为两者合计
@@ -201,12 +203,25 @@ func ListFinanceBills(query FinanceBillListQuery, startIdx int, num int) (*Finan
 			periods[row.Id] = row
 		}
 	}
+	openPeriodIds := make([]int64, 0, len(pagePeriods))
 	for _, period := range pagePeriods {
-		result.Items = append(result.Items, financeBillSummaryFromPeriod(period, briefs[period.EnterpriseId]))
+		openPeriodIds = append(openPeriodIds, period.Id)
+	}
+	periodTokens, err := SumEnterpriseUsageTokensByPeriods(openPeriodIds)
+	if err != nil {
+		return nil, err
+	}
+	for _, period := range pagePeriods {
+		summary := financeBillSummaryFromPeriod(period, briefs[period.EnterpriseId])
+		if usage, ok := periodTokens[period.Id]; ok {
+			summary.TokenUsage = &usage
+		}
+		result.Items = append(result.Items, summary)
 	}
 	for _, bill := range bills {
 		summary := financeBillSummaryFromBill(bill, briefs[bill.EnterpriseId], periods[bill.PeriodId])
 		summary.Bill = bill
+		summary.TokenUsage = &EnterpriseTokenUsage{PromptTokens: bill.PromptTokens, CompletionTokens: bill.CompletionTokens}
 		result.Items = append(result.Items, summary)
 	}
 	return result, nil

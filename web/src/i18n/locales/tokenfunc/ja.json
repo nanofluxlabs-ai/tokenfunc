@@ -1534,6 +1534,7 @@
     "Enterprise / User": "企業 / ユーザー",
     "Due {{date}}": "期限 {{date}}",
     "Period no.": "期番号",
-    "Copy {{name}}": "{{name}} をコピー"
+    "Copy {{name}}": "{{name}} をコピー",
+    "Token usage": "トークン消費"
   }
 }

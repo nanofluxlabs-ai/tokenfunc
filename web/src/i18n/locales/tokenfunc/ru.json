@@ -1534,6 +1534,7 @@
     "Enterprise / User": "Компания / Пользователь",
     "Due {{date}}": "Срок {{date}}",
     "Period no.": "Номер периода",
-    "Copy {{name}}": "Копировать {{name}}"
+    "Copy {{name}}": "Копировать {{name}}",
+    "Token usage": "Расход токенов"
   }
 }

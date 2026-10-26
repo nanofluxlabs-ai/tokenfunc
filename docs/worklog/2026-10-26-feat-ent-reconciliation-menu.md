@@ -36,12 +36,14 @@
 
 - 进行中 / 待出账的授信账期不再单独一张表，并入账单表：后端 `ListFinanceBills` 改为账期（end_at 升序）在前、已出账账单在后的同一分页序列，`total` 合计，分页跨段自动衔接；已出账行带完整 `bill`，行操作（发票 / CSV / 收款 / 调账 / 作废）不再二次请求。旧 `open_periods` 字段删除。
 - 查询条：企业名称 / 账单号（ILIKE，`EnterpriseBillFilter` 新增两个字段，`/api/admin/enterprise/bills` 同样可用）/ 状态下拉（第一项「全部状态」，之后 进行中 / 待出账 / 未付 / 部分已付 / 逾期 / 已付 / 已作废 / 月度对账单 / 对账差异，一个 `status` 参数覆盖原来的 tab + overdue + bill_type + reconcile）/ 查询 / 重置 / 共 N 条；原来的状态 Tabs 删除。
+- 「调用次数」列换成「Token 消耗」（黑鹰：调用次数对计费无意义）。不按月扫 logs：出账时与对账的 `detail_total_quota` 同一条查询从 `ent_usage_daily` 取 `SUM(prompt_tokens) / SUM(completion_tokens)` 冻结进 `ent_bills` 两个新列（授信按 period_id、月度对账单按日区间）；进行中账期列表读时对本页账期一条 `GROUP BY period_id`；加列前的账单启动回填（本地 TF-202610-000001 回填为 4000 / 2000）。展示输入 + 输出合计，悬浮复用财务模块的 `MetricTooltip` 看拆分；两者为 0 显示「—」。口径：prompt 为含缓存的原始输入，账单行与账期行同源。
 - 列表版式参考 tokensolo：账单号带复制、企业 / 用户两行、计费模式徽标、账期只到天（半开区间结束日减一）、期号、调用次数（v2 快照）、消耗 / 授信进度条、状态下附到期日；去掉已付款 / 到期日两列。企业侧同一张表，没有摘要的字段显示「—」。
 - 前端：`BillsTable` 的行改成 `账单 | 账期` 联合类型（`rows`），企业侧对账页只传账单行；财务中心 `bills-panel.tsx` 承载查询条 + 表 + 行操作对话框，`enterprises/components/bills-admin-page.tsx` 与 `finance/components/bills/open-periods-table.tsx` 删除，对账差异测试迁为 `finance/components/bills/__tests__/bills-panel.test.tsx`（账期行与账单行同表、查询 / 重置、状态下拉）。
 
 ## 验证
 
 - 后端：`go build ./... && gofmt -l controller model router middleware` 无输出；`make test-db PKG="./controller/... ./model/... ./router/... ./middleware/..."` 四包 ok（PG）；新增用例单跑 PASS（`TestFinanceBillContextAndList`、`TestAdminFinanceUsageReadsArchivedStatementAfterLogsPurged`、`TestEnterpriseConsoleBillExport` 含账本时间 / 多类型过滤）。
+- Token 消耗一轮：`make test-db PKG="-count=1 ./model/... ./controller/..."` 通过（新增：出账冻结 token、对账单冻结 token、进行中账期按 period_id 求和、账单行取列、清零后回填恢复）；前端 typecheck、改动文件 oxlint / oxfmt、`vitest run src/features/finance src/features/enterprise-console src/features/enterprises` 44 文件 159 用例通过；`make api` 后 dev 库 `ent_bills` 两列回填成功；浏览器财务中心企业账单「Token 消耗」列显示 6,000，悬浮「输入 4,000 / 输出 2,000」。
 - 企业账单一轮：`make test-db PKG="-count=1 -run TestFinanceBillContextAndList ./model/"` PASS（新增：账期在前账单在后、跨段分页、只看 open、账单号只过滤账单、企业名称不区分大小写）；`make test-db PKG="-count=1 ./model/... ./controller/..."`；前端 `typecheck`、改动文件 oxlint / oxfmt、`vitest run src/features/finance src/features/enterprise-console src/features/enterprises` 41 文件 154 用例通过；浏览器（qa-admin）财务中心企业账单：查询条 + 单表，按账单号「TF-2026」搜索得 1 条。
 - 分页统一一轮：`bun run typecheck`、改动文件 oxlint / oxfmt 通过；`vitest run --changed HEAD` 6 文件 19 用例通过（密钥页 5、财务对账页 5、概览等）；浏览器确认密钥页（整页高度、页脚分页、多选）、财务对账账期账单 / 充值账单（表格下方分页条，每页 20 可切）。
 - 前端：`bun run typecheck` 通过；`oxlint` 改动目录 0 error（仅上游既有 warning 与 `chat/$chatId.tsx` 的既有 error）；`oxfmt --check` 改动文件通过；`vitest run --changed HEAD` 32 文件 203 用例通过；全量 `vitest run` 295 文件 2744 用例 0 失败（第一次全量与代理并行跑时有 7 个文件偶发失败，复跑全部通过）。

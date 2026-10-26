@@ -166,6 +166,7 @@
 | issued_at / due_at / paid_at | due = issued + payment_terms_days |
 | reminder_count / last_reminded_at | 逾期催款次数与时间 |
 | reconcile_diff_quota | 计数器与明细聚合的差值（应为 0） |
+| prompt_tokens / completion_tokens | 账期内 token 消耗，出账时与 detail_total_quota 同一条查询从 `ent_usage_daily` 冻结（prompt 为含缓存的原始输入）；加列前的账单启动时回填（`backfillEnterpriseBillTokens`，幂等）。财务中心列表「Token 消耗」= 两者之和，进行中账期读时按 period_id 求和 |
 | reconcile_acked_at / reconcile_acked_by / reconcile_ack_note | 对账差异人工确认（M8） |
 | usage_snapshot | jsonb，见下 |
 | seller_snapshot | jsonb：出账时我方公司信息、银行账户（option `enterprise.seller_profile`） |

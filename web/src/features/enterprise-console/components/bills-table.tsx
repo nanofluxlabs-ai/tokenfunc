@@ -14,19 +14,21 @@ import { DataTablePage, useDataTable } from '@/components/data-table'
 import { StatusBadge } from '@/components/status-badge'
 import { Button } from '@/components/ui/button'
 import { billDay } from '@/features/finance/components/bill-detail/bill-day'
+import { MetricTooltip } from '@/features/finance/components/metric-tooltip'
 import { ShareBar } from '@/features/finance/components/share-bar'
 import { creditUsagePercent } from '@/features/finance/lib/bill-ref'
 import { readBlobError, saveBlob } from '@/features/finance/lib/csv'
-import type { FinanceBillSummary } from '@/features/finance/types'
+import type { FinanceBillSummary, TokenUsage } from '@/features/finance/types'
+import { toIntlLocale } from '@/i18n/languages'
 import { formatQuotaWithCurrency } from '@/lib/currency'
-import { quotaUnitsToDollars } from '@/lib/format'
+import { formatNumber, quotaUnitsToDollars } from '@/lib/format'
 import { handleServerError } from '@/lib/handle-server-error'
 
 import { downloadBillCsv, type BillExportScope } from '../api'
 import { BILL_STATUSES, BILL_TYPES, CREDIT_PERIOD_STATUSES } from '../constants'
 import { isBillOverdue } from '../lib/bill-utils'
 import { openInvoicePrintWindow } from '../lib/invoice-html'
-import { isBillSnapshotV2, type Bill } from '../types'
+import type { Bill } from '../types'
 
 export function BillStatusBadge(props: { bill: Bill }) {
   const { t } = useTranslation()
@@ -201,6 +203,27 @@ function PeriodStatusBadge(props: { period: FinanceBillSummary }) {
   )
 }
 
+/** Token 消耗：显示输入 + 输出合计，悬浮看拆分；没有数据（旧账单回填不到）显示「—」 */
+function TokenUsageCell(props: { usage: TokenUsage | undefined }) {
+  const { t, i18n } = useTranslation()
+  const locale = toIntlLocale(i18n.resolvedLanguage || i18n.language)
+  const prompt = props.usage?.prompt_tokens ?? 0
+  const completion = props.usage?.completion_tokens ?? 0
+  if (prompt + completion === 0) return '—'
+  return (
+    <MetricTooltip
+      items={[
+        { label: t('Input'), value: formatNumber(prompt, locale) },
+        { label: t('Output'), value: formatNumber(completion, locale) },
+      ]}
+    >
+      <span className='font-mono tabular-nums'>
+        {formatNumber(prompt + completion, locale)}
+      </span>
+    </MetricTooltip>
+  )
+}
+
 /** 只对账单行有内容的单元格，账期行显示「—」 */
 const billCell =
   (render: (bill: Bill) => ReactNode) =>
@@ -307,14 +330,17 @@ export function BillsTable(props: BillsTableProps) {
       },
     },
     {
-      id: 'calls',
-      header: t('Calls'),
-      cell: billCell((bill) => {
-        const snapshot = bill.usage_snapshot
-        return snapshot && isBillSnapshotV2(snapshot)
-          ? snapshot.logs_total_calls.toLocaleString()
-          : '—'
-      }),
+      id: 'tokens',
+      header: t('Token usage'),
+      cell: ({ row: { original } }) => (
+        <TokenUsageCell
+          usage={
+            original.kind === 'bill'
+              ? original.bill
+              : original.period.token_usage
+          }
+        />
+      ),
     },
     {
       id: 'spend',

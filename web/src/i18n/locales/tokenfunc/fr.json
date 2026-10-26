@@ -1534,6 +1534,7 @@
     "Enterprise / User": "Entreprise / Utilisateur",
     "Due {{date}}": "Échéance {{date}}",
     "Period no.": "N° de période",
-    "Copy {{name}}": "Copier {{name}}"
+    "Copy {{name}}": "Copier {{name}}",
+    "Token usage": "Consommation de tokens"
   }
 }

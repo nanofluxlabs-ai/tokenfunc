@@ -378,6 +378,12 @@ func TestFinanceBillContextAndList(t *testing.T) {
 	insertFinanceLog(t, Log{UserId: owner.Id, Quota: 400, CreatedAt: end - 1})
 	insertFinanceLog(t, Log{UserId: owner.Id, Quota: 500, CreatedAt: end})
 
+	// token 消耗来自 ent_usage_daily（quota 置 0 不影响对账）：待出账期两行、进行中账期一行
+	day := FinanceDay(start)
+	require.NoError(t, DB.Create(&EnterpriseUsageDaily{Day: day, EnterpriseId: enterprise.Id, TokenId: 1, ModelName: "gpt-a", PeriodId: closing.Id, RequestCount: 1, PromptTokens: 1000, CompletionTokens: 200, UpdatedAt: start}).Error)
+	require.NoError(t, DB.Create(&EnterpriseUsageDaily{Day: day, EnterpriseId: enterprise.Id, TokenId: 1, ModelName: "gpt-b", PeriodId: closing.Id, RequestCount: 1, PromptTokens: 500, CompletionTokens: 100, UpdatedAt: start}).Error)
+	require.NoError(t, DB.Create(&EnterpriseUsageDaily{Day: day, EnterpriseId: enterprise.Id, TokenId: 1, ModelName: "gpt-a", PeriodId: open.Id, RequestCount: 1, PromptTokens: 40, CompletionTokens: 2, UpdatedAt: start}).Error)
+
 	all := FinanceBillListQuery{IncludeBills: true, IncludePeriods: true}
 	list, err := ListFinanceBills(all, 0, 20)
 	require.NoError(t, err)
@@ -388,7 +394,11 @@ func TestFinanceBillContextAndList(t *testing.T) {
 		assert.Equal(t, "Bill Co", period.EnterpriseName)
 		assert.Equal(t, "billowner", period.Username)
 		assert.Nil(t, period.Bill)
+		require.NotNil(t, period.TokenUsage, "进行中账期的 token 从日聚合表按 period_id 求和")
 	}
+	periodTokens := map[int64]EnterpriseTokenUsage{list.Items[0].Id: *list.Items[0].TokenUsage, list.Items[1].Id: *list.Items[1].TokenUsage}
+	assert.Equal(t, EnterpriseTokenUsage{PromptTokens: 1500, CompletionTokens: 300}, periodTokens[closing.Id])
+	assert.Equal(t, EnterpriseTokenUsage{PromptTokens: 40, CompletionTokens: 2}, periodTokens[open.Id])
 
 	context, err := GetFinanceBillContext(FinanceBillKindPeriod, closing.Id)
 	require.NoError(t, err)
@@ -419,6 +429,8 @@ func TestFinanceBillContextAndList(t *testing.T) {
 	assert.Equal(t, 99, billContext.Summary.PeriodNo)
 	assert.Equal(t, end-1, billContext.UsageTsEnd)
 	require.NotNil(t, billContext.Bill.UsageSnapshotV2(), "出账时已冻结 v2 财务块")
+	assert.Equal(t, int64(1500), bill.PromptTokens, "出账时把账期 token 消耗冻结进账单")
+	assert.Equal(t, int64(300), bill.CompletionTokens)
 	assert.NotContains(t, string(billContext.Bill.UsageSnapshot), "snapshot_source", "原生 v2 快照不标来源")
 
 	// 旧快照（v1，没有财务块）的账单：logs 未清理时上下文里现算 v2 块并标 snapshot_source=live，不落库
@@ -443,6 +455,15 @@ func TestFinanceBillContextAndList(t *testing.T) {
 	assert.Equal(t, FinanceBillKindBill, list.Items[1].Kind)
 	assert.Equal(t, bill.Id, list.Items[1].Id)
 	require.NotNil(t, list.Items[1].Bill, "已出账行带完整账单供行操作")
+	assert.Equal(t, &EnterpriseTokenUsage{PromptTokens: 1500, CompletionTokens: 300}, list.Items[1].TokenUsage, "账单行的 token 来自冻结的两列")
+	assert.Equal(t, &EnterpriseTokenUsage{PromptTokens: 40, CompletionTokens: 2}, list.Items[0].TokenUsage)
+	// 加列前出的旧账单：两列为 0，启动回填从日聚合表补齐，已有值的不动
+	require.NoError(t, DB.Model(&EnterpriseBill{}).Where("id = ?", bill.Id).Updates(map[string]any{"prompt_tokens": 0, "completion_tokens": 0}).Error)
+	require.NoError(t, backfillEnterpriseBillTokens())
+	refilled, err := GetEnterpriseBill(bill.Id)
+	require.NoError(t, err)
+	assert.Equal(t, int64(1500), refilled.PromptTokens)
+	assert.Equal(t, int64(300), refilled.CompletionTokens)
 	// 分页跨越账期段与账单段：跳过 1 行后只剩账单，总数不变
 	page2, err := ListFinanceBills(all, 1, 20)
 	require.NoError(t, err)

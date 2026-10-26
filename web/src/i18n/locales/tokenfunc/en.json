@@ -1534,6 +1534,7 @@
     "Enterprise / User": "Enterprise / User",
     "Due {{date}}": "Due {{date}}",
     "Period no.": "Period no.",
-    "Copy {{name}}": "Copy {{name}}"
+    "Copy {{name}}": "Copy {{name}}",
+    "Token usage": "Token usage"
   }
 }

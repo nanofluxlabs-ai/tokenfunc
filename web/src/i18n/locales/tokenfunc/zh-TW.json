@@ -1534,6 +1534,7 @@
     "Enterprise / User": "企業 / 使用者",
     "Due {{date}}": "{{date}} 到期",
     "Period no.": "期號",
-    "Copy {{name}}": "複製 {{name}}"
+    "Copy {{name}}": "複製 {{name}}",
+    "Token usage": "Token 消耗"
   }
 }

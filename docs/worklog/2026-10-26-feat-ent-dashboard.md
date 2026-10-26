@@ -2,7 +2,7 @@
 
 - 日期：2026-10-26
 - 分支：worktree-feat-ent-dashboard
-- PR：
+- PR：#63
 - 关键 commit：81088d377（后端 token 字段）、25a3c93cd（前端改版）
 
 ## 背景

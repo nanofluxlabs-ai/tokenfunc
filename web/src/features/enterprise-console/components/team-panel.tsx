@@ -13,7 +13,6 @@ import { cn } from '@/lib/utils'
 import { archiveTeam, deleteTeam } from '../api'
 import type { Team } from '../types'
 import { TeamAdminDialog } from './team-admin-dialog'
-import { TeamBudgetMeter } from './team-budget-meter'
 import { TeamDialog } from './team-dialog'
 
 /** 选中值：'all' 全部成员，正数为团队 id */
@@ -52,7 +51,7 @@ function TeamRow(props: {
     >
       <button
         type='button'
-        className='flex min-w-0 flex-1 flex-col gap-1 py-1.5 text-left'
+        className='flex min-w-0 flex-1 flex-col py-1.5 text-left'
         aria-pressed={isSelected}
         onClick={() => props.onSelect(team.id)}
       >
@@ -69,7 +68,6 @@ function TeamRow(props: {
             {team.member_count}
           </span>
         </span>
-        <TeamBudgetMeter team={team} />
       </button>
       {props.canManage && (
         <DataTableRowActionMenu

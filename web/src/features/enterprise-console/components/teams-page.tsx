@@ -16,6 +16,7 @@ import {
   isTeamScoped,
 } from '../lib/member-roles'
 import type { EnterpriseTeamsSearch } from '../search-schema'
+import type { Team } from '../types'
 import { EnterpriseGuard } from './enterprise-guard'
 import { MemberDialog } from './member-dialog'
 import { MemberImportDialog } from './member-import-dialog'
@@ -25,6 +26,26 @@ import { TeamDialog } from './team-dialog'
 import { type TeamSelection, TeamPanel } from './team-panel'
 
 const route = getRouteApi('/_authenticated/enterprise/teams')
+
+/** 成员表上方的团队页头：名称、人数、预算进度；预算不放进左侧列表，避免每行都挤一条进度条 */
+function TeamHeaderCard(props: { team: Team }) {
+  const { t } = useTranslation()
+  return (
+    <Card>
+      <CardContent className='flex flex-wrap items-center gap-x-6 gap-y-2'>
+        <div className='flex items-baseline gap-2'>
+          <span className='text-base font-semibold'>{props.team.name}</span>
+          <span className='text-muted-foreground text-sm'>
+            {t('{{count}} members', { count: props.team.member_count })}
+          </span>
+        </div>
+        <div className='min-w-64 flex-1'>
+          <TeamBudgetMeter team={props.team} />
+        </div>
+      </CardContent>
+    </Card>
+  )
+}
 
 /**
  * 团队页：左边团队（人数、本月消耗、预算），右边成员；选中团队与成员筛选都在 URL 里。
@@ -45,9 +66,9 @@ export function EnterpriseTeams() {
 
   let selected: TeamSelection = search.team_id ?? 'all'
   if (teamScoped && actor) selected = actor.team_id
-  const ownTeam = teamScoped
-    ? teams.data?.find((team) => team.id === selected)
-    : undefined
+  // 团队角色：本团队；企业视角：当前选中的团队（「全部成员」时无）
+  const selectedTeam = teams.data?.find((team) => team.id === selected)
+  const ownTeam = teamScoped ? selectedTeam : undefined
 
   const updateSearch = (patch: Partial<EnterpriseTeamsSearch>) =>
     void navigate({
@@ -98,25 +119,7 @@ export function EnterpriseTeams() {
           <EnterpriseGuard>
             {teamScoped ? (
               <div className='flex flex-col gap-4'>
-                {ownTeam && (
-                  <Card>
-                    <CardContent className='flex flex-wrap items-center gap-x-6 gap-y-2'>
-                      <div className='flex items-baseline gap-2'>
-                        <span className='text-base font-semibold'>
-                          {ownTeam.name}
-                        </span>
-                        <span className='text-muted-foreground text-sm'>
-                          {t('{{count}} members', {
-                            count: ownTeam.member_count,
-                          })}
-                        </span>
-                      </div>
-                      <div className='min-w-64 flex-1'>
-                        <TeamBudgetMeter team={ownTeam} />
-                      </div>
-                    </CardContent>
-                  </Card>
-                )}
+                {ownTeam && <TeamHeaderCard team={ownTeam} />}
                 <MembersSection
                   team={selected}
                   actor={actor}
@@ -141,12 +144,15 @@ export function EnterpriseTeams() {
                     />
                   </CardContent>
                 </Card>
-                <MembersSection
-                  team={selected}
-                  actor={actor}
-                  search={search}
-                  onSearchChange={updateSearch}
-                />
+                <div className='flex flex-col gap-4'>
+                  {selectedTeam && <TeamHeaderCard team={selectedTeam} />}
+                  <MembersSection
+                    team={selected}
+                    actor={actor}
+                    search={search}
+                    onSearchChange={updateSearch}
+                  />
+                </div>
               </div>
             )}
           </EnterpriseGuard>

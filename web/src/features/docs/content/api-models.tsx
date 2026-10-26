@@ -24,6 +24,7 @@ import { StaticDataTable } from '@/components/data-table'
 import { CodeSample } from '../components/code-sample'
 import { P } from '../components/doc-prose'
 import { DocSection } from '../components/doc-section'
+import { DocsTableText } from '../components/docs-table-text'
 import { EndpointHeader } from '../components/endpoint-header'
 import { DOCS_API_KEY_ENV, useDocsBaseUrl } from '../hooks/use-docs-base-url'
 import { buildLangTabs } from '../lib/code-sample-tabs'
@@ -119,7 +120,7 @@ export default function ApiModelsPage() {
             {
               id: 'field',
               header: t('Field'),
-              className: 'h-9 w-40',
+              className: 'h-9 w-28 sm:w-40',
               cellClassName: 'py-2.5 align-top',
               cell: (field) => (
                 <code className='font-mono text-sm font-medium'>
@@ -131,12 +132,8 @@ export default function ApiModelsPage() {
               id: 'description',
               header: t('Description'),
               className: 'h-9',
-              cellClassName: 'py-2.5 align-top',
-              cell: (field) => (
-                <span className='text-muted-foreground text-sm leading-relaxed'>
-                  {t(field.descriptionKey)}
-                </span>
-              ),
+              cellClassName: 'py-2.5 align-top whitespace-normal wrap-anywhere',
+              cell: (field) => <DocsTableText text={t(field.descriptionKey)} />,
             },
           ]}
         />

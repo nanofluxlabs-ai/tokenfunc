@@ -21,6 +21,8 @@ import { useTranslation } from 'react-i18next'
 import { StaticDataTable } from '@/components/data-table'
 import { Badge } from '@/components/ui/badge'
 
+import { DocsTableText } from './docs-table-text'
+
 export type DocsParam = {
   name: string
   type: string
@@ -49,29 +51,45 @@ export function ParamTable(props: {
         {
           id: 'parameter',
           header: props.labels?.name ?? t('Parameter'),
-          className: 'h-9 w-48',
-          cellClassName: 'py-2.5 align-top',
+          className: 'h-9 w-36 sm:w-48',
+          cellClassName: 'py-2.5 align-top whitespace-normal wrap-anywhere',
           cell: (param) => (
-            <div className='flex flex-wrap items-center gap-1.5'>
-              <code className='text-foreground font-mono text-sm font-medium'>
-                {param.name}
-              </code>
-              {param.required && (
+            <div className='flex flex-col gap-1.5'>
+              <div className='flex flex-wrap items-center gap-1.5'>
+                <code className='text-foreground font-mono text-sm font-medium break-all'>
+                  {param.name}
+                </code>
+                {param.required && (
+                  <Badge
+                    variant='outline'
+                    className='h-6 border-rose-500/40 px-2 text-xs text-rose-600 dark:text-rose-400'
+                  >
+                    {t('required')}
+                  </Badge>
+                )}
+              </div>
+              {/* 手机上类型 / 默认值两列隐藏，挪到参数名下面 */}
+              <div className='flex flex-wrap items-center gap-1.5 sm:hidden'>
                 <Badge
-                  variant='outline'
-                  className='h-6 border-rose-500/40 px-2 text-xs text-rose-600 dark:text-rose-400'
+                  variant='secondary'
+                  className='h-6 rounded-full px-2 font-mono text-xs font-normal'
                 >
-                  {t('required')}
+                  {param.type}
                 </Badge>
-              )}
+                {param.defaultValue && (
+                  <code className='bg-muted rounded px-1.5 py-0.5 font-mono text-xs'>
+                    {param.defaultValue}
+                  </code>
+                )}
+              </div>
             </div>
           ),
         },
         {
           id: 'type',
           header: props.labels?.type ?? t('Type'),
-          className: 'h-9 w-28',
-          cellClassName: 'py-2.5 align-top',
+          className: 'hidden h-9 w-28 sm:table-cell',
+          cellClassName: 'hidden py-2.5 align-top sm:table-cell',
           cell: (param) => (
             <Badge
               variant='secondary'
@@ -84,8 +102,8 @@ export function ParamTable(props: {
         {
           id: 'default',
           header: props.labels?.default ?? t('Default'),
-          className: 'h-9 w-24',
-          cellClassName: 'py-2.5 align-top',
+          className: 'hidden h-9 w-24 sm:table-cell',
+          cellClassName: 'hidden py-2.5 align-top sm:table-cell',
           cell: (param) =>
             param.defaultValue ? (
               <code className='bg-muted rounded px-1.5 py-0.5 font-mono text-xs'>
@@ -99,12 +117,8 @@ export function ParamTable(props: {
           id: 'description',
           header: t('Description'),
           className: 'h-9',
-          cellClassName: 'py-2.5 align-top',
-          cell: (param) => (
-            <span className='text-muted-foreground text-sm leading-relaxed'>
-              {t(param.descriptionKey)}
-            </span>
-          ),
+          cellClassName: 'py-2.5 align-top whitespace-normal wrap-anywhere',
+          cell: (param) => <DocsTableText text={t(param.descriptionKey)} />,
         },
       ]}
     />

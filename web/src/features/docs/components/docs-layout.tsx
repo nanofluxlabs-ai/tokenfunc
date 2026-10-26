@@ -70,15 +70,21 @@ export function DocsLayout(props: { slug: string; children: React.ReactNode }) {
           </aside>
 
           <div className='min-w-0'>
-            <div className='mb-5 lg:hidden'>
+            {/* 手机目录入口吸在顶部头部下方，读长文时随时可切页 */}
+            <div className='bg-background/95 sticky top-16 z-30 -mx-4 mb-5 border-b px-4 py-2 backdrop-blur md:-mx-6 md:px-6 lg:hidden'>
               <Sheet open={navOpen} onOpenChange={setNavOpen}>
                 <SheetTrigger
                   render={
-                    <Button variant='outline' size='sm' className='gap-2' />
+                    <Button
+                      variant='outline'
+                      size='sm'
+                      aria-label={t('Docs pages')}
+                      className='w-full justify-start gap-2'
+                    />
                   }
                 >
-                  <PanelLeft className='size-4' />
-                  {t('Docs pages')}
+                  <PanelLeft className='size-4 shrink-0' />
+                  <span className='truncate'>{t(entry.titleKey)}</span>
                 </SheetTrigger>
                 <SheetContent side='left' className='overflow-y-auto pt-12'>
                   <SheetHeader>

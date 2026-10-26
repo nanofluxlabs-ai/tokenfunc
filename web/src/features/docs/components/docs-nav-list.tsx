@@ -49,7 +49,7 @@ export function DocsNavList(props: {
                     onClick={props.onNavigate}
                     aria-current={isActive ? 'page' : undefined}
                     className={cn(
-                      'block rounded-md px-3 py-1.5 text-sm transition-colors',
+                      'block rounded-md px-3 py-2.5 text-sm transition-colors lg:py-1.5',
                       isActive
                         ? 'bg-muted text-foreground font-medium'
                         : 'text-muted-foreground hover:bg-muted/50 hover:text-foreground'

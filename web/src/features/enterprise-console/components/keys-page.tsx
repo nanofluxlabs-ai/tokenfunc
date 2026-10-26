@@ -398,7 +398,8 @@ function KeysTable(props: KeysTableProps) {
             sk-{row.key}
             <CopyButton
               size='icon-sm'
-              className='size-5'
+              // 触屏点击区域至少 32px，桌面保持紧凑
+              className='size-8 sm:size-5'
               iconClassName='size-3'
               resolveValue={() => resolveRealKey(row.id)}
               tooltip={t('Copy key')}
@@ -501,11 +502,12 @@ function KeysTable(props: KeysTableProps) {
               size='icon-sm'
               aria-label={enabled ? t('Disable') : t('Enable')}
               disabled={toggling === row.id}
-              className={
+              className={cn(
+                'size-9 sm:size-7',
                 enabled
                   ? 'text-destructive hover:text-destructive'
                   : 'text-emerald-600 hover:text-emerald-600'
-              }
+              )}
               onClick={() => void handleToggle(row)}
             >
               {statusIcon}
@@ -513,6 +515,7 @@ function KeysTable(props: KeysTableProps) {
             <Button
               variant='ghost'
               size='icon-sm'
+              className='size-9 sm:size-7'
               aria-label={t('Edit')}
               onClick={() => props.onEdit(row)}
             >
@@ -691,7 +694,7 @@ function KeysTable(props: KeysTableProps) {
         </MobileFilterSheet>
         <div className='hidden flex-1 sm:block' />
         {selectedIds.length > 0 && (
-          <div className='flex items-center gap-1'>
+          <div className='flex flex-wrap items-center gap-1'>
             <span className='text-muted-foreground text-sm'>
               {t('{{count}} selected', { count: selectedIds.length })}
             </span>

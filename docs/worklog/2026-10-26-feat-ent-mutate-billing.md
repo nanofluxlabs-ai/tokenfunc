@@ -2,8 +2,8 @@
 
 - 日期：2026-10-26
 - 分支：worktree-feat-ent-mutate-billing（worktree）
-- PR：（创建后补）
-- 关键 commit：（提交后补）
+- PR：#64
+- 关键 commit：243bcd2b7
 
 ## 背景
 
@@ -39,7 +39,7 @@
 ## 验证
 
 - 后端：`gofmt -l` 无输出；`make test-db PKG="-count=1 ./model/... ./controller/... ./router/... ./service/... ./middleware/..."` 全部 ok（新增：分组写入 / 校验 / auth_version / 会话吊销、group-options、授信无 proof 403 / 动作不符 403 / 有 proof 200、自然月额度 0 被拒、员工不能升级且离职后可以、创建返回 owner_group）。
-- 前端：`bun run typecheck`；改动文件 oxlint / oxfmt；`vitest run src/features/enterprises src/features/promoters src/components src/features/auth src/features/users src/features/finance src/features/enterprise-console src/i18n`（结果见提交前最后一次运行）。
+- 前端：`bun run typecheck`；改动文件 oxlint / oxfmt；`vitest run src/features/enterprises src/features/promoters src/components src/features/auth src/features/users src/features/finance src/features/enterprise-console src/i18n` 100 个文件 458 条通过。
 - 浏览器（worktree 端口 5175 / 3002，空库初始化 root，GroupRatio 设 vip 0.8 / svip 0.6）：
   - 新建企业（新建账号 + 分组 vip + 授信自然月 $500）→ 先建企业再弹「验证身份以修改企业授信」→ 列表分组 vip、授信 $500 / $500、自然月。
   - 计费抽屉只剩账户 / 账期 / 流水 / 用量，「修改计费设置」切到编辑抽屉并正确回填。

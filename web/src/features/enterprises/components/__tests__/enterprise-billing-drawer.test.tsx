@@ -13,7 +13,6 @@ const apiMock = vi.hoisted(() => ({
   getEnterpriseUsageSummary: vi.fn(),
   issueBillNow: vi.fn(),
   listEnterpriseCreditPeriods: vi.fn(),
-  listEnterpriseLedger: vi.fn(),
   openCreditPeriod: vi.fn(),
   setEnterpriseStatus: vi.fn(),
   createEnterpriseAdjustment: vi.fn(),
@@ -52,10 +51,6 @@ function OpenProbe() {
 
 beforeEach(() => {
   apiMock.getEnterprise.mockResolvedValue({ success: true, data: row })
-  apiMock.listEnterpriseLedger.mockResolvedValue({
-    success: true,
-    data: { items: [], total: 0 },
-  })
   apiMock.listEnterpriseCreditPeriods.mockResolvedValue({
     success: true,
     data: { items: [], total: 0 },

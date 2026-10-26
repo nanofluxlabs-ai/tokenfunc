@@ -485,7 +485,6 @@
     "Latest purged day": "最近已清理日",
     "Leave empty to disable the agreement requirement. Supports Markdown, HTML, or a full URL. A JSON object keyed by language ({\"zh-CN\": \"...\", \"en\": \"...\"}) switches content with the interface language.": "留空以停用協議要求。支援 Markdown、HTML 或完整 URL。填入按語言分鍵的 JSON 物件（{\"zh-CN\": \"...\", \"en\": \"...\"}）可隨介面語言切換內容。",
     "Leave empty to disable the privacy policy requirement. Supports Markdown, HTML, or a full URL. A JSON object keyed by language ({\"zh-CN\": \"...\", \"en\": \"...\"}) switches content with the interface language.": "留空以停用隱私政策要求。支援 Markdown、HTML 或完整 URL。填入按語言分鍵的 JSON 物件（{\"zh-CN\": \"...\", \"en\": \"...\"}）可隨介面語言切換內容。",
-    "Ledger": "資金流水",
     "Li Na": "李娜",
     "List models": "模型清單",
     "List the models your key may access. The response follows the OpenAI format; only models enabled for your account and token group are included.": "列出你的金鑰可存取的模型。回應遵循 OpenAI 格式；僅包含為你的帳號與權杖群組啟用的模型。",

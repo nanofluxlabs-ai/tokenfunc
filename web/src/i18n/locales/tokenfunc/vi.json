@@ -485,7 +485,6 @@
     "Latest purged day": "Ngày đã dọn gần nhất",
     "Leave empty to disable the agreement requirement. Supports Markdown, HTML, or a full URL. A JSON object keyed by language ({\"zh-CN\": \"...\", \"en\": \"...\"}) switches content with the interface language.": "Để trống để tắt yêu cầu đồng ý điều khoản. Hỗ trợ Markdown, HTML hoặc URL đầy đủ. Đối tượng JSON với khóa là mã ngôn ngữ ({\"zh-CN\": \"...\", \"en\": \"...\"}) sẽ đổi nội dung theo ngôn ngữ giao diện.",
     "Leave empty to disable the privacy policy requirement. Supports Markdown, HTML, or a full URL. A JSON object keyed by language ({\"zh-CN\": \"...\", \"en\": \"...\"}) switches content with the interface language.": "Để trống để tắt yêu cầu đồng ý chính sách bảo mật. Hỗ trợ Markdown, HTML hoặc URL đầy đủ. Đối tượng JSON với khóa là mã ngôn ngữ ({\"zh-CN\": \"...\", \"en\": \"...\"}) sẽ đổi nội dung theo ngôn ngữ giao diện.",
-    "Ledger": "Sổ cái",
     "Li Na": "Lý Na",
     "List models": "Liệt kê mô hình",
     "List the models your key may access. The response follows the OpenAI format; only models enabled for your account and token group are included.": "Liệt kê các mô hình mà khóa của bạn được phép truy cập. Phản hồi theo định dạng OpenAI; chỉ gồm các mô hình được bật cho tài khoản và nhóm token của bạn.",

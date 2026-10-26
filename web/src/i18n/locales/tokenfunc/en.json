@@ -485,7 +485,6 @@
     "Latest purged day": "Latest purged day",
     "Leave empty to disable the agreement requirement. Supports Markdown, HTML, or a full URL. A JSON object keyed by language ({\"zh-CN\": \"...\", \"en\": \"...\"}) switches content with the interface language.": "Leave empty to disable the agreement requirement. Supports Markdown, HTML, or a full URL. A JSON object keyed by language ({\"zh-CN\": \"...\", \"en\": \"...\"}) switches content with the interface language.",
     "Leave empty to disable the privacy policy requirement. Supports Markdown, HTML, or a full URL. A JSON object keyed by language ({\"zh-CN\": \"...\", \"en\": \"...\"}) switches content with the interface language.": "Leave empty to disable the privacy policy requirement. Supports Markdown, HTML, or a full URL. A JSON object keyed by language ({\"zh-CN\": \"...\", \"en\": \"...\"}) switches content with the interface language.",
-    "Ledger": "Ledger",
     "Li Na": "Li Na",
     "List models": "List models",
     "List the models your key may access. The response follows the OpenAI format; only models enabled for your account and token group are included.": "List the models your key may access. The response follows the OpenAI format; only models enabled for your account and token group are included.",

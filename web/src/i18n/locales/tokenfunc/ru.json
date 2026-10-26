@@ -485,7 +485,6 @@
     "Latest purged day": "Последний очищенный день",
     "Leave empty to disable the agreement requirement. Supports Markdown, HTML, or a full URL. A JSON object keyed by language ({\"zh-CN\": \"...\", \"en\": \"...\"}) switches content with the interface language.": "Оставьте пустым, чтобы отключить обязательное принятие соглашения. Поддерживаются Markdown, HTML или полный URL. JSON-объект с ключами-языками ({\"zh-CN\": \"...\", \"en\": \"...\"}) переключает содержимое вместе с языком интерфейса.",
     "Leave empty to disable the privacy policy requirement. Supports Markdown, HTML, or a full URL. A JSON object keyed by language ({\"zh-CN\": \"...\", \"en\": \"...\"}) switches content with the interface language.": "Оставьте пустым, чтобы отключить обязательное принятие политики конфиденциальности. Поддерживаются Markdown, HTML или полный URL. JSON-объект с ключами-языками ({\"zh-CN\": \"...\", \"en\": \"...\"}) переключает содержимое вместе с языком интерфейса.",
-    "Ledger": "Журнал операций",
     "Li Na": "Li Na",
     "List models": "Список моделей",
     "List the models your key may access. The response follows the OpenAI format; only models enabled for your account and token group are included.": "Список моделей, доступных вашему ключу. Ответ следует формату OpenAI; включаются только модели, включённые для вашего аккаунта и группы токенов.",

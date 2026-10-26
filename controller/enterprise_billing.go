@@ -173,14 +173,6 @@ func enterpriseOwnerId(enterprise *model.Enterprise) int {
 	return enterprise.UserId
 }
 
-func AdminListEnterpriseLedger(c *gin.Context) {
-	id, ok := paramId(c)
-	if !ok {
-		return
-	}
-	writeEnterpriseLedger(c, id)
-}
-
 func AdminListEnterpriseCreditPeriods(c *gin.Context) {
 	id, ok := paramId(c)
 	if !ok {
@@ -292,19 +284,11 @@ func GetEnterpriseOverview(c *gin.Context) {
 }
 
 func ListEnterpriseLedgerSelf(c *gin.Context) {
-	writeEnterpriseLedger(c, currentEnterprise(c).Id)
-}
-
-func ListEnterpriseCreditPeriodsSelf(c *gin.Context) {
-	writeEnterpriseCreditPeriods(c, currentEnterprise(c).Id)
-}
-
-func writeEnterpriseLedger(c *gin.Context, enterpriseId int) {
 	pageInfo := common.GetPageQuery(c)
 	// ts_start / ts_end：秒级时间戳，缺省或非法按 0（不限）处理
 	tsStart, _ := strconv.ParseInt(c.Query("ts_start"), 10, 64)
 	tsEnd, _ := strconv.ParseInt(c.Query("ts_end"), 10, 64)
-	entries, total, err := model.ListEnterpriseLedger(enterpriseId, c.Query("type"), tsStart, tsEnd, pageInfo.GetStartIdx(), pageInfo.GetPageSize())
+	entries, total, err := model.ListEnterpriseLedger(currentEnterprise(c).Id, c.Query("type"), tsStart, tsEnd, pageInfo.GetStartIdx(), pageInfo.GetPageSize())
 	if err != nil {
 		common.ApiError(c, err)
 		return
@@ -312,6 +296,10 @@ func writeEnterpriseLedger(c *gin.Context, enterpriseId int) {
 	pageInfo.SetTotal(int(total))
 	pageInfo.SetItems(entries)
 	common.ApiSuccess(c, pageInfo)
+}
+
+func ListEnterpriseCreditPeriodsSelf(c *gin.Context) {
+	writeEnterpriseCreditPeriods(c, currentEnterprise(c).Id)
 }
 
 func writeEnterpriseCreditPeriods(c *gin.Context, enterpriseId int) {

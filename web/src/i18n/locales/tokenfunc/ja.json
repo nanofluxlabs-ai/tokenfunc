@@ -485,7 +485,6 @@
     "Latest purged day": "最新の削除済み日",
     "Leave empty to disable the agreement requirement. Supports Markdown, HTML, or a full URL. A JSON object keyed by language ({\"zh-CN\": \"...\", \"en\": \"...\"}) switches content with the interface language.": "空にすると利用規約への同意要求を無効にします。Markdown、HTML、または完全な URL に対応。言語をキーにした JSON オブジェクト（{\"zh-CN\": \"...\", \"en\": \"...\"}）を入れると、表示言語に応じて内容が切り替わります。",
     "Leave empty to disable the privacy policy requirement. Supports Markdown, HTML, or a full URL. A JSON object keyed by language ({\"zh-CN\": \"...\", \"en\": \"...\"}) switches content with the interface language.": "空にするとプライバシーポリシーへの同意要求を無効にします。Markdown、HTML、または完全な URL に対応。言語をキーにした JSON オブジェクト（{\"zh-CN\": \"...\", \"en\": \"...\"}）を入れると、表示言語に応じて内容が切り替わります。",
-    "Ledger": "取引履歴",
     "Li Na": "李娜",
     "List models": "モデル一覧",
     "List the models your key may access. The response follows the OpenAI format; only models enabled for your account and token group are included.": "キーがアクセスできるモデルを一覧表示します。レスポンスは OpenAI 形式で、アカウントとトークングループで有効化されたモデルのみが含まれます。",

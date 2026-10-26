@@ -131,14 +131,6 @@ export async function createEnterpriseAdjustment(
   return res.data
 }
 
-export async function listEnterpriseLedger(
-  id: number,
-  params: { p?: number; page_size?: number }
-): Promise<ApiResponse<PageData<LedgerEntry>>> {
-  const res = await api.get(`${ADMIN_ENTERPRISE_BASE}/${id}/ledger`, { params })
-  return res.data
-}
-
 export async function listEnterpriseCreditPeriods(
   id: number,
   params: { p?: number; page_size?: number }

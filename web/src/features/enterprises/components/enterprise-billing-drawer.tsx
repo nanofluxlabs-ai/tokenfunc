@@ -19,10 +19,7 @@ import {
   SheetHeader,
   SheetTitle,
 } from '@/components/ui/sheet'
-import {
-  CreditPeriodsTable,
-  LedgerTable,
-} from '@/features/enterprise-console/components/billing-tables'
+import { CreditPeriodsTable } from '@/features/enterprise-console/components/billing-tables'
 import { UsagePanel } from '@/features/enterprise-console/components/usage-panel'
 import { isCreditAwaitingPayment } from '@/features/enterprise-console/lib/credit-period'
 import { formatQuotaWithCurrency } from '@/lib/currency'
@@ -35,7 +32,6 @@ import {
   getEnterpriseUsageSummary,
   issueBillNow,
   listEnterpriseCreditPeriods,
-  listEnterpriseLedger,
   openCreditPeriod,
   setEnterpriseStatus,
 } from '../api'
@@ -64,14 +60,6 @@ export function EnterpriseBillingDrawer(props: EnterpriseBillingDrawerProps) {
     queryKey: ['admin-enterprise', enterpriseId],
     queryFn: async () =>
       requireServerSuccess(await getEnterprise(enterpriseId)).data ?? null,
-    enabled: props.open && enterpriseId > 0,
-  })
-  const ledger = useQuery({
-    queryKey: ['admin-enterprise', enterpriseId, 'ledger'],
-    queryFn: async () =>
-      requireServerSuccess(
-        await listEnterpriseLedger(enterpriseId, { page_size: 20 })
-      ).data?.items ?? [],
     enabled: props.open && enterpriseId > 0,
   })
   const isCredit = enterprise.data?.billing_mode === 'credit'
@@ -291,13 +279,6 @@ export function EnterpriseBillingDrawer(props: EnterpriseBillingDrawerProps) {
                 />
               </SideDrawerSection>
             )}
-            <SideDrawerSection>
-              <SideDrawerSectionHeader title={t('Ledger')} />
-              <LedgerTable
-                entries={ledger.data ?? []}
-                isLoading={ledger.isLoading}
-              />
-            </SideDrawerSection>
             {enterpriseId > 0 && (
               <SideDrawerSection>
                 <SideDrawerSectionHeader title={t('Usage Report')} />

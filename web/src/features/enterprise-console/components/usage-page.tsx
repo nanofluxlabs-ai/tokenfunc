@@ -20,15 +20,8 @@ import { UsagePanel } from './usage-panel'
 
 const route = getRouteApi('/_authenticated/enterprise/usage')
 
-/**
- * 报表上方的上下文条：概览下钻来的给「返回企业概览」；团队页深链来的标出团队 / 成员筛选并给清除入口。
- * 概览与报表是平级菜单，这里是来源提示而不是「上级页面」，从侧边栏直接进入时不显示。
- */
-function UsageContextBar(props: {
-  fromOverview: boolean
-  teamId?: number
-  memberId?: number
-}) {
+/** 从团队页深链过来时在报表上方标出生效的团队 / 成员筛选，并给清除入口 */
+function UsageFilterBar(props: { teamId?: number; memberId?: number }) {
   const { t } = useTranslation()
   const search = route.useSearch()
   const teams = useTeams()
@@ -40,24 +33,12 @@ function UsageContextBar(props: {
       ).data?.items[0] ?? null,
     enabled: Boolean(props.memberId),
   })
-  const filtered = Boolean(props.teamId || props.memberId)
-  if (!props.fromOverview && !filtered) {
+  if (!props.teamId && !props.memberId) {
     return null
   }
   const teamName = teams.data?.find((team) => team.id === props.teamId)?.name
   return (
     <div className='flex flex-wrap items-center gap-2 text-sm'>
-      {props.fromOverview && (
-        <Button
-          variant='ghost'
-          size='sm'
-          className='-ms-2'
-          render={<Link to='/enterprise/overview' />}
-        >
-          <ArrowLeft className='size-4' aria-hidden='true' />
-          {t('Back to Enterprise Overview')}
-        </Button>
-      )}
       {props.teamId && (
         <Badge variant='secondary'>
           {t('Team')}: {teamName ?? `#${props.teamId}`}
@@ -68,20 +49,18 @@ function UsageContextBar(props: {
           {t('Member')}: {member.data?.name ?? `#${props.memberId}`}
         </Badge>
       )}
-      {filtered && (
-        <Button
-          variant='ghost'
-          size='sm'
-          render={
-            <Link
-              to='/enterprise/usage'
-              search={{ ...search, team_id: undefined, member_id: undefined }}
-            />
-          }
-        >
-          {t('Clear filter')}
-        </Button>
-      )}
+      <Button
+        variant='ghost'
+        size='sm'
+        render={
+          <Link
+            to='/enterprise/usage'
+            search={{ ...search, team_id: undefined, member_id: undefined }}
+          />
+        }
+      >
+        {t('Clear filter')}
+      </Button>
     </div>
   )
 }
@@ -109,11 +88,23 @@ export function EnterpriseUsage() {
           <EnterpriseRoleBadge />
         </span>
       </SectionPageLayout.Title>
+      {/* 概览与报表是平级菜单，这里是下钻来源提示而不是「上级页面」；从侧边栏直接进入时不显示 */}
+      {search.source === 'overview' && (
+        <SectionPageLayout.Actions>
+          <Button
+            variant='outline'
+            size='sm'
+            render={<Link to='/enterprise/overview' />}
+          >
+            <ArrowLeft className='size-4' aria-hidden='true' />
+            {t('Back to Enterprise Overview')}
+          </Button>
+        </SectionPageLayout.Actions>
+      )}
       <SectionPageLayout.Content>
         <EnterpriseGuard>
           <div className='flex flex-col gap-4'>
-            <UsageContextBar
-              fromOverview={search.source === 'overview'}
+            <UsageFilterBar
               teamId={search.team_id}
               memberId={search.member_id}
             />

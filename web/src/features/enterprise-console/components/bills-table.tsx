@@ -239,6 +239,7 @@ export function BillsTable(props: BillsTableProps) {
     {
       id: 'bill_no',
       header: t('Bill No.'),
+      meta: { mobileTitle: true },
       cell: ({ row: { original } }) =>
         original.kind === 'bill' ? (
           <span className='inline-flex items-center gap-1 font-mono font-medium'>
@@ -263,6 +264,7 @@ export function BillsTable(props: BillsTableProps) {
           {
             id: 'enterprise',
             header: t('Enterprise / User'),
+            meta: { mobileOrder: 5 },
             cell: ({
               row: { original },
             }: CellContext<BillsTableRow, unknown>) => {
@@ -291,6 +293,7 @@ export function BillsTable(props: BillsTableProps) {
     {
       id: 'type',
       header: t('Billing mode'),
+      meta: { mobileOrder: 30 },
       cell: ({ row: { original } }) => (
         <StatusBadge
           label={
@@ -310,6 +313,7 @@ export function BillsTable(props: BillsTableProps) {
       id: 'period',
       header: t('Period'),
       // 账期是半开区间 [start, end)，列表只到天，结束日取 end − 1
+      meta: { mobileOrder: 10 },
       cell: ({ row: { original } }) => {
         const range = original.kind === 'bill' ? original.bill : original.period
         return (
@@ -323,6 +327,7 @@ export function BillsTable(props: BillsTableProps) {
     {
       id: 'period_no',
       header: t('Period no.'),
+      meta: { mobileHidden: true },
       cell: ({ row: { original } }) => {
         const no =
           original.kind === 'bill'
@@ -334,6 +339,7 @@ export function BillsTable(props: BillsTableProps) {
     {
       id: 'tokens',
       header: t('Token usage'),
+      meta: { mobileHidden: true },
       cell: ({ row: { original } }) => (
         <TokenUsageCell
           usage={
@@ -347,6 +353,7 @@ export function BillsTable(props: BillsTableProps) {
     {
       id: 'spend',
       header: t('Spend / Credit (USD)'),
+      meta: { mobileOrder: 20 },
       cell: ({ row: { original } }) => {
         if (original.kind === 'period') {
           const period = original.period
@@ -376,6 +383,7 @@ export function BillsTable(props: BillsTableProps) {
     {
       id: 'status',
       header: t('Status'),
+      meta: { mobileBadge: true },
       cell: ({ row: { original } }) => {
         if (original.kind === 'period') {
           return <PeriodStatusBadge period={original.period} />
@@ -401,6 +409,7 @@ export function BillsTable(props: BillsTableProps) {
           {
             id: 'reconcile',
             header: t('Reconciliation'),
+            meta: { mobileHidden: true },
             cell: billCell((bill) => <ReconcileDiffCell bill={bill} />),
           },
         ]

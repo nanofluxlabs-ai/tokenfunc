@@ -79,12 +79,14 @@ export function TopupDetailTable(props: TopupDetailTableProps) {
       {
         id: 'type',
         header: t('Type'),
+        meta: { mobileOrder: 10 },
         cell: ({ row }) => t(TOPUP_TYPES[row.original.type].labelKey),
         size: 110,
       },
       {
         id: 'source',
         header: t('Source'),
+        meta: { mobileOrder: 20 },
         cell: ({ row }) => (
           <StatusBadge variant='neutral' size='sm'>
             {t(TOPUP_SOURCES[row.original.source].labelKey)}
@@ -95,12 +97,14 @@ export function TopupDetailTable(props: TopupDetailTableProps) {
       {
         id: 'payment_method',
         header: t('Payment method'),
+        meta: { mobileOrder: 30 },
         cell: ({ row }) => paymentMethodLabel(row.original.payment_method, t),
         size: 130,
       },
       {
         id: 'amount',
         header: () => <div className={NUMERIC}>{t('Amount (USD)')}</div>,
+        meta: { label: t('Amount (USD)'), mobileBadge: true },
         cell: ({ row }) => (
           <div
             className={
@@ -115,6 +119,7 @@ export function TopupDetailTable(props: TopupDetailTableProps) {
       {
         id: 'ref_no',
         header: t('Reference'),
+        meta: { mobileHidden: true },
         cell: ({ row }) => (
           <span className='font-mono text-xs'>
             {row.original.ref_no || '-'}
@@ -125,9 +130,11 @@ export function TopupDetailTable(props: TopupDetailTableProps) {
       {
         id: 'content',
         header: t('Remark'),
+        meta: { mobileOrder: 40 },
+        // 触屏没有悬停：手机卡片里最多显示两行，桌面仍单行截断加 title
         cell: ({ row }) => (
           <span
-            className='block max-w-[320px] truncate'
+            className='line-clamp-2 block sm:line-clamp-none sm:max-w-[320px] sm:truncate'
             title={row.original.content}
           >
             {row.original.content || '-'}

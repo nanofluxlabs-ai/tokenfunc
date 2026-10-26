@@ -107,6 +107,7 @@ export function useSettlementsColumns(
       {
         id: 'net_quota',
         header: () => <div className={NUMERIC}>{t('Consumption')}</div>,
+        meta: { label: t('Consumption'), mobileOrder: 10 },
         enableSorting: false,
         cell: ({ row }) => {
           const node = row.original
@@ -166,6 +167,7 @@ export function useSettlementsColumns(
       {
         id: 'status',
         header: t('Status'),
+        meta: { mobileBadge: true },
         enableSorting: false,
         cell: ({ row }) =>
           row.original.kind === 'month' ? (
@@ -176,6 +178,7 @@ export function useSettlementsColumns(
       {
         id: 'amount',
         header: () => <div className={NUMERIC}>{t('Amount')}</div>,
+        meta: { label: t('Amount'), mobileOrder: 20 },
         enableSorting: false,
         cell: ({ row }) =>
           row.original.kind === 'month' ? (

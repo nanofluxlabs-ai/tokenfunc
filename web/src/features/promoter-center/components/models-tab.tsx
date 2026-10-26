@@ -52,6 +52,7 @@ export function ModelsTab(props: ModelsTabProps) {
             className='justify-end'
           />
         ),
+        meta: { label: t('Consumption'), mobileOrder: 10 },
         cell: ({ row }) => (
           <div className='flex justify-end'>
             <ShareBar
@@ -72,6 +73,7 @@ export function ModelsTab(props: ModelsTabProps) {
             className='justify-end'
           />
         ),
+        meta: { label: t('Requests'), mobileOrder: 20 },
         cell: ({ row }) => (
           <div className={NUMERIC}>
             {formatCompactNumber(row.original.request_count, locale)}

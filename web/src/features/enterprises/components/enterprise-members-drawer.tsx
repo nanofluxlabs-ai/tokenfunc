@@ -90,6 +90,7 @@ export function EnterpriseMembersDrawer(props: EnterpriseMembersDrawerProps) {
     {
       id: 'name',
       header: t('Name'),
+      meta: { mobileTitle: true },
       cell: ({ row: { original: row } }) => (
         <div className='flex flex-col'>
           <span className='font-medium'>{row.name}</span>
@@ -102,16 +103,19 @@ export function EnterpriseMembersDrawer(props: EnterpriseMembersDrawerProps) {
     {
       id: 'employee_no',
       header: t('Employee No.'),
+      meta: { mobileHidden: true },
       cell: ({ row: { original: row } }) => row.employee_no || '—',
     },
     {
       id: 'team',
       header: t('Team'),
+      meta: { mobileOrder: 10 },
       cell: ({ row: { original: row } }) => row.team_name || '—',
     },
     {
       id: 'login',
       header: t('Console access'),
+      meta: { mobileOrder: 20 },
       cell: ({ row: { original: row } }) =>
         row.user_id > 0 ? (
           <div className='flex flex-col'>
@@ -127,6 +131,7 @@ export function EnterpriseMembersDrawer(props: EnterpriseMembersDrawerProps) {
     {
       id: 'token_count',
       header: t('API Keys'),
+      meta: { mobileOrder: 30 },
       cell: ({ row: { original: row } }) => (
         <span className='font-mono text-sm'>{row.token_count}</span>
       ),
@@ -134,6 +139,7 @@ export function EnterpriseMembersDrawer(props: EnterpriseMembersDrawerProps) {
     {
       id: 'status',
       header: t('Status'),
+      meta: { mobileBadge: true },
       cell: ({ row: { original: row } }) => (
         <StatusBadge
           label={row.status === 'active' ? t('Active') : t('Disabled')}

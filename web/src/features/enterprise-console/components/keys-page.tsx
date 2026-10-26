@@ -382,6 +382,7 @@ function KeysTable(props: KeysTableProps) {
     {
       id: 'name',
       header: t('Name'),
+      meta: { mobileTitle: true },
       cell: ({ row: { original: row } }) => (
         <div className='flex flex-col'>
           <span className='font-medium'>{row.name}</span>
@@ -402,6 +403,7 @@ function KeysTable(props: KeysTableProps) {
     {
       id: 'owner',
       header: t('Team · Holder'),
+      meta: { mobileOrder: 10 },
       cell: ({ row: { original: row } }) => (
         <div className='flex flex-col'>
           <span>
@@ -421,6 +423,7 @@ function KeysTable(props: KeysTableProps) {
     {
       id: 'quota',
       header: t('Quota'),
+      meta: { mobileOrder: 20 },
       cell: ({ row: { original: row } }) => (
         <TokenQuotaCell row={row} now={now} />
       ),
@@ -428,16 +431,19 @@ function KeysTable(props: KeysTableProps) {
     {
       id: 'month',
       header: t('Spend this month'),
+      meta: { mobileOrder: 30 },
       cell: ({ row: { original: row } }) => <MonthQuotaCell row={row} />,
     },
     {
       id: 'restrictions',
       header: t('Restrictions'),
+      meta: { mobileHidden: true },
       cell: ({ row: { original: row } }) => <RestrictionsCell row={row} />,
     },
     {
       id: 'status',
       header: t('Status'),
+      meta: { mobileBadge: true },
       cell: ({ row: { original: row } }) => {
         // 行上状态用后端派生的四态，与状态筛选、概览待办同口径
         const config = API_KEY_STATUSES[row.effective_status]
@@ -462,6 +468,7 @@ function KeysTable(props: KeysTableProps) {
     {
       id: 'accessed',
       header: t('Last used'),
+      meta: { mobileHidden: true },
       cell: ({ row: { original: row } }) =>
         row.accessed_time > 0 && row.accessed_time !== row.created_time
           ? formatTimestampRelative(row.accessed_time, 'seconds', locale)

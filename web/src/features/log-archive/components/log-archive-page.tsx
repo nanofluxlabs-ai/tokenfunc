@@ -127,6 +127,7 @@ export function LogArchivePage() {
     {
       id: 'day',
       header: t('Date'),
+      meta: { mobileTitle: true },
       cell: ({ row: { original: row } }) => (
         <span className='font-mono'>{row.day}</span>
       ),
@@ -134,6 +135,7 @@ export function LogArchivePage() {
     {
       id: 'status',
       header: t('Status'),
+      meta: { mobileBadge: true },
       cell: ({ row: { original: row } }) => (
         <StatusBadge
           label={t(LOG_ARCHIVE_STATUS_TAGS[row.status].labelKey)}
@@ -146,6 +148,7 @@ export function LogArchivePage() {
     {
       id: 'rows',
       header: t('Rows'),
+      meta: { mobileOrder: 10 },
       cell: ({ row: { original: row } }) =>
         row.parts > 1
           ? `${formatCompactNumber(row.total_rows, locale)} (${row.parts})`
@@ -154,6 +157,7 @@ export function LogArchivePage() {
     {
       id: 'object',
       header: t('Object'),
+      meta: { mobileHidden: true },
       cell: ({ row: { original: row } }) =>
         row.object_key ? (
           <div className='flex min-w-0 items-center gap-1'>
@@ -173,18 +177,21 @@ export function LogArchivePage() {
     {
       id: 'bytes',
       header: t('Size'),
+      meta: { mobileOrder: 20 },
       cell: ({ row: { original: row } }) =>
         row.bytes ? formatBytes(row.bytes) : EMPTY_CELL,
     },
     {
       id: 'purged',
       header: t('Deleted rows'),
+      meta: { mobileHidden: true },
       cell: ({ row: { original: row } }) =>
         formatCompactNumber(row.purged_rows, locale),
     },
     {
       id: 'error',
       header: t('Last error'),
+      meta: { mobileOrder: 30 },
       cell: ({ row: { original: row } }) =>
         row.last_error ? (
           <span className='text-destructive line-clamp-2 text-xs'>
@@ -197,6 +204,7 @@ export function LogArchivePage() {
     {
       id: 'updated',
       header: t('Updated at'),
+      meta: { mobileHidden: true },
       cell: ({ row: { original: row } }) => (
         <span className='text-muted-foreground text-xs'>
           {formatTimestampToDate(row.updated_at)}

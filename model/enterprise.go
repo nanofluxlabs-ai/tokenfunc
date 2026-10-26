@@ -126,6 +126,9 @@ type EnterpriseListItem struct {
 	PeriodUsedQuota  int64  `json:"period_used_quota"`
 	PeriodStartAt    int64  `json:"period_start_at"`
 	PeriodEndAt      int64  `json:"period_end_at"`
+	// MemberCount 在职成员数，LoginCount 其中已绑定 / 开通登录账号的人数
+	MemberCount int `json:"member_count"`
+	LoginCount  int `json:"login_count"`
 }
 
 // Normalize 校验并补齐默认值，创建和更新前都要调用
@@ -167,12 +170,14 @@ func (e *Enterprise) Normalize() error {
 	return nil
 }
 
-// EnterpriseUserTypeScope 按用户类型过滤 users 查询：personal 排除企业主账号，enterprise 只保留企业主账号
+// EnterpriseUserTypeScope 按用户类型过滤 users 查询：personal 排除企业主账号与在职员工的登录账号（员工由企业自治，
+// 解绑 / 删除成员后账号回到个人列表），enterprise 只保留企业主账号
 func EnterpriseUserTypeScope(userType string) func(*gorm.DB) *gorm.DB {
 	return func(tx *gorm.DB) *gorm.DB {
 		switch userType {
 		case UserTypePersonal:
-			return tx.Where("NOT EXISTS (SELECT 1 FROM enterprises WHERE enterprises.user_id = users.id)")
+			return tx.Where("NOT EXISTS (SELECT 1 FROM enterprises WHERE enterprises.user_id = users.id)").
+				Where("NOT EXISTS (SELECT 1 FROM ent_members WHERE ent_members.user_id = users.id AND ent_members.deleted_at IS NULL)")
 		case UserTypeEnterprise:
 			return tx.Where("EXISTS (SELECT 1 FROM enterprises WHERE enterprises.user_id = users.id)")
 		default:
@@ -226,7 +231,9 @@ func ListEnterprises(keyword string, billingMode string, startIdx int, num int) 
 	err := query.
 		Select("enterprises.*, users.username, users.display_name, users.email, users.quota, users.used_quota, users.status AS user_status, " +
 			"COALESCE(open_period.limit_quota, 0) AS period_limit_quota, COALESCE(open_period.used_quota, 0) AS period_used_quota, " +
-			"COALESCE(open_period.start_at, 0) AS period_start_at, COALESCE(open_period.end_at, 0) AS period_end_at").
+			"COALESCE(open_period.start_at, 0) AS period_start_at, COALESCE(open_period.end_at, 0) AS period_end_at, " +
+			"(SELECT COUNT(*) FROM ent_members m WHERE m.enterprise_id = enterprises.id AND m.deleted_at IS NULL) AS member_count, " +
+			"(SELECT COUNT(*) FROM ent_members m WHERE m.enterprise_id = enterprises.id AND m.deleted_at IS NULL AND m.user_id > 0) AS login_count").
 		Order("enterprises.id DESC").
 		Limit(num).Offset(startIdx).
 		Scan(&items).Error

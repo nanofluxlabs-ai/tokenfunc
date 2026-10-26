@@ -1519,6 +1519,9 @@
     "you cannot manage this member's role": "Vous ne pouvez pas gérer le rôle de ce membre",
     "no account found for this username or email": "Aucun compte trouvé pour ce nom d’utilisateur ou cet e-mail",
     "Team Management": "Gestion des équipes",
-    "Add members or import them to start issuing keys.": "Ajoutez ou importez des membres pour commencer à émettre des clés."
+    "Add members or import them to start issuing keys.": "Ajoutez ou importez des membres pour commencer à émettre des clés.",
+    "This account belongs to an enterprise, manage it from the enterprise module": "Ce compte appartient à une entreprise, gérez-le depuis le module Entreprise",
+    "{{members}} members, {{logins}} can sign in. Members are managed by the enterprise itself; this list is read-only.": "{{members}} membres, {{logins}} peuvent se connecter. Les membres sont gérés par l'entreprise elle-même ; cette liste est en lecture seule.",
+    "This enterprise has not added any members in its console.": "Cette entreprise n'a encore ajouté aucun membre dans sa console."
   }
 }

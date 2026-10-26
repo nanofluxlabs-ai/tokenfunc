@@ -1519,6 +1519,9 @@
     "you cannot manage this member's role": "you cannot manage this member's role",
     "no account found for this username or email": "no account found for this username or email",
     "Team Management": "Team Management",
-    "Add members or import them to start issuing keys.": "Add members or import them to start issuing keys."
+    "Add members or import them to start issuing keys.": "Add members or import them to start issuing keys.",
+    "This account belongs to an enterprise, manage it from the enterprise module": "This account belongs to an enterprise, manage it from the enterprise module",
+    "{{members}} members, {{logins}} can sign in. Members are managed by the enterprise itself; this list is read-only.": "{{members}} members, {{logins}} can sign in. Members are managed by the enterprise itself; this list is read-only.",
+    "This enterprise has not added any members in its console.": "This enterprise has not added any members in its console."
   }
 }

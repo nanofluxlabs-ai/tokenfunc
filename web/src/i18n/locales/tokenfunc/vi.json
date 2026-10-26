@@ -1519,6 +1519,9 @@
     "you cannot manage this member's role": "Bạn không thể quản lý vai trò của thành viên này",
     "no account found for this username or email": "Không tìm thấy tài khoản với tên người dùng hoặc email này",
     "Team Management": "Quản lý nhóm",
-    "Add members or import them to start issuing keys.": "Thêm hoặc nhập thành viên để bắt đầu cấp khóa."
+    "Add members or import them to start issuing keys.": "Thêm hoặc nhập thành viên để bắt đầu cấp khóa.",
+    "This account belongs to an enterprise, manage it from the enterprise module": "Tài khoản này thuộc một doanh nghiệp, hãy quản lý trong mô-đun doanh nghiệp",
+    "{{members}} members, {{logins}} can sign in. Members are managed by the enterprise itself; this list is read-only.": "{{members}} thành viên, {{logins}} có thể đăng nhập. Thành viên do doanh nghiệp tự quản lý; danh sách này chỉ để xem.",
+    "This enterprise has not added any members in its console.": "Doanh nghiệp này chưa thêm thành viên nào trong bảng điều khiển."
   }
 }

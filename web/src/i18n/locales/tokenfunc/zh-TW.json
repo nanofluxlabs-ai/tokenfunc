@@ -1519,6 +1519,9 @@
     "you cannot manage this member's role": "你不能管理該成員的角色",
     "no account found for this username or email": "找不到該使用者名稱或電子郵件對應的帳號",
     "Team Management": "團隊管理",
-    "Add members or import them to start issuing keys.": "新增或匯入成員後即可發放金鑰。"
+    "Add members or import them to start issuing keys.": "新增或匯入成員後即可發放金鑰。",
+    "This account belongs to an enterprise, manage it from the enterprise module": "該帳號屬於企業，請到企業模組管理",
+    "{{members}} members, {{logins}} can sign in. Members are managed by the enterprise itself; this list is read-only.": "共 {{members}} 名成員，{{logins}} 人可登入。成員由企業自行管理，此列表僅供查看。",
+    "This enterprise has not added any members in its console.": "該企業尚未在控制台新增成員。"
   }
 }

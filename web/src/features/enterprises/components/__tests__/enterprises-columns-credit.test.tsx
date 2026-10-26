@@ -60,6 +60,8 @@ function makeItem(overrides: Partial<EnterpriseListItem>): EnterpriseListItem {
     period_used_quota: 0,
     period_start_at: 0,
     period_end_at: 0,
+    member_count: 0,
+    login_count: 0,
     ...overrides,
   }
 }

@@ -68,8 +68,8 @@ type MembersSectionProps = {
   onSearchChange: (patch: Partial<EnterpriseTeamsSearch>) => void
 }
 
-/** 简单的单选筛选（值为字符串，'all' 表示不筛选） */
-function FilterSelect(props: {
+/** 简单的单选筛选（值为字符串，'all' 表示不筛选）；管理员侧的企业成员抽屉也复用 */
+export function FilterSelect(props: {
   label: string
   value: string
   options: { value: string; label: string }[]

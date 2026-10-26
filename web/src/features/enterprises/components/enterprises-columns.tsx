@@ -91,6 +91,24 @@ export function useEnterprisesColumns(): ColumnDef<EnterpriseListItem>[] {
       size: 220,
     },
     {
+      accessorKey: 'member_count',
+      header: t('Members'),
+      meta: { mobileHidden: true },
+      // 员工由企业自治，这里只给人数；点行操作里的「成员」看名单
+      cell: ({ row }) => (
+        <div className='flex min-w-0 flex-col'>
+          <span className='font-mono text-sm'>{row.original.member_count}</span>
+          {row.original.login_count > 0 && (
+            <span className='text-muted-foreground truncate text-xs'>
+              {t('{{count}} can sign in', { count: row.original.login_count })}
+            </span>
+          )}
+        </div>
+      ),
+      enableSorting: false,
+      size: 110,
+    },
+    {
       accessorKey: 'billing_mode',
       header: t('Billing Mode'),
       meta: { mobileBadge: true },

@@ -120,7 +120,13 @@ export function CreditPeriodsTable(props: {
 }) {
   const { t } = useTranslation()
   const columns: StaticDataTableColumn<CreditPeriod>[] = [
-    { id: 'no', header: t('Period'), cell: (row) => `#${row.period_no}` },
+    {
+      id: 'no',
+      header: t('Period'),
+      className: 'hidden sm:table-cell',
+      cellClassName: 'hidden sm:table-cell',
+      cell: (row) => `#${row.period_no}`,
+    },
     {
       id: 'range',
       header: t('Date Range'),

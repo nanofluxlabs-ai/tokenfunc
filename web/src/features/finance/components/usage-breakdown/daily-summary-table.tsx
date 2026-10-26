@@ -11,6 +11,8 @@ import type { UsageDailyRow } from '../../types'
 import { ShareBar } from '../share-bar'
 
 const NUM = 'text-right tabular-nums'
+// 手机上隐藏的次要数字列
+const NUM_DESKTOP = `${NUM} hidden sm:table-cell`
 
 export function DailySummaryTable(props: {
   rows: UsageDailyRow[]
@@ -28,36 +30,36 @@ export function DailySummaryTable(props: {
     {
       id: 'calls',
       header: t('Requests'),
-      className: NUM,
-      cellClassName: NUM,
+      className: NUM_DESKTOP,
+      cellClassName: NUM_DESKTOP,
       cell: (row) => number(row.calls),
     },
     {
       id: 'input',
       header: t('Input tokens'),
-      className: NUM,
-      cellClassName: NUM,
+      className: NUM_DESKTOP,
+      cellClassName: NUM_DESKTOP,
       cell: (row) => number(row.input_tokens),
     },
     {
       id: 'cached',
       header: t('Cache hits'),
-      className: NUM,
-      cellClassName: NUM,
+      className: NUM_DESKTOP,
+      cellClassName: NUM_DESKTOP,
       cell: (row) => number(row.cached_tokens),
     },
     {
       id: 'cache_write',
       header: t('Cache writes'),
-      className: NUM,
-      cellClassName: NUM,
+      className: NUM_DESKTOP,
+      cellClassName: NUM_DESKTOP,
       cell: (row) => number(row.cache_creation_tokens),
     },
     {
       id: 'output',
       header: t('Output tokens'),
-      className: NUM,
-      cellClassName: NUM,
+      className: NUM_DESKTOP,
+      cellClassName: NUM_DESKTOP,
       cell: (row) => number(row.completion_tokens),
     },
     {
@@ -76,7 +78,7 @@ export function DailySummaryTable(props: {
           <ShareBar
             value=''
             percentage={row.percentage}
-            className='min-w-[140px]'
+            className='min-w-[72px] sm:min-w-[140px]'
           />
         </div>
       ),

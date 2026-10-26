@@ -26,6 +26,12 @@ type UsageColumnsOptions<TRow extends UsageRow> = {
   cache: 'none' | 'hit' | 'hit-write'
 }
 
+// 手机上只留 名称 / 消耗 / 占比；调用次数与 token 拆分在桌面或导出里看
+const DESKTOP_ONLY = {
+  className: 'hidden sm:table-cell',
+  cellClassName: 'hidden sm:table-cell',
+}
+
 /** 用量明细表的统一列：名称 / 调用次数 / 输入 / 缓存 / 输出 / 消耗 / 占比，概览与报表共用 */
 export function buildUsageColumns<
   TRow extends UsageRow & { cache_creation_tokens?: number },
@@ -36,11 +42,13 @@ export function buildUsageColumns<
     {
       id: 'requests',
       header: t('Calls'),
+      ...DESKTOP_ONLY,
       cell: (row) => formatNumber(row.request_count, locale),
     },
     {
       id: 'prompt',
       header: t('Prompt Tokens'),
+      ...DESKTOP_ONLY,
       cell: (row) => formatCompactNumber(row.prompt_tokens, locale),
     },
   ]
@@ -48,6 +56,7 @@ export function buildUsageColumns<
     columns.push({
       id: 'cache',
       header: t('Cache Hit'),
+      ...DESKTOP_ONLY,
       cell: (row) => formatCompactNumber(row.cache_tokens, locale),
     })
   }
@@ -55,6 +64,7 @@ export function buildUsageColumns<
     columns.push({
       id: 'cache-write',
       header: t('Cache Write'),
+      ...DESKTOP_ONLY,
       cell: (row) =>
         formatCompactNumber(row.cache_creation_tokens ?? 0, locale),
     })
@@ -63,6 +73,7 @@ export function buildUsageColumns<
     {
       id: 'completion',
       header: t('Completion Tokens'),
+      ...DESKTOP_ONLY,
       cell: (row) => formatCompactNumber(row.completion_tokens, locale),
     },
     {

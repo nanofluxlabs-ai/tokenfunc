@@ -15,6 +15,8 @@ type DailyTabProps = {
 }
 
 const NUMERIC = 'text-right tabular-nums'
+// 手机上隐藏的次要数字列
+const NUMERIC_DESKTOP = `${NUMERIC} hidden sm:table-cell`
 
 /** 每日消耗：柱状图（净额）+ 按天明细表 */
 export function DailyTab(props: DailyTabProps) {
@@ -53,16 +55,16 @@ export function DailyTab(props: DailyTabProps) {
     {
       id: 'prompt_tokens',
       header: t('Input tokens'),
-      className: NUMERIC,
-      cellClassName: NUMERIC,
+      className: NUMERIC_DESKTOP,
+      cellClassName: NUMERIC_DESKTOP,
       cell: (row: PromoterCenterDaily) =>
         formatCompactNumber(row.prompt_tokens, locale),
     },
     {
       id: 'completion_tokens',
       header: t('Output tokens'),
-      className: NUMERIC,
-      cellClassName: NUMERIC,
+      className: NUMERIC_DESKTOP,
+      cellClassName: NUMERIC_DESKTOP,
       cell: (row: PromoterCenterDaily) =>
         formatCompactNumber(row.completion_tokens, locale),
     },

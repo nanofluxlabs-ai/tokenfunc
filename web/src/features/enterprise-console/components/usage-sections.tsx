@@ -77,7 +77,7 @@ export const UsageDailySection = forwardRef<
           metric={metric}
           loading={props.loading}
         />
-        <div className='max-h-96 overflow-y-auto'>
+        <div className='sm:max-h-96 sm:overflow-y-auto'>
           <StaticDataTable
             columns={columns}
             data={rows}

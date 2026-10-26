@@ -10,6 +10,8 @@ import { formatQuotaWithCurrency } from '@/lib/currency'
 import { formatNumber } from '@/lib/format'
 
 const NUM = 'text-right tabular-nums'
+// 手机上隐藏的次要数字列
+const NUM_DESKTOP = `${NUM} hidden sm:table-cell`
 
 /** 快照归因块（按模型 v1 / 按团队 / 按成员）：缓存两列旧快照没有，显示「-」 */
 export function SnapshotGroupTable(props: {
@@ -37,29 +39,29 @@ export function SnapshotGroupTable(props: {
     {
       id: 'input',
       header: t('Input tokens'),
-      className: NUM,
-      cellClassName: NUM,
+      className: NUM_DESKTOP,
+      cellClassName: NUM_DESKTOP,
       cell: (row) => number(row.prompt_tokens),
     },
     {
       id: 'cached',
       header: t('Cache hits'),
-      className: NUM,
-      cellClassName: NUM,
+      className: NUM_DESKTOP,
+      cellClassName: NUM_DESKTOP,
       cell: (row) => number(row.cache_tokens),
     },
     {
       id: 'cache_write',
       header: t('Cache writes'),
-      className: NUM,
-      cellClassName: NUM,
+      className: NUM_DESKTOP,
+      cellClassName: NUM_DESKTOP,
       cell: (row) => number(row.cache_creation_tokens),
     },
     {
       id: 'output',
       header: t('Output tokens'),
-      className: NUM,
-      cellClassName: NUM,
+      className: NUM_DESKTOP,
+      cellClassName: NUM_DESKTOP,
       cell: (row) => number(row.completion_tokens),
     },
     {

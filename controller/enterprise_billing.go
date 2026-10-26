@@ -265,6 +265,8 @@ func GetEnterpriseOverview(c *gin.Context) {
 		}
 	}
 	if !actor.AtLeast(model.EnterpriseMemberRoleEnterpriseAdmin) {
+		// 团队角色只给企业的标识字段：联系人、税号、授信额度与账单资料属于财务信息，不下发
+		overview.Enterprise = &model.Enterprise{Id: enterprise.Id, Name: enterprise.Name, BillingMode: enterprise.BillingMode, Status: enterprise.Status}
 		common.ApiSuccess(c, overview)
 		return
 	}

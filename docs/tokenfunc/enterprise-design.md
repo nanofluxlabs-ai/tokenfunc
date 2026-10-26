@@ -420,7 +420,7 @@ reserveExtra()    -> 发送前补充预扣：图片类必须在额度内（失�
 ### 5.4 概览统计（M6，`model/enterprise_overview.go`）
 - `month{quota, prev_quota}`、`keys{total, active, disabled, exhausted, expired, expiring_7d}`、`org{teams, members, login_members}`、`daily[30]`（补零）、`todos{unpaid_bills, overdue_bills, exhausted_keys, expiring_keys, credit_alert_hit, team_budget_warn[], team_budget_exceeded[]}`、`team_budget`（团队角色本团队）、`scope{team_id, team_name}`；全部来自 `tokens / ent_*`，不扫 `logs`
 - key 四态按余额与到期时间派生（Redis 模式下 `tokens.status` 不回写）：过期 > 耗尽 > 停用 > 启用，一把 key 只归一档；`expiring_7d` 只数仍启用且 7 天内到期的
-- 团队角色（scope 非 nil）只返回本团队统计；账单计数、授信预警、余额、当前账期只对企业主 / 企业管理员下发
+- 团队角色（scope 非 nil）只返回本团队统计；账单计数、授信预警、余额、当前账期只对企业主 / 企业管理员下发；`enterprise` 块对团队角色只含 `id / name / billing_mode / status`（联系人、税号、授信额度、账单资料不下发）
 
 ---
 

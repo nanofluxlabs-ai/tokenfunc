@@ -61,6 +61,10 @@
 - **从成员行密钥数进密钥页时持有人筛选不回显**：`MemberPicker` 只在弹层打开后才搜索成员，深链只有 id 时没有标签可显示；现在 `value>0` 且调用方没给 `selectedLabel` 时按 `member_id` 回查一次成员名。
 - 验证：`bun run typecheck`；`bunx vitest run src/features/enterprise-console src/i18n` 17 文件 64 用例通过；oxlint 改动文件 0 error；浏览器复验见下。
 
+## 追加：团队隔离探测（2026-10-26 早）
+
+用 acme 给研发中心的王五一键开通 team_admin（dev 库用户 `wangwu-e1m2`），以该身份对其它团队资源做 16 项探测：团队 / 成员 / key 列表只返回本团队，带别的 `team_id` 查询返回空；对别的团队的 key 改状态 / 取明文 / 删除 / 改归属、改别的团队成员、在别的团队建 key 一律 404；账单与建团队 403；给自己授 enterprise_admin 被拒。唯一问题：概览接口的 `enterprise` 块把联系人、税号、授信额度、账单资料整段返回给了团队角色，已改为只回 `id / name / billing_mode / status`，`TestEnterpriseConsoleOverview` 补断言。
+
 ## 遗留
 
 - 验收时在 dev 库造的 `qa-admin`（id 6）与 acme 下的 key `wangwu-daily`、-1 美元调账流水是测试数据，可保留给后续验收。

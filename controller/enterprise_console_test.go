@@ -323,6 +323,13 @@ func TestEnterpriseConsoleOverview(t *testing.T) {
 	scope := section(data, "scope")
 	assert.Equal(t, float64(rd.Id), scope["team_id"])
 	assert.Equal(t, "Research", scope["team_name"])
+	// 团队角色拿不到企业的财务资料：联系人 / 税号 / 授信额度 / 账单资料都不下发
+	leadEnterprise := section(data, "enterprise")
+	assert.Equal(t, "Overview Co", leadEnterprise["name"])
+	assert.Equal(t, model.EnterpriseBillingModeCredit, leadEnterprise["billing_mode"])
+	assert.Equal(t, "", leadEnterprise["contact_email"])
+	assert.Equal(t, float64(0), leadEnterprise["credit_limit_quota"])
+	assert.Equal(t, float64(0), leadEnterprise["credit_alert_percent"])
 	keys = section(data, "keys")
 	assert.Equal(t, float64(4), keys["total"])
 	assert.Equal(t, float64(2), keys["exhausted"])

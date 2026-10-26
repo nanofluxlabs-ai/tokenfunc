@@ -1,7 +1,7 @@
-import type { OverviewTeamBudget, OverviewTodos } from '../types'
+import type { OverviewTeamBudget, OverviewTodos, UsageDayItem } from '../types'
 
-/** 本月对上月的变化百分比（保留一位小数）；上月为 0 时无从比较返回 null */
-export function monthOverMonthPercent(
+/** 本期对上期的变化百分比（保留一位小数），日环比 / 周环比 / 月环比共用；上期为 0 时无从比较返回 null */
+export function changePercent(
   current: number,
   previous: number
 ): number | null {
@@ -56,4 +56,37 @@ export function overviewTodoKey(todo: OverviewTodo): string {
 /** 逾期账单与超预算是红色，其余黄色 */
 export function isSevereTodo(todo: OverviewTodo): boolean {
   return todo.kind === 'overdue_bills' || todo.kind === 'team_budget_exceeded'
+}
+
+/** 概览快照：今日 / 昨日 / 近 7 天 / 前 7 天，全部从 overview.daily（截至今日、补零的 30 天）截取 */
+export type OverviewDailySnapshot = {
+  today: UsageDayItem
+  yesterday: UsageDayItem
+  last7: UsageDayItem[]
+  last7Quota: number
+  prev7Quota: number
+}
+
+const EMPTY_DAY: UsageDayItem = {
+  day: '',
+  quota: 0,
+  request_count: 0,
+  prompt_tokens: 0,
+  completion_tokens: 0,
+  cache_tokens: 0,
+}
+
+export function buildOverviewDailySnapshot(
+  daily: UsageDayItem[]
+): OverviewDailySnapshot {
+  const sumQuota = (rows: UsageDayItem[]) =>
+    rows.reduce((total, row) => total + row.quota, 0)
+  const last7 = daily.slice(-7)
+  return {
+    today: daily.at(-1) ?? EMPTY_DAY,
+    yesterday: daily.at(-2) ?? EMPTY_DAY,
+    last7,
+    last7Quota: sumQuota(last7),
+    prev7Quota: sumQuota(daily.slice(-14, -7)),
+  }
 }

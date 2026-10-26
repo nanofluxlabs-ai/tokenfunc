@@ -1,288 +1,170 @@
 import { Link } from '@tanstack/react-router'
-import { ArrowRight } from 'lucide-react'
-import type { ReactNode } from 'react'
+import {
+  Activity,
+  CalendarRange,
+  CircleDollarSign,
+  TrendingDown,
+  TrendingUp,
+  Zap,
+} from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
-import { StatusBadge } from '@/components/status-badge'
-import {
-  Card,
-  CardAction,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card'
-import { Progress } from '@/components/ui/progress'
+import { StatCard } from '@/features/dashboard/components/ui/stat-card'
+import { toIntlLocale } from '@/i18n/languages'
 import { formatQuotaWithCurrency } from '@/lib/currency'
-import { formatTimestampToDate } from '@/lib/format'
+import { formatCompactNumber, formatNumber } from '@/lib/format'
 
-import {
-  formatCreditPeriodRange,
-  isCreditAwaitingPayment,
-} from '../lib/credit-period'
-import { monthOverMonthPercent } from '../lib/overview'
-import type { EnterpriseOverview } from '../types'
-import { CreditAlertHint } from './credit-alert-hint'
-import { TeamBudgetMeter } from './team-budget-meter'
+import { changePercent, type OverviewDailySnapshot } from '../lib/overview'
 
-const LINK_CLASS =
-  'text-muted-foreground hover:text-foreground inline-flex items-center gap-1 text-xs'
+const CARD_LINK_CLASS =
+  'bg-card hover:border-primary/40 focus-visible:ring-ring rounded-xl border p-4 shadow-xs transition-colors focus-visible:ring-2 focus-visible:outline-none'
 
 type OverviewKpiCardsProps = {
-  overview: EnterpriseOverview
-  /** 团队角色：第一张卡换成本团队本月消耗 / 预算，第四张只数本团队成员 */
-  teamScoped: boolean
-  /** 预付企业最近一笔充值时间（没有则 null）；授信 / 团队角色不传 */
-  lastTopupAt?: number | null
+  snapshot: OverviewDailySnapshot
+  loading: boolean
 }
 
-/** 概览四张 KPI 卡：本期 / 本月 / 密钥 / 组织，每张都是对应页面的深链 */
-export function OverviewKpiCards(props: OverviewKpiCardsProps) {
-  const { t } = useTranslation()
-  const { overview } = props
-  const monthDelta = monthOverMonthPercent(
-    overview.month.quota,
-    overview.month.prev_quota
-  )
-  let monthHint = t('Last month {{amount}}', {
-    amount: formatQuotaWithCurrency(overview.month.prev_quota),
-  })
-  if (monthDelta !== null) {
-    const sign = monthDelta >= 0 ? '+' : ''
-    monthHint = `${t('{{delta}} vs last month', { delta: `${sign}${monthDelta}%` })} · ${monthHint}`
-  }
-  const expiringHint =
-    overview.keys.expiring_7d > 0
-      ? t('{{count}} key(s) expire within 7 days', {
-          count: overview.keys.expiring_7d,
-        })
-      : t('No keys expiring within 7 days')
-
-  return (
-    <div className='grid gap-4 md:grid-cols-2 xl:grid-cols-4'>
-      {props.teamScoped ? (
-        <TeamSpendCard overview={overview} />
-      ) : (
-        <BillingCard overview={overview} lastTopupAt={props.lastTopupAt} />
-      )}
-      <Card>
-        <CardHeader>
-          <CardDescription>{t('Spend this month')}</CardDescription>
-          <CardTitle className='font-mono text-xl'>
-            {formatQuotaWithCurrency(overview.month.quota)}
-          </CardTitle>
-          <CardAction>
-            <Link to='/enterprise/usage' className={LINK_CLASS}>
-              {t('Usage Report')}
-              <ArrowRight className='size-3' aria-hidden='true' />
-            </Link>
-          </CardAction>
-        </CardHeader>
-        <CardContent className='text-muted-foreground text-xs'>
-          {monthHint}
-        </CardContent>
-      </Card>
-      <Card>
-        <CardHeader>
-          <CardDescription>{t('Active keys')}</CardDescription>
-          <CardTitle className='font-mono text-xl'>
-            {overview.keys.active}
-            <span className='text-muted-foreground text-base font-normal'>
-              {' / '}
-              {overview.keys.total}
-            </span>
-          </CardTitle>
-          <CardAction>
-            <Link to='/enterprise/keys' search={{}} className={LINK_CLASS}>
-              {t('API Keys')}
-              <ArrowRight className='size-3' aria-hidden='true' />
-            </Link>
-          </CardAction>
-        </CardHeader>
-        <CardContent className='text-muted-foreground text-xs'>
-          {expiringHint}
-        </CardContent>
-      </Card>
-      <OrgCard overview={overview} teamScoped={props.teamScoped} />
-    </div>
-  )
-}
-
-/** 企业视角第一张卡：授信显示本期已用 / 额度与预警，预付显示余额与最近充值 */
-function BillingCard(props: {
-  overview: EnterpriseOverview
-  lastTopupAt?: number | null
+/** 环比徽标：上期为 0 时不显示；涨跌只表示方向，不代表好坏，统一用中性色 */
+function ChangePill(props: {
+  current: number
+  previous: number
+  label: string
 }) {
-  const { t } = useTranslation()
-  const { overview } = props
-  const enterprise = overview.enterprise
-  const suspended = enterprise.status === 'suspended' && (
-    <StatusBadge label={t('Suspended')} variant='danger' copyable={false} />
-  )
-  if (enterprise.billing_mode !== 'credit') {
-    let topupHint = t('No top-ups yet')
-    if (props.lastTopupAt) {
-      topupHint = t('Last top-up {{date}}', {
-        date: formatTimestampToDate(props.lastTopupAt),
-      })
-    }
-    return (
-      <Card>
-        <CardHeader>
-          <CardDescription>{t('Balance')}</CardDescription>
-          <CardTitle className='flex items-center gap-2 font-mono text-xl'>
-            {formatQuotaWithCurrency(overview.balance_quota)}
-            {suspended}
-          </CardTitle>
-          <CardAction>
-            <Link to='/enterprise/bills' search={{}} className={LINK_CLASS}>
-              {t('View reconciliation')}
-              <ArrowRight className='size-3' aria-hidden='true' />
-            </Link>
-          </CardAction>
-        </CardHeader>
-        <CardContent className='text-muted-foreground text-xs'>
-          {topupHint}
-        </CardContent>
-      </Card>
-    )
-  }
-
-  const period = overview.open_period
-  const rawUsedPercent =
-    period && period.limit_quota > 0
-      ? (period.used_quota / period.limit_quota) * 100
-      : 0
-  let periodText: ReactNode = t('No open credit period')
-  if (period) {
-    periodText = t('Period #{{no}} · {{range}}', {
-      no: period.period_no,
-      range: formatCreditPeriodRange(period, formatTimestampToDate),
-    })
-  } else if (isCreditAwaitingPayment(enterprise, false)) {
-    periodText = (
-      <StatusBadge
-        label={t('Awaiting payment')}
-        variant='warning'
-        copyable={false}
-      />
-    )
-  }
+  const delta = changePercent(props.current, props.previous)
+  if (delta === null) return null
+  const Icon = delta >= 0 ? TrendingUp : TrendingDown
+  const sign = delta >= 0 ? '+' : ''
   return (
-    <Card>
-      <CardHeader>
-        <CardDescription>{t('Current period usage')}</CardDescription>
-        <CardTitle className='flex items-center gap-2 font-mono text-xl'>
-          <span>
-            {period ? formatQuotaWithCurrency(period.used_quota) : '—'}
-            <span className='text-muted-foreground text-base font-normal'>
-              {' / '}
-              {period ? formatQuotaWithCurrency(period.limit_quota) : '—'}
-            </span>
-          </span>
-          {suspended}
-        </CardTitle>
-        <CardAction>
-          <Link to='/enterprise/bills' search={{}} className={LINK_CLASS}>
-            {t('View reconciliation')}
-            <ArrowRight className='size-3' aria-hidden='true' />
-          </Link>
-        </CardAction>
-      </CardHeader>
-      <CardContent className='flex flex-col gap-2'>
-        <Progress
-          value={Math.min(100, rawUsedPercent)}
-          aria-label={t('Current period usage')}
+    <span
+      className='bg-muted text-muted-foreground inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium tabular-nums'
+      title={props.label}
+    >
+      <Icon className='size-3' aria-hidden='true' />
+      {`${sign}${delta}%`}
+      <span className='sr-only'>{props.label}</span>
+    </span>
+  )
+}
+
+/** 概览四张 KPI：今日消耗 / 今日请求 / 今日 Token / 近 7 天消耗；底部 7 天迷你图，整卡下钻到同区间的用量报表 */
+export function OverviewKpiCards(props: OverviewKpiCardsProps) {
+  const { t, i18n } = useTranslation()
+  const locale = toIntlLocale(i18n.resolvedLanguage || i18n.language)
+  const { today, yesterday, last7 } = props.snapshot
+  const todayTokens = today.prompt_tokens + today.completion_tokens
+  const todaySearch = { from: today.day, to: today.day }
+  const weekSearch = { from: last7[0]?.day ?? today.day, to: today.day }
+  const vsYesterday = t('vs yesterday')
+
+  return (
+    <div className='grid gap-4 sm:grid-cols-2 xl:grid-cols-4'>
+      <Link
+        to='/enterprise/usage'
+        search={todaySearch}
+        className={CARD_LINK_CLASS}
+        aria-label={t("Today's spend")}
+      >
+        <StatCard
+          title={t("Today's spend")}
+          value={formatQuotaWithCurrency(today.quota)}
+          description={t('Yesterday {{value}}', {
+            value: formatQuotaWithCurrency(yesterday.quota),
+          })}
+          icon={CircleDollarSign}
+          tone='accent-1'
+          sparkline={last7.map((day) => day.quota)}
+          sparklineVariant='line'
+          loading={props.loading}
+          action={
+            <ChangePill
+              current={today.quota}
+              previous={yesterday.quota}
+              label={vsYesterday}
+            />
+          }
         />
-        <div className='text-muted-foreground text-xs'>{periodText}</div>
-        {period && (
-          <CreditAlertHint
-            alertPercent={enterprise.credit_alert_percent}
-            usedPercent={rawUsedPercent}
-          />
-        )}
-      </CardContent>
-    </Card>
-  )
-}
-
-/** 团队角色第一张卡：本团队本月消耗，设了预算时带预算进度 */
-function TeamSpendCard(props: { overview: EnterpriseOverview }) {
-  const { t } = useTranslation()
-  const budget = props.overview.team_budget
-  return (
-    <Card>
-      <CardHeader>
-        <CardDescription>{t('Team spend this month')}</CardDescription>
-        <CardTitle className='font-mono text-xl'>
-          {formatQuotaWithCurrency(props.overview.month.quota)}
-          {budget && (
-            <span className='text-muted-foreground text-base font-normal'>
-              {' / '}
-              {formatQuotaWithCurrency(budget.budget_quota)}
-            </span>
+      </Link>
+      <Link
+        to='/enterprise/usage'
+        search={todaySearch}
+        className={CARD_LINK_CLASS}
+        aria-label={t("Today's requests")}
+      >
+        <StatCard
+          title={t("Today's requests")}
+          value={formatNumber(today.request_count, locale)}
+          description={t('Yesterday {{value}}', {
+            value: formatNumber(yesterday.request_count, locale),
+          })}
+          icon={Activity}
+          tone='accent-2'
+          sparkline={last7.map((day) => day.request_count)}
+          sparklineVariant='line'
+          loading={props.loading}
+          action={
+            <ChangePill
+              current={today.request_count}
+              previous={yesterday.request_count}
+              label={vsYesterday}
+            />
+          }
+        />
+      </Link>
+      <Link
+        to='/enterprise/usage'
+        search={todaySearch}
+        className={CARD_LINK_CLASS}
+        aria-label={t("Today's tokens")}
+      >
+        <StatCard
+          title={t("Today's tokens")}
+          value={formatCompactNumber(todayTokens, locale)}
+          description={t('Input {{input}} · Output {{output}}', {
+            input: formatCompactNumber(today.prompt_tokens, locale),
+            output: formatCompactNumber(today.completion_tokens, locale),
+          })}
+          icon={Zap}
+          tone='accent-3'
+          sparkline={last7.map(
+            (day) => day.prompt_tokens + day.completion_tokens
           )}
-        </CardTitle>
-      </CardHeader>
-      <CardContent className='text-muted-foreground text-xs'>
-        {budget ? (
-          <TeamBudgetMeter
-            team={{
-              monthly_budget_quota: budget.budget_quota,
-              month_quota: budget.month_quota,
-              budget_percent: budget.budget_percent,
-              budget_state: budget.budget_state,
-              budget_enforce: budget.budget_enforce,
-            }}
-          />
-        ) : (
-          t('No budget set')
-        )}
-      </CardContent>
-    </Card>
-  )
-}
-
-/** 第四张卡：企业视角团队 · 成员，团队角色只数本团队成员 */
-function OrgCard(props: { overview: EnterpriseOverview; teamScoped: boolean }) {
-  const { t } = useTranslation()
-  const { org, scope } = props.overview
-  const teamSearch = scope ? { team_id: scope.team_id } : {}
-  return (
-    <Card>
-      <CardHeader>
-        <CardDescription>
-          {props.teamScoped
-            ? `${scope?.team_name ?? ''} · ${t('Members')}`
-            : t('Teams · Members')}
-        </CardDescription>
-        <CardTitle className='font-mono text-xl'>
-          {props.teamScoped ? (
-            org.members
-          ) : (
-            <>
-              {org.teams}
-              <span className='text-muted-foreground text-base font-normal'>
-                {' · '}
-              </span>
-              {org.members}
-            </>
-          )}
-        </CardTitle>
-        <CardAction>
-          <Link
-            to='/enterprise/teams'
-            search={teamSearch}
-            className={LINK_CLASS}
-          >
-            {t('Teams')}
-            <ArrowRight className='size-3' aria-hidden='true' />
-          </Link>
-        </CardAction>
-      </CardHeader>
-      <CardContent className='text-muted-foreground text-xs'>
-        {t('{{count}} can sign in', { count: org.login_members })}
-      </CardContent>
-    </Card>
+          sparklineVariant='line'
+          loading={props.loading}
+          action={
+            <ChangePill
+              current={todayTokens}
+              previous={yesterday.prompt_tokens + yesterday.completion_tokens}
+              label={vsYesterday}
+            />
+          }
+        />
+      </Link>
+      <Link
+        to='/enterprise/usage'
+        search={weekSearch}
+        className={CARD_LINK_CLASS}
+        aria-label={t('Spend in the last 7 days')}
+      >
+        <StatCard
+          title={t('Spend in the last 7 days')}
+          value={formatQuotaWithCurrency(props.snapshot.last7Quota)}
+          description={t('Previous 7 days {{value}}', {
+            value: formatQuotaWithCurrency(props.snapshot.prev7Quota),
+          })}
+          icon={CalendarRange}
+          tone='accent-1'
+          sparkline={last7.map((day) => day.quota)}
+          sparklineVariant='bars'
+          loading={props.loading}
+          action={
+            <ChangePill
+              current={props.snapshot.last7Quota}
+              previous={props.snapshot.prev7Quota}
+              label={t('vs previous 7 days')}
+            />
+          }
+        />
+      </Link>
+    </div>
   )
 }

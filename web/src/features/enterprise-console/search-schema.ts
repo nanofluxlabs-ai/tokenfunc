@@ -2,6 +2,13 @@ import z from 'zod'
 
 import { pageParam, textParam } from '@/features/finance/search-schema'
 
+/** YYYY-MM-DD 日期；非法值按未提供处理 */
+const dayParam = z
+  .string()
+  .regex(/^\d{4}-\d{2}-\d{2}$/)
+  .optional()
+  .catch(undefined)
+
 /** 正整数 id；非法值按未提供处理 */
 const idParam = z.number().int().positive().optional().catch(undefined)
 
@@ -39,6 +46,11 @@ export const enterpriseUsageSearchSchema = z.object({
     .catch(undefined),
   team_id: idParam,
   member_id: idParam,
+  /** 快捷区间；与 from / to 同时出现时以 from / to 为准 */
+  range: z.enum(['today', '7d', 'month', '30d']).optional().catch(undefined),
+  /** 显式起止日期（YYYY-MM-DD）：概览下钻用服务端的“今天”，避免浏览器时区错位 */
+  from: dayParam,
+  to: dayParam,
 })
 
 export type EnterpriseUsageSearch = z.infer<typeof enterpriseUsageSearchSchema>

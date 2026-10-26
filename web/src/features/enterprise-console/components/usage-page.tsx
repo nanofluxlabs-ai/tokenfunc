@@ -11,6 +11,7 @@ import { getUsageSummary, listMembers, USAGE_EXPORT_URL } from '../api'
 import { useEnterpriseSelf } from '../hooks/use-enterprise-self'
 import { useTeams } from '../hooks/use-team-options'
 import { isTeamScoped } from '../lib/member-roles'
+import { usageRangeFromPreset } from '../lib/usage-range'
 import { EnterpriseGuard } from './enterprise-guard'
 import { EnterpriseRoleBadge } from './enterprise-role-badge'
 import { UsagePanel } from './usage-panel'
@@ -61,6 +62,11 @@ export function EnterpriseUsage() {
   const search = route.useSearch()
   const { data: enterprise } = useEnterpriseSelf()
   const teamScoped = isTeamScoped(enterprise?.actor)
+  // 概览下钻带服务端口径的 from / to；只有快捷档时按浏览器日期换算；都没有默认本月
+  const initialRange =
+    search.from && search.to
+      ? { from: search.from, to: search.to }
+      : usageRangeFromPreset(search.range ?? 'month')
   return (
     <SectionPageLayout>
       <SectionPageLayout.Title>
@@ -77,10 +83,12 @@ export function EnterpriseUsage() {
               memberId={search.member_id}
             />
             <UsagePanel
+              key={JSON.stringify(search)}
               queryKey={['enterprise']}
               fetchSummary={getUsageSummary}
               exportUrl={USAGE_EXPORT_URL}
               initialGroupBy={search.group_by}
+              initialRange={initialRange}
               hideTeamDimension={teamScoped}
               filter={{ team_id: search.team_id, member_id: search.member_id }}
             />

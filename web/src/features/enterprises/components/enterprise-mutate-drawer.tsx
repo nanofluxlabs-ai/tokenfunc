@@ -440,9 +440,6 @@ export function EnterpriseMutateDrawer(props: EnterpriseMutateDrawerProps) {
                           control={form.control}
                           name='email'
                           label={t('Login Email')}
-                          description={t(
-                            'Required. Filled from the contact email until you edit it.'
-                          )}
                           onUserInput={(value) => {
                             loginEmailEdited.current = value !== ''
                           }}

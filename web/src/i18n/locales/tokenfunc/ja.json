@@ -1574,7 +1574,6 @@
     "Enterprise profile saved, but the credit settings did not take effect": "企業情報は保存されましたが、与信設定は反映されていません",
     "Limit changes apply to the current period immediately.": "上限の変更は今期に即時反映されます。",
     "Login email is required": "ログインメールを入力してください",
-    "Required. Filled from the contact email until you edit it.": "必須。手動で変更するまで連絡先メールが自動入力されます。",
     "Login Email": "ログインメール",
     "Permission Settings": "権限設定",
     "The owner account must sign in again after the group changes.": "グループを変更すると、オーナーアカウントは再ログインが必要です。",

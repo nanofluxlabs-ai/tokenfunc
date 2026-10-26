@@ -1574,7 +1574,6 @@
     "Enterprise profile saved, but the credit settings did not take effect": "Данные компании сохранены, но настройки кредита не применены",
     "Limit changes apply to the current period immediately.": "Изменение лимита сразу применяется к текущему периоду.",
     "Login email is required": "Укажите email для входа",
-    "Required. Filled from the contact email until you edit it.": "Обязательно. Подставляется email контакта, пока вы его не измените.",
     "Login Email": "Email для входа",
     "Permission Settings": "Настройки доступа",
     "The owner account must sign in again after the group changes.": "После смены группы владельцу нужно войти заново.",

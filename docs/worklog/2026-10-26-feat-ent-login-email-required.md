@@ -12,7 +12,7 @@
 ## 变更
 
 - 后端 `controller/enterprise_admin.go`：`mode=new_user` 时登录邮箱为空（去空白后）返回 `Login email is required`，再校验格式与占用。
-- 前端 `lib/enterprise-form.ts`：新建账号缺登录邮箱报 `Login email is required`；字段说明改为「必填。未手动修改前自动带入联系人邮箱。」，删除旧的 Optional 文案；七个 tokenfunc locale 同步。
+- 前端 `lib/enterprise-form.ts`：新建账号缺登录邮箱报 `Login email is required`；登录邮箱下方不再显示说明文字（其它字段也没有，黑鹰要求去掉），删除对应文案；仍自动带入联系人邮箱直到手动修改。联系人邮箱保持选填。
 - 设计文档企业管理侧组件描述同步：登录邮箱必填、企业名称在企业资料首项且企业资料默认展开（补上 dd6378042 漏改的文档）。
 
 ## 验证

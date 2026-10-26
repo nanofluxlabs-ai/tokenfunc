@@ -16,6 +16,11 @@
   line-height: 1.6;
   overflow-x: auto;
 }
+@media (max-width: 640px) {
+  .tf-quote-preview {
+    padding: 12px;
+  }
+}
 .tf-quote-preview h1 {
   color: var(--tfq-text);
   font-size: 22px;

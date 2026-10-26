@@ -58,7 +58,7 @@ export function ConfigTab(props: QuoteConfigEditorProps) {
         onValueChange={(value) => setSection(value as ConfigSection)}
         className='gap-4'
       >
-        <TabsList>
+        <TabsList className='h-auto flex-wrap'>
           <TabsTrigger value='groups'>{t('Vendor groups')}</TabsTrigger>
           <TabsTrigger value='models'>{t('Model prices')}</TabsTrigger>
           <TabsTrigger value='capability'>

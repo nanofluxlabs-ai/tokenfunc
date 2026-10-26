@@ -145,7 +145,7 @@ export function UserConsumptionPanel() {
       <Alert className='bg-muted/40'>
         <AlertDescription>
           {t(
-            'Sorted by net consumption, showing users with consumption records in the selected range. Enterprise accounts show the enterprise name and billing mode. Hover over the balance or consumption to see input, cache, output, subscription, wallet and refund details. For credit-billed enterprises the balance column shows the remaining credit and the amount used this period (the bill is authoritative).'
+            'Sorted by net consumption, showing users with consumption records in the selected range. Enterprise accounts show the enterprise name and billing mode. Hover over or tap the balance or consumption to see input, cache, output, subscription, wallet and refund details. For credit-billed enterprises the balance column shows the remaining credit and the amount used this period (the bill is authoritative).'
           )}
         </AlertDescription>
       </Alert>

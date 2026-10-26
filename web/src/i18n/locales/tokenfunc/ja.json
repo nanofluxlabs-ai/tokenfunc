@@ -829,7 +829,7 @@
     "Size": "サイズ",
     "So our account manager can reach you": "アカウントマネージャーがご連絡するために使用します",
     "Some models accept extra fields such as mask (a PNG whose transparent areas mark where to edit) or input_fidelity to preserve the original look — pass through whatever fields your model documents.": "一部のモデルは mask（編集範囲を示す透明部を持つ PNG）や input_fidelity（元の見た目を保つ）などの追加フィールドを受け付けます。モデルのドキュメントに載っているフィールドはそのまま渡してください。",
-    "Sorted by net consumption, showing users with consumption records in the selected range. Enterprise accounts show the enterprise name and billing mode. Hover over the balance or consumption to see input, cache, output, subscription, wallet and refund details. For credit-billed enterprises the balance column shows the remaining credit and the amount used this period (the bill is authoritative).": "純消費額の降順で、選択した範囲に消費記録のあるユーザーを表示します。企業アカウントは企業名と課金モードを表示します。残高または消費額にカーソルを合わせると、入力・キャッシュ・出力・サブスクリプション・ウォレット・返金の内訳を確認できます。与信課金の企業では、残高列に与信残高と今期の使用額を表示します（正確な値は請求書が基準です）。",
+    "Sorted by net consumption, showing users with consumption records in the selected range. Enterprise accounts show the enterprise name and billing mode. Hover over or tap the balance or consumption to see input, cache, output, subscription, wallet and refund details. For credit-billed enterprises the balance column shows the remaining credit and the amount used this period (the bill is authoritative).": "純消費額の降順で、選択した範囲に消費記録のあるユーザーを表示します。企業アカウントは企業名と課金モードを表示します。残高または消費額にカーソルを合わせるかタップすると、入力・キャッシュ・出力・サブスクリプション・ウォレット・返金の内訳を確認できます。与信課金の企業では、残高列に与信残高と今期の使用額を表示します（正確な値は請求書が基準です）。",
     "Sources": "ソース数",
     "Spending is still limited by the enterprise balance or credit.": "支出は引き続き企業の残高または与信枠で制限されます。",
     "Stable supply": "安定供給",

@@ -1591,6 +1591,7 @@
     "Failure rate": "Taux d’échec",
     "{{errors}} errors out of {{total}} requests": "{{errors}} erreurs sur {{total}} requêtes",
     "Live RPM / TPM": "RPM / TPM en direct",
-    "Last 60 seconds, not affected by the time range": "60 dernières secondes, indépendant de la période choisie"
+    "Last 60 seconds, not affected by the time range": "60 dernières secondes, indépendant de la période choisie",
+    "Switch team": "Changer d’équipe"
   }
 }

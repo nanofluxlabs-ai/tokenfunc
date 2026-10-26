@@ -1591,6 +1591,7 @@
     "Failure rate": "Доля ошибок",
     "{{errors}} errors out of {{total}} requests": "{{errors}} ошибок из {{total}} запросов",
     "Live RPM / TPM": "RPM / TPM сейчас",
-    "Last 60 seconds, not affected by the time range": "За последние 60 секунд, не зависит от выбранного периода"
+    "Last 60 seconds, not affected by the time range": "За последние 60 секунд, не зависит от выбранного периода",
+    "Switch team": "Сменить команду"
   }
 }

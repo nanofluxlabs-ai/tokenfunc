@@ -1591,6 +1591,7 @@
     "Failure rate": "失敗率",
     "{{errors}} errors out of {{total}} requests": "{{total}} 件のリクエスト中 {{errors}} 件が失敗",
     "Live RPM / TPM": "リアルタイム RPM / TPM",
-    "Last 60 seconds, not affected by the time range": "直近 60 秒間。期間の指定には影響されません"
+    "Last 60 seconds, not affected by the time range": "直近 60 秒間。期間の指定には影響されません",
+    "Switch team": "チームを切り替え"
   }
 }

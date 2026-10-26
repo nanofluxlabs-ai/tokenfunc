@@ -1591,6 +1591,7 @@
     "Failure rate": "Tỷ lệ lỗi",
     "{{errors}} errors out of {{total}} requests": "{{errors}} lỗi trên {{total}} yêu cầu",
     "Live RPM / TPM": "RPM / TPM hiện tại",
-    "Last 60 seconds, not affected by the time range": "60 giây gần nhất, không phụ thuộc khoảng thời gian"
+    "Last 60 seconds, not affected by the time range": "60 giây gần nhất, không phụ thuộc khoảng thời gian",
+    "Switch team": "Chuyển nhóm"
   }
 }

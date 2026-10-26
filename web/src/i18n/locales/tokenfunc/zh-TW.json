@@ -1591,6 +1591,7 @@
     "Failure rate": "失敗率",
     "{{errors}} errors out of {{total}} requests": "{{total}} 次請求中失敗 {{errors}} 次",
     "Live RPM / TPM": "即時 RPM / TPM",
-    "Last 60 seconds, not affected by the time range": "最近 60 秒，不受時間範圍影響"
+    "Last 60 seconds, not affected by the time range": "最近 60 秒，不受時間範圍影響",
+    "Switch team": "切換團隊"
   }
 }

@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { fireEvent, render, screen } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest'
 
 import type { EnterpriseActor, Member, Team } from '../../types'
@@ -160,7 +160,16 @@ beforeEach(() => {
 
 afterEach(() => {
   vi.clearAllMocks()
+  vi.restoreAllMocks()
 })
+
+function setMobileViewport() {
+  const original = window.matchMedia
+  vi.spyOn(window, 'matchMedia').mockImplementation((query) => ({
+    ...original(query),
+    matches: query === '(max-width: 640px)',
+  }))
+}
 
 describe('EnterpriseTeams', () => {
   test('passes the URL team and filters to the member list and renders login, key and usage deep links', async () => {
@@ -207,6 +216,25 @@ describe('EnterpriseTeams', () => {
       search: (prev: Record<string, unknown>) => Record<string, unknown>
     }
     expect(call.search({ page: 3, q: 'x' })).toEqual({ q: 'x', team_id: 6 })
+  })
+
+  test('on mobile the team list collapses into a switcher sheet that writes team_id and closes', async () => {
+    setMobileViewport()
+    renderPage()
+    await screen.findByText('Alice')
+
+    // 列表不再常驻，只留当前团队的切换按钮
+    expect(screen.queryByRole('button', { name: /Research/ })).toBeNull()
+    fireEvent.click(screen.getByRole('button', { name: 'Switch team' }))
+    fireEvent.click(await screen.findByRole('button', { name: /Research/ }))
+
+    const call = navigateMock.mock.calls.at(-1)?.[0] as {
+      search: (prev: Record<string, unknown>) => Record<string, unknown>
+    }
+    expect(call.search({ page: 3 })).toEqual({ team_id: 6 })
+    await waitFor(() =>
+      expect(screen.queryByRole('button', { name: /Research/ })).toBeNull()
+    )
   })
 
   test('owner sees all-members, add team / add member / import actions and the row menu', async () => {

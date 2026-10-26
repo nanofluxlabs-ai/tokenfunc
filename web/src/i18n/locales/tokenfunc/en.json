@@ -1591,6 +1591,7 @@
     "Failure rate": "Failure rate",
     "{{errors}} errors out of {{total}} requests": "{{errors}} errors out of {{total}} requests",
     "Live RPM / TPM": "Live RPM / TPM",
-    "Last 60 seconds, not affected by the time range": "Last 60 seconds, not affected by the time range"
+    "Last 60 seconds, not affected by the time range": "Last 60 seconds, not affected by the time range",
+    "Switch team": "Switch team"
   }
 }

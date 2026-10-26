@@ -33,6 +33,7 @@ import {
   useDataTable,
 } from '@/components/data-table'
 import { SectionPageLayout } from '@/components/layout'
+import { MobileFilterSheet } from '@/components/mobile-filter-sheet'
 import { StatusBadge } from '@/components/status-badge'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
@@ -186,6 +187,13 @@ function KeysTable(props: KeysTableProps) {
 
   const teamId = search.team_id ?? ANY
   const memberId = search.member_id ?? ANY
+  // 手机筛选按钮上显示已生效的筛选数（搜索框常驻，不计入）
+  const activeFilterCount = [
+    search.team_id,
+    search.member_id,
+    search.status,
+    search.expiring,
+  ].filter((value) => value !== undefined).length
   const page = search.page ?? 1
   const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE)
   const now = Date.now()
@@ -604,79 +612,84 @@ function KeysTable(props: KeysTableProps) {
       )}
       <div className='flex flex-wrap items-center gap-2'>
         <Input
-          className='max-w-xs'
+          className='min-w-0 flex-1 sm:max-w-xs sm:flex-none'
           placeholder={t('Search key name or holder...')}
           aria-label={t('Search API keys')}
           value={keyword}
           onChange={(event) => setKeyword(event.target.value)}
         />
-        {!teamScoped && (
-          <div className='w-44'>
-            <EntitySelect
-              aria-label={t('Filter by team')}
-              value={teamId}
+        <MobileFilterSheet activeCount={activeFilterCount}>
+          {!teamScoped && (
+            <div className='w-full sm:w-44'>
+              <EntitySelect
+                aria-label={t('Filter by team')}
+                value={teamId}
+                onChange={(value) =>
+                  update({
+                    team_id: value === ANY ? undefined : value,
+                    member_id: undefined,
+                  })
+                }
+                options={[
+                  { value: ANY, label: t('All Teams') },
+                  ...teamOptions,
+                ]}
+                noneLabel={t('Default team')}
+              />
+            </div>
+          )}
+          <div className='w-full sm:w-52'>
+            <MemberPicker
+              aria-label={t('Filter by holder')}
+              value={memberId}
               onChange={(value) =>
-                update({
-                  team_id: value === ANY ? undefined : value,
-                  member_id: undefined,
-                })
+                update({ member_id: value === ANY ? undefined : value })
               }
-              options={[{ value: ANY, label: t('All Teams') }, ...teamOptions]}
-              noneLabel={t('Default team')}
+              teamId={teamId > 0 ? teamId : undefined}
+              allowAny
+              noneLabel={t('Team key (no holder)')}
             />
           </div>
-        )}
-        <div className='w-52'>
-          <MemberPicker
-            aria-label={t('Filter by holder')}
-            value={memberId}
-            onChange={(value) =>
-              update({ member_id: value === ANY ? undefined : value })
-            }
-            teamId={teamId > 0 ? teamId : undefined}
-            allowAny
-            noneLabel={t('Team key (no holder)')}
-          />
-        </div>
-        <div className='w-36'>
-          <Select
-            items={statusOptions}
-            value={search.status ? String(search.status) : STATUS_ANY}
-            onValueChange={(value) =>
-              update({
-                status:
-                  value && value !== STATUS_ANY ? Number(value) : undefined,
-              })
+          <div className='w-full sm:w-36'>
+            <Select
+              items={statusOptions}
+              value={search.status ? String(search.status) : STATUS_ANY}
+              onValueChange={(value) =>
+                update({
+                  status:
+                    value && value !== STATUS_ANY ? Number(value) : undefined,
+                })
+              }
+            >
+              <SelectTrigger
+                aria-label={t('Filter by status')}
+                className='w-full'
+              >
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent alignItemWithTrigger={false}>
+                <SelectGroup>
+                  {statusOptions.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectGroup>
+              </SelectContent>
+            </Select>
+          </div>
+          <Button
+            variant={search.expiring ? 'default' : 'outline'}
+            size='sm'
+            aria-pressed={Boolean(search.expiring)}
+            onClick={() =>
+              update({ expiring: search.expiring ? undefined : true })
             }
           >
-            <SelectTrigger
-              aria-label={t('Filter by status')}
-              className='w-full'
-            >
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent alignItemWithTrigger={false}>
-              <SelectGroup>
-                {statusOptions.map((option) => (
-                  <SelectItem key={option.value} value={option.value}>
-                    {option.label}
-                  </SelectItem>
-                ))}
-              </SelectGroup>
-            </SelectContent>
-          </Select>
-        </div>
-        <Button
-          variant={search.expiring ? 'default' : 'outline'}
-          size='sm'
-          aria-pressed={Boolean(search.expiring)}
-          onClick={() =>
-            update({ expiring: search.expiring ? undefined : true })
-          }
-        >
-          {t('Expiring soon')}
-        </Button>
-        <div className='flex-1' />
+            {t('Expiring soon')}
+          </Button>
+        </MobileFilterSheet>
+        <div className='hidden flex-1 sm:block' />
         {selectedIds.length > 0 && (
           <div className='flex items-center gap-1'>
             <span className='text-muted-foreground text-sm'>

@@ -6,8 +6,7 @@ import { useTranslation } from 'react-i18next'
 
 import { SectionPageLayout } from '@/components/layout'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { DatePresetButtons } from '@/features/finance/components/date-preset-buttons'
-import { DayRangeControls } from '@/features/finance/components/day-range-controls'
+import { PeriodFilter } from '@/features/finance/components/period-filter'
 import { SectionBlock } from '@/features/finance/components/section-block'
 import { ExportCsvControl } from '@/features/finance/components/usage-breakdown/export-csv-control'
 import { useFinanceDateRange } from '@/features/finance/hooks/use-finance-date-range'
@@ -19,6 +18,7 @@ import {
 } from '@/features/finance/lib/date-presets'
 import type { UsageRangeParams } from '@/features/finance/types'
 import { UsageTab } from '@/features/reconciliation/components/usage-tab'
+import { useMediaQuery } from '@/hooks/use-media-query'
 import { requireServerSuccess } from '@/lib/server-error-message'
 
 import { listBills, listCreditPeriods, listLedger } from '../api'
@@ -161,6 +161,7 @@ function LedgerTab(props: {
 /** 企业财务对账：账期账单 / 消费账单 / 充值账单；消费与充值按企业钱包取数，与个人对账页同一套控件 */
 export function EnterpriseReconciliation() {
   const { t } = useTranslation()
+  const isMobile = useMediaQuery('(max-width: 640px)')
   const search = route.useSearch()
   const navigate = route.useNavigate()
   const self = useEnterpriseSelf()
@@ -204,6 +205,14 @@ export function EnterpriseReconciliation() {
     })
   }
   const usageParams: UsageRangeParams = { scope: 'enterprise', ...timestamps }
+  const showPeriod = tab !== 'statements'
+  const periodFilter = (
+    <PeriodFilter
+      range={range}
+      presets={['month', 'lastMonth', 'last30']}
+      onPreset={applyPreset}
+    />
+  )
 
   return (
     <SectionPageLayout stackActionsOnMobile>
@@ -213,25 +222,14 @@ export function EnterpriseReconciliation() {
           <EnterpriseRoleBadge />
         </span>
       </SectionPageLayout.Title>
-      {tab !== 'statements' && (
-        <SectionPageLayout.Actions>
-          <div className='flex flex-wrap items-center gap-2'>
-            <DatePresetButtons
-              presets={['month', 'lastMonth', 'last30']}
-              onSelect={applyPreset}
-            />
-            <DayRangeControls
-              draft={range.draft}
-              onDraftChange={range.setDraft}
-              onApply={range.apply}
-              onReset={range.reset}
-            />
-          </div>
-        </SectionPageLayout.Actions>
+      {/* 页头 Actions 不随内容滚动：手机上把账期筛选放进内容区顶部 */}
+      {showPeriod && !isMobile && (
+        <SectionPageLayout.Actions>{periodFilter}</SectionPageLayout.Actions>
       )}
       <SectionPageLayout.Content>
         <EnterpriseGuard>
           <div className='flex flex-col gap-4'>
+            {showPeriod && isMobile && periodFilter}
             <div className='flex flex-wrap items-center justify-between gap-2'>
               <Tabs
                 value={tab}

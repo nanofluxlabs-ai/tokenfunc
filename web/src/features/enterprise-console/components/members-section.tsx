@@ -24,6 +24,7 @@ import {
   DataTableRowActionMenu,
   useDataTable,
 } from '@/components/data-table'
+import { MobileFilterSheet } from '@/components/mobile-filter-sheet'
 import { StatusBadge } from '@/components/status-badge'
 import { Button } from '@/components/ui/button'
 import {
@@ -364,45 +365,55 @@ export function MembersSection(props: MembersSectionProps) {
     <div className='flex h-full min-h-0 min-w-0 flex-col gap-3'>
       <div className='flex flex-wrap items-center gap-2'>
         <Input
-          className='max-w-xs'
+          className='min-w-0 flex-1 sm:max-w-xs sm:flex-none'
           placeholder={t('Search name, email or employee No....')}
           aria-label={t('Search members')}
           value={keyword}
           onChange={(event) => setKeyword(event.target.value)}
         />
-        <div className='w-36'>
-          <FilterSelect
-            label={t('Filter by status')}
-            value={props.search.status ?? ANY}
-            options={[
-              { value: ANY, label: t('All statuses') },
-              { value: 'active', label: t('Active') },
-              { value: 'disabled', label: t('Disabled') },
-            ]}
-            onChange={(value) =>
-              onSearchChange({
-                status:
-                  value === ANY ? undefined : (value as 'active' | 'disabled'),
-              })
-            }
-          />
-        </div>
-        <div className='w-40'>
-          <FilterSelect
-            label={t('Filter by console access')}
-            value={loginValue}
-            options={[
-              { value: ANY, label: t('All members') },
-              { value: 'true', label: t('Can sign in') },
-              { value: 'false', label: t('Key only') },
-            ]}
-            onChange={(value) =>
-              onSearchChange({
-                login: value === ANY ? undefined : value === 'true',
-              })
-            }
-          />
-        </div>
+        <MobileFilterSheet
+          activeCount={
+            [props.search.status, props.search.login].filter(
+              (value) => value !== undefined
+            ).length
+          }
+        >
+          <div className='w-full sm:w-36'>
+            <FilterSelect
+              label={t('Filter by status')}
+              value={props.search.status ?? ANY}
+              options={[
+                { value: ANY, label: t('All statuses') },
+                { value: 'active', label: t('Active') },
+                { value: 'disabled', label: t('Disabled') },
+              ]}
+              onChange={(value) =>
+                onSearchChange({
+                  status:
+                    value === ANY
+                      ? undefined
+                      : (value as 'active' | 'disabled'),
+                })
+              }
+            />
+          </div>
+          <div className='w-full sm:w-40'>
+            <FilterSelect
+              label={t('Filter by console access')}
+              value={loginValue}
+              options={[
+                { value: ANY, label: t('All members') },
+                { value: 'true', label: t('Can sign in') },
+                { value: 'false', label: t('Key only') },
+              ]}
+              onChange={(value) =>
+                onSearchChange({
+                  login: value === ANY ? undefined : value === 'true',
+                })
+              }
+            />
+          </div>
+        </MobileFilterSheet>
       </div>
       <DataTablePage
         table={table}

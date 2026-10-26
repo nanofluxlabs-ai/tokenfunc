@@ -10,6 +10,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover'
+import { useMediaQuery } from '@/hooks/use-media-query'
 import dayjs from '@/lib/dayjs'
 import { cn } from '@/lib/utils'
 
@@ -33,6 +34,8 @@ type DateRangePickerProps = {
 export function DateRangePicker(props: DateRangePickerProps) {
   const { t, i18n } = useTranslation()
   const [open, setOpen] = useState(false)
+  // 两个月并排约 560px，手机上放不下，只显示一个月
+  const isMobile = useMediaQuery('(max-width: 640px)')
   const from = props.value.from
   const to = props.value.to
   const hasValue = Boolean(from || to)
@@ -63,7 +66,7 @@ export function DateRangePicker(props: DateRangePickerProps) {
         <Calendar
           mode='range'
           captionLayout='dropdown'
-          numberOfMonths={2}
+          numberOfMonths={isMobile ? 1 : 2}
           selected={{ from, to }}
           defaultMonth={from}
           onSelect={(range) => {

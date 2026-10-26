@@ -5,8 +5,7 @@ import { useTranslation } from 'react-i18next'
 import { SectionPageLayout } from '@/components/layout'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useEnterpriseSelf } from '@/features/enterprise-console/hooks/use-enterprise-self'
-import { DatePresetButtons } from '@/features/finance/components/date-preset-buttons'
-import { DayRangeControls } from '@/features/finance/components/day-range-controls'
+import { PeriodFilter } from '@/features/finance/components/period-filter'
 import { ExportCsvControl } from '@/features/finance/components/usage-breakdown/export-csv-control'
 import { useFinanceDateRange } from '@/features/finance/hooks/use-finance-date-range'
 import { buildUsageCsvFilename } from '@/features/finance/lib/csv'
@@ -16,6 +15,7 @@ import {
   type DatePresetId,
 } from '@/features/finance/lib/date-presets'
 import type { UsageRangeParams } from '@/features/finance/types'
+import { useMediaQuery } from '@/hooks/use-media-query'
 import { useAuthStore } from '@/stores/auth-store'
 
 import { CreditNotice } from './components/credit-notice'
@@ -30,6 +30,7 @@ const route = getRouteApi('/_authenticated/reconciliation/')
 /** 个人财务对账：账期内本人消耗与钱包流水，可导出对账单 */
 export function ReconciliationPage() {
   const { t } = useTranslation()
+  const isMobile = useMediaQuery('(max-width: 640px)')
   const search = route.useSearch()
   const navigate = route.useNavigate()
   const username = useAuthStore((state) => state.auth.user?.username ?? '')
@@ -79,25 +80,24 @@ export function ReconciliationPage() {
       />
     )
 
+  const periodFilter = (
+    <PeriodFilter
+      range={range}
+      presets={['month', 'lastMonth', 'last30']}
+      onPreset={applyPreset}
+    />
+  )
+
   return (
     <SectionPageLayout stackActionsOnMobile>
       <SectionPageLayout.Title>{t('Reconciliation')}</SectionPageLayout.Title>
-      <SectionPageLayout.Actions>
-        <div className='flex flex-wrap items-center gap-2'>
-          <DatePresetButtons
-            presets={['month', 'lastMonth', 'last30']}
-            onSelect={applyPreset}
-          />
-          <DayRangeControls
-            draft={range.draft}
-            onDraftChange={range.setDraft}
-            onApply={range.apply}
-            onReset={range.reset}
-          />
-        </div>
-      </SectionPageLayout.Actions>
+      {/* 页头 Actions 不随内容滚动：手机上把账期筛选放进内容区顶部 */}
+      {!isMobile && (
+        <SectionPageLayout.Actions>{periodFilter}</SectionPageLayout.Actions>
+      )}
       <SectionPageLayout.Content>
         <div className='flex flex-col gap-4'>
+          {isMobile && periodFilter}
           <p className='text-muted-foreground -mt-1 text-sm'>
             {t(
               'Consumption and wallet entries within the period, exportable as statements.'

@@ -2,8 +2,8 @@
 
 - 日期：2026-10-27
 - 分支：worktree-feat-user-overview-redesign
-- PR：
-- 关键 commit：
+- PR：#66
+- 关键 commit：4c8f85672（共享组件）、c166f7e31（概览页）
 
 ## 背景
 

@@ -1518,6 +1518,7 @@
     "you cannot grant this role": "Bạn không thể cấp vai trò này",
     "you cannot manage this member's role": "Bạn không thể quản lý vai trò của thành viên này",
     "no account found for this username or email": "Không tìm thấy tài khoản với tên người dùng hoặc email này",
-    "Team Management": "Quản lý nhóm"
+    "Team Management": "Quản lý nhóm",
+    "Add members or import them to start issuing keys.": "Thêm hoặc nhập thành viên để bắt đầu cấp khóa."
   }
 }

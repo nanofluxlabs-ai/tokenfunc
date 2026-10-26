@@ -1518,6 +1518,7 @@
     "you cannot grant this role": "Vous ne pouvez pas attribuer ce rôle",
     "you cannot manage this member's role": "Vous ne pouvez pas gérer le rôle de ce membre",
     "no account found for this username or email": "Aucun compte trouvé pour ce nom d’utilisateur ou cet e-mail",
-    "Team Management": "Gestion des équipes"
+    "Team Management": "Gestion des équipes",
+    "Add members or import them to start issuing keys.": "Ajoutez ou importez des membres pour commencer à émettre des clés."
   }
 }

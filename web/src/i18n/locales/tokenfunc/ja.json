@@ -1518,6 +1518,7 @@
     "you cannot grant this role": "このロールを付与する権限がありません",
     "you cannot manage this member's role": "このメンバーのロールを管理する権限がありません",
     "no account found for this username or email": "このユーザー名またはメールアドレスのアカウントは見つかりません",
-    "Team Management": "チーム管理"
+    "Team Management": "チーム管理",
+    "Add members or import them to start issuing keys.": "メンバーを追加またはインポートするとキーを発行できます。"
   }
 }

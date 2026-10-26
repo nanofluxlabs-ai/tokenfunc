@@ -1518,6 +1518,7 @@
     "you cannot grant this role": "Вы не можете назначить эту роль",
     "you cannot manage this member's role": "Вы не можете управлять ролью этого участника",
     "no account found for this username or email": "Учётная запись с таким именем пользователя или e-mail не найдена",
-    "Team Management": "Управление командами"
+    "Team Management": "Управление командами",
+    "Add members or import them to start issuing keys.": "Добавьте или импортируйте участников, чтобы выдавать ключи."
   }
 }

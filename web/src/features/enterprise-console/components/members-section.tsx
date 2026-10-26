@@ -4,6 +4,7 @@ import {
   useQueryClient,
 } from '@tanstack/react-query'
 import { Link } from '@tanstack/react-router'
+import type { ColumnDef, PaginationState, Updater } from '@tanstack/react-table'
 import {
   KeyRound,
   Pencil,
@@ -11,6 +12,7 @@ import {
   PowerOff,
   Trash2,
   UserCog,
+  Users,
 } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -18,9 +20,9 @@ import { toast } from 'sonner'
 
 import { ConfirmDialog } from '@/components/confirm-dialog'
 import {
+  DataTablePage,
   DataTableRowActionMenu,
-  StaticDataTable,
-  type StaticDataTableColumn,
+  useDataTable,
 } from '@/components/data-table'
 import { StatusBadge } from '@/components/status-badge'
 import { Button } from '@/components/ui/button'
@@ -55,7 +57,7 @@ import { MemberLoginDialog } from './member-login-dialog'
 import type { TeamSelection } from './team-panel'
 import { TokenMutateSheet } from './token-mutate-sheet'
 
-const PAGE_SIZE = 20
+const DEFAULT_PAGE_SIZE = 10
 const ANY = 'all'
 
 type MembersSectionProps = {
@@ -110,6 +112,7 @@ export function MembersSection(props: MembersSectionProps) {
 
   const teamId = props.team === ANY ? undefined : props.team
   const page = props.search.page ?? 1
+  const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE)
   const { onSearchChange } = props
 
   // 关键字防抖后再写入 URL
@@ -119,7 +122,7 @@ export function MembersSection(props: MembersSectionProps) {
     onSearchChange({ q: next })
   }, [debouncedKeyword, props.search.q, onSearchChange])
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isFetching } = useQuery({
     queryKey: [
       'enterprise',
       'members',
@@ -128,6 +131,7 @@ export function MembersSection(props: MembersSectionProps) {
       props.search.status,
       props.search.login,
       page,
+      pageSize,
     ],
     queryFn: async () =>
       requireServerSuccess(
@@ -137,13 +141,23 @@ export function MembersSection(props: MembersSectionProps) {
           status: props.search.status,
           has_login: props.search.login,
           p: page,
-          page_size: PAGE_SIZE,
+          page_size: pageSize,
         })
       ).data ?? { items: [], total: 0 },
     placeholderData: keepPreviousData,
   })
-  const total = data?.total ?? 0
-  const pageCount = Math.max(1, Math.ceil(total / PAGE_SIZE))
+
+  // 页码进 URL（可分享 / 回退），每页条数只在组件内；改条数回到第 1 页
+  const pagination: PaginationState = { pageIndex: page - 1, pageSize }
+  const onPaginationChange = (updater: Updater<PaginationState>) => {
+    const next = typeof updater === 'function' ? updater(pagination) : updater
+    if (next.pageSize !== pageSize) {
+      setPageSize(next.pageSize)
+      onSearchChange({ page: undefined })
+      return
+    }
+    onSearchChange({ page: next.pageIndex + 1 })
+  }
 
   const refresh = () => {
     void queryClient.invalidateQueries({ queryKey: ['enterprise', 'members'] })
@@ -197,11 +211,11 @@ export function MembersSection(props: MembersSectionProps) {
   const loginValue =
     props.search.login === undefined ? ANY : String(props.search.login)
 
-  const columns: StaticDataTableColumn<Member>[] = [
+  const columns: ColumnDef<Member>[] = [
     {
       id: 'name',
       header: t('Name'),
-      cell: (row) => (
+      cell: ({ row: { original: row } }) => (
         <div className='flex flex-col'>
           <span className='font-medium'>{row.name}</span>
           {row.email && (
@@ -213,17 +227,17 @@ export function MembersSection(props: MembersSectionProps) {
     {
       id: 'employee_no',
       header: t('Employee No.'),
-      cell: (row) => row.employee_no || '—',
+      cell: ({ row: { original: row } }) => row.employee_no || '—',
     },
     {
       id: 'team',
       header: t('Team'),
-      cell: (row) => row.team_name || '—',
+      cell: ({ row: { original: row } }) => row.team_name || '—',
     },
     {
       id: 'login',
       header: t('Console access'),
-      cell: (row) =>
+      cell: ({ row: { original: row } }) =>
         row.user_id > 0 ? (
           <div className='flex flex-col'>
             <span>{row.username}</span>
@@ -238,7 +252,7 @@ export function MembersSection(props: MembersSectionProps) {
     {
       id: 'token_count',
       header: t('API Keys'),
-      cell: (row) =>
+      cell: ({ row: { original: row } }) =>
         row.token_count > 0 ? (
           <Link
             to='/enterprise/keys'
@@ -254,7 +268,7 @@ export function MembersSection(props: MembersSectionProps) {
     {
       id: 'month_quota',
       header: t('Spend this month'),
-      cell: (row) =>
+      cell: ({ row: { original: row } }) =>
         row.month_quota > 0 ? (
           <Link
             to='/enterprise/usage'
@@ -272,7 +286,7 @@ export function MembersSection(props: MembersSectionProps) {
     {
       id: 'status',
       header: t('Status'),
-      cell: (row) => (
+      cell: ({ row: { original: row } }) => (
         <StatusBadge
           label={row.status === 'active' ? t('Active') : t('Disabled')}
           variant={row.status === 'active' ? 'success' : 'neutral'}
@@ -283,7 +297,8 @@ export function MembersSection(props: MembersSectionProps) {
     {
       id: 'actions',
       header: t('Actions'),
-      cell: (row) => (
+      enableHiding: false,
+      cell: ({ row: { original: row } }) => (
         <div className='-ml-1.5 flex items-center gap-1'>
           <Button
             variant='ghost'
@@ -327,8 +342,19 @@ export function MembersSection(props: MembersSectionProps) {
     },
   ]
 
+  const { table } = useDataTable({
+    data: data?.items ?? [],
+    columns,
+    pagination,
+    onPaginationChange,
+    manualPagination: true,
+    manualFiltering: true,
+    totalCount: data?.total ?? 0,
+    enableRowSelection: false,
+  })
+
   return (
-    <div className='flex min-w-0 flex-col gap-3'>
+    <div className='flex h-full min-h-0 min-w-0 flex-col gap-3'>
       <div className='flex flex-wrap items-center gap-2'>
         <Input
           className='max-w-xs'
@@ -371,35 +397,18 @@ export function MembersSection(props: MembersSectionProps) {
           />
         </div>
       </div>
-      <StaticDataTable
+      <DataTablePage
+        table={table}
         columns={columns}
-        data={data?.items ?? []}
-        getRowKey={(row) => row.id}
-        empty={!isLoading && (data?.items.length ?? 0) === 0}
-        emptyContent={t('No members yet')}
+        isLoading={isLoading}
+        isFetching={isFetching}
+        emptyTitle={t('No members yet')}
+        emptyDescription={t(
+          'Add members or import them to start issuing keys.'
+        )}
+        emptyIcon={<Users />}
+        skeletonKeyPrefix='enterprise-member-skeleton'
       />
-      <div className='text-muted-foreground flex items-center justify-end gap-2 text-sm'>
-        <span>{t('Total: {{count}}', { count: total })}</span>
-        <Button
-          variant='outline'
-          size='sm'
-          disabled={page <= 1}
-          onClick={() => onSearchChange({ page: page - 1 })}
-        >
-          {t('Previous')}
-        </Button>
-        <span>
-          {page} / {pageCount}
-        </span>
-        <Button
-          variant='outline'
-          size='sm'
-          disabled={page >= pageCount}
-          onClick={() => onSearchChange({ page: page + 1 })}
-        >
-          {t('Next')}
-        </Button>
-      </div>
 
       <MemberDialog
         open={dialog !== null}

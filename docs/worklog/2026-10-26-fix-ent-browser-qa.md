@@ -84,6 +84,12 @@
 - 绑定已有账号时用户名 / 邮箱未注册原来返回「resource not found in this enterprise」（404），新增 `ErrEnterpriseLoginUserNotFound`（400）；企业模块 81 条服务端英文消息全部补进七语言 locale（此前一条都没有，前端只能原样显示英文）。
 - 验证：`go build`、`make test-db PKG=./model/` ok；typecheck、oxlint 0 error、vitest 企业控制台 + hooks + i18n 21 文件 86 用例通过（新增 `parse-member-lines.test.ts`）；浏览器：粘贴两行文本预览并导入成功、不填邮箱被拦、绑定不存在的邮箱提示新文案、团队管理员五个页面标题带「团队管理员 · 研发中心」。
 
+## 追加：团队页整页高度、成员表通用分页、服务端 message 翻译（2026-10-26，第三轮反馈）
+
+- **错误提示仍是英文的真正根因**：前端 `server-error-message.ts` 只翻译响应里的 `message_key`，普通 `message` 原样显示；企业模块后端全部走 `ApiErrorMsg` / 裸 `gin.H{"message"}`，没有 `message_key`，上一轮补的 81 条译文根本没走到。改为对没有 `message_key` 的 `message` 也按键翻译（`skipInterpolation`，没译文原样返回），新增 `src/lib/__tests__/server-error-message.test.ts`。
+- 团队页 `SectionPageLayout` 开 `fixedContent`，两栏拉到内容区底部；成员表从 `StaticDataTable` 换成 `useDataTable` + `DataTablePage`（与使用日志同一套：底部通用分页、每页默认 10 条可切换、空态 `TableEmpty`）；页码仍在 URL，每页条数在组件内。手机宽度下整体改为页面滚动，桌面下表格内部滚动。
+- 验证：typecheck、oxlint 0 error、vitest 19 文件 68 用例通过；浏览器：两栏到底、分页条在页脚、空团队显示「暂无成员」、中文界面绑定不存在的邮箱提示中文。
+
 ## 遗留
 
 - 验收时在 dev 库造的 `qa-admin`（id 6）与 acme 下的 key `wangwu-daily`、-1 美元调账流水是测试数据，可保留给后续验收。

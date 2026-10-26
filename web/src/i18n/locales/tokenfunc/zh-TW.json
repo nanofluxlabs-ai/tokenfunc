@@ -1518,6 +1518,7 @@
     "you cannot grant this role": "你不能授予該角色",
     "you cannot manage this member's role": "你不能管理該成員的角色",
     "no account found for this username or email": "找不到該使用者名稱或電子郵件對應的帳號",
-    "Team Management": "團隊管理"
+    "Team Management": "團隊管理",
+    "Add members or import them to start issuing keys.": "新增或匯入成員後即可發放金鑰。"
   }
 }

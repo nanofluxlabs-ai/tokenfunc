@@ -167,7 +167,12 @@ export function getServerMessage(value: unknown): string | undefined {
       isRecord(value.message_params) ? value.message_params : undefined
     )
   }
-  return messageText(value.message)
+  // tokenfunc 二开：企业模块的后端消息只给 message（英文源文本），没有 message_key，这里同样按键翻译；
+  // 没有译文的文本原样返回，不做插值与嵌套解析
+  const text = messageText(value.message)
+  return text === undefined
+    ? undefined
+    : i18next.t(text, { skipInterpolation: true })
 }
 
 /**
@@ -221,7 +226,7 @@ export function getServerErrorMessage(
   if (status === 204) return i18next.t('Content not found.')
   for (const source of sources) {
     const message = messageText(source.message)
-    if (message) return message
+    if (message) return i18next.t(message, { skipInterpolation: true })
   }
   return messageText(value) || (fallback ?? i18next.t('Something went wrong!'))
 }

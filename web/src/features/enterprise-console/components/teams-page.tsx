@@ -92,7 +92,7 @@ export function EnterpriseTeams() {
 
   return (
     <>
-      <SectionPageLayout>
+      <SectionPageLayout fixedContent>
         <SectionPageLayout.Title>
           <span className='flex items-center gap-2'>
             {t('Teams')}
@@ -130,7 +130,7 @@ export function EnterpriseTeams() {
         <SectionPageLayout.Content>
           <EnterpriseGuard>
             {teamScoped ? (
-              <div className='flex flex-col gap-4'>
+              <div className='flex h-full min-h-0 flex-col gap-4'>
                 {ownTeam && <TeamHeaderCard team={ownTeam} />}
                 <MembersSection
                   team={selected}
@@ -140,8 +140,8 @@ export function EnterpriseTeams() {
                 />
               </div>
             ) : (
-              <div className='grid gap-4 lg:grid-cols-[300px_minmax(0,1fr)]'>
-                <Card className='lg:sticky lg:top-4 lg:self-start'>
+              <div className='grid h-full min-h-0 gap-4 overflow-y-auto lg:grid-cols-[300px_minmax(0,1fr)] lg:overflow-visible'>
+                <Card className='lg:h-full'>
                   <CardContent>
                     <TeamPanel
                       teams={teams.data ?? []}
@@ -156,7 +156,7 @@ export function EnterpriseTeams() {
                     />
                   </CardContent>
                 </Card>
-                <div className='flex flex-col gap-4'>
+                <div className='flex min-h-0 flex-col gap-4'>
                   {selectedTeam && <TeamHeaderCard team={selectedTeam} />}
                   <MembersSection
                     team={selected}

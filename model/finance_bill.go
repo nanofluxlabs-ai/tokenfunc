@@ -269,10 +269,18 @@ func GetFinanceBillContext(kind string, id int64) (*FinanceBillContext, error) {
 	if context.User != nil {
 		brief.Username = context.User.Username
 	}
+	// token 消耗与列表同口径：账单取出账时冻结的两列，账期读时从 ent_usage_daily 按 period_id 求和
 	if context.Bill != nil {
 		context.Summary = financeBillSummaryFromBill(context.Bill, brief, context.Period)
+		context.Summary.TokenUsage = &EnterpriseTokenUsage{PromptTokens: context.Bill.PromptTokens, CompletionTokens: context.Bill.CompletionTokens}
 	} else {
 		context.Summary = financeBillSummaryFromPeriod(context.Period, brief)
+		tokens, err := SumEnterpriseUsageTokensByPeriods([]int64{context.Period.Id})
+		if err != nil {
+			return nil, err
+		}
+		usage := tokens[context.Period.Id]
+		context.Summary.TokenUsage = &usage
 	}
 	context.UsageSource = FinanceUsageSourceLive
 	if context.Bill != nil {

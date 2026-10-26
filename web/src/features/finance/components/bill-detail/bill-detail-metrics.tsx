@@ -6,6 +6,7 @@ import { formatQuotaWithCurrency } from '@/lib/currency'
 import { formatNumber, quotaUnitsToDollars } from '@/lib/format'
 
 import { creditUsagePercent, periodDays } from '../../lib/bill-ref'
+import { formatTokenAmount } from '../../lib/token-amount'
 import type { FinanceBillContext } from '../../types'
 import { MetricCard } from '../metric-card'
 import { SectionBlock as Block } from '../section-block'
@@ -18,7 +19,7 @@ type BillDetailMetricsProps = {
   requestsLoading: boolean
 }
 
-/** 账单详情汇总卡：总额、已付 / 未付、授信额度、使用率、账期、出账 / 到期日、请求数 */
+/** 账单详情汇总卡：总额、已付 / 未付、授信额度、使用率、账期、出账 / 到期日、请求数、Token 消耗 */
 export function BillDetailMetrics(props: BillDetailMetricsProps) {
   const { t, i18n } = useTranslation()
   const locale = toIntlLocale(i18n.resolvedLanguage || i18n.language)
@@ -26,6 +27,9 @@ export function BillDetailMetrics(props: BillDetailMetricsProps) {
   const summary = context.summary
   const bill = context.bill
   const isStatement = summary.bill_type === 'statement'
+  // 与列表同口径：账单取出账冻结的两列，进行中账期为日聚合实时求和（后端放在 summary.token_usage）
+  const promptTokens = summary.token_usage?.prompt_tokens ?? 0
+  const completionTokens = summary.token_usage?.completion_tokens ?? 0
   const currency = bill?.currency || context.enterprise?.currency || 'USD'
   const total = Number.parseFloat(summary.total_usd)
   const paid = Number.parseFloat(summary.paid_usd)
@@ -86,6 +90,11 @@ export function BillDetailMetrics(props: BillDetailMetricsProps) {
         label={t('Requests')}
         value={formatNumber(props.requestCount, locale)}
         loading={props.requestsLoading}
+      />
+      <MetricCard
+        label={t('Token usage')}
+        value={formatTokenAmount(promptTokens + completionTokens)}
+        hint={`${t('Input')} ${formatTokenAmount(promptTokens)} · ${t('Output')} ${formatTokenAmount(completionTokens)}`}
       />
     </div>
   )

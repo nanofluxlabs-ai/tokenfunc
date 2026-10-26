@@ -153,6 +153,10 @@ export function contextWith(
       due_at: bill.due_at,
       limit_quota: 0,
       used_quota: bill.amount_quota,
+      token_usage: {
+        prompt_tokens: bill.prompt_tokens,
+        completion_tokens: bill.completion_tokens,
+      },
     },
     enterprise: overrides.enterprise ?? null,
     user: null,

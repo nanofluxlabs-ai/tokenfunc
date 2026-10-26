@@ -18,6 +18,7 @@ import { MetricTooltip } from '@/features/finance/components/metric-tooltip'
 import { ShareBar } from '@/features/finance/components/share-bar'
 import { creditUsagePercent } from '@/features/finance/lib/bill-ref'
 import { readBlobError, saveBlob } from '@/features/finance/lib/csv'
+import { formatTokenAmount } from '@/features/finance/lib/token-amount'
 import type { FinanceBillSummary, TokenUsage } from '@/features/finance/types'
 import { toIntlLocale } from '@/i18n/languages'
 import { formatQuotaWithCurrency } from '@/lib/currency'
@@ -203,7 +204,7 @@ function PeriodStatusBadge(props: { period: FinanceBillSummary }) {
   )
 }
 
-/** Token 消耗：显示输入 + 输出合计，悬浮看拆分；没有数据（旧账单回填不到）显示「—」 */
+/** Token 消耗：显示输入 + 输出合计（换算单位、2 位小数），悬浮看精确的拆分与合计；没有数据显示「—」 */
 function TokenUsageCell(props: { usage: TokenUsage | undefined }) {
   const { t, i18n } = useTranslation()
   const locale = toIntlLocale(i18n.resolvedLanguage || i18n.language)
@@ -215,10 +216,11 @@ function TokenUsageCell(props: { usage: TokenUsage | undefined }) {
       items={[
         { label: t('Input'), value: formatNumber(prompt, locale) },
         { label: t('Output'), value: formatNumber(completion, locale) },
+        { label: t('Total'), value: formatNumber(prompt + completion, locale) },
       ]}
     >
       <span className='font-mono tabular-nums'>
-        {formatNumber(prompt + completion, locale)}
+        {formatTokenAmount(prompt + completion)}
       </span>
     </MetricTooltip>
   )

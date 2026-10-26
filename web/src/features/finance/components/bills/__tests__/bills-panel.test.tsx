@@ -146,9 +146,9 @@ test('lists open periods and issued bills in one table, each linking to its own 
     screen.getByRole('link', { name: 'TF-202610-000007' })
   ).toHaveAttribute('href', '/finance/bills/bill-7')
   expect(screen.getByText('In progress')).toBeInTheDocument()
-  // Token 消耗：账单行取冻结的两列，账期行取日聚合求和，都显示输入 + 输出合计
-  expect(screen.getByText('1,234,567')).toBeInTheDocument()
-  expect(screen.getByText('10,000')).toBeInTheDocument()
+  // Token 消耗：账单行取冻结的两列，账期行取日聚合求和，合计换算单位保留 2 位
+  expect(screen.getByText('1.23M')).toBeInTheDocument()
+  expect(screen.getByText('10.00K')).toBeInTheDocument()
   expect(screen.getByText(/^Diff /)).toBeInTheDocument()
   expect(screen.getByText('Total: 31')).toBeInTheDocument()
   expect(apiMock.listFinanceBills).toHaveBeenLastCalledWith({

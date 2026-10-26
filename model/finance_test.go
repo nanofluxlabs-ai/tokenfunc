@@ -431,6 +431,10 @@ func TestFinanceBillContextAndList(t *testing.T) {
 	require.NotNil(t, billContext.Bill.UsageSnapshotV2(), "出账时已冻结 v2 财务块")
 	assert.Equal(t, int64(1500), bill.PromptTokens, "出账时把账期 token 消耗冻结进账单")
 	assert.Equal(t, int64(300), bill.CompletionTokens)
+	assert.Equal(t, &EnterpriseTokenUsage{PromptTokens: 1500, CompletionTokens: 300}, billContext.Summary.TokenUsage, "账单详情的 token 取冻结列")
+	openContext, err = GetFinanceBillContext(FinanceBillKindPeriod, open.Id)
+	require.NoError(t, err)
+	assert.Equal(t, &EnterpriseTokenUsage{PromptTokens: 40, CompletionTokens: 2}, openContext.Summary.TokenUsage, "进行中账期详情的 token 从日聚合表求和")
 	assert.NotContains(t, string(billContext.Bill.UsageSnapshot), "snapshot_source", "原生 v2 快照不标来源")
 
 	// 旧快照（v1，没有财务块）的账单：logs 未清理时上下文里现算 v2 块并标 snapshot_source=live，不落库

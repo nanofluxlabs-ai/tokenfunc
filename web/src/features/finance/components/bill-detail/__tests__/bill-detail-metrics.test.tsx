@@ -51,6 +51,23 @@ describe('BillDetailContent summary cards', () => {
     expect(screen.getByText('Due: 2026-04-15')).toBeInTheDocument()
   })
 
+  test('token usage card shows the total with a unit and two decimals next to the request count', () => {
+    renderContent(
+      contextWith({
+        bill: {
+          usage_snapshot: v2Snapshot,
+          prompt_tokens: 1_234_000,
+          completion_tokens: 56_000,
+        },
+      })
+    )
+    // 「Requests」同时是汇总卡与明细表列头，这里只确认卡片仍在
+    expect(screen.getAllByText('Requests').length).toBeGreaterThan(0)
+    expect(screen.getByText('Token usage')).toBeInTheDocument()
+    expect(screen.getByText('1.29M')).toBeInTheDocument()
+    expect(screen.getByText('Input 1.23M · Output 56.00K')).toBeInTheDocument()
+  })
+
   test('period card shows the last day of the half-open period, not period_end itself', () => {
     renderContent(contextWith({ bill: { usage_snapshot: v2Snapshot } }))
     expect(screen.getByText('2026-03-01 ~ 2026-03-31')).toBeInTheDocument()

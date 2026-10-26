@@ -9,20 +9,24 @@ import { useState, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 
+import { CopyButton } from '@/components/copy-button'
 import { DataTablePage, useDataTable } from '@/components/data-table'
 import { StatusBadge } from '@/components/status-badge'
 import { Button } from '@/components/ui/button'
+import { billDay } from '@/features/finance/components/bill-detail/bill-day'
+import { ShareBar } from '@/features/finance/components/share-bar'
+import { creditUsagePercent } from '@/features/finance/lib/bill-ref'
 import { readBlobError, saveBlob } from '@/features/finance/lib/csv'
 import type { FinanceBillSummary } from '@/features/finance/types'
 import { formatQuotaWithCurrency } from '@/lib/currency'
-import { formatTimestampToDate } from '@/lib/format'
+import { quotaUnitsToDollars } from '@/lib/format'
 import { handleServerError } from '@/lib/handle-server-error'
 
 import { downloadBillCsv, type BillExportScope } from '../api'
 import { BILL_STATUSES, BILL_TYPES, CREDIT_PERIOD_STATUSES } from '../constants'
 import { isBillOverdue } from '../lib/bill-utils'
 import { openInvoicePrintWindow } from '../lib/invoice-html'
-import type { Bill } from '../types'
+import { isBillSnapshotV2, type Bill } from '../types'
 
 export function BillStatusBadge(props: { bill: Bill }) {
   const { t } = useTranslation()
@@ -121,7 +125,8 @@ export function BillExportCsvButton(props: {
 
 /** 账单表的一行：已出账账单，或进行中 / 待出账的授信账期（只有财务中心会传） */
 export type BillsTableRow =
-  | { kind: 'bill'; bill: Bill }
+  /** summary 由财务中心提供：期号、授信额度、企业与主账号用户名；企业侧只有账单本身 */
+  | { kind: 'bill'; bill: Bill; summary?: FinanceBillSummary }
   | { kind: 'period'; period: FinanceBillSummary }
 
 type BillsTableProps = {
@@ -209,84 +214,136 @@ export function BillsTable(props: BillsTableProps) {
     {
       id: 'bill_no',
       header: t('Bill No.'),
-      cell: ({ row: { original } }) => (
-        <span className='font-mono font-medium'>
-          {original.kind === 'bill'
-            ? (props.renderBillNo?.(original.bill) ?? original.bill.bill_no)
-            : (props.renderPeriodNo?.(original.period) ??
-              t('Period #{{no}}', { no: original.period.period_no }))}
-        </span>
-      ),
-    },
-    {
-      id: 'type',
-      header: t('Type'),
       cell: ({ row: { original } }) =>
-        original.kind === 'bill'
-          ? t(
-              BILL_TYPES[original.bill.bill_type]?.labelKey ??
-                original.bill.bill_type
-            )
-          : t('Credit period'),
+        original.kind === 'bill' ? (
+          <span className='inline-flex items-center gap-1 font-mono font-medium'>
+            {props.renderBillNo?.(original.bill) ?? original.bill.bill_no}
+            <CopyButton
+              size='icon-sm'
+              className='size-5'
+              iconClassName='size-3'
+              value={original.bill.bill_no}
+              aria-label={t('Copy {{name}}', { name: original.bill.bill_no })}
+            />
+          </span>
+        ) : (
+          <span className='font-mono font-medium'>
+            {props.renderPeriodNo?.(original.period) ??
+              t('Period #{{no}}', { no: original.period.period_no })}
+          </span>
+        ),
     },
     ...(props.showEnterprise
       ? [
           {
             id: 'enterprise',
-            header: t('Enterprise'),
+            header: t('Enterprise / User'),
             cell: ({
               row: { original },
-            }: CellContext<BillsTableRow, unknown>) =>
-              original.kind === 'bill'
-                ? (original.bill.buyer_snapshot?.enterprise_name ??
-                  `#${original.bill.enterprise_id}`)
-                : original.period.enterprise_name,
+            }: CellContext<BillsTableRow, unknown>) => {
+              const summary =
+                original.kind === 'bill' ? original.summary : original.period
+              const name =
+                summary?.enterprise_name ??
+                (original.kind === 'bill'
+                  ? (original.bill.buyer_snapshot?.enterprise_name ??
+                    `#${original.bill.enterprise_id}`)
+                  : '')
+              return (
+                <div className='flex flex-col'>
+                  <span className='font-medium'>{name}</span>
+                  {summary?.username && (
+                    <span className='text-muted-foreground text-xs'>
+                      {summary.username}
+                    </span>
+                  )}
+                </div>
+              )
+            },
           },
         ]
       : []),
     {
+      id: 'type',
+      header: t('Billing mode'),
+      cell: ({ row: { original } }) => (
+        <StatusBadge
+          label={
+            original.kind === 'bill'
+              ? t(
+                  BILL_TYPES[original.bill.bill_type]?.labelKey ??
+                    original.bill.bill_type
+                )
+              : t('Credit period')
+          }
+          variant='info'
+          copyable={false}
+        />
+      ),
+    },
+    {
       id: 'period',
       header: t('Period'),
+      // 账期是半开区间 [start, end)，列表只到天，结束日取 end − 1
       cell: ({ row: { original } }) => {
         const range = original.kind === 'bill' ? original.bill : original.period
-        return `${formatTimestampToDate(range.period_start)} ~ ${formatTimestampToDate(range.period_end)}`
+        return (
+          <div className='flex flex-col font-mono text-xs'>
+            <span>{billDay(range.period_start)} ~</span>
+            <span>{billDay(range.period_end - 1)}</span>
+          </div>
+        )
       },
     },
     {
-      id: 'total',
-      header: t('Total'),
-      cell: ({ row: { original } }) =>
-        original.kind === 'bill' ? (
-          <span className='font-mono'>
-            {original.bill.currency}{' '}
-            {Number.parseFloat(original.bill.total_usd).toFixed(2)}
-          </span>
-        ) : (
-          <span className='font-mono'>
-            {formatQuotaWithCurrency(original.period.used_quota)} /{' '}
-            {formatQuotaWithCurrency(original.period.limit_quota)}
-          </span>
-        ),
+      id: 'period_no',
+      header: t('Period no.'),
+      cell: ({ row: { original } }) => {
+        const no =
+          original.kind === 'bill'
+            ? original.summary?.period_no
+            : original.period.period_no
+        return no ? t('Period #{{no}}', { no }) : '—'
+      },
     },
     {
-      id: 'paid',
-      header: t('Paid'),
-      cell: billCell((bill) =>
-        bill.bill_type === 'statement' ? (
-          '—'
-        ) : (
-          <span className='font-mono'>
-            {Number.parseFloat(bill.paid_usd).toFixed(2)}
-          </span>
+      id: 'calls',
+      header: t('Calls'),
+      cell: billCell((bill) => {
+        const snapshot = bill.usage_snapshot
+        return snapshot && isBillSnapshotV2(snapshot)
+          ? snapshot.logs_total_calls.toLocaleString()
+          : '—'
+      }),
+    },
+    {
+      id: 'spend',
+      header: t('Spend / Credit (USD)'),
+      cell: ({ row: { original } }) => {
+        if (original.kind === 'period') {
+          const period = original.period
+          return (
+            <ShareBar
+              value={`$${quotaUnitsToDollars(period.used_quota).toFixed(2)} / $${quotaUnitsToDollars(period.limit_quota).toFixed(2)}`}
+              percentage={
+                creditUsagePercent(period.used_quota, period.limit_quota) ?? 0
+              }
+            />
+          )
+        }
+        const bill = original.bill
+        const total = `$${Number.parseFloat(bill.total_usd).toFixed(2)}`
+        const limit = original.summary?.limit_quota ?? 0
+        if (bill.bill_type !== 'credit' || limit <= 0) {
+          return <span className='font-mono'>{total}</span>
+        }
+        return (
+          <ShareBar
+            value={`${total} / $${quotaUnitsToDollars(limit).toFixed(2)}`}
+            percentage={creditUsagePercent(bill.amount_quota, limit) ?? 0}
+          />
         )
-      ),
-    },
-    {
-      id: 'due',
-      header: t('Due'),
-      cell: billCell((bill) =>
-        bill.due_at ? formatTimestampToDate(bill.due_at) : '—'
-      ),
+      },
     },
     {
       id: 'status',
@@ -295,10 +352,19 @@ export function BillsTable(props: BillsTableProps) {
         if (original.kind === 'period') {
           return <PeriodStatusBadge period={original.period} />
         }
-        return original.bill.bill_type === 'statement' ? (
-          '—'
-        ) : (
-          <BillStatusBadge bill={original.bill} />
+        const bill = original.bill
+        if (bill.bill_type === 'statement') return '—'
+        const awaitingPayment =
+          bill.status === 'unpaid' || bill.status === 'partially_paid'
+        return (
+          <div className='flex flex-col gap-0.5'>
+            <BillStatusBadge bill={bill} />
+            {awaitingPayment && bill.due_at > 0 && (
+              <span className='text-muted-foreground text-xs'>
+                {t('Due {{date}}', { date: billDay(bill.due_at) })}
+              </span>
+            )}
+          </div>
         )
       },
     },

@@ -1529,6 +1529,11 @@
     "Credit enterprises are settled by bill payment, not top-up": "与信企業は請求書の入金で精算され、チャージは行いません",
     "Credit enterprises are settled by bill payment": "与信企業は請求書の入金で精算されます",
     "Prepaid billing: usage is deducted from the balance; register offline top-ups with the Top-up action on the enterprise row.": "プリペイド：利用分は残高から差し引かれます。オフライン入金は企業行の「チャージ」操作で登録してください。",
-    "Enterprise name": "企業名"
+    "Enterprise name": "企業名",
+    "Spend / Credit (USD)": "消費 / 与信 (USD)",
+    "Enterprise / User": "企業 / ユーザー",
+    "Due {{date}}": "期限 {{date}}",
+    "Period no.": "期番号",
+    "Copy {{name}}": "{{name}} をコピー"
   }
 }

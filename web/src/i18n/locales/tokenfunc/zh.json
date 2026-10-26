@@ -1529,6 +1529,11 @@
     "Credit enterprises are settled by bill payment, not top-up": "授信企业通过账单收款结清，不走充值",
     "Credit enterprises are settled by bill payment": "授信企业通过账单收款结清",
     "Prepaid billing: usage is deducted from the balance; register offline top-ups with the Top-up action on the enterprise row.": "预付计费：消费从余额扣除；线下到账后用企业行的「充值」操作登记。",
-    "Enterprise name": "企业名称"
+    "Enterprise name": "企业名称",
+    "Spend / Credit (USD)": "消耗 / 授信 (USD)",
+    "Enterprise / User": "企业 / 用户",
+    "Due {{date}}": "{{date}} 到期",
+    "Period no.": "期号",
+    "Copy {{name}}": "复制 {{name}}"
   }
 }

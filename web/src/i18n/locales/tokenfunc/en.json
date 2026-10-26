@@ -1529,6 +1529,11 @@
     "Credit enterprises are settled by bill payment, not top-up": "Credit enterprises are settled by bill payment, not top-up",
     "Credit enterprises are settled by bill payment": "Credit enterprises are settled by bill payment",
     "Prepaid billing: usage is deducted from the balance; register offline top-ups with the Top-up action on the enterprise row.": "Prepaid billing: usage is deducted from the balance; register offline top-ups with the Top-up action on the enterprise row.",
-    "Enterprise name": "Enterprise name"
+    "Enterprise name": "Enterprise name",
+    "Spend / Credit (USD)": "Spend / Credit (USD)",
+    "Enterprise / User": "Enterprise / User",
+    "Due {{date}}": "Due {{date}}",
+    "Period no.": "Period no.",
+    "Copy {{name}}": "Copy {{name}}"
   }
 }

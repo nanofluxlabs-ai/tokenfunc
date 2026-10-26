@@ -36,6 +36,7 @@
 
 - 进行中 / 待出账的授信账期不再单独一张表，并入账单表：后端 `ListFinanceBills` 改为账期（end_at 升序）在前、已出账账单在后的同一分页序列，`total` 合计，分页跨段自动衔接；已出账行带完整 `bill`，行操作（发票 / CSV / 收款 / 调账 / 作废）不再二次请求。旧 `open_periods` 字段删除。
 - 查询条：企业名称 / 账单号（ILIKE，`EnterpriseBillFilter` 新增两个字段，`/api/admin/enterprise/bills` 同样可用）/ 状态下拉（第一项「全部状态」，之后 进行中 / 待出账 / 未付 / 部分已付 / 逾期 / 已付 / 已作废 / 月度对账单 / 对账差异，一个 `status` 参数覆盖原来的 tab + overdue + bill_type + reconcile）/ 查询 / 重置 / 共 N 条；原来的状态 Tabs 删除。
+- 列表版式参考 tokensolo：账单号带复制、企业 / 用户两行、计费模式徽标、账期只到天（半开区间结束日减一）、期号、调用次数（v2 快照）、消耗 / 授信进度条、状态下附到期日；去掉已付款 / 到期日两列。企业侧同一张表，没有摘要的字段显示「—」。
 - 前端：`BillsTable` 的行改成 `账单 | 账期` 联合类型（`rows`），企业侧对账页只传账单行；财务中心 `bills-panel.tsx` 承载查询条 + 表 + 行操作对话框，`enterprises/components/bills-admin-page.tsx` 与 `finance/components/bills/open-periods-table.tsx` 删除，对账差异测试迁为 `finance/components/bills/__tests__/bills-panel.test.tsx`（账期行与账单行同表、查询 / 重置、状态下拉）。
 
 ## 验证

@@ -66,7 +66,7 @@ const EMPTY_FILTERS: BillFilters = {
 /** 列表行：已出账行带完整账单，账期行用摘要 */
 function toTableRow(summary: FinanceBillSummary): BillsTableRow {
   if (summary.kind === 'bill' && summary.bill) {
-    return { kind: 'bill', bill: summary.bill }
+    return { kind: 'bill', bill: summary.bill, summary }
   }
   return { kind: 'period', period: summary }
 }

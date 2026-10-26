@@ -1,37 +1,41 @@
-import { useQuery } from '@tanstack/react-query'
-import { Download } from 'lucide-react'
-import { useMemo, useState } from 'react'
+import { useQueries } from '@tanstack/react-query'
+import dayjs from 'dayjs'
+import {
+  Activity,
+  CircleDollarSign,
+  Database,
+  Download,
+  Zap,
+} from 'lucide-react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
-import {
-  StaticDataTable,
-  type StaticDataTableColumn,
-} from '@/components/data-table'
 import { DatePicker } from '@/components/date-picker'
 import { Button } from '@/components/ui/button'
-import {
-  Card,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card'
-import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { StatCard } from '@/features/dashboard/components/ui/stat-card'
 import { toIntlLocale } from '@/i18n/languages'
 import { formatQuotaWithCurrency } from '@/lib/currency'
-import { formatDateStr, formatNumber } from '@/lib/format'
+import { formatCompactNumber, formatDateStr, formatNumber } from '@/lib/format'
 import { handleServerError } from '@/lib/handle-server-error'
 import { requireServerSuccess } from '@/lib/server-error-message'
 
 import { downloadUsageCsv, type UsageQuery } from '../api'
+import {
+  fillUsageDays,
+  matchUsagePreset,
+  sharePercent,
+  USAGE_RANGE_PRESETS,
+  usageAttributionFor,
+  type UsageDayRange,
+  usageRangeFromPreset,
+} from '../lib/usage-range'
 import type { ApiResponse, UsageGroupBy, UsageSummary } from '../types'
-
-const GROUP_OPTIONS: { value: UsageGroupBy; labelKey: string }[] = [
-  { value: 'team', labelKey: 'Team' },
-  { value: 'member', labelKey: 'Member' },
-  { value: 'model', labelKey: 'Model' },
-  { value: 'token', labelKey: 'API Key' },
-  { value: 'day', labelKey: 'Day' },
-]
+import {
+  type UsageAttributionGroup,
+  UsageAttributionSection,
+  UsageDailySection,
+  UsageModelSection,
+} from './usage-sections'
 
 type UsagePanelProps = {
   /** react-query 缓存前缀，管理员与企业侧用不同的 key */
@@ -40,81 +44,115 @@ type UsagePanelProps = {
   exportUrl: string
   /** 固定筛选（团队角色只看本团队；管理员侧按需传） */
   filter?: Pick<UsageQuery, 'team_id' | 'member_id'>
-  /** 初始维度（深链进入时由 URL 指定） */
+  /** 深链维度：model / day 滚动到对应区块，team / member / token 选中归属页签 */
   initialGroupBy?: UsageGroupBy
-  /** 团队角色只有一个团队，不显示「所属团队」维度，默认落到成员 */
+  /** 初始区间（深链或快捷档）；缺省为本月 */
+  initialRange?: UsageDayRange
+  /** 团队角色只有一个团队，归属页签不显示「团队」，默认落到成员 */
   hideTeamDimension?: boolean
+  /** 受控区间：报表页把区间写进地址栏，后退 / 刷新 / 分享看到同一视图；不传则面板自管 */
+  range?: UsageDayRange
+  onRangeChange?: (range: UsageDayRange) => void
+  /** 受控归属页签，用法同 range */
+  attribution?: UsageAttributionGroup
+  onAttributionChange?: (group: UsageAttributionGroup) => void
 }
 
-function defaultRange(): { from: Date; to: Date } {
-  const to = new Date()
-  const from = new Date(to)
-  from.setDate(from.getDate() - 29)
-  return { from, to }
-}
+const STAT_CARD_CLASS = 'bg-card rounded-xl border p-4 shadow-xs'
 
-/** 用量报表：日期范围 + 维度切换 + 汇总卡片 + 明细表 + CSV 导出（企业控制台与管理员共用） */
+/**
+ * 用量报表（企业控制台与管理员抽屉共用）：区间 + 快捷档 + 区间合计 + 按日 / 按模型 / 按归属三块；
+ * 每块的图与表来自同一次查询，合计取自按日数据，切换归属页签不影响合计。容器查询让抽屉里自动单列。
+ */
 export function UsagePanel(props: UsagePanelProps) {
   const { t, i18n } = useTranslation()
   const locale = toIntlLocale(i18n.resolvedLanguage || i18n.language)
-  const [range, setRange] = useState(defaultRange)
-  const groupOptions = props.hideTeamDimension
-    ? GROUP_OPTIONS.filter((option) => option.value !== 'team')
-    : GROUP_OPTIONS
-  const [groupBy, setGroupBy] = useState<UsageGroupBy>(() => {
-    const initial = props.initialGroupBy ?? 'team'
-    if (props.hideTeamDimension && initial === 'team') return 'member'
-    return initial
-  })
-  const filter = props.filter ?? {}
+  const [rangeState, setRangeState] = useState<UsageDayRange>(
+    () => props.initialRange ?? usageRangeFromPreset('month')
+  )
+  const [attributionState, setAttributionState] =
+    useState<UsageAttributionGroup>(() =>
+      usageAttributionFor(props.initialGroupBy, props.hideTeamDimension)
+    )
+  const range = props.range ?? rangeState
+  const attribution = props.attribution ?? attributionState
+  const setRange = (next: UsageDayRange) => {
+    setRangeState(next)
+    props.onRangeChange?.(next)
+  }
+  const setAttribution = (next: UsageAttributionGroup) => {
+    setAttributionState(next)
+    props.onAttributionChange?.(next)
+  }
   const [exporting, setExporting] = useState(false)
-  const from = formatDateStr(range.from)
-  const to = formatDateStr(range.to)
-  const invalidRange = from > to
+  const filter = props.filter ?? {}
+  const invalidRange = range.from > range.to
+  const activePreset = matchUsagePreset(range)
 
-  const summary = useQuery({
-    queryKey: [
-      ...props.queryKey,
-      'usage',
-      groupBy,
-      from,
-      to,
-      filter.team_id,
-      filter.member_id,
-    ],
-    queryFn: async () =>
-      requireServerSuccess(
-        await props.fetchSummary({ ...filter, group_by: groupBy, from, to })
-      ).data?.items ?? [],
-    enabled: !invalidRange,
+  // 三块各一个查询：按日（趋势 / 每日明细 / 合计）、按模型、按当前归属维度
+  const [daySummary, modelSummary, attributionSummary] = useQueries({
+    queries: (['day', 'model', attribution] as UsageGroupBy[]).map(
+      (groupBy) => ({
+        queryKey: [
+          ...props.queryKey,
+          'usage',
+          groupBy,
+          range.from,
+          range.to,
+          filter.team_id,
+          filter.member_id,
+        ],
+        queryFn: async () =>
+          requireServerSuccess(
+            await props.fetchSummary({ ...filter, group_by: groupBy, ...range })
+          ).data?.items ?? [],
+        enabled: !invalidRange,
+      })
+    ),
   })
-  const items = useMemo(() => summary.data ?? [], [summary.data])
+
+  const days = useMemo(
+    () => (invalidRange ? [] : fillUsageDays(daySummary.data ?? [], range)),
+    [daySummary.data, invalidRange, range]
+  )
   const totals = useMemo(
     () =>
-      items.reduce(
-        (acc, item) => ({
-          requests: acc.requests + item.request_count,
-          tokens: acc.tokens + item.prompt_tokens + item.completion_tokens,
-          cache: acc.cache + item.cache_tokens,
-          quota: acc.quota + item.quota,
+      days.reduce(
+        (acc, day) => ({
+          quota: acc.quota + day.quota,
+          requests: acc.requests + day.request_count,
+          prompt: acc.prompt + day.prompt_tokens,
+          completion: acc.completion + day.completion_tokens,
+          cache: acc.cache + day.cache_tokens,
         }),
-        { requests: 0, tokens: 0, cache: 0, quota: 0 }
+        { quota: 0, requests: 0, prompt: 0, completion: 0, cache: 0 }
       ),
-    [items]
+    [days]
   )
+  const dayCount = Math.max(1, days.length)
+
+  // 深链维度为 model / day 时滚动到对应区块（只在首次渲染时）
+  const dailyRef = useRef<HTMLDivElement>(null)
+  const modelRef = useRef<HTMLDivElement>(null)
+  const initialGroupBy = useRef(props.initialGroupBy)
+  useEffect(() => {
+    let target: HTMLDivElement | null = null
+    if (initialGroupBy.current === 'model') target = modelRef.current
+    if (initialGroupBy.current === 'day') target = dailyRef.current
+    target?.scrollIntoView?.({ behavior: 'smooth', block: 'start' })
+  }, [])
 
   const handleExport = async () => {
     setExporting(true)
     try {
       const blob = await downloadUsageCsv(props.exportUrl, {
         ...filter,
-        from,
-        to,
+        ...range,
       })
       const url = URL.createObjectURL(blob)
       const link = document.createElement('a')
       link.href = url
-      link.download = `usage-${from}-${to}.csv`
+      link.download = `usage-${range.from}-${range.to}.csv`
       link.click()
       URL.revokeObjectURL(url)
     } catch (error) {
@@ -124,64 +162,45 @@ export function UsagePanel(props: UsagePanelProps) {
     }
   }
 
-  const unassignedLabel = () => {
-    if (groupBy === 'member') return t('Team key (no holder)')
-    return t('Unassigned')
-  }
-  const columns: StaticDataTableColumn<(typeof items)[number]>[] = [
-    {
-      id: 'name',
-      header: t(
-        GROUP_OPTIONS.find((option) => option.value === groupBy)?.labelKey ??
-          'Name'
-      ),
-      cell: (row) =>
-        row.key_name ||
-        (row.key_id === 0 ? unassignedLabel() : `#${row.key_id}`),
-    },
-    {
-      id: 'requests',
-      header: t('Requests'),
-      cell: (row) => formatNumber(row.request_count, locale),
-    },
-    {
-      id: 'prompt',
-      header: t('Prompt Tokens'),
-      cell: (row) => formatNumber(row.prompt_tokens, locale),
-    },
-    {
-      id: 'cache',
-      header: t('Cache Tokens'),
-      cell: (row) => formatNumber(row.cache_tokens, locale),
-    },
-    {
-      id: 'completion',
-      header: t('Completion Tokens'),
-      cell: (row) => formatNumber(row.completion_tokens, locale),
-    },
-    {
-      id: 'quota',
-      header: t('Cost'),
-      cell: (row) => (
-        <span className='font-mono'>{formatQuotaWithCurrency(row.quota)}</span>
-      ),
-    },
-  ]
+  const idPrefix = props.queryKey.join('-')
+  const loading = daySummary.isLoading
 
   return (
-    <div className='flex flex-col gap-4'>
+    <div className='@container flex flex-col gap-4'>
       <div className='flex flex-wrap items-center gap-2'>
         <DatePicker
-          selected={range.from}
-          onSelect={(date) => date && setRange((r) => ({ ...r, from: date }))}
+          selected={dayjs(range.from).toDate()}
+          onSelect={(date) =>
+            date && setRange({ ...range, from: formatDateStr(date) })
+          }
           placeholder={t('From')}
         />
         <span className='text-muted-foreground'>~</span>
         <DatePicker
-          selected={range.to}
-          onSelect={(date) => date && setRange((r) => ({ ...r, to: date }))}
+          selected={dayjs(range.to).toDate()}
+          onSelect={(date) =>
+            date && setRange({ ...range, to: formatDateStr(date) })
+          }
           placeholder={t('To')}
         />
+        <div
+          className='bg-muted flex flex-wrap gap-1 rounded-lg p-1'
+          role='group'
+          aria-label={t('Quick range')}
+        >
+          {USAGE_RANGE_PRESETS.map((preset) => (
+            <Button
+              key={preset.value}
+              size='sm'
+              variant={activePreset === preset.value ? 'secondary' : 'ghost'}
+              className='h-7'
+              aria-pressed={activePreset === preset.value}
+              onClick={() => setRange(usageRangeFromPreset(preset.value))}
+            >
+              {t(preset.labelKey)}
+            </Button>
+          ))}
+        </div>
         <div className='flex-1' />
         <Button
           variant='outline'
@@ -198,57 +217,101 @@ export function UsagePanel(props: UsagePanelProps) {
           {t('The start date must not be later than the end date.')}
         </p>
       )}
-      <div className='grid gap-4 sm:grid-cols-3'>
-        <Card>
-          <CardHeader>
-            <CardDescription>{t('Requests')}</CardDescription>
-            <CardTitle className='font-mono'>
-              {formatNumber(totals.requests, locale)}
-            </CardTitle>
-          </CardHeader>
-        </Card>
-        <Card>
-          <CardHeader>
-            <CardDescription>{t('Tokens')}</CardDescription>
-            <CardTitle className='font-mono'>
-              {formatNumber(totals.tokens, locale)}
-            </CardTitle>
-            {totals.cache > 0 && (
-              <CardDescription>
-                {t('Cached: {{count}}', {
-                  count: formatNumber(totals.cache, locale),
-                })}
-              </CardDescription>
-            )}
-          </CardHeader>
-        </Card>
-        <Card>
-          <CardHeader>
-            <CardDescription>{t('Cost')}</CardDescription>
-            <CardTitle className='font-mono'>
-              {formatQuotaWithCurrency(totals.quota)}
-            </CardTitle>
-          </CardHeader>
-        </Card>
-      </div>
-      <Tabs
-        value={groupBy}
-        onValueChange={(value) => setGroupBy(value as UsageGroupBy)}
+
+      <div
+        className='grid gap-4 @xl:grid-cols-2 @5xl:grid-cols-4'
+        role='group'
+        aria-label={t('Range totals')}
       >
-        <TabsList className='max-w-full flex-wrap justify-start group-data-horizontal/tabs:h-auto'>
-          {groupOptions.map((option) => (
-            <TabsTrigger key={option.value} value={option.value}>
-              {t(option.labelKey)}
-            </TabsTrigger>
-          ))}
-        </TabsList>
-      </Tabs>
-      <StaticDataTable
-        columns={columns}
-        data={items}
-        getRowKey={(row) => `${row.key_id}-${row.key_name}`}
-        empty={!summary.isLoading && items.length === 0}
-        emptyContent={t('No usage in this range')}
+        <div className={STAT_CARD_CLASS}>
+          <StatCard
+            title={t('Cost in range')}
+            value={formatQuotaWithCurrency(totals.quota)}
+            description={t('Daily average {{value}}', {
+              value: formatQuotaWithCurrency(totals.quota / dayCount),
+            })}
+            icon={CircleDollarSign}
+            tone='accent-1'
+            sparkline={days.map((day) => day.quota)}
+            sparklineVariant='line'
+            loading={loading}
+          />
+        </div>
+        <div className={STAT_CARD_CLASS}>
+          <StatCard
+            title={t('Requests')}
+            value={formatNumber(totals.requests, locale)}
+            description={t('Daily average {{value}}', {
+              value: formatNumber(
+                Math.round(totals.requests / dayCount),
+                locale
+              ),
+            })}
+            icon={Activity}
+            tone='accent-2'
+            sparkline={days.map((day) => day.request_count)}
+            sparklineVariant='line'
+            loading={loading}
+          />
+        </div>
+        <div className={STAT_CARD_CLASS}>
+          <StatCard
+            title={t('Tokens')}
+            value={formatCompactNumber(
+              totals.prompt + totals.completion,
+              locale
+            )}
+            description={t('Input {{input}} · Output {{output}}', {
+              input: formatCompactNumber(totals.prompt, locale),
+              output: formatCompactNumber(totals.completion, locale),
+            })}
+            icon={Zap}
+            tone='accent-3'
+            sparkline={days.map(
+              (day) => day.prompt_tokens + day.completion_tokens
+            )}
+            sparklineVariant='line'
+            loading={loading}
+          />
+        </div>
+        <div className={STAT_CARD_CLASS}>
+          <StatCard
+            title={t('Cache hit rate')}
+            value={`${sharePercent(totals.cache, totals.prompt)}%`}
+            description={t('Cached: {{count}}', {
+              count: formatCompactNumber(totals.cache, locale),
+            })}
+            icon={Database}
+            tone='accent-1'
+            sparkline={days.map((day) => day.cache_tokens)}
+            sparklineVariant='bars'
+            loading={loading}
+          />
+        </div>
+      </div>
+
+      <UsageDailySection
+        ref={dailyRef}
+        idPrefix={idPrefix}
+        days={days}
+        loading={loading}
+        totalQuota={totals.quota}
+      />
+      <UsageModelSection
+        ref={modelRef}
+        idPrefix={idPrefix}
+        items={modelSummary.data ?? []}
+        loading={modelSummary.isLoading}
+        totalQuota={totals.quota}
+      />
+      <UsageAttributionSection
+        idPrefix={idPrefix}
+        items={attributionSummary.data ?? []}
+        loading={attributionSummary.isLoading}
+        totalQuota={totals.quota}
+        group={attribution}
+        onGroupChange={setAttribution}
+        hideTeamDimension={props.hideTeamDimension}
       />
     </div>
   )

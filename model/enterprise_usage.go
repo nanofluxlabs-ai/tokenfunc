@@ -383,9 +383,12 @@ func SumEnterpriseUsageByColumn(enterpriseId int, column string, ids []int, from
 
 // EnterpriseUsageDayItem 按天汇总（概览柱图用）；区间内没有用量的日期补零
 type EnterpriseUsageDayItem struct {
-	Day          string `json:"day"`
-	Quota        int64  `json:"quota"`
-	RequestCount int64  `json:"request_count"`
+	Day              string `json:"day"`
+	Quota            int64  `json:"quota"`
+	RequestCount     int64  `json:"request_count"`
+	PromptTokens     int64  `json:"prompt_tokens"`
+	CompletionTokens int64  `json:"completion_tokens"`
+	CacheTokens      int64  `json:"cache_tokens"`
 }
 
 // SummarizeEnterpriseUsageByDay [fromDay, toDay] 内每一天的消耗，按日期升序、缺的日期补零
@@ -412,6 +415,9 @@ func SummarizeEnterpriseUsageByDay(enterpriseId int, fromDay string, toDay strin
 		if item, ok := byDay[row.Day]; ok {
 			row.Quota = item.Quota
 			row.RequestCount = item.RequestCount
+			row.PromptTokens = item.PromptTokens
+			row.CompletionTokens = item.CompletionTokens
+			row.CacheTokens = item.CacheTokens
 		}
 		days = append(days, row)
 	}

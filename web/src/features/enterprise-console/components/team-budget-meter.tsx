@@ -20,6 +20,8 @@ type TeamBudgetMeterProps = {
   team: TeamBudgetView
   /** md：团队页头用，进度条更粗、带百分比与「剩余」文字 */
   size?: 'sm' | 'md'
+  /** 是否显示「已用 / 预算」金额；外层已经大号展示金额时传 false，默认 true */
+  showAmount?: boolean
 }
 
 /** 团队月度预算进度：本月消耗 / 预算，达到阈值标黄、超预算标红并提示是否已拦截；未设预算不渲染 */
@@ -45,10 +47,12 @@ export function TeamBudgetMeter(props: TeamBudgetMeterProps) {
           large ? 'text-sm' : 'text-xs'
         )}
       >
-        <span>
-          {formatQuotaWithCurrency(team.month_quota)} /{' '}
-          {formatQuotaWithCurrency(team.monthly_budget_quota)}
-        </span>
+        {props.showAmount !== false && (
+          <span>
+            {formatQuotaWithCurrency(team.month_quota)} /{' '}
+            {formatQuotaWithCurrency(team.monthly_budget_quota)}
+          </span>
+        )}
         {large && (
           <span>
             {percent}% · {t('Remaining')} {formatQuotaWithCurrency(remaining)}

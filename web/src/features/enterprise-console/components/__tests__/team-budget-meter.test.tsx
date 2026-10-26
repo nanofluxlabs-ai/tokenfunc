@@ -85,4 +85,22 @@ describe('TeamBudgetMeter', () => {
     expect(screen.getByText('Over budget')).toBeInTheDocument()
     expect(screen.queryByText('Blocked by budget')).not.toBeInTheDocument()
   })
+
+  test('hides the amount when the caller already shows it but keeps percent and badges', () => {
+    render(
+      <TeamBudgetMeter
+        size='md'
+        showAmount={false}
+        team={team({
+          monthly_budget_quota: 500000,
+          month_quota: 425000,
+          budget_percent: 85,
+          budget_state: 'warn',
+        })}
+      />
+    )
+    expect(screen.queryByText(/\$0\.85 \//)).not.toBeInTheDocument()
+    expect(screen.getByText(/^85% · Remaining/)).toBeInTheDocument()
+    expect(screen.getByText('Budget warning')).toBeInTheDocument()
+  })
 })

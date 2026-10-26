@@ -1,5 +1,6 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { cleanup, render, screen, within } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import type { ReactNode } from 'react'
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest'
 
@@ -12,6 +13,7 @@ vi.mock('@tanstack/react-router', () => ({
     to: string
     search?: Record<string, unknown>
     className?: string
+    'aria-label'?: string
     children?: ReactNode
   }) => {
     const query = new URLSearchParams(
@@ -21,12 +23,29 @@ vi.mock('@tanstack/react-router', () => ({
       ])
     ).toString()
     return (
-      <a href={query ? `${props.to}?${query}` : props.to}>{props.children}</a>
+      <a
+        href={query ? `${props.to}?${query}` : props.to}
+        aria-label={props['aria-label']}
+      >
+        {props.children}
+      </a>
     )
   },
 }))
-// jsdom 下不渲染真实图表
+// jsdom 下不渲染真实图表；趋势图换成只暴露系列与天数的占位，便于断言图表收到的数据
 vi.mock('@visactor/react-vchart', () => ({ VChart: () => null }))
+vi.mock('@/components/charts/daily-trend-chart', () => ({
+  DailyTrendChart: (props: {
+    data: { day: string }[]
+    series: { field: string }[]
+  }) => (
+    <div
+      data-testid='trend-chart'
+      data-days={props.data.map((row) => row.day).join(',')}
+      data-series={props.series.map((serie) => serie.field).join(',')}
+    />
+  ),
+}))
 vi.mock('@/lib/use-chart-theme', () => ({
   useChartTheme: () => ({ resolvedTheme: 'light', themeReady: false }),
 }))
@@ -35,6 +54,7 @@ const apiMock = vi.hoisted(() => ({
   getEnterpriseOverview: vi.fn(),
   listLedger: vi.fn(),
   listCreditPeriods: vi.fn(),
+  getUsageSummary: vi.fn(),
 }))
 vi.mock('../../api', () => apiMock)
 
@@ -61,6 +81,33 @@ const teamAdmin: EnterpriseActor = {
   team_id: 6,
   is_owner: false,
   provisioned: false,
+}
+
+// 9/27 ~ 10/26 共 30 天；最后两天：昨日 400、今日 500，前面每天 100
+const thirtyDays = Array.from({ length: 30 }, (_, index) => {
+  const date = new Date(Date.UTC(2026, 8, 27 + index))
+  const quota = [100, 400, 500][Math.max(0, index - 27)]
+  return {
+    day: date.toISOString().slice(0, 10),
+    quota,
+    request_count: quota / 100,
+    prompt_tokens: quota * 3,
+    completion_tokens: quota,
+    cache_tokens: 0,
+  }
+})
+
+function modelItem(name: string, quota: number) {
+  return {
+    key_id: 0,
+    key_name: name,
+    request_count: 1,
+    prompt_tokens: 10,
+    completion_tokens: 5,
+    cache_tokens: 0,
+    cache_creation_tokens: 0,
+    quota,
+  }
 }
 
 function overview(partial: Partial<EnterpriseOverview>): EnterpriseOverview {
@@ -101,7 +148,7 @@ function overview(partial: Partial<EnterpriseOverview>): EnterpriseOverview {
       expiring_7d: 3,
     },
     org: { teams: 6, members: 42, login_members: 5 },
-    daily: [{ day: '2026-10-26', quota: 1000, request_count: 1 }],
+    daily: thirtyDays,
     todos: {
       unpaid_bills: 1,
       overdue_bills: 1,
@@ -159,6 +206,10 @@ beforeEach(() => {
       total: 1,
     },
   })
+  apiMock.getUsageSummary.mockResolvedValue({
+    success: true,
+    data: { from: '', to: '', group_by: 'model', items: [] },
+  })
   apiMock.listCreditPeriods.mockResolvedValue({
     success: true,
     data: { items: [], total: 0 },
@@ -171,66 +222,145 @@ afterEach(() => {
 })
 
 describe('EnterpriseOverview', () => {
-  test('credit owner sees the period card, prioritized to-dos with deep links and the collapsed finance sections', async () => {
+  test('credit owner sees remaining credit, to-dos, today-based KPI cards and finance quick link', async () => {
     apiMock.getEnterpriseOverview.mockResolvedValue({
       success: true,
       data: overview({}),
     })
     renderPage()
 
-    expect(await screen.findByText('Current period usage')).toBeInTheDocument()
-    expect(screen.getByText('Spend this month')).toBeInTheDocument()
+    // 账户卡：剩余额度 = 2_500_000 - 620_000 → $3.76 / $5
+    expect(await screen.findByText('Remaining credit')).toBeInTheDocument()
+    expect(screen.getByText('$3.76')).toBeInTheDocument()
     expect(
-      screen.getByText('+24% vs last month · Last month $1')
-    ).toBeInTheDocument()
-    expect(screen.getByText('Active keys')).toBeInTheDocument()
-    expect(screen.getByText('Teams · Members')).toBeInTheDocument()
+      screen.getByRole('link', { name: 'View reconciliation' })
+    ).toHaveAttribute('href', '/enterprise/bills')
+    // 本期已用与「本月消耗」口径重叠，概览不再有本月消耗卡
+    expect(screen.queryByText('Spend this month')).not.toBeInTheDocument()
 
     const todos = within(screen.getByRole('region', { name: 'To-dos' }))
-    const alerts = todos.getAllByRole('alert')
-    expect(alerts.map((alert) => alert.textContent)).toEqual([
+    expect(
+      todos.getAllByRole('alert').map((alert) => alert.textContent)
+    ).toEqual([
       '1 bill(s) overdueView bills',
       'Research is over budget and blockedView team',
       '2 key(s) exhaustedView keys',
       '3 key(s) expire within 7 daysView keys',
     ])
-    expect(todos.getByRole('link', { name: 'View bills' })).toHaveAttribute(
-      'href',
-      '/enterprise/bills'
-    )
-    expect(todos.getByRole('link', { name: 'View team' })).toHaveAttribute(
-      'href',
-      '/enterprise/teams?team_id=6'
-    )
-    const keyLinks = todos.getAllByRole('link', { name: 'View keys' })
-    expect(keyLinks.map((link) => link.getAttribute('href'))).toEqual([
-      '/enterprise/keys?status=4',
-      '/enterprise/keys?expiring=true',
-    ])
-    expect(
-      screen.getByRole('link', { name: 'View usage report' })
-    ).toHaveAttribute('href', '/enterprise/usage')
-    expect(screen.getByRole('link', { name: 'API Keys' })).toHaveAttribute(
-      'href',
-      '/enterprise/keys'
-    )
 
-    // 资金流水与授信账期已迁到财务对账页：概览不再有折叠区，第一张卡深链过去
+    // 快捷入口收纳原密钥 / 组织卡的计数，企业视角带财务对账
     expect(
-      screen.queryByRole('button', { name: 'Credit Periods' })
-    ).not.toBeInTheDocument()
+      screen.getByText('37 / 42 active · 3 expiring within 7 days')
+    ).toBeInTheDocument()
     expect(
-      screen.queryByRole('button', { name: 'Ledger' })
-    ).not.toBeInTheDocument()
-    expect(screen.queryByRole('table')).not.toBeInTheDocument()
-    expect(
-      screen.getByRole('link', { name: 'View reconciliation' })
-    ).toHaveAttribute('href', '/enterprise/bills')
-    expect(apiMock.listCreditPeriods).not.toHaveBeenCalled()
+      screen.getByText('6 teams · 42 members · 5 can sign in')
+    ).toBeInTheDocument()
+    expect(screen.getByText('1 bill(s) awaiting payment')).toBeInTheDocument()
     expect(apiMock.listLedger).not.toHaveBeenCalled()
   })
 
-  test('prepaid owner sees the balance card with the last top-up and no credit periods section', async () => {
+  test('KPI cards drill down to the usage report with the same server-side day range', async () => {
+    apiMock.getEnterpriseOverview.mockResolvedValue({
+      success: true,
+      data: overview({}),
+    })
+    renderPage()
+
+    const todaySpend = await screen.findByRole('link', {
+      name: "Today's spend",
+    })
+    expect(todaySpend).toHaveAttribute(
+      'href',
+      '/enterprise/usage?from=2026-10-26&to=2026-10-26&source=overview'
+    )
+    expect(within(todaySpend).getByText('+25%')).toBeInTheDocument()
+    expect(
+      screen.getByRole('link', { name: 'Spend in the last 7 days' })
+    ).toHaveAttribute(
+      'href',
+      '/enterprise/usage?from=2026-10-20&to=2026-10-26&source=overview'
+    )
+  })
+
+  test('trend card plots only the last 7 days and switches series by metric', async () => {
+    apiMock.getEnterpriseOverview.mockResolvedValue({
+      success: true,
+      data: overview({}),
+    })
+    renderPage()
+
+    const chart = await screen.findByTestId('trend-chart')
+    expect(chart.dataset.days?.split(',')).toEqual([
+      '2026-10-20',
+      '2026-10-21',
+      '2026-10-22',
+      '2026-10-23',
+      '2026-10-24',
+      '2026-10-25',
+      '2026-10-26',
+    ])
+    expect(chart.dataset.series).toBe('quota')
+
+    await userEvent.click(screen.getByRole('tab', { name: 'Tokens' }))
+    expect(screen.getByTestId('trend-chart').dataset.series).toBe(
+      'prompt_tokens,completion_tokens'
+    )
+    expect(
+      screen.getByRole('link', { name: /View longer range/ })
+    ).toHaveAttribute('href', '/enterprise/usage?source=overview')
+  })
+
+  test('today top models queries today by model and keeps the top 5 rows', async () => {
+    apiMock.getEnterpriseOverview.mockResolvedValue({
+      success: true,
+      data: overview({}),
+    })
+    apiMock.getUsageSummary.mockResolvedValue({
+      success: true,
+      data: {
+        from: '2026-10-26',
+        to: '2026-10-26',
+        group_by: 'model',
+        items: [600, 500, 400, 300, 200, 100].map((quota, index) =>
+          modelItem(`model-${index + 1}`, quota)
+        ),
+      },
+    })
+    renderPage()
+
+    expect(await screen.findByText('model-1')).toBeInTheDocument()
+    expect(apiMock.getUsageSummary).toHaveBeenCalledWith({
+      group_by: 'model',
+      from: '2026-10-26',
+      to: '2026-10-26',
+    })
+    expect(screen.getByText('model-5')).toBeInTheDocument()
+    expect(screen.queryByText('model-6')).not.toBeInTheDocument()
+    // 占比分母是今日全部模型：600 / 2100
+    expect(screen.getByText('28.6%')).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: /View all/ })).toHaveAttribute(
+      'href',
+      '/enterprise/usage?from=2026-10-26&to=2026-10-26&group_by=model&source=overview'
+    )
+  })
+
+  test('today top models shows an empty state linking to the last 7 days', async () => {
+    apiMock.getEnterpriseOverview.mockResolvedValue({
+      success: true,
+      data: overview({}),
+    })
+    renderPage()
+
+    expect(await screen.findByText('No model calls today')).toBeInTheDocument()
+    expect(
+      screen.getByRole('link', { name: 'View the last 7 days' })
+    ).toHaveAttribute(
+      'href',
+      '/enterprise/usage?from=2026-10-20&to=2026-10-26&group_by=model&source=overview'
+    )
+  })
+
+  test('prepaid owner sees the balance with the last top-up', async () => {
     apiMock.getEnterpriseOverview.mockResolvedValue({
       success: true,
       data: overview({
@@ -254,18 +384,16 @@ describe('EnterpriseOverview', () => {
 
     expect(await screen.findByText('Balance')).toBeInTheDocument()
     expect(await screen.findByText(/^Last top-up /)).toBeInTheDocument()
-    expect(screen.queryByText('Current period usage')).not.toBeInTheDocument()
+    expect(screen.queryByText('Remaining credit')).not.toBeInTheDocument()
     expect(
-      screen.getByRole('link', { name: 'View reconciliation' })
-    ).toHaveAttribute('href', '/enterprise/bills')
-    // 没有待办时整块不渲染
-    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+      screen.getByText('Bills, ledger and credit periods')
+    ).toBeInTheDocument()
     expect(
       screen.queryByRole('region', { name: 'To-dos' })
     ).not.toBeInTheDocument()
   })
 
-  test('team admin sees the team spend card scoped to their team and no finance sections', async () => {
+  test('team admin sees the team budget and no finance entry points', async () => {
     actorState.actor = teamAdmin
     apiMock.getEnterpriseOverview.mockResolvedValue({
       success: true,
@@ -304,25 +432,15 @@ describe('EnterpriseOverview', () => {
 
     expect(await screen.findByText('Team spend this month')).toBeInTheDocument()
     expect(screen.getByText('Blocked by budget')).toBeInTheDocument()
-    expect(screen.getByText('Research · Members')).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: 'Teams' })).toHaveAttribute(
-      'href',
-      '/enterprise/teams?team_id=6'
-    )
+    expect(screen.getByText('3 / 4 active')).toBeInTheDocument()
+    expect(screen.getByText('7 members · 2 can sign in')).toBeInTheDocument()
     expect(
-      screen.getByText('No keys expiring within 7 days')
-    ).toBeInTheDocument()
-    expect(screen.queryByText('Current period usage')).not.toBeInTheDocument()
-    expect(screen.queryByText('Balance')).not.toBeInTheDocument()
+      screen.getByRole('link', { name: /Teams & members/ })
+    ).toHaveAttribute('href', '/enterprise/teams?team_id=6')
+    expect(screen.queryByText('Reconciliation')).not.toBeInTheDocument()
     expect(
       screen.queryByRole('link', { name: 'View reconciliation' })
     ).not.toBeInTheDocument()
     expect(apiMock.listLedger).not.toHaveBeenCalled()
-    // 只有本团队的 key 待办，没有账单待办
-    const alerts = screen.getAllByRole('alert')
-    expect(alerts.map((alert) => alert.textContent)).toEqual([
-      'Research is over budget and blockedView team',
-      '1 key(s) exhaustedView keys',
-    ])
   })
 })

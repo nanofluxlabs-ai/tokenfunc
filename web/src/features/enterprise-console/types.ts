@@ -225,6 +225,9 @@ export interface UsageDayItem {
   day: string
   quota: number
   request_count: number
+  prompt_tokens: number
+  completion_tokens: number
+  cache_tokens: number
 }
 
 /** 团队本月消耗与预算进度（概览待办 / 团队角色第一张卡） */

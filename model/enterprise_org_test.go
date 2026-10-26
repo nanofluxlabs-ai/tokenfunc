@@ -412,6 +412,13 @@ func TestEnterpriseUsageAggregationSnapshotsAttribution(t *testing.T) {
 	require.Len(t, byModel, 1)
 	assert.Equal(t, "gpt-4o", byModel[0].KeyName)
 	assert.Equal(t, int64(17), byModel[0].Quota)
+	// 按天汇总补零并带出 token：概览的今日 Token 与 Token 趋势依赖这些字段
+	days, err := SummarizeEnterpriseUsageByDay(ent.Id, from, to, EnterpriseUsageFilter{})
+	require.NoError(t, err)
+	require.Len(t, days, 30)
+	today := days[len(days)-1]
+	assert.Equal(t, [5]int64{3, 200, 100, 60, 17}, [5]int64{today.RequestCount, today.PromptTokens, today.CompletionTokens, today.CacheTokens, today.Quota})
+	assert.Equal(t, int64(0), days[0].Quota)
 	_, err = SummarizeEnterpriseUsage(ent.Id, "department", from, to, EnterpriseUsageFilter{})
 	assert.ErrorIs(t, err, ErrEnterpriseUsageGroup)
 	rows, err := ExportEnterpriseUsage(ent.Id, from, to, EnterpriseUsageFilter{})

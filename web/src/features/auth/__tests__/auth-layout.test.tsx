@@ -68,6 +68,29 @@ describe('AuthLayout brand aside', () => {
     expect(screen.queryByText('Service SLA')).not.toBeInTheDocument()
   })
 
+  it('keeps only the brand link below lg so the form starts on the first mobile screen', () => {
+    render(
+      <AuthLayout variant='sign-in'>
+        <form aria-label='login form' />
+      </AuthLayout>
+    )
+
+    // 营销区与版权只在 lg 以上出现；Logo 链接任何宽度都在
+    const marketing = screen.getByRole('heading', { level: 1 }).parentElement
+    expect(marketing).toHaveClass('hidden', 'lg:flex')
+    expect(screen.getByText(/© \d{4} tokenfunc/)).toHaveClass(
+      'hidden',
+      'lg:inline'
+    )
+    expect(screen.getByRole('link', { name: /tokenfunc/ })).not.toHaveClass(
+      'hidden'
+    )
+    expect(screen.getByRole('main')).toHaveClass(
+      'items-start',
+      'lg:items-center'
+    )
+  })
+
   it('defaults to the sign-in copy when no variant is given', () => {
     render(
       <AuthLayout>

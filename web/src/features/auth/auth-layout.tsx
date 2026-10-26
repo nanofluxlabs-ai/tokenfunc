@@ -56,7 +56,8 @@ function BrandAside(props: { variant: AuthLayoutVariant }) {
   const isSignUp = props.variant === 'sign-up'
 
   return (
-    <aside className='bg-sidebar border-border relative flex flex-col justify-between gap-16 overflow-hidden border-b px-8 py-10 lg:border-r lg:border-b-0 lg:px-16'>
+    // 窄屏只留一条 Logo 栏，营销区与版权放到 lg 以上，表单才能落在首屏
+    <aside className='bg-sidebar border-border relative flex flex-col justify-between overflow-hidden border-b px-6 py-4 lg:gap-16 lg:border-r lg:border-b-0 lg:px-16 lg:py-10'>
       <div className='tf-aurora' aria-hidden='true' />
       <Link
         to='/'
@@ -75,7 +76,7 @@ function BrandAside(props: { variant: AuthLayoutVariant }) {
         {loading ? <Skeleton className='h-5 w-24' /> : systemName}
       </Link>
 
-      <div className='relative flex max-w-[460px] flex-col gap-8'>
+      <div className='relative hidden max-w-[460px] flex-col gap-8 lg:flex'>
         <h1 className='text-foreground m-0 flex flex-col text-[clamp(40px,4.6vw,64px)] leading-[1.15] font-light tracking-[-0.03em]'>
           <span className='tf-rise' style={riseDelay(1)}>
             {isSignUp ? t('Enterprise-grade') : t('One endpoint')}
@@ -143,7 +144,7 @@ function BrandAside(props: { variant: AuthLayoutVariant }) {
         )}
       </div>
 
-      <span className='text-muted-foreground/70 relative text-[13px]'>
+      <span className='text-muted-foreground/70 relative hidden text-[13px] lg:inline'>
         © {new Date().getFullYear()} {systemName}
       </span>
     </aside>
@@ -153,9 +154,9 @@ function BrandAside(props: { variant: AuthLayoutVariant }) {
 /** 认证页布局：左栏品牌区 + 右栏表单（窄屏时上下堆叠） */
 export function AuthLayout({ children, variant = 'sign-in' }: AuthLayoutProps) {
   return (
-    <div className='bg-background text-foreground grid min-h-svh lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]'>
+    <div className='bg-background text-foreground grid min-h-svh grid-rows-[auto_1fr] lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:grid-rows-none'>
       <BrandAside variant={variant} />
-      <main className='flex items-center justify-center px-6 py-12 md:px-8 md:py-16'>
+      <main className='flex items-start justify-center px-6 py-8 md:px-8 md:py-16 lg:items-center'>
         <div
           className='tf-rise flex w-full max-w-[400px] flex-col gap-8'
           style={riseDelay(2)}

@@ -160,6 +160,11 @@ export function EnterpriseProfileFields(props: {
     <>
       <EnterpriseTextField
         control={props.control}
+        name='name'
+        label={t('Enterprise Name')}
+      />
+      <EnterpriseTextField
+        control={props.control}
         name='contact_name'
         label={t('Contact Name')}
       />

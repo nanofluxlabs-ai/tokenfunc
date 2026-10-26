@@ -25,6 +25,7 @@ export const DEFAULT_ENTERPRISE_GROUP = 'default'
 
 /** 企业资料折叠区包含的字段：校验失败时据此展开分区 */
 export const ENTERPRISE_PROFILE_FIELDS = [
+  'name',
   'contact_name',
   'contact_email',
   'contact_phone',

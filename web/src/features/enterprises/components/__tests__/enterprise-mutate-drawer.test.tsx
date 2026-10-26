@@ -227,7 +227,6 @@ test('editing the credit limit saves the profile first, then verifies and config
 test('editing only the profile saves without verification or credit calls', async () => {
   const { onOpenChange } = renderDrawer(creditRow())
 
-  await expandSection('Enterprise Profile')
   await userEvent.type(screen.getByLabelText('Contact Name'), 'Jane')
   await save()
 
@@ -420,7 +419,6 @@ test('creating a prepaid enterprise does not ask for verification', async () => 
 
 test('the login email follows the contact email until it is edited by hand', async () => {
   renderDrawer()
-  await expandSection('Enterprise Profile')
   const loginEmail = screen.getByLabelText('Login Email')
   const contactEmail = screen.getByLabelText('Contact Email')
 
@@ -438,15 +436,16 @@ test('the edit drawer shows the enterprise status next to the title', () => {
   expect(screen.getByText('Suspended')).toBeInTheDocument()
 })
 
-test('sections follow the order owner, name, group, billing, profile, invoicing, remark', () => {
+test('sections follow the order owner, group, billing, profile with the name first, invoicing, remark', () => {
   renderDrawer()
 
   const markers = [
     screen.getByText('Owner Account'),
-    screen.getByLabelText('Enterprise Name'),
     screen.getByText('Permission Settings'),
     screen.getByText('Billing Settings'),
     screen.getByRole('button', { name: 'Enterprise Profile' }),
+    screen.getByLabelText('Enterprise Name'),
+    screen.getByLabelText('Contact Name'),
     screen.getByRole('button', { name: /^Billing Profile/ }),
     screen.getByLabelText('Internal Remark'),
   ]
@@ -458,27 +457,31 @@ test('sections follow the order owner, name, group, billing, profile, invoicing,
   }
 })
 
-test('the enterprise and billing profiles start collapsed and expand on click', async () => {
+test('the enterprise profile starts expanded and the billing profile starts collapsed', async () => {
   renderDrawer(creditRow())
 
-  expect(screen.queryByLabelText('Contact Name')).not.toBeInTheDocument()
-  expect(screen.queryByLabelText('Tax ID')).not.toBeInTheDocument()
-  expect(
-    screen.getByRole('button', { name: 'Enterprise Profile' })
-  ).toHaveAttribute('aria-expanded', 'false')
-
-  await expandSection('Enterprise Profile')
-
-  expect(screen.getByLabelText('Contact Name')).toBeInTheDocument()
   expect(
     screen.getByRole('button', { name: 'Enterprise Profile' })
   ).toHaveAttribute('aria-expanded', 'true')
+  expect(screen.getByLabelText('Enterprise Name')).toBeInTheDocument()
+  expect(screen.getByLabelText('Contact Name')).toBeInTheDocument()
+  expect(
+    screen.getByRole('button', { name: /^Billing Profile/ })
+  ).toHaveAttribute('aria-expanded', 'false')
   expect(screen.queryByLabelText('Tax ID')).not.toBeInTheDocument()
+
+  await userEvent.click(
+    screen.getByRole('button', { name: /^Billing Profile/ })
+  )
+
+  expect(screen.getByLabelText('Tax ID')).toBeInTheDocument()
 })
 
 test('an invalid field in a collapsed section expands it and focuses that field', async () => {
   const errorToast = vi.spyOn(toast, 'error')
   renderDrawer(creditRow({ contact_email: 'not-an-email' }))
+  await expandSection('Enterprise Profile')
+  expect(screen.queryByLabelText('Contact Email')).not.toBeInTheDocument()
 
   await save()
 
@@ -512,7 +515,7 @@ test('a cleared credit limit shows the error under the field and focuses it with
   expect(apiMock.createEnterprise).not.toHaveBeenCalled()
 })
 
-test('a missing enterprise name is reported right below the owner account', async () => {
+test('a missing enterprise name is reported in the enterprise profile and focused', async () => {
   renderDrawer()
 
   await userEvent.type(screen.getByLabelText('Username'), 'wtcorp')

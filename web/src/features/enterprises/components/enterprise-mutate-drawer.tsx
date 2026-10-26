@@ -118,8 +118,8 @@ export function EnterpriseMutateDrawer(props: EnterpriseMutateDrawerProps) {
   const [savedValues, setSavedValues] = useState<EnterpriseFormValues | null>(
     null
   )
-  // 企业资料 / 开票资料默认收起；校验失败时展开出错的分区
-  const [profileOpen, setProfileOpen] = useState(false)
+  // 企业资料（含必填的企业名称）默认展开，开票资料默认收起；校验失败时展开出错的分区
+  const [profileOpen, setProfileOpen] = useState(true)
   const [billingProfileOpen, setBillingProfileOpen] = useState(false)
   // 校验失败后等分区展开渲染完，再滚动并聚焦第一个错误字段
   const [pendingErrorFocus, setPendingErrorFocus] = useState(false)
@@ -159,7 +159,7 @@ export function EnterpriseMutateDrawer(props: EnterpriseMutateDrawerProps) {
     if (formKey === null) return
     setCreatedEnterprise(null)
     setSavedValues(null)
-    setProfileOpen(false)
+    setProfileOpen(true)
     setBillingProfileOpen(false)
     loginEmailEdited.current = false
     form.reset(
@@ -484,14 +484,6 @@ export function EnterpriseMutateDrawer(props: EnterpriseMutateDrawerProps) {
                     )}
                   </SideDrawerSection>
                 )}
-
-                <SideDrawerSection>
-                  <EnterpriseTextField
-                    control={form.control}
-                    name='name'
-                    label={t('Enterprise Name')}
-                  />
-                </SideDrawerSection>
 
                 <SideDrawerSection>
                   <SideDrawerSectionHeader title={t('Permission Settings')} />

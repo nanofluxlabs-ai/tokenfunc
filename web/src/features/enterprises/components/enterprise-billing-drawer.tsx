@@ -44,7 +44,6 @@ import type { EnterpriseListItem } from '../types'
 import { AdjustmentDialog } from './adjustment-dialog'
 import { CreditConfigForm } from './credit-config-form'
 import { useEnterprises } from './enterprises-provider'
-import { TopupForm } from './topup-form'
 
 type EnterpriseBillingDrawerProps = {
   open: boolean
@@ -200,7 +199,7 @@ export function EnterpriseBillingDrawer(props: EnterpriseBillingDrawerProps) {
                     'Credit billing: usage is limited per period and billed when the period ends.'
                   )
                 : t(
-                    'Prepaid billing: usage is deducted from the balance; top-ups are registered here after bank transfer.'
+                    'Prepaid billing: usage is deducted from the balance; register offline top-ups with the Top-up action on the enterprise row.'
                   )}
             </SheetDescription>
           </SheetHeader>
@@ -239,17 +238,6 @@ export function EnterpriseBillingDrawer(props: EnterpriseBillingDrawerProps) {
                       : t('Suspend enterprise')}
                   </Button>
                 </div>
-              </SideDrawerSection>
-            )}
-            {data && !isCredit && (
-              <SideDrawerSection>
-                <SideDrawerSectionHeader
-                  title={t('Register top-up')}
-                  description={t(
-                    'Record an offline bank transfer and add it to the balance.'
-                  )}
-                />
-                <TopupForm enterpriseId={enterpriseId} onSaved={refresh} />
               </SideDrawerSection>
             )}
             {data && (

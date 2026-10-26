@@ -1519,6 +1519,9 @@
     "you cannot manage this member's role": "このメンバーのロールを管理する権限がありません",
     "no account found for this username or email": "このユーザー名またはメールアドレスのアカウントは見つかりません",
     "Team Management": "チーム管理",
-    "Add members or import them to start issuing keys.": "メンバーを追加またはインポートするとキーを発行できます。"
+    "Add members or import them to start issuing keys.": "メンバーを追加またはインポートするとキーを発行できます。",
+    "Credit enterprises are settled by bill payment, not top-up": "与信企業は請求書の入金で精算され、チャージは行いません",
+    "Credit enterprises are settled by bill payment": "与信企業は請求書の入金で精算されます",
+    "Prepaid billing: usage is deducted from the balance; register offline top-ups with the Top-up action on the enterprise row.": "プリペイド：利用分は残高から差し引かれます。オフライン入金は企業行の「チャージ」操作で登録してください。"
   }
 }

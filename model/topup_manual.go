@@ -17,18 +17,16 @@ import (
 // ManualTopUpPaymentMethods 管理员手动充值允许登记的收款方式
 var ManualTopUpPaymentMethods = []string{PaymentMethodBankTransfer, PaymentMethodAlipay, PaymentMethodWxpay, PaymentMethodGift}
 
-var (
-	ErrManualTopUpEnterpriseOwner = errors.New("enterprise accounts must be topped up from the enterprise ledger")
-	ErrManualTopUpPaymentMethod   = errors.New("unsupported payment method")
-)
+var ErrManualTopUpPaymentMethod = errors.New("unsupported payment method")
 
 func IsManualTopUpPaymentMethod(method string) bool {
 	return slices.Contains(ManualTopUpPaymentMethods, method)
 }
 
-// RegisterManualTopUp 管理员手动充值：锁用户行、写成功充值单、加余额，三步同一事务；
-// 企业主账号的充值走企业台账（RegisterEnterpriseTopup），这里拒绝。
-func RegisterManualTopUp(userId int, operatorRole int, quota int, moneyUSD float64, paymentMethod string, reference string, callerIp string) (*TopUp, error) {
+// RegisterManualTopUp 管理员手动充值：锁用户行、写成功充值单、加余额，三步同一事务。
+// 企业主账号走同一入口：加余额改由 registerEnterpriseTopupTx 完成（预付模式校验 + 钱包上限 + 企业台账），
+// 充值单 / 充值日志 / 审计与普通用户完全一致，订单中心与对账因此能看到企业充值；授信企业返回 ErrEnterpriseNotPrepaid。
+func RegisterManualTopUp(userId int, operatorId int, operatorRole int, quota int, moneyUSD float64, paymentMethod string, reference string, callerIp string) (*TopUp, error) {
 	if userId <= 0 || quota <= 0 || moneyUSD <= 0 {
 		return nil, ErrInvalidTopUpQuota
 	}
@@ -56,12 +54,17 @@ func RegisterManualTopUp(userId int, operatorRole int, quota int, moneyUSD float
 		if operatorRole != common.RoleRootUser && operatorRole <= user.Role {
 			return ErrUserQuotaPermission
 		}
-		var enterprises int64
-		if err := tx.Model(&Enterprise{}).Where("user_id = ?", userId).Count(&enterprises).Error; err != nil {
+		var enterprise Enterprise
+		err := tx.Select("id").Where("user_id = ?", userId).First(&enterprise).Error
+		if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
 			return err
 		}
-		if enterprises > 0 {
-			return ErrManualTopUpEnterpriseOwner
+		if enterprise.Id > 0 {
+			// 企业主：台账 remark 记订单号，台账与订单中心可互相对照
+			if _, err := registerEnterpriseTopupTx(tx, enterprise.Id, quota, operatorId, reference, topUp.TradeNo); err != nil {
+				return err
+			}
+			return tx.Create(topUp).Error
 		}
 		if err := tx.Create(topUp).Error; err != nil {
 			return err

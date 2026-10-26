@@ -131,48 +131,6 @@ func AdminSetEnterpriseStatus(c *gin.Context) {
 	common.ApiSuccess(c, nil)
 }
 
-type adminEnterpriseTopupRequest struct {
-	AmountUSD float64 `json:"amount_usd"`
-	Reference string  `json:"reference"`
-	Remark    string  `json:"remark"`
-}
-
-// AdminRegisterEnterpriseTopup 预付企业登记线下转账充值
-func AdminRegisterEnterpriseTopup(c *gin.Context) {
-	id, ok := paramId(c)
-	if !ok {
-		return
-	}
-	var req adminEnterpriseTopupRequest
-	if err := common.DecodeJson(c.Request.Body, &req); err != nil {
-		common.ApiErrorMsg(c, "invalid request body")
-		return
-	}
-	amount, err := usdToQuota(req.AmountUSD)
-	if err != nil || amount <= 0 {
-		common.ApiErrorMsg(c, "top-up amount must be positive")
-		return
-	}
-	if len(req.Reference) > 128 {
-		common.ApiErrorMsg(c, "reference is too long")
-		return
-	}
-	entry, err := model.RegisterEnterpriseTopup(id, amount, c.GetInt("id"), req.Reference, req.Remark)
-	if err != nil {
-		if errors.Is(err, model.ErrEnterpriseNotPrepaid) || errors.Is(err, model.ErrWalletQuotaLimitExceeded) {
-			common.ApiErrorMsg(c, err.Error())
-			return
-		}
-		enterpriseApiError(c, err)
-		return
-	}
-	enterprise, _ := model.GetEnterpriseById(id)
-	recordManageAuditFor(c, enterpriseOwnerId(enterprise), "enterprise.topup", map[string]any{
-		"enterprise_id": id, "amount_usd": req.AmountUSD, "reference": req.Reference, "ledger_id": entry.Id,
-	})
-	common.ApiSuccess(c, entry)
-}
-
 func enterpriseOwnerId(enterprise *model.Enterprise) int {
 	if enterprise == nil {
 		return 0

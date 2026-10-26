@@ -635,22 +635,31 @@ func AdminManualTopUp(c *gin.Context) {
 	if authorization == nil {
 		return
 	}
-	topUp, err := model.RegisterManualTopUp(req.UserId, c.GetInt("role"), quota, req.AmountUSD, req.PaymentMethod, req.Reference, c.ClientIP())
+	topUp, err := model.RegisterManualTopUp(req.UserId, c.GetInt("id"), c.GetInt("role"), quota, req.AmountUSD, req.PaymentMethod, req.Reference, c.ClientIP())
 	if err != nil {
 		switch {
 		case errors.Is(err, model.ErrUserQuotaPermission):
 			common.ApiErrorT(c, "No permission to update users of same or higher permission level")
 		case errors.Is(err, gorm.ErrRecordNotFound):
 			common.ApiErrorT(c, "User does not exist")
+		case errors.Is(err, model.ErrEnterpriseNotPrepaid):
+			common.ApiErrorT(c, "Credit enterprises are settled by bill payment, not top-up")
+		case errors.Is(err, model.ErrWalletQuotaLimitExceeded):
+			common.ApiErrorMsg(c, err.Error())
 		default:
 			common.ApiError(c, err)
 		}
 		return
 	}
 	username, _ := model.GetUsernameById(req.UserId, false)
-	recordManageAuditFor(c, req.UserId, "user.topup", map[string]any{
+	audit := map[string]any{
 		"username": username, "id": req.UserId, "amount_usd": req.AmountUSD, "payment_method": req.PaymentMethod,
 		"reference": req.Reference, "quota": quota, "trade_no": topUp.TradeNo, "verification_method": authorization.Method,
-	})
+	}
+	// 企业主的充值同时进了企业台账，审计里带上企业 id 便于对照
+	if enterprise, err := model.GetEnterpriseByUserId(req.UserId); err == nil {
+		audit["enterprise_id"] = enterprise.Id
+	}
+	recordManageAuditFor(c, req.UserId, "user.topup", audit)
 	common.ApiSuccess(c, topUp)
 }

@@ -1519,6 +1519,9 @@
     "you cannot manage this member's role": "你不能管理該成員的角色",
     "no account found for this username or email": "找不到該使用者名稱或電子郵件對應的帳號",
     "Team Management": "團隊管理",
-    "Add members or import them to start issuing keys.": "新增或匯入成員後即可發放金鑰。"
+    "Add members or import them to start issuing keys.": "新增或匯入成員後即可發放金鑰。",
+    "Credit enterprises are settled by bill payment, not top-up": "授信企業透過帳單收款結清，不走儲值",
+    "Credit enterprises are settled by bill payment": "授信企業透過帳單收款結清",
+    "Prepaid billing: usage is deducted from the balance; register offline top-ups with the Top-up action on the enterprise row.": "預付計費：消費從餘額扣除；線下到帳後用企業列的「儲值」操作登記。"
   }
 }

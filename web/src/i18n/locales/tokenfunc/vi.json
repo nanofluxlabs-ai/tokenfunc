@@ -1519,6 +1519,9 @@
     "you cannot manage this member's role": "Bạn không thể quản lý vai trò của thành viên này",
     "no account found for this username or email": "Không tìm thấy tài khoản với tên người dùng hoặc email này",
     "Team Management": "Quản lý nhóm",
-    "Add members or import them to start issuing keys.": "Thêm hoặc nhập thành viên để bắt đầu cấp khóa."
+    "Add members or import them to start issuing keys.": "Thêm hoặc nhập thành viên để bắt đầu cấp khóa.",
+    "Credit enterprises are settled by bill payment, not top-up": "Doanh nghiệp tín dụng được thanh toán qua hóa đơn, không nạp tiền",
+    "Credit enterprises are settled by bill payment": "Doanh nghiệp tín dụng được thanh toán qua hóa đơn",
+    "Prepaid billing: usage is deducted from the balance; register offline top-ups with the Top-up action on the enterprise row.": "Trả trước: mức dùng được trừ từ số dư; đăng ký nạp tiền ngoại tuyến bằng thao tác Nạp tiền trên dòng doanh nghiệp."
   }
 }

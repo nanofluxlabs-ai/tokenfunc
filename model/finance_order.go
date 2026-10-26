@@ -13,7 +13,8 @@ import (
 
 // 订单视图：top_ups ∪ subscription_orders。不建统一订单表、不改上游写入点，查询时合并。
 // 在线支付订阅完成时上游会向 top_ups 写一条同 trade_no 的镜像行（Amount=0），这里用 NOT EXISTS 剔除。
-// 企业线下充值（ent_ledger.topup）、兑换码、管理员调额不是订单，不在此视图内；管理员手动充值写 top_ups（provider=admin），算订单。
+// 兑换码、管理员调额不是订单，不在此视图内；管理员手动充值写 top_ups（provider=admin），算订单——企业主的线下充值也走这条路，
+// 同一事务再写一条 ent_ledger.topup（remark 为订单号），所以企业充值同时出现在订单中心与企业台账。
 
 const (
 	FinanceOrderTypeWalletTopup  = "wallet_topup"

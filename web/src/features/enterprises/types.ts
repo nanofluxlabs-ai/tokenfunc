@@ -91,7 +91,7 @@ export type ListEnterprisesResponse = ApiResponse<{
   total: number
 }>
 
-export type EnterprisesDialogType = 'create' | 'update' | 'billing'
+export type EnterprisesDialogType = 'create' | 'update' | 'billing' | 'topup'
 
 export type CreditCycleType = 'natural_month' | 'fixed_days' | 'quota_based'
 
@@ -103,12 +103,6 @@ export interface CreditConfigPayload {
   alert_percent: number
   /** 仅 quota_based：用满即自动开下一期；关闭则用满后拒绝请求直到账单收款 / 手动开期 */
   auto_reset: boolean
-}
-
-export interface TopupPayload {
-  amount_usd: number
-  reference: string
-  remark: string
 }
 
 /** 人工调账对象：预付企业余额 / 未结清的授信账单 */

@@ -613,13 +613,30 @@ func SetEnterpriseStatus(enterpriseId int, status string) error {
 	return nil
 }
 
-// RegisterEnterpriseTopup 预付企业登记线下充值：加余额并写流水（同一事务）
-func RegisterEnterpriseTopup(enterpriseId int, amountQuota int, operatorId int, reference string, remark string) (*EnterpriseLedgerEntry, error) {
+// registerEnterpriseTopupTx 预付企业的线下充值（事务内）：锁企业行、校验预付模式、加主账号余额（钱包上限守卫）、写 topup 台账。
+// 对外入口是 RegisterManualTopUp：企业主与普通用户共用同一条管理员手动充值路径，订单 / 充值日志 / 审计一致，
+// 这里只补企业特有的台账与模式校验。调用方负责事务提交后的余额缓存同步。
+func registerEnterpriseTopupTx(tx *gorm.DB, enterpriseId int, amountQuota int, operatorId int, reference string, remark string) (*EnterpriseLedgerEntry, error) {
 	if amountQuota <= 0 {
 		return nil, errors.New("top-up amount must be positive")
 	}
 	if err := common.ValidateWalletQuota(amountQuota); err != nil {
 		return nil, err
+	}
+	enterprise, err := lockEnterprise(tx, enterpriseId)
+	if err != nil {
+		return nil, err
+	}
+	if enterprise.BillingMode != EnterpriseBillingModePrepaid {
+		return nil, ErrEnterpriseNotPrepaid
+	}
+	result := tx.Model(&User{}).Where("id = ? AND quota <= ?", enterprise.UserId, common.MaxWalletQuota-amountQuota).
+		Update("quota", gorm.Expr("quota + ?", amountQuota))
+	if result.Error != nil {
+		return nil, result.Error
+	}
+	if result.RowsAffected != 1 {
+		return nil, ErrWalletQuotaLimitExceeded
 	}
 	entry := &EnterpriseLedgerEntry{
 		EnterpriseId: enterpriseId,
@@ -629,37 +646,11 @@ func RegisterEnterpriseTopup(enterpriseId int, amountQuota int, operatorId int, 
 		Reference:    reference,
 		Remark:       remark,
 	}
-	var userId int
-	err := DB.Transaction(func(tx *gorm.DB) error {
-		enterprise, err := lockEnterprise(tx, enterpriseId)
-		if err != nil {
-			return err
-		}
-		if enterprise.BillingMode != EnterpriseBillingModePrepaid {
-			return ErrEnterpriseNotPrepaid
-		}
-		userId = enterprise.UserId
-		result := tx.Model(&User{}).Where("id = ? AND quota <= ?", userId, common.MaxWalletQuota-amountQuota).
-			Update("quota", gorm.Expr("quota + ?", amountQuota))
-		if result.Error != nil {
-			return result.Error
-		}
-		if result.RowsAffected != 1 {
-			return ErrWalletQuotaLimitExceeded
-		}
-		var balance int64
-		if err := tx.Model(&User{}).Where("id = ?", userId).Select("quota").Scan(&balance).Error; err != nil {
-			return err
-		}
-		entry.BalanceAfterQuota = balance
-		return recordEnterpriseLedger(tx, entry)
-	})
-	if err != nil {
+	if err := tx.Model(&User{}).Where("id = ?", enterprise.UserId).Select("quota").Scan(&entry.BalanceAfterQuota).Error; err != nil {
 		return nil, err
 	}
-	// 事务已提交，把增量补进余额缓存，避免缓存过期前新额度不可用
-	if cacheErr := cacheIncrUserQuota(userId, int64(amountQuota)); cacheErr != nil {
-		common.SysLog("failed to sync enterprise top-up to user quota cache: " + cacheErr.Error())
+	if err := recordEnterpriseLedger(tx, entry); err != nil {
+		return nil, err
 	}
 	return entry, nil
 }

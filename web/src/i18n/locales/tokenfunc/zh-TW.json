@@ -1585,7 +1585,6 @@
     "Enter the credit limit per period": "請填寫每期授信額度",
     "Credit limit must be greater than 0": "授信額度必須大於 0",
     "this user is an enterprise member and cannot be upgraded": "該使用者是企業成員，不能升級為企業",
-<<<<<<< HEAD
     "Net usage": "淨消耗",
     "Cache hit {{rate}}": "快取 {{rate}}",
     "Input (incl. cache)": "輸入（含快取）",
@@ -1593,11 +1592,8 @@
     "{{errors}} errors out of {{total}} requests": "{{total}} 次請求中失敗 {{errors}} 次",
     "Live RPM / TPM": "即時 RPM / TPM",
     "Last 60 seconds, not affected by the time range": "最近 60 秒，不受時間範圍影響",
-    "Switch team": "切換團隊"
-=======
     "Switch team": "切換團隊",
     "{{count}} more notes": "另有 {{count}} 則說明",
     "Hide notes": "收起說明"
->>>>>>> bb9272acc (feat(web): 账单详情与推广中心手机端信息结构)
   }
 }

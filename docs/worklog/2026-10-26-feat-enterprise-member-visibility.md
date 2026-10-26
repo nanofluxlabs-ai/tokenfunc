@@ -26,7 +26,7 @@
 - `router/enterprise-router.go`：`GET /api/admin/enterprise/enterprises/:id/members`。
 
 前端（`web/src/features/enterprises/`）
-- 企业表加 Members 列（人数 + 可登录人数）；行操作加「成员」图标按钮。
+- 企业表加 Members 列（人数 + 可登录人数），去掉「密钥上限」列（用户要求，上限仍在编辑抽屉里配置）；行操作加「成员」图标按钮。
 - 新组件 `enterprise-members-drawer.tsx`：Sheet + `drawer-layout`，搜索 + 登录筛选 + 分页表（`DataTablePage` / `useDataTable`，与企业控制台成员表同一套），无任何写操作；`FilterSelect` 从企业控制台 `members-section.tsx` 导出复用。
 - 文案写入 `web/src/i18n/locales/tokenfunc/*.json` 七个语言文件。
 

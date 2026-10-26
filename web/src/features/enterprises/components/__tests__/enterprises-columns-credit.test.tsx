@@ -171,20 +171,6 @@ test('quota based credit cycle shows "By quota" and an open-ended period range',
   expect(screen.getByText('2026-10-01 ~ —')).toBeInTheDocument()
 })
 
-test('max keys column shows the site default when the enterprise limit is 0', () => {
-  render(
-    <ColumnCell item={makeItem({ max_tokens: 0 })} columnId='max_tokens' />
-  )
-  expect(screen.getByText('Site default')).toBeInTheDocument()
-})
-
-test('max keys column shows the configured enterprise limit', () => {
-  render(
-    <ColumnCell item={makeItem({ max_tokens: 250 })} columnId='max_tokens' />
-  )
-  expect(screen.getByText('250')).toBeInTheDocument()
-})
-
 test('prepaid enterprise keeps wallet balance and leaves credit columns empty', () => {
   const item = makeItem({ billing_mode: 'prepaid' })
   for (const columnId of ['credit_limit', 'billing_cycle', 'cycle_days']) {

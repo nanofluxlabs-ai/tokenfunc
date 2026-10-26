@@ -1428,6 +1428,7 @@
     "HTTP status": "HTTP 状态",
     "This bill was issued before unit prices were snapshotted; the breakdown below is computed from current logs.": "该账单出账时尚未冻结单价快照，以下明细按当前日志实时计算。",
     "Team actions": "团队操作",
-    "{{count}} members": "{{count}} 名成员"
+    "{{count}} members": "{{count}} 名成员",
+    "Copy key {{name}}": "复制密钥 {{name}}"
   }
 }

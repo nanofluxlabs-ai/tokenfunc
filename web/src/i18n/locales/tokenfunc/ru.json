@@ -1428,6 +1428,7 @@
     "HTTP status": "HTTP-статус",
     "This bill was issued before unit prices were snapshotted; the breakdown below is computed from current logs.": "Этот счёт был выставлен до фиксации цен; приведённая ниже разбивка рассчитана по текущим журналам.",
     "Team actions": "Действия с командой",
-    "{{count}} members": "Участников: {{count}}"
+    "{{count}} members": "Участников: {{count}}",
+    "Copy key {{name}}": "Скопировать ключ {{name}}"
   }
 }

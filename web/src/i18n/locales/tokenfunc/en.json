@@ -1428,6 +1428,7 @@
     "HTTP status": "HTTP status",
     "This bill was issued before unit prices were snapshotted; the breakdown below is computed from current logs.": "This bill was issued before unit prices were snapshotted; the breakdown below is computed from current logs.",
     "Team actions": "Team actions",
-    "{{count}} members": "{{count}} members"
+    "{{count}} members": "{{count}} members",
+    "Copy key {{name}}": "Copy key {{name}}"
   }
 }

@@ -19,6 +19,7 @@ import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 
 import { ConfirmDialog } from '@/components/confirm-dialog'
+import { CopyButton } from '@/components/copy-button'
 import {
   DataTableRowActionMenu,
   StaticDataTable,
@@ -380,8 +381,16 @@ function KeysTable(props: KeysTableProps) {
       cell: (row) => (
         <div className='flex flex-col'>
           <span className='font-medium'>{row.name}</span>
-          <span className='text-muted-foreground font-mono text-xs'>
+          <span className='text-muted-foreground flex items-center gap-1 font-mono text-xs'>
             sk-{row.key}
+            <CopyButton
+              size='icon-sm'
+              className='size-5'
+              iconClassName='size-3'
+              resolveValue={() => resolveRealKey(row.id)}
+              tooltip={t('Copy key')}
+              aria-label={t('Copy key {{name}}', { name: row.name })}
+            />
           </span>
         </div>
       ),

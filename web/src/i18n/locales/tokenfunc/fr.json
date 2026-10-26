@@ -1428,6 +1428,7 @@
     "HTTP status": "Statut HTTP",
     "This bill was issued before unit prices were snapshotted; the breakdown below is computed from current logs.": "Cette facture a été émise avant le gel des prix unitaires ; le détail ci-dessous est calculé à partir des journaux actuels.",
     "Team actions": "Actions de l’équipe",
-    "{{count}} members": "{{count}} membres"
+    "{{count}} members": "{{count}} membres",
+    "Copy key {{name}}": "Copier la clé {{name}}"
   }
 }

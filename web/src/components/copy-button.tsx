@@ -17,7 +17,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 For commercial licensing, please contact support@quantumnous.com
 */
 import { Check, Copy } from 'lucide-react'
-import { type ReactNode } from 'react'
+import { type ReactNode, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { Button } from '@/components/ui/button'
@@ -30,12 +30,14 @@ import { useCopyToClipboard } from '@/hooks/use-copy-to-clipboard'
 import { cn } from '@/lib/utils'
 
 interface CopyButtonProps {
-  value: string
+  value?: string
+  /** 点击时才取要复制的内容（如需请求服务端取明文）；返回空值不复制 */
+  resolveValue?: () => Promise<string | null | undefined>
   children?: ReactNode
   className?: string
   iconClassName?: string
   variant?: 'ghost' | 'outline' | 'default' | 'secondary' | 'destructive'
-  size?: 'default' | 'sm' | 'lg' | 'icon'
+  size?: 'default' | 'sm' | 'lg' | 'icon' | 'icon-sm'
   tooltip?: string
   successTooltip?: string
   'aria-label'?: string
@@ -43,6 +45,7 @@ interface CopyButtonProps {
 
 export function CopyButton({
   value,
+  resolveValue,
   children,
   className,
   iconClassName,
@@ -54,7 +57,9 @@ export function CopyButton({
 }: CopyButtonProps) {
   const { t } = useTranslation()
   const { copiedText, copyToClipboard } = useCopyToClipboard({ notify: false })
-  const isCopied = copiedText === value
+  const [resolved, setResolved] = useState<string | null>(null)
+  const target = value ?? resolved
+  const isCopied = target != null && copiedText === target
   const resolvedTooltip = tooltip ?? t('Copy to clipboard')
   const resolvedSuccessTooltip = successTooltip ?? t('Copied!')
   const resolvedAriaLabel = ariaLabel ?? resolvedTooltip
@@ -65,7 +70,12 @@ export function CopyButton({
       variant={variant}
       size={size}
       className={cn('shrink-0', className)}
-      onClick={() => copyToClipboard(value)}
+      onClick={async () => {
+        const next = value ?? (await resolveValue?.())
+        if (!next) return
+        setResolved(next)
+        void copyToClipboard(next)
+      }}
       aria-label={isCopied ? copiedAriaLabel : resolvedAriaLabel}
     >
       {isCopied ? (

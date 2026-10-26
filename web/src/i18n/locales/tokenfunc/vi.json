@@ -1584,6 +1584,13 @@
     "Select the user to upgrade": "Hãy chọn người dùng cần nâng cấp",
     "Enter the credit limit per period": "Hãy nhập hạn mức tín dụng mỗi kỳ",
     "Credit limit must be greater than 0": "Hạn mức tín dụng phải lớn hơn 0",
-    "this user is an enterprise member and cannot be upgraded": "Người dùng này là thành viên doanh nghiệp, không thể nâng cấp"
+    "this user is an enterprise member and cannot be upgraded": "Người dùng này là thành viên doanh nghiệp, không thể nâng cấp",
+    "Net usage": "Tiêu thụ ròng",
+    "Cache hit {{rate}}": "Cache {{rate}}",
+    "Input (incl. cache)": "Đầu vào (gồm cache)",
+    "Failure rate": "Tỷ lệ lỗi",
+    "{{errors}} errors out of {{total}} requests": "{{errors}} lỗi trên {{total}} yêu cầu",
+    "Live RPM / TPM": "RPM / TPM hiện tại",
+    "Last 60 seconds, not affected by the time range": "60 giây gần nhất, không phụ thuộc khoảng thời gian"
   }
 }

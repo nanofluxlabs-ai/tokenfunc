@@ -1584,6 +1584,13 @@
     "Select the user to upgrade": "Select the user to upgrade",
     "Enter the credit limit per period": "Enter the credit limit per period",
     "Credit limit must be greater than 0": "Credit limit must be greater than 0",
-    "this user is an enterprise member and cannot be upgraded": "This user is an enterprise member and cannot be upgraded"
+    "this user is an enterprise member and cannot be upgraded": "This user is an enterprise member and cannot be upgraded",
+    "Net usage": "Net usage",
+    "Cache hit {{rate}}": "Cache hit {{rate}}",
+    "Input (incl. cache)": "Input (incl. cache)",
+    "Failure rate": "Failure rate",
+    "{{errors}} errors out of {{total}} requests": "{{errors}} errors out of {{total}} requests",
+    "Live RPM / TPM": "Live RPM / TPM",
+    "Last 60 seconds, not affected by the time range": "Last 60 seconds, not affected by the time range"
   }
 }

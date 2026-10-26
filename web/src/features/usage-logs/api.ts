@@ -66,7 +66,7 @@ async function fetchLogStats<T>(
     params as unknown as Record<string, unknown>
   )
   const path = buildApiPath(endpoint, isAdmin)
-  const res = await api.get(`${path}/stat?${queryParams}`)
+  const res = await api.get(`${path}/summary?${queryParams}`)
   return res.data
 }
 

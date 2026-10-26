@@ -286,6 +286,7 @@ func SetApiRouter(router *gin.Engine) {
 		registerFinanceRoutes(apiRouter)
 		registerPromoterRoutes(apiRouter)
 		registerLogArchiveRoutes(apiRouter)
+		registerLogStatRoutes(apiRouter)
 		registerAuthzRoutes(apiRouter)
 		tokenRoute := apiRouter.Group("/token")
 		tokenRoute.Use(middleware.UserAuth())

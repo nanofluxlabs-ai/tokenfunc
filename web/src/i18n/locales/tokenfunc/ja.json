@@ -1584,6 +1584,13 @@
     "Select the user to upgrade": "アップグレードするユーザーを選択してください",
     "Enter the credit limit per period": "期間ごとの与信上限を入力してください",
     "Credit limit must be greater than 0": "与信枠は 0 より大きくする必要があります",
-    "this user is an enterprise member and cannot be upgraded": "このユーザーは企業メンバーのため、企業にアップグレードできません"
+    "this user is an enterprise member and cannot be upgraded": "このユーザーは企業メンバーのため、企業にアップグレードできません",
+    "Net usage": "純消費",
+    "Cache hit {{rate}}": "キャッシュ {{rate}}",
+    "Input (incl. cache)": "入力（キャッシュ含む）",
+    "Failure rate": "失敗率",
+    "{{errors}} errors out of {{total}} requests": "{{total}} 件のリクエスト中 {{errors}} 件が失敗",
+    "Live RPM / TPM": "リアルタイム RPM / TPM",
+    "Last 60 seconds, not affected by the time range": "直近 60 秒間。期間の指定には影響されません"
   }
 }

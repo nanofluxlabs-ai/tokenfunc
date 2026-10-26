@@ -3,13 +3,13 @@ import {
   useQuery,
   useQueryClient,
 } from '@tanstack/react-query'
+import type { PaginationState } from '@tanstack/react-table'
 import { Ban, HandCoins, Scale, Settings2 } from 'lucide-react'
 import { useState, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 
 import { ConfirmDialog } from '@/components/confirm-dialog'
-import { SimplePager } from '@/components/simple-pager'
 import { Button } from '@/components/ui/button'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Textarea } from '@/components/ui/textarea'
@@ -23,7 +23,7 @@ import { AdjustmentDialog } from './adjustment-dialog'
 import { BillPaymentDialog } from './bill-payment-dialog'
 import { SellerProfileDialog } from './seller-profile-dialog'
 
-const PAGE_SIZE = 20
+const DEFAULT_PAGE_SIZE = 20
 type Filter = 'all' | 'unpaid' | 'overdue' | 'paid' | 'statement' | 'reconcile'
 
 /** 企业账单管理（列表 + 收款 / 作废 + 开票方设置）；在财务中心的「企业账单」tab 内渲染 */
@@ -35,7 +35,10 @@ export function BillsAdminContent(props: {
   const queryClient = useQueryClient()
   const [sellerOpen, setSellerOpen] = useState(false)
   const [filter, setFilter] = useState<Filter>('unpaid')
-  const [page, setPage] = useState(1)
+  const [pagination, setPagination] = useState<PaginationState>({
+    pageIndex: 0,
+    pageSize: DEFAULT_PAGE_SIZE,
+  })
   const [paying, setPaying] = useState<Bill | null>(null)
   const [adjusting, setAdjusting] = useState<Bill | null>(null)
   const [voiding, setVoiding] = useState<Bill | null>(null)
@@ -49,15 +52,24 @@ export function BillsAdminContent(props: {
     statement: { bill_type: 'statement' },
     reconcile: { reconcile: 'diff' as const },
   }[filter]
-  const { data, isLoading } = useQuery({
-    queryKey: ['admin-enterprise', 'bills', filter, page],
+  const { data, isLoading, isFetching } = useQuery({
+    queryKey: [
+      'admin-enterprise',
+      'bills',
+      filter,
+      pagination.pageIndex,
+      pagination.pageSize,
+    ],
     queryFn: async () =>
       requireServerSuccess(
-        await listAdminBills({ ...params, p: page, page_size: PAGE_SIZE })
+        await listAdminBills({
+          ...params,
+          p: pagination.pageIndex + 1,
+          page_size: pagination.pageSize,
+        })
       ).data ?? { items: [], total: 0 },
     placeholderData: keepPreviousData,
   })
-  const total = data?.total ?? 0
   const refresh = () =>
     void queryClient.invalidateQueries({ queryKey: ['admin-enterprise'] })
 
@@ -85,7 +97,7 @@ export function BillsAdminContent(props: {
           value={filter}
           onValueChange={(value) => {
             setFilter(value as Filter)
-            setPage(1)
+            setPagination((prev) => ({ ...prev, pageIndex: 0 }))
           }}
         >
           <TabsList className='max-w-full flex-wrap justify-start group-data-horizontal/tabs:h-auto'>
@@ -110,6 +122,11 @@ export function BillsAdminContent(props: {
       <BillsTable
         bills={data?.items ?? []}
         isLoading={isLoading}
+        isFetching={isFetching}
+        total={data?.total ?? 0}
+        pagination={pagination}
+        onPaginationChange={setPagination}
+        paginationInFooter={false}
         exportScope='admin'
         showEnterprise
         showReconcile
@@ -145,12 +162,6 @@ export function BillsAdminContent(props: {
             </>
           ) : null
         }
-      />
-      <SimplePager
-        page={page}
-        pageSize={PAGE_SIZE}
-        total={total}
-        onPageChange={setPage}
       />
       <BillPaymentDialog
         bill={paying}

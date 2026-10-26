@@ -4,9 +4,16 @@ import {
   useQueryClient,
 } from '@tanstack/react-query'
 import { getRouteApi } from '@tanstack/react-router'
+import type {
+  ColumnDef,
+  PaginationState,
+  RowSelectionState,
+  Updater,
+} from '@tanstack/react-table'
 import {
   Copy,
   Edit,
+  KeyRound,
   Loader2,
   Plus,
   Power,
@@ -21,12 +28,11 @@ import { toast } from 'sonner'
 import { ConfirmDialog } from '@/components/confirm-dialog'
 import { CopyButton } from '@/components/copy-button'
 import {
+  DataTablePage,
   DataTableRowActionMenu,
-  StaticDataTable,
-  type StaticDataTableColumn,
+  useDataTable,
 } from '@/components/data-table'
 import { SectionPageLayout } from '@/components/layout'
-import { SimplePager } from '@/components/simple-pager'
 import { StatusBadge } from '@/components/status-badge'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
@@ -76,7 +82,7 @@ import { TokenMutateSheet } from './token-mutate-sheet'
 import { TokenQuotaCell } from './token-quota-cell'
 import { TokenQuotaPolicyDialog } from './token-quota-policy-dialog'
 
-const PAGE_SIZE = 20
+const DEFAULT_PAGE_SIZE = 10
 // 筛选值：-1 不筛选，0 未指定持有人，正数为具体 id
 const ANY = MEMBER_PICKER_ANY
 const STATUS_ANY = '0'
@@ -165,7 +171,14 @@ function KeysTable(props: KeysTableProps) {
   const teamScoped = isTeamScoped(enterprise?.actor)
   const [keyword, setKeyword] = useState(search.q ?? '')
   const debouncedKeyword = useDebounce(keyword, 400)
-  const [selected, setSelected] = useState<Set<number>>(() => new Set())
+  const [rowSelection, setRowSelection] = useState<RowSelectionState>({})
+  const selectedIds = useMemo(
+    () =>
+      Object.entries(rowSelection)
+        .filter(([, checked]) => checked)
+        .map(([id]) => Number(id)),
+    [rowSelection]
+  )
   const [toggling, setToggling] = useState<number | null>(null)
   const [deleting, setDeleting] = useState<EnterpriseToken | null>(null)
   const [bulkDeleting, setBulkDeleting] = useState(false)
@@ -174,6 +187,7 @@ function KeysTable(props: KeysTableProps) {
   const teamId = search.team_id ?? ANY
   const memberId = search.member_id ?? ANY
   const page = search.page ?? 1
+  const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE)
   const now = Date.now()
 
   const update = (patch: Partial<EnterpriseKeysSearch>) =>
@@ -192,7 +206,7 @@ function KeysTable(props: KeysTableProps) {
     })
   }, [debouncedKeyword, search.q, navigate])
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isFetching } = useQuery({
     queryKey: [
       'enterprise',
       'tokens',
@@ -202,6 +216,7 @@ function KeysTable(props: KeysTableProps) {
       search.status,
       search.expiring,
       page,
+      pageSize,
     ],
     queryFn: async () =>
       requireServerSuccess(
@@ -212,7 +227,7 @@ function KeysTable(props: KeysTableProps) {
           status: search.status,
           expiring: search.expiring || undefined,
           p: page,
-          page_size: PAGE_SIZE,
+          page_size: pageSize,
         })
       ).data ?? { items: [], total: 0 },
     placeholderData: keepPreviousData,
@@ -232,7 +247,7 @@ function KeysTable(props: KeysTableProps) {
 
   // 翻页 / 筛选 / 父组件批量操作完成后清掉已选
   useEffect(() => {
-    setSelected(new Set())
+    setRowSelection({})
   }, [
     search.q,
     teamId,
@@ -295,10 +310,7 @@ function KeysTable(props: KeysTableProps) {
   const handleBulkStatus = async (status: number) => {
     setBulkBusy(true)
     try {
-      const result = await batchUpdateEnterpriseTokenStatus(
-        [...selected],
-        status
-      )
+      const result = await batchUpdateEnterpriseTokenStatus(selectedIds, status)
       if (!result.success || !result.data) {
         handleServerError(result)
         return
@@ -309,7 +321,7 @@ function KeysTable(props: KeysTableProps) {
             ? ` · ${t('{{count}} skipped (expired or exhausted)', { count: result.data.skipped.length })}`
             : '')
       )
-      setSelected(new Set())
+      setRowSelection({})
       refresh()
     } catch (error) {
       handleServerError(error)
@@ -321,14 +333,14 @@ function KeysTable(props: KeysTableProps) {
   const handleBulkDelete = async () => {
     setBulkBusy(true)
     try {
-      const result = await batchDeleteEnterpriseTokens([...selected])
+      const result = await batchDeleteEnterpriseTokens(selectedIds)
       if (!result.success || !result.data) {
         handleServerError(result)
         return
       }
       toast.success(t('Deleted {{count}} keys', { count: result.data.deleted }))
       setBulkDeleting(false)
-      setSelected(new Set())
+      setRowSelection({})
       refresh()
     } catch (error) {
       handleServerError(error)
@@ -336,18 +348,6 @@ function KeysTable(props: KeysTableProps) {
       setBulkBusy(false)
     }
   }
-
-  const allSelected =
-    items.length > 0 && items.every((row) => selected.has(row.id))
-  const toggleAll = () =>
-    setSelected(allSelected ? new Set() : new Set(items.map((row) => row.id)))
-  const toggleOne = (id: number) =>
-    setSelected((prev) => {
-      const next = new Set(prev)
-      if (next.has(id)) next.delete(id)
-      else next.add(id)
-      return next
-    })
 
   const statusOptions = [
     { value: STATUS_ANY, label: t('All statuses') },
@@ -357,29 +357,32 @@ function KeysTable(props: KeysTableProps) {
     })),
   ]
 
-  const columns: StaticDataTableColumn<EnterpriseToken>[] = [
+  const columns: ColumnDef<EnterpriseToken>[] = [
     {
       id: 'select',
-      header: (
+      header: ({ table }) => (
         <Checkbox
           aria-label={t('Select all')}
-          checked={allSelected}
-          onCheckedChange={toggleAll}
+          checked={table.getIsAllPageRowsSelected()}
+          indeterminate={table.getIsSomePageRowsSelected()}
+          onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
         />
       ),
-      className: 'w-8',
-      cell: (row) => (
+      cell: ({ row }) => (
         <Checkbox
-          aria-label={t('Select {{name}}', { name: row.name })}
-          checked={selected.has(row.id)}
-          onCheckedChange={() => toggleOne(row.id)}
+          aria-label={t('Select {{name}}', { name: row.original.name })}
+          checked={row.getIsSelected()}
+          onCheckedChange={(value) => row.toggleSelected(!!value)}
         />
       ),
+      enableSorting: false,
+      enableHiding: false,
+      size: 40,
     },
     {
       id: 'name',
       header: t('Name'),
-      cell: (row) => (
+      cell: ({ row: { original: row } }) => (
         <div className='flex flex-col'>
           <span className='font-medium'>{row.name}</span>
           <span className='text-muted-foreground flex items-center gap-1 font-mono text-xs'>
@@ -399,7 +402,7 @@ function KeysTable(props: KeysTableProps) {
     {
       id: 'owner',
       header: t('Team · Holder'),
-      cell: (row) => (
+      cell: ({ row: { original: row } }) => (
         <div className='flex flex-col'>
           <span>
             {row.team_name || '—'}
@@ -418,22 +421,24 @@ function KeysTable(props: KeysTableProps) {
     {
       id: 'quota',
       header: t('Quota'),
-      cell: (row) => <TokenQuotaCell row={row} now={now} />,
+      cell: ({ row: { original: row } }) => (
+        <TokenQuotaCell row={row} now={now} />
+      ),
     },
     {
       id: 'month',
       header: t('Spend this month'),
-      cell: (row) => <MonthQuotaCell row={row} />,
+      cell: ({ row: { original: row } }) => <MonthQuotaCell row={row} />,
     },
     {
       id: 'restrictions',
       header: t('Restrictions'),
-      cell: (row) => <RestrictionsCell row={row} />,
+      cell: ({ row: { original: row } }) => <RestrictionsCell row={row} />,
     },
     {
       id: 'status',
       header: t('Status'),
-      cell: (row) => {
+      cell: ({ row: { original: row } }) => {
         // 行上状态用后端派生的四态，与状态筛选、概览待办同口径
         const config = API_KEY_STATUSES[row.effective_status]
         return (
@@ -457,7 +462,7 @@ function KeysTable(props: KeysTableProps) {
     {
       id: 'accessed',
       header: t('Last used'),
-      cell: (row) =>
+      cell: ({ row: { original: row } }) =>
         row.accessed_time > 0 && row.accessed_time !== row.created_time
           ? formatTimestampRelative(row.accessed_time, 'seconds', locale)
           : '—',
@@ -465,7 +470,8 @@ function KeysTable(props: KeysTableProps) {
     {
       id: 'actions',
       header: t('Actions'),
-      cell: (row) => {
+      enableHiding: false,
+      cell: ({ row: { original: row } }) => {
         const enabled = row.status === API_KEY_STATUS.ENABLED
         let statusIcon = <Power className='size-4' />
         if (toggling === row.id) {
@@ -544,8 +550,38 @@ function KeysTable(props: KeysTableProps) {
     },
   ]
 
+  const pagination: PaginationState = { pageIndex: page - 1, pageSize }
+  const onPaginationChange = (updater: Updater<PaginationState>) => {
+    const next = typeof updater === 'function' ? updater(pagination) : updater
+    if (next.pageSize !== pageSize) {
+      setPageSize(next.pageSize)
+      update({})
+      return
+    }
+    void navigate({
+      search: (prev: EnterpriseKeysSearch) => ({
+        ...prev,
+        page: next.pageIndex + 1,
+      }),
+      replace: true,
+    })
+  }
+  const { table } = useDataTable({
+    data: items,
+    columns,
+    pagination,
+    onPaginationChange,
+    manualPagination: true,
+    manualFiltering: true,
+    totalCount: total,
+    enableRowSelection: true,
+    getRowId: (row) => String(row.id),
+    rowSelection,
+    onRowSelectionChange: setRowSelection,
+  })
+
   return (
-    <div className='flex flex-col gap-3'>
+    <div className='flex h-full min-h-0 flex-col gap-3'>
       {nearLimit && (
         <Alert>
           <AlertDescription>
@@ -634,10 +670,10 @@ function KeysTable(props: KeysTableProps) {
           {t('Expiring soon')}
         </Button>
         <div className='flex-1' />
-        {selected.size > 0 && (
+        {selectedIds.length > 0 && (
           <div className='flex items-center gap-1'>
             <span className='text-muted-foreground text-sm'>
-              {t('{{count}} selected', { count: selected.size })}
+              {t('{{count}} selected', { count: selectedIds.length })}
             </span>
             <Button
               variant='outline'
@@ -662,7 +698,7 @@ function KeysTable(props: KeysTableProps) {
               size='sm'
               aria-label={t('Set periodic quota for selected')}
               disabled={bulkBusy}
-              onClick={() => props.onQuotaPolicy([...selected])}
+              onClick={() => props.onQuotaPolicy(selectedIds)}
             >
               {t('Periodic quota')}
             </Button>
@@ -678,18 +714,14 @@ function KeysTable(props: KeysTableProps) {
           </div>
         )}
       </div>
-      <StaticDataTable
+      <DataTablePage
+        table={table}
         columns={columns}
-        data={items}
-        getRowKey={(row) => row.id}
-        empty={!isLoading && items.length === 0}
-        emptyContent={t('No API keys yet')}
-      />
-      <SimplePager
-        page={page}
-        pageSize={PAGE_SIZE}
-        total={total}
-        onPageChange={(next) => update({ page: next })}
+        isLoading={isLoading}
+        isFetching={isFetching}
+        emptyTitle={t('No API keys yet')}
+        emptyIcon={<KeyRound />}
+        skeletonKeyPrefix='enterprise-key-skeleton'
       />
       <ConfirmDialog
         open={deleting !== null}
@@ -705,7 +737,7 @@ function KeysTable(props: KeysTableProps) {
       <ConfirmDialog
         open={bulkDeleting}
         onOpenChange={setBulkDeleting}
-        title={t('Delete {{count}} API keys', { count: selected.size })}
+        title={t('Delete {{count}} API keys', { count: selectedIds.length })}
         desc={t(
           'The keys stop working immediately. Their usage history stays in reports and bills.'
         )}
@@ -732,7 +764,7 @@ export function EnterpriseKeys() {
     void queryClient.invalidateQueries({ queryKey: ['enterprise'] })
   return (
     <>
-      <SectionPageLayout>
+      <SectionPageLayout fixedContent>
         <SectionPageLayout.Title>
           <span className='flex items-center gap-2'>
             {t('API Keys')}

@@ -30,11 +30,12 @@
 - 财务对账页 `reconciliation-page.tsx`（替代 `bills-page.tsx`）：三 Tab「账期账单 / 消费账单 / 充值账单」。账期账单 = 授信账期表（授信企业）+ 账单表；消费账单复用个人对账页的 `UsageTab`，`UsageScope` 新增 `enterprise` 主体；充值账单 = `LedgerTable` 按页头日期区间过滤。日期控件与个人对账页同一套。
 - 概览页去掉折叠的「资金流水 / 授信账期」区块，第一张 KPI 卡加「查看财务对账」深链；预付企业的最近充值仍从流水取。
 - 账期账单详情：共用正文 `finance/components/bill-detail/bill-detail-content.tsx` + 骨架 `bill-detail-view.tsx`，管理员专属的对账核对 / 归档 / 账期 CSV 通过 `adminActions` / `onAckReconcile` 注入；企业侧 `bill-detail-page.tsx` 删除，`/enterprise/bills/$id` 直接渲染共用骨架。企业侧独有的已付未付、月结单五栏、按团队按成员归因、v1 兼容、live 提示并进共用正文。口径统一：账期结束日按半开区间减一天（企业侧原来多显示一天）；详情总额 2 位小数（与列表、发票一致）。
-- 顺手：4 处逐字相同的「总数 + 上一页 / 下一页」分页块抽成 `components/simple-pager.tsx`（企业密钥页、管理员账单页、试用申请页、财务对账页）。
+- 分页统一（第二轮，黑鹰要求与使用日志一致）：企业密钥页、财务对账的账期账单 / 充值账单、管理员企业账单页、试用申请页、日志归档页全部改为 `useDataTable` + `DataTablePage`（底部通用分页条：总数 / 每页条数 / 页码）；共享的 `BillsTable`、`LedgerTable` 接受可选的服务端分页 props（不传时不显示分页条，管理员抽屉仍只列最近若干条）；第一轮抽出的 `SimplePager` 随之删除。密钥页多选改用表格实例的行选择（`rowSelection` / `getRowId`），批量操作栏不变。评估：二开其余列表（财务中心各面板、推广人、渠道消耗、个人对账充值明细）原本就是这套分页，无需再动；授信账期表一企业一期数据量小，仍是静态表。
 
 ## 验证
 
 - 后端：`go build ./... && gofmt -l controller model router middleware` 无输出；`make test-db PKG="./controller/... ./model/... ./router/... ./middleware/..."` 四包 ok（PG）；新增用例单跑 PASS（`TestFinanceBillContextAndList`、`TestAdminFinanceUsageReadsArchivedStatementAfterLogsPurged`、`TestEnterpriseConsoleBillExport` 含账本时间 / 多类型过滤）。
+- 分页统一一轮：`bun run typecheck`、改动文件 oxlint / oxfmt 通过；`vitest run --changed HEAD` 6 文件 19 用例通过（密钥页 5、财务对账页 5、概览等）；浏览器确认密钥页（整页高度、页脚分页、多选）、财务对账账期账单 / 充值账单（表格下方分页条，每页 20 可切）。
 - 前端：`bun run typecheck` 通过；`oxlint` 改动目录 0 error（仅上游既有 warning 与 `chat/$chatId.tsx` 的既有 error）；`oxfmt --check` 改动文件通过；`vitest run --changed HEAD` 32 文件 203 用例通过；全量 `vitest run` 295 文件 2744 用例 0 失败（第一次全量与代理并行跑时有 7 个文件偶发失败，复跑全部通过）。
 - 浏览器（本地 :5173，三个 host 各一个会话）：
   - acme（企业主）带 `redirect=/dashboard` 登录 → 落到 `/enterprise/overview`；侧边栏 = 聊天 / 企业（概览、团队管理、API 密钥、用量报表、财务对账）/ 日志（使用、审计、任务）/ 个人（个人资料、安全与访问），无常规组；概览无折叠区，余额卡有「查看财务对账」。

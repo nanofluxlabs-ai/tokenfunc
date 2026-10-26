@@ -145,8 +145,11 @@ describe('EnterpriseReconciliation', () => {
     expect(
       await screen.findByRole('link', { name: 'INV-2025-10-001' })
     ).toHaveAttribute('href', '/enterprise/bills/7')
-    expect(screen.getByText('Total: 21')).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Next' })).toBeEnabled()
+    // 与使用日志同一套分页条：总数 + 每页条数 + 翻页按钮
+    expect(screen.getByText('Rows per page')).toBeInTheDocument()
+    expect(
+      screen.getByRole('button', { name: 'Go to next page' })
+    ).toBeEnabled()
     expect(screen.queryByText('Credit Periods')).not.toBeInTheDocument()
     expect(apiMock.listCreditPeriods).not.toHaveBeenCalled()
     // 账期账单不按日期过滤，页头没有日期控件

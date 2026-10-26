@@ -46,7 +46,7 @@ export function BrandAbout() {
           className='tf-glow-horizon pointer-events-none absolute inset-0'
           aria-hidden='true'
         />
-        <div className='relative grid items-center gap-10 p-8 md:grid-cols-[minmax(0,1fr)_320px] md:p-12'>
+        <div className='relative grid items-center gap-10 p-6 md:grid-cols-[minmax(0,1fr)_320px] md:p-12'>
           <div className='flex flex-col gap-6'>
             <div className='flex items-center gap-3'>
               <img

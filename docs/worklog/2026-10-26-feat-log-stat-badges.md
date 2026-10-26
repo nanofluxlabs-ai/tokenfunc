@@ -2,7 +2,7 @@
 
 - 日期：2026-10-26
 - 分支：feat/log-stat-badges
-- PR：
+- PR：#65
 - 关键 commit：a5fd945a9（后端）
 
 ## 背景

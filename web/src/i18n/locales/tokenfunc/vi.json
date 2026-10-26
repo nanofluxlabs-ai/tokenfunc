@@ -1585,6 +1585,7 @@
     "Enter the credit limit per period": "Hãy nhập hạn mức tín dụng mỗi kỳ",
     "Credit limit must be greater than 0": "Hạn mức tín dụng phải lớn hơn 0",
     "this user is an enterprise member and cannot be upgraded": "Người dùng này là thành viên doanh nghiệp, không thể nâng cấp",
+<<<<<<< HEAD
     "Net usage": "Tiêu thụ ròng",
     "Cache hit {{rate}}": "Cache {{rate}}",
     "Input (incl. cache)": "Đầu vào (gồm cache)",
@@ -1593,5 +1594,10 @@
     "Live RPM / TPM": "RPM / TPM hiện tại",
     "Last 60 seconds, not affected by the time range": "60 giây gần nhất, không phụ thuộc khoảng thời gian",
     "Switch team": "Chuyển nhóm"
+=======
+    "Switch team": "Chuyển nhóm",
+    "{{count}} more notes": "Thêm {{count}} ghi chú",
+    "Hide notes": "Ẩn ghi chú"
+>>>>>>> bb9272acc (feat(web): 账单详情与推广中心手机端信息结构)
   }
 }

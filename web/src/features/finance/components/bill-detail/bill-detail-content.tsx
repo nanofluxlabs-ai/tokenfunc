@@ -11,6 +11,7 @@ import { UsageBreakdownSection } from '../usage-breakdown/usage-breakdown-sectio
 import { UsageDetailTable } from '../usage-breakdown/usage-detail-table'
 import { billDay } from './bill-day'
 import { BillDetailMetrics, StatementBalanceBlock } from './bill-detail-metrics'
+import { type BillNotice, BillNotices } from './bill-notices'
 import { ReconcileDiffAlert } from './reconcile-diff-alert'
 import { SnapshotGroupTable } from './snapshot-group-table'
 
@@ -104,54 +105,55 @@ export function BillDetailContent(props: BillDetailContentProps) {
     usageBlocks = <UsageBreakdownSection {...usageParams} />
   }
 
+  // 数据来源说明：手机上只露第一条，其余折叠（BillNotices）
+  const notices: BillNotice[] = []
+  if (isOpenPeriod) {
+    notices.push({
+      key: 'open-period',
+      warning: true,
+      text: t(
+        'This period is still open: figures are live and keep changing until the bill is issued.'
+      ),
+    })
+  }
+  if (usageSource === 'archive') {
+    notices.push({
+      key: 'archive',
+      text: t(
+        'Raw logs of this period have been purged; the row-level detail below is read from the statement snapshot archived on {{date}}.',
+        { date: bill?.archived_at ? billDay(bill.archived_at) : '' }
+      ),
+    })
+  }
+  if (context.logs_purged && usageSource !== 'archive') {
+    notices.push({
+      key: 'logs-purged',
+      warning: true,
+      text: t(
+        'Raw logs of this period have been archived and purged; the breakdown below may be incomplete. Use the archived statement snapshot as the source of truth.'
+      ),
+    })
+  }
+  if (frozen && frozen.snapshot_source !== 'live') {
+    notices.push({
+      key: 'frozen',
+      text: t(
+        'Settled bill: the breakdown below is the usage snapshot frozen at issue time.'
+      ),
+    })
+  }
+  if (frozen?.snapshot_source === 'live') {
+    notices.push({
+      key: 'live',
+      text: t(
+        'This bill was issued before unit prices were snapshotted; the breakdown below is computed from current logs.'
+      ),
+    })
+  }
+
   return (
     <div className='flex flex-col gap-4'>
-      {isOpenPeriod && (
-        <Alert className='border-warning/40 bg-warning/10'>
-          <AlertDescription>
-            {t(
-              'This period is still open: figures are live and keep changing until the bill is issued.'
-            )}
-          </AlertDescription>
-        </Alert>
-      )}
-      {usageSource === 'archive' && (
-        <Alert>
-          <AlertDescription>
-            {t(
-              'Raw logs of this period have been purged; the row-level detail below is read from the statement snapshot archived on {{date}}.',
-              { date: bill?.archived_at ? billDay(bill.archived_at) : '' }
-            )}
-          </AlertDescription>
-        </Alert>
-      )}
-      {context.logs_purged && usageSource !== 'archive' && (
-        <Alert className='border-warning/40 bg-warning/10'>
-          <AlertDescription>
-            {t(
-              'Raw logs of this period have been archived and purged; the breakdown below may be incomplete. Use the archived statement snapshot as the source of truth.'
-            )}
-          </AlertDescription>
-        </Alert>
-      )}
-      {frozen && frozen.snapshot_source !== 'live' && (
-        <Alert>
-          <AlertDescription>
-            {t(
-              'Settled bill: the breakdown below is the usage snapshot frozen at issue time.'
-            )}
-          </AlertDescription>
-        </Alert>
-      )}
-      {frozen?.snapshot_source === 'live' && (
-        <Alert>
-          <AlertDescription>
-            {t(
-              'This bill was issued before unit prices were snapshotted; the breakdown below is computed from current logs.'
-            )}
-          </AlertDescription>
-        </Alert>
-      )}
+      <BillNotices notices={notices} />
       {bill && props.onAckReconcile && (
         <ReconcileDiffAlert bill={bill} onAck={props.onAckReconcile} />
       )}

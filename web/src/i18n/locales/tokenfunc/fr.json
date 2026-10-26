@@ -1585,6 +1585,7 @@
     "Enter the credit limit per period": "Saisissez la limite de crédit par période",
     "Credit limit must be greater than 0": "La limite de crédit doit être supérieure à 0",
     "this user is an enterprise member and cannot be upgraded": "Cet utilisateur est membre d'une entreprise et ne peut pas être converti",
+<<<<<<< HEAD
     "Net usage": "Consommation nette",
     "Cache hit {{rate}}": "Cache {{rate}}",
     "Input (incl. cache)": "Entrée (cache incluse)",
@@ -1593,5 +1594,10 @@
     "Live RPM / TPM": "RPM / TPM en direct",
     "Last 60 seconds, not affected by the time range": "60 dernières secondes, indépendant de la période choisie",
     "Switch team": "Changer d’équipe"
+=======
+    "Switch team": "Changer d’équipe",
+    "{{count}} more notes": "{{count}} autres remarques",
+    "Hide notes": "Masquer les remarques"
+>>>>>>> bb9272acc (feat(web): 账单详情与推广中心手机端信息结构)
   }
 }

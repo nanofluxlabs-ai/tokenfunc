@@ -206,7 +206,12 @@ export function PromoterCenterPage(props: PromoterCenterPageProps) {
               />
             ) : (
               <>
-                <Tabs value={tab} onValueChange={setTab}>
+                {/* 英文四个页签约 490px，手机上在自身内横滑 */}
+                <Tabs
+                  value={tab}
+                  onValueChange={setTab}
+                  className='max-w-full min-w-0 overflow-x-auto'
+                >
                   <TabsList variant='line'>
                     {PROMOTER_CENTER_TABS.map((id) => (
                       <TabsTrigger key={id} value={id}>

@@ -44,7 +44,7 @@ export function BillDetailMetrics(props: BillDetailMetricsProps) {
       : t('{{count}} days', { count: days })
 
   return (
-    <div className='grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4'>
+    <div className='grid grid-cols-2 gap-3 lg:grid-cols-3 xl:grid-cols-4'>
       <MetricCard
         label={isStatement ? t('Consumption') : t('Total amount')}
         value={`${currency} ${total.toFixed(2)}`}
@@ -69,6 +69,8 @@ export function BillDetailMetrics(props: BillDetailMetricsProps) {
         />
       )}
       <MetricCard
+        // 日期区间放不进手机半宽卡，单独占一行
+        className='col-span-2 sm:col-span-1'
         label={t('Period')}
         value={
           <span className='text-lg'>
@@ -122,7 +124,7 @@ export function StatementBalanceBlock(props: {
   }
   return (
     <Block title={t('Monthly statement')}>
-      <div className='grid gap-3 p-4 text-sm sm:grid-cols-5'>
+      <div className='grid grid-cols-2 gap-3 p-4 text-sm sm:grid-cols-5'>
         {STATEMENT_BALANCE_KEYS.map((key) => (
           <div key={key}>
             <div className='text-muted-foreground'>{labels[key]}</div>

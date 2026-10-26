@@ -55,7 +55,7 @@ export function useSettlementsColumns(
           if (node.kind === 'user') {
             const user = node.user
             return (
-              <div className='flex min-w-0 items-center gap-1.5 pl-8'>
+              <div className='flex min-w-0 items-center gap-1.5 pl-4 sm:pl-8'>
                 <span
                   className={cn(
                     'truncate',
@@ -83,7 +83,7 @@ export function useSettlementsColumns(
               {row.getCanExpand() ? (
                 <Button
                   variant='ghost'
-                  size='icon-xs'
+                  size='icon-sm'
                   aria-label={row.getIsExpanded() ? t('Collapse') : t('Expand')}
                   aria-expanded={row.getIsExpanded()}
                   onClick={row.getToggleExpandedHandler()}

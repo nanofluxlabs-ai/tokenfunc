@@ -1585,6 +1585,7 @@
     "Enter the credit limit per period": "期間ごとの与信上限を入力してください",
     "Credit limit must be greater than 0": "与信枠は 0 より大きくする必要があります",
     "this user is an enterprise member and cannot be upgraded": "このユーザーは企業メンバーのため、企業にアップグレードできません",
+<<<<<<< HEAD
     "Net usage": "純消費",
     "Cache hit {{rate}}": "キャッシュ {{rate}}",
     "Input (incl. cache)": "入力（キャッシュ含む）",
@@ -1593,5 +1594,10 @@
     "Live RPM / TPM": "リアルタイム RPM / TPM",
     "Last 60 seconds, not affected by the time range": "直近 60 秒間。期間の指定には影響されません",
     "Switch team": "チームを切り替え"
+=======
+    "Switch team": "チームを切り替え",
+    "{{count}} more notes": "ほか {{count}} 件の注記",
+    "Hide notes": "注記を閉じる"
+>>>>>>> bb9272acc (feat(web): 账单详情与推广中心手机端信息结构)
   }
 }

@@ -1585,6 +1585,7 @@
     "Enter the credit limit per period": "Укажите кредитный лимит на период",
     "Credit limit must be greater than 0": "Кредитный лимит должен быть больше 0",
     "this user is an enterprise member and cannot be upgraded": "Этот пользователь является сотрудником компании и не может быть повышен",
+<<<<<<< HEAD
     "Net usage": "Чистый расход",
     "Cache hit {{rate}}": "Кэш {{rate}}",
     "Input (incl. cache)": "Ввод (включая кэш)",
@@ -1593,5 +1594,10 @@
     "Live RPM / TPM": "RPM / TPM сейчас",
     "Last 60 seconds, not affected by the time range": "За последние 60 секунд, не зависит от выбранного периода",
     "Switch team": "Сменить команду"
+=======
+    "Switch team": "Сменить команду",
+    "{{count}} more notes": "Ещё примечаний: {{count}}",
+    "Hide notes": "Скрыть примечания"
+>>>>>>> bb9272acc (feat(web): 账单详情与推广中心手机端信息结构)
   }
 }

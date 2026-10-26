@@ -24,7 +24,7 @@ export function MetricCard(props: MetricCardProps) {
     <Card className={cn('gap-1 py-4', props.className)}>
       <CardHeader className='px-4'>
         <CardDescription>{props.label}</CardDescription>
-        <CardTitle className='font-mono text-2xl'>
+        <CardTitle className='font-mono text-xl break-all sm:text-2xl'>
           {props.loading ? <Skeleton className='h-7 w-24' /> : props.value}
         </CardTitle>
       </CardHeader>

@@ -45,7 +45,7 @@ export function FaqSection() {
                 {expanded && (
                   <p
                     id={panelId}
-                    className='text-foreground/90 m-0 pr-12 pb-6 text-[15px] leading-[26px] text-pretty'
+                    className='text-foreground/90 m-0 pr-2 pb-6 text-[15px] leading-[26px] text-pretty sm:pr-12'
                   >
                     {t(item.answer)}
                   </p>

@@ -33,7 +33,9 @@ export function LatencyCard() {
             </div>
             <span className='text-foreground/90 text-right font-mono text-[13px] whitespace-nowrap'>
               {row.p50}ms{' '}
-              <span className='text-muted-foreground'>· P95 {row.p95}ms</span>
+              <span className='text-muted-foreground hidden sm:inline'>
+                · P95 {row.p95}ms
+              </span>
             </span>
           </div>
         ))}

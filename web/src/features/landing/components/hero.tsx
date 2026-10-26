@@ -56,7 +56,7 @@ export function Hero(props: { registerEnabled: boolean }) {
 
           <h1
             className={cn(
-              'text-foreground m-0 mt-14 flex justify-center gap-x-[0.28em] gap-y-[0.1em] text-[clamp(40px,6.8vw,96px)] leading-[1.1] font-bold tracking-[-0.045em] md:mt-16',
+              'text-foreground m-0 mt-10 flex justify-center gap-x-[0.28em] gap-y-[0.1em] text-[clamp(40px,6.8vw,96px)] leading-[1.1] font-bold tracking-[-0.045em] md:mt-16',
               stacked ? 'flex-col items-center' : 'flex-wrap items-baseline'
             )}
           >
@@ -87,16 +87,16 @@ export function Hero(props: { registerEnabled: boolean }) {
             </span>
           </h1>
 
-          <p className='text-muted-foreground m-0 mt-16 max-w-[640px] text-lg leading-8 text-balance md:mt-24 md:text-xl md:leading-9'>
+          <p className='text-muted-foreground m-0 mt-8 max-w-[640px] text-base leading-7 text-balance sm:text-lg sm:leading-8 md:mt-24 md:text-xl md:leading-9'>
             {t(
               'Built for enterprises: official direct access to Anthropic, OpenAI, Google and xAI. Smart routing with automatic failover, 99.95% availability, dedicated deployment on request, secure and stable.'
             )}
           </p>
 
-          <div className='mt-12 flex flex-wrap justify-center gap-4 md:mt-16'>
+          <div className='mt-8 flex w-full flex-col gap-3 sm:w-auto sm:flex-row sm:flex-wrap sm:justify-center sm:gap-4 md:mt-16'>
             <Button
               size='lg'
-              className='h-14 px-8 text-base font-semibold'
+              className='h-12 w-full px-8 text-base font-semibold sm:h-14 sm:w-auto'
               render={<a href='#contact' />}
             >
               {t('Request an enterprise trial')}
@@ -105,7 +105,7 @@ export function Hero(props: { registerEnabled: boolean }) {
             <Button
               size='lg'
               variant='secondary'
-              className='border-border h-14 border px-8 text-base font-semibold'
+              className='border-border h-12 w-full border px-8 text-base font-semibold sm:h-14 sm:w-auto'
               render={
                 props.registerEnabled ? (
                   <Link to='/sign-up' />
@@ -120,7 +120,7 @@ export function Hero(props: { registerEnabled: boolean }) {
           </div>
         </div>
 
-        <dl className='border-border mx-auto mt-10 grid w-full max-w-[960px] grid-cols-2 gap-y-8 border-t py-10 text-center md:grid-cols-4'>
+        <dl className='border-border mx-auto mt-10 grid w-full max-w-[960px] grid-cols-2 gap-y-8 border-t py-8 text-center md:grid-cols-4 md:py-10'>
           {HERO_STATS.map((stat) => (
             <div key={stat.label} className='flex flex-col gap-2'>
               <dd className='text-foreground m-0 text-4xl leading-none font-bold tracking-[-0.03em] tabular-nums md:text-[40px]'>

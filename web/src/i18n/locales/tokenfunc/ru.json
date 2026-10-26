@@ -1584,6 +1584,13 @@
     "Select the user to upgrade": "Выберите пользователя для перевода",
     "Enter the credit limit per period": "Укажите кредитный лимит на период",
     "Credit limit must be greater than 0": "Кредитный лимит должен быть больше 0",
-    "this user is an enterprise member and cannot be upgraded": "Этот пользователь является сотрудником компании и не может быть повышен"
+    "this user is an enterprise member and cannot be upgraded": "Этот пользователь является сотрудником компании и не может быть повышен",
+    "Net usage": "Чистый расход",
+    "Cache hit {{rate}}": "Кэш {{rate}}",
+    "Input (incl. cache)": "Ввод (включая кэш)",
+    "Failure rate": "Доля ошибок",
+    "{{errors}} errors out of {{total}} requests": "{{errors}} ошибок из {{total}} запросов",
+    "Live RPM / TPM": "RPM / TPM сейчас",
+    "Last 60 seconds, not affected by the time range": "За последние 60 секунд, не зависит от выбранного периода"
   }
 }

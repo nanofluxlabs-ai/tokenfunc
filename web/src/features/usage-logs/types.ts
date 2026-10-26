@@ -288,12 +288,23 @@ export interface LogOtherData {
 }
 
 /**
- * Log statistics data
+ * Log statistics data (TokenFunc /api/log/summary): net_quota = consume − refund,
+ * input_tokens_total includes cache; rpm / tpm cover the last 60 seconds only
  */
 export interface LogStatistics {
-  quota: number
+  requests: number
+  consume_quota: number
+  refund_quota: number
+  net_quota: number
+  prompt_tokens: number
+  completion_tokens: number
+  input_tokens_total: number
+  cache_read_tokens: number
+  cache_write_tokens: number
+  error_count: number
   rpm: number
   tpm: number
+  error_log_enabled: boolean
 }
 
 // ============================================================================

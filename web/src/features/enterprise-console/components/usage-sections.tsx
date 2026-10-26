@@ -1,4 +1,4 @@
-import { forwardRef, useMemo, useState } from 'react'
+import { forwardRef, lazy, Suspense, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { StaticDataTable } from '@/components/data-table'
@@ -10,6 +10,7 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card'
+import { Skeleton } from '@/components/ui/skeleton'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { toIntlLocale } from '@/i18n/languages'
 
@@ -19,8 +20,15 @@ import {
 } from '../lib/usage-chart-palette'
 import { buildUsageColumns } from '../lib/usage-columns'
 import type { UsageDayItem, UsageGroupBy, UsageSummaryItem } from '../types'
-import { UsageDonutChart, UsageRankChart } from './usage-charts'
 import { type UsageMetric, UsageMetricTabs, UsageTrend } from './usage-trend'
+
+// 图表库按需加载，理由同 usage-trend
+const UsageDonutChart = lazy(() =>
+  import('./usage-charts').then((m) => ({ default: m.UsageDonutChart }))
+)
+const UsageRankChart = lazy(() =>
+  import('./usage-charts').then((m) => ({ default: m.UsageRankChart }))
+)
 
 /** 归属维度：团队 / 成员 / API 密钥 */
 export type UsageAttributionGroup = Extract<
@@ -123,7 +131,9 @@ export const UsageModelSection = forwardRef<
         </CardDescription>
       </CardHeader>
       <CardContent className='grid gap-4 @4xl:grid-cols-[minmax(0,18rem)_minmax(0,1fr)]'>
-        <UsageDonutChart id={`${props.idPrefix}-model-donut`} data={slices} />
+        <Suspense fallback={<Skeleton className='h-64' />}>
+          <UsageDonutChart id={`${props.idPrefix}-model-donut`} data={slices} />
+        </Suspense>
         <div className='min-w-0'>
           <StaticDataTable
             columns={columns}
@@ -209,10 +219,12 @@ export const UsageAttributionSection = forwardRef<
         </CardAction>
       </CardHeader>
       <CardContent className='flex flex-col gap-4'>
-        <UsageRankChart
-          id={`${props.idPrefix}-rank-${props.group}`}
-          data={slices}
-        />
+        <Suspense fallback={<Skeleton className='h-52' />}>
+          <UsageRankChart
+            id={`${props.idPrefix}-rank-${props.group}`}
+            data={slices}
+          />
+        </Suspense>
         <StaticDataTable
           columns={columns}
           data={props.items}

@@ -1,17 +1,24 @@
-import { type ReactNode, useMemo } from 'react'
+import { lazy, type ReactNode, Suspense, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 
-import {
-  DailyTrendChart,
-  type DailyTrendRow,
-  type DailyTrendSeries,
+import type {
+  DailyTrendRow,
+  DailyTrendSeries,
 } from '@/components/charts/daily-trend-chart'
+import { Skeleton } from '@/components/ui/skeleton'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { toIntlLocale } from '@/i18n/languages'
 import { formatQuotaWithCurrency } from '@/lib/currency'
 import { formatCompactNumber, formatNumber } from '@/lib/format'
 
 import type { UsageDayItem } from '../types'
+
+// 图表库按需加载：报表面板也嵌在管理员用户页的企业计费抽屉里，不能把 vchart 打进用户页
+const DailyTrendChart = lazy(() =>
+  import('@/components/charts/daily-trend-chart').then((m) => ({
+    default: m.DailyTrendChart,
+  }))
+)
 
 /** 趋势指标：消耗 / Token（输入、输出堆叠）/ 请求 */
 export type UsageMetric = 'quota' | 'tokens' | 'requests'
@@ -97,14 +104,16 @@ export function UsageTrend(props: UsageTrendProps) {
 
   return (
     <div className={props.className}>
-      <DailyTrendChart
-        id={`${props.id}-${props.metric}`}
-        data={rows}
-        series={series}
-        valueFormat={props.metric === 'quota' ? 'currency' : 'number'}
-        stacked={props.metric === 'tokens'}
-        loading={props.loading}
-      />
+      <Suspense fallback={<Skeleton className='h-60 sm:h-72' />}>
+        <DailyTrendChart
+          id={`${props.id}-${props.metric}`}
+          data={rows}
+          series={series}
+          valueFormat={props.metric === 'quota' ? 'currency' : 'number'}
+          stacked={props.metric === 'tokens'}
+          loading={props.loading}
+        />
+      </Suspense>
       <div className='text-muted-foreground mt-2 flex items-center gap-3 text-xs tabular-nums'>
         <span className='flex-1'>{props.footer}</span>
         <span>

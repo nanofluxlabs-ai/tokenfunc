@@ -37,6 +37,7 @@ function makeItem(overrides: Partial<EnterpriseListItem>): EnterpriseListItem {
     credit_alert_percent: 80,
     payment_terms_days: 15,
     max_tokens: 0,
+    owner_group: 'vip',
     currency: 'USD',
     billing_profile: {
       company_name: '',
@@ -225,4 +226,9 @@ test('email column falls back to the enterprise contact email when the owner has
   expect(
     screen.getByRole('button', { name: 'Copy contact@acme.test' })
   ).toBeInTheDocument()
+})
+
+test('group column shows the owner group as a badge', () => {
+  render(<ColumnCell item={creditItem} columnId='owner_group' />)
+  expect(screen.getByText('vip')).toBeInTheDocument()
 })

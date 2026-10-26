@@ -65,11 +65,3 @@ export interface PromoterEditableFields {
   remark: string
   share_rate: number
 }
-
-/** 用户选择器选中的用户摘要 */
-export interface PickedUser {
-  id: number
-  username: string
-  display_name: string
-  role: number
-}

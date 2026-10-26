@@ -29,6 +29,7 @@ import {
   SheetTitle,
 } from '@/components/ui/sheet'
 import { Textarea } from '@/components/ui/textarea'
+import { type PickedUser, UserPicker } from '@/components/user-picker'
 import { PROMOTER_SOURCE_LABEL_KEYS } from '@/features/promoter-center/components/users-columns'
 import { describeUsageScope } from '@/features/promoter-center/lib/format'
 import type { PromoterCenterUser } from '@/features/promoter-center/types'
@@ -44,9 +45,8 @@ import {
 } from '../api'
 import { PROMOTER_BATCH_BIND_MAX, PROMOTERS_QUERY_KEY } from '../constants'
 import { parseBatchInputs } from '../lib/batch-inputs'
-import type { PickedUser, PromoterBindResult, PromoterListItem } from '../types'
+import type { PromoterBindResult, PromoterListItem } from '../types'
 import { usePromoters } from './promoters-provider'
-import { UserPicker } from './user-picker'
 
 type BindingsSheetProps = {
   open: boolean

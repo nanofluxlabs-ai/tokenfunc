@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/QuantumNous/new-api/common"
+	"github.com/QuantumNous/new-api/setting/ratio_setting"
 
 	"github.com/shopspring/decimal"
 	"github.com/stretchr/testify/assert"
@@ -44,7 +45,7 @@ func setupEnterprisePostgres(t *testing.T) {
 }
 
 var enterpriseTestTables = []any{
-	&User{}, &Token{}, &Enterprise{}, &EnterpriseTeam{}, &EnterpriseMember{}, &EnterpriseTokenAssignment{}, &EnterpriseTokenQuotaPolicy{},
+	&User{}, &UserSession{}, &Token{}, &Enterprise{}, &EnterpriseTeam{}, &EnterpriseMember{}, &EnterpriseTokenAssignment{}, &EnterpriseTokenQuotaPolicy{},
 	&EnterpriseCreditPeriod{}, &EnterpriseCreditNotifyRecord{}, &EnterpriseLedgerEntry{}, &EnterpriseUsageDaily{}, &EnterpriseTeamBudgetNotify{}, &EnterpriseBill{}, &EnterpriseTrialLead{},
 }
 
@@ -60,14 +61,24 @@ func TestEnterpriseCreateAndUpgrade(t *testing.T) {
 	previousQuotaForNewUser := common.QuotaForNewUser
 	common.QuotaForNewUser = 5000
 	t.Cleanup(func() { common.QuotaForNewUser = previousQuotaForNewUser })
+	previousGroupRatios := ratio_setting.GroupRatio2JSONString()
+	require.NoError(t, ratio_setting.UpdateGroupRatioByJSONString(`{"default":1,"vip":0.8}`))
+	t.Cleanup(func() { require.NoError(t, ratio_setting.UpdateGroupRatioByJSONString(previousGroupRatios)) })
 
-	// 新建主账号：不发新用户赠送额度，开票抬头经 jsonb 往返不丢字段
-	owner := &User{Username: "acme", Password: "password123", DisplayName: "acme"}
+	// 主账号分组必须是分组倍率里已配置的分组
+	assert.ErrorIs(t, CreateEnterpriseWithNewUser(&User{Username: "nogroup", Password: "password123", Group: "missing"}, &Enterprise{Name: "No Group"}), ErrEnterpriseInvalidGroup)
+
+	// 新建主账号：不发新用户赠送额度，分组与登录邮箱写入主账号，开票抬头经 jsonb 往返不丢字段
+	owner := &User{Username: "acme", Password: "password123", DisplayName: "acme", Group: " vip ", Email: "Ops@Acme.io"}
 	created := &Enterprise{
 		Name:           "  Acme Inc  ",
 		BillingProfile: EnterpriseBillingProfile{CompanyName: "Acme Inc", TaxId: "TAX-1"},
 	}
 	require.NoError(t, CreateEnterpriseWithNewUser(owner, created))
+	storedOwner, err := GetUserById(owner.Id, false)
+	require.NoError(t, err)
+	assert.Equal(t, "vip", storedOwner.Group)
+	assert.Equal(t, "ops@acme.io", storedOwner.Email)
 	stored, err := GetEnterpriseByUserId(owner.Id)
 	require.NoError(t, err)
 	assert.Equal(t, "Acme Inc", stored.Name)
@@ -80,25 +91,69 @@ func TestEnterpriseCreateAndUpgrade(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, 0, quota)
 
-	// 升级已有普通用户：保留余额；重复升级、管理员账号都被拒绝
+	// 升级已有普通用户：保留余额；不传分组保留原分组且不动 auth_version；重复升级、管理员账号都被拒绝
 	common1 := createEnterpriseTestUser(t, "bob", common.RoleCommonUser)
-	require.NoError(t, UpgradeUserToEnterprise(common1.Id, &Enterprise{Name: "Bob Co"}))
+	require.NoError(t, UpgradeUserToEnterprise(common1.Id, &Enterprise{Name: "Bob Co"}, ""))
 	quota, err = GetUserQuota(common1.Id, true)
 	require.NoError(t, err)
 	assert.Equal(t, 1000, quota)
-	assert.ErrorIs(t, UpgradeUserToEnterprise(common1.Id, &Enterprise{Name: "Bob Co 2"}), ErrEnterpriseAlreadyExists)
+	upgraded, err := GetUserById(common1.Id, false)
+	require.NoError(t, err)
+	assert.Equal(t, "default", upgraded.Group)
+	bobAuthVersion := upgraded.AuthVersion
+
+	// 升级时传分组：同事务改分组并 auth_version +1；非法分组整体拒绝、不建企业
+	dave := createEnterpriseTestUser(t, "dave", common.RoleCommonUser)
+	assert.ErrorIs(t, UpgradeUserToEnterprise(dave.Id, &Enterprise{Name: "Dave Co"}, "missing"), ErrEnterpriseInvalidGroup)
+	_, err = GetEnterpriseByUserId(dave.Id)
+	assert.ErrorIs(t, err, gorm.ErrRecordNotFound)
+	require.NoError(t, UpgradeUserToEnterprise(dave.Id, &Enterprise{Name: "Dave Co"}, "vip"))
+	daveAfter, err := GetUserById(dave.Id, false)
+	require.NoError(t, err)
+	assert.Equal(t, "vip", daveAfter.Group)
+	assert.Equal(t, max(dave.AuthVersion, 1)+1, daveAfter.AuthVersion)
+
+	// 改企业主分组：变化时返回旧分组并 auth_version +1，相同分组不变，非法分组拒绝
+	bobEnterprise, err := GetEnterpriseByUserId(common1.Id)
+	require.NoError(t, err)
+	oldGroup, changed, err := UpdateEnterpriseOwnerGroup(bobEnterprise.Id, "vip")
+	require.NoError(t, err)
+	assert.True(t, changed)
+	assert.Equal(t, "default", oldGroup)
+	bobAfter, err := GetUserById(common1.Id, false)
+	require.NoError(t, err)
+	assert.Equal(t, "vip", bobAfter.Group)
+	assert.Equal(t, max(bobAuthVersion, 1)+1, bobAfter.AuthVersion)
+	oldGroup, changed, err = UpdateEnterpriseOwnerGroup(bobEnterprise.Id, "vip")
+	require.NoError(t, err)
+	assert.False(t, changed)
+	assert.Equal(t, "vip", oldGroup)
+	bobSame, err := GetUserById(common1.Id, false)
+	require.NoError(t, err)
+	assert.Equal(t, bobAfter.AuthVersion, bobSame.AuthVersion)
+	_, _, err = UpdateEnterpriseOwnerGroup(bobEnterprise.Id, "missing")
+	assert.ErrorIs(t, err, ErrEnterpriseInvalidGroup)
+	assert.ErrorIs(t, UpgradeUserToEnterprise(common1.Id, &Enterprise{Name: "Bob Co 2"}, ""), ErrEnterpriseAlreadyExists)
 
 	admin := createEnterpriseTestUser(t, "admin1", common.RoleAdminUser)
-	assert.ErrorIs(t, UpgradeUserToEnterprise(admin.Id, &Enterprise{Name: "Admin Co"}), ErrEnterpriseUserNotEligible)
+	assert.ErrorIs(t, UpgradeUserToEnterprise(admin.Id, &Enterprise{Name: "Admin Co"}, ""), ErrEnterpriseUserNotEligible)
 
-	assert.Error(t, UpgradeUserToEnterprise(createEnterpriseTestUser(t, "carol", common.RoleCommonUser).Id, &Enterprise{Name: " "}))
+	// 企业员工的登录账号不能升级；成员软删除（离职）后可以
+	employee := createEnterpriseTestUser(t, "member-erin", common.RoleCommonUser)
+	member := &EnterpriseMember{EnterpriseId: bobEnterprise.Id, Name: "Dave", UserId: employee.Id, Role: "developer", Status: "active", CreatedAt: 1, UpdatedAt: 1}
+	require.NoError(t, DB.Create(member).Error)
+	assert.ErrorIs(t, UpgradeUserToEnterprise(employee.Id, &Enterprise{Name: "Dave Co"}, ""), ErrEnterpriseUserIsMember)
+	require.NoError(t, DB.Delete(member).Error)
+	require.NoError(t, UpgradeUserToEnterprise(employee.Id, &Enterprise{Name: "Dave Co"}, ""))
+
+	assert.Error(t, UpgradeUserToEnterprise(createEnterpriseTestUser(t, "carol", common.RoleCommonUser).Id, &Enterprise{Name: " "}, ""))
 }
 
 func TestEnterpriseUserTypeFilterAndList(t *testing.T) {
 	setupEnterprisePostgres(t)
 	personal := createEnterpriseTestUser(t, "personal1", common.RoleCommonUser)
 	entUser := createEnterpriseTestUser(t, "entuser1", common.RoleCommonUser)
-	require.NoError(t, UpgradeUserToEnterprise(entUser.Id, &Enterprise{Name: "Globex", ContactName: "Hank"}))
+	require.NoError(t, UpgradeUserToEnterprise(entUser.Id, &Enterprise{Name: "Globex", ContactName: "Hank"}, ""))
 
 	page := &common.PageInfo{Page: 1, PageSize: 20}
 	userIds := func(users []*User) []int {
@@ -135,6 +190,7 @@ func TestEnterpriseUserTypeFilterAndList(t *testing.T) {
 		require.Equal(t, int64(1), total, keyword)
 		assert.Equal(t, "Globex", items[0].Name)
 		assert.Equal(t, "entuser1", items[0].Username)
+		assert.Equal(t, "default", items[0].OwnerGroup)
 		assert.Equal(t, 1000, items[0].Quota)
 	}
 	_, total, err = ListEnterprises("", EnterpriseBillingModeCredit, 0, 20)
@@ -151,7 +207,7 @@ func TestEnterpriseUserTypeFilterAndList(t *testing.T) {
 	require.NoError(t, err)
 	require.True(t, applied)
 	prepaidUser := createEnterpriseTestUser(t, "prepaid1", common.RoleCommonUser)
-	require.NoError(t, UpgradeUserToEnterprise(prepaidUser.Id, &Enterprise{Name: "Initech"}))
+	require.NoError(t, UpgradeUserToEnterprise(prepaidUser.Id, &Enterprise{Name: "Initech"}, ""))
 
 	items, total, err := ListEnterprises("", "", 0, 20)
 	require.NoError(t, err)
@@ -172,7 +228,7 @@ func TestEnterpriseUserTypeFilterAndList(t *testing.T) {
 func TestEnterpriseCreditPeriodsAndUsage(t *testing.T) {
 	setupEnterprisePostgres(t)
 	owner := createEnterpriseTestUser(t, "creditowner", common.RoleCommonUser)
-	require.NoError(t, UpgradeUserToEnterprise(owner.Id, &Enterprise{Name: "Credit Co"}))
+	require.NoError(t, UpgradeUserToEnterprise(owner.Id, &Enterprise{Name: "Credit Co"}, ""))
 	ent, err := GetEnterpriseByUserId(owner.Id)
 	require.NoError(t, err)
 
@@ -180,6 +236,7 @@ func TestEnterpriseCreditPeriodsAndUsage(t *testing.T) {
 	_, err = GetOpenCreditPeriod(ent.Id)
 	assert.ErrorIs(t, err, ErrEnterpriseCreditNoOpenPeriod)
 	assert.ErrorIs(t, ConfigureEnterpriseCredit(ent.Id, EnterpriseCreditConfig{CycleType: "weekly"}, 1), ErrEnterpriseCreditConfig)
+	assert.ErrorIs(t, ConfigureEnterpriseCredit(ent.Id, EnterpriseCreditConfig{CycleType: EnterpriseCreditCycleNaturalMonth, LimitQuota: 0}, 1), ErrEnterpriseCreditConfig, "自然月授信额度为 0 也拒绝")
 	require.NoError(t, ConfigureEnterpriseCredit(ent.Id, EnterpriseCreditConfig{CycleType: EnterpriseCreditCycleFixedDays, CycleDays: 30, LimitQuota: 1000}, 1))
 	period, err := GetOpenCreditPeriod(ent.Id)
 	require.NoError(t, err)
@@ -292,7 +349,7 @@ func TestEnterpriseCreditPeriodsAndUsage(t *testing.T) {
 func TestEnterpriseTopupAndStatus(t *testing.T) {
 	setupEnterprisePostgres(t)
 	owner := createEnterpriseTestUser(t, "topupowner", common.RoleCommonUser)
-	require.NoError(t, UpgradeUserToEnterprise(owner.Id, &Enterprise{Name: "Topup Co"}))
+	require.NoError(t, UpgradeUserToEnterprise(owner.Id, &Enterprise{Name: "Topup Co"}, ""))
 	ent, err := GetEnterpriseByUserId(owner.Id)
 	require.NoError(t, err)
 
@@ -332,7 +389,7 @@ func TestEnterpriseTopupAndStatus(t *testing.T) {
 func TestEnterpriseCreditBillLifecycle(t *testing.T) {
 	setupEnterprisePostgres(t)
 	owner := createEnterpriseTestUser(t, "billowner", common.RoleCommonUser)
-	require.NoError(t, UpgradeUserToEnterprise(owner.Id, &Enterprise{Name: "Bill Co", ContactEmail: "ap@bill.co", PaymentTermsDays: 10}))
+	require.NoError(t, UpgradeUserToEnterprise(owner.Id, &Enterprise{Name: "Bill Co", ContactEmail: "ap@bill.co", PaymentTermsDays: 10}, ""))
 	ent, err := GetEnterpriseByUserId(owner.Id)
 	require.NoError(t, err)
 	require.NoError(t, ConfigureEnterpriseCredit(ent.Id, EnterpriseCreditConfig{CycleType: EnterpriseCreditCycleNaturalMonth, LimitQuota: 10_000_000}, 1))
@@ -443,7 +500,7 @@ func TestEnterpriseCreditBillLifecycle(t *testing.T) {
 func TestEnterpriseBillRemindersAndStatements(t *testing.T) {
 	setupEnterprisePostgres(t)
 	owner := createEnterpriseTestUser(t, "stmtowner", common.RoleCommonUser)
-	require.NoError(t, UpgradeUserToEnterprise(owner.Id, &Enterprise{Name: "Stmt Co"}))
+	require.NoError(t, UpgradeUserToEnterprise(owner.Id, &Enterprise{Name: "Stmt Co"}, ""))
 	ent, err := GetEnterpriseByUserId(owner.Id)
 	require.NoError(t, err)
 	now := common.GetTimestamp()
@@ -551,7 +608,7 @@ func TestEnterpriseTrialLeadLifecycle(t *testing.T) {
 func TestEnterpriseManualAdjustments(t *testing.T) {
 	setupEnterprisePostgres(t)
 	owner := createEnterpriseTestUser(t, "adjowner", common.RoleCommonUser)
-	require.NoError(t, UpgradeUserToEnterprise(owner.Id, &Enterprise{Name: "Adjust Co"}))
+	require.NoError(t, UpgradeUserToEnterprise(owner.Id, &Enterprise{Name: "Adjust Co"}, ""))
 	ent, err := GetEnterpriseByUserId(owner.Id)
 	require.NoError(t, err)
 
@@ -682,7 +739,7 @@ func TestEnterpriseManualAdjustments(t *testing.T) {
 func TestEnterpriseQuotaBasedCredit(t *testing.T) {
 	setupEnterprisePostgres(t)
 	owner := createEnterpriseTestUser(t, "quotaowner", common.RoleCommonUser)
-	require.NoError(t, UpgradeUserToEnterprise(owner.Id, &Enterprise{Name: "Quota Co"}))
+	require.NoError(t, UpgradeUserToEnterprise(owner.Id, &Enterprise{Name: "Quota Co"}, ""))
 	ent, err := GetEnterpriseByUserId(owner.Id)
 	require.NoError(t, err)
 	configure := func(limit int64, autoReset bool) {

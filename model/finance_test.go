@@ -156,7 +156,7 @@ func TestFinanceOverview(t *testing.T) {
 	require.NoError(t, DB.Model(&User{}).Where("id IN ?", []int{normal.Id, admin.Id, owner.Id}).Update("created_at", registeredAt).Error)
 	// payer 注册在区间之外
 	require.NoError(t, DB.Model(&User{}).Where("id = ?", payer.Id).Update("created_at", registeredAt-86400*5).Error)
-	require.NoError(t, UpgradeUserToEnterprise(owner.Id, &Enterprise{Name: "Owner Co"}))
+	require.NoError(t, UpgradeUserToEnterprise(owner.Id, &Enterprise{Name: "Owner Co"}, ""))
 	require.NoError(t, DB.Create(&TopUp{UserId: payer.Id, Amount: 5, Money: 36.5, TradeNo: "PAY1", PaymentMethod: "alipay", PaymentProvider: PaymentProviderEpay,
 		Status: common.TopUpStatusSuccess, CreateTime: financeTestAt(8, 0), CompleteTime: financeTestAt(8, 30)}).Error)
 
@@ -288,7 +288,7 @@ func TestFinanceUserConsumptions(t *testing.T) {
 	setupFinancePostgres(t)
 	u1 := createEnterpriseTestUser(t, "u1", common.RoleCommonUser)
 	u2 := createEnterpriseTestUser(t, "u2", common.RoleCommonUser)
-	require.NoError(t, UpgradeUserToEnterprise(u2.Id, &Enterprise{Name: "U2 Corp"}))
+	require.NoError(t, UpgradeUserToEnterprise(u2.Id, &Enterprise{Name: "U2 Corp"}, ""))
 	enterprise, err := GetEnterpriseByUserId(u2.Id)
 	require.NoError(t, err)
 	require.NoError(t, ConfigureEnterpriseCredit(enterprise.Id, EnterpriseCreditConfig{CycleType: EnterpriseCreditCycleNaturalMonth, LimitQuota: 2_000_000}, 0))
@@ -363,7 +363,7 @@ func TestFinanceUserConsumptions(t *testing.T) {
 func TestFinanceBillContextAndList(t *testing.T) {
 	setupFinancePostgres(t)
 	owner := createEnterpriseTestUser(t, "billowner", common.RoleCommonUser)
-	require.NoError(t, UpgradeUserToEnterprise(owner.Id, &Enterprise{Name: "Bill Co"}))
+	require.NoError(t, UpgradeUserToEnterprise(owner.Id, &Enterprise{Name: "Bill Co"}, ""))
 	enterprise, err := GetEnterpriseByUserId(owner.Id)
 	require.NoError(t, err)
 	require.NoError(t, ConfigureEnterpriseCredit(enterprise.Id, EnterpriseCreditConfig{CycleType: EnterpriseCreditCycleNaturalMonth, LimitQuota: 1_000_000}, 0))
@@ -503,7 +503,7 @@ func TestFinanceTopupLedger(t *testing.T) {
 	setupFinancePostgres(t)
 	owner := createEnterpriseTestUser(t, "ledgerowner", common.RoleCommonUser)
 	other := createEnterpriseTestUser(t, "ledgerother", common.RoleCommonUser)
-	require.NoError(t, UpgradeUserToEnterprise(owner.Id, &Enterprise{Name: "Ledger Co"}))
+	require.NoError(t, UpgradeUserToEnterprise(owner.Id, &Enterprise{Name: "Ledger Co"}, ""))
 	enterprise, err := GetEnterpriseByUserId(owner.Id)
 	require.NoError(t, err)
 	plan := &SubscriptionPlan{Title: "Pro 月付", PriceAmount: 30, Currency: "USD", DurationUnit: SubscriptionDurationMonth, DurationValue: 1, TotalAmount: 1_500_000}
@@ -672,7 +672,7 @@ func TestFoldFinanceModelRatios(t *testing.T) {
 func TestIssueCreditBillSnapshotV2(t *testing.T) {
 	setupFinancePostgres(t)
 	owner := createEnterpriseTestUser(t, "snapowner", common.RoleCommonUser)
-	require.NoError(t, UpgradeUserToEnterprise(owner.Id, &Enterprise{Name: "Snap Co"}))
+	require.NoError(t, UpgradeUserToEnterprise(owner.Id, &Enterprise{Name: "Snap Co"}, ""))
 	enterprise, err := GetEnterpriseByUserId(owner.Id)
 	require.NoError(t, err)
 	require.NoError(t, ConfigureEnterpriseCredit(enterprise.Id, EnterpriseCreditConfig{CycleType: EnterpriseCreditCycleNaturalMonth, LimitQuota: 1_000_000}, 0))

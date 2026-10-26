@@ -29,7 +29,7 @@ func setupChannelUsagePostgres(t *testing.T) {
 	require.NoError(t, err)
 	tables := []any{
 		&model.User{}, &model.Token{}, &model.Log{}, &model.Channel{}, &model.Option{},
-		&model.Enterprise{}, &model.EnterpriseTeam{}, &model.EnterpriseCreditPeriod{}, &model.EnterpriseCreditNotifyRecord{}, &model.EnterpriseLedgerEntry{},
+		&model.Enterprise{}, &model.EnterpriseTeam{}, &model.EnterpriseMember{}, &model.EnterpriseCreditPeriod{}, &model.EnterpriseCreditNotifyRecord{}, &model.EnterpriseLedgerEntry{},
 		&model.SubscriptionPlan{}, &model.UserSubscription{},
 		&model.ChannelHourlyUsage{}, &model.ChannelDailyDimUsage{}, &model.ChannelUsageTotal{},
 	}
@@ -90,8 +90,8 @@ func TestGetChannelUsageBreakdown(t *testing.T) {
 	credit := newChannelUsageTestUser(t, "credit_owner", 10)
 	subscribed := newChannelUsageTestUser(t, "subscribed", 800)
 	require.NoError(t, model.DB.Model(&model.User{}).Where("id = ?", solo.Id).Update("group", "vip").Error)
-	require.NoError(t, model.UpgradeUserToEnterprise(owner.Id, &model.Enterprise{Name: "Acme Inc"}))
-	require.NoError(t, model.UpgradeUserToEnterprise(credit.Id, &model.Enterprise{Name: "Credit Co"}))
+	require.NoError(t, model.UpgradeUserToEnterprise(owner.Id, &model.Enterprise{Name: "Acme Inc"}, ""))
+	require.NoError(t, model.UpgradeUserToEnterprise(credit.Id, &model.Enterprise{Name: "Credit Co"}, ""))
 	creditEnterprise := mustEnterprise(t, credit.Id)
 	require.NoError(t, model.ConfigureEnterpriseCredit(creditEnterprise.Id, model.EnterpriseCreditConfig{CycleType: model.EnterpriseCreditCycleNaturalMonth, LimitQuota: 100000}, 1))
 	period, err := model.EnsureOpenCreditPeriod(creditEnterprise.Id)

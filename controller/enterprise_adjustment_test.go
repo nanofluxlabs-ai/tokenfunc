@@ -12,6 +12,7 @@ import (
 	"github.com/QuantumNous/new-api/i18n"
 	"github.com/QuantumNous/new-api/model"
 	"github.com/QuantumNous/new-api/service"
+	"github.com/QuantumNous/new-api/setting/ratio_setting"
 
 	"github.com/gin-gonic/gin"
 	"github.com/shopspring/decimal"
@@ -74,11 +75,21 @@ func newEnterpriseAdjustmentRouter(operator *model.User, identity service.AuthId
 		c.Next()
 	}
 	engine.POST("/api/admin/enterprise/enterprises/:id/adjustments", asOperator, AdminCreateEnterpriseAdjustment)
+	engine.PUT("/api/admin/enterprise/enterprises/:id/credit", asOperator, AdminConfigureEnterpriseCredit)
+	engine.DELETE("/api/admin/enterprise/enterprises/:id/credit", asOperator, AdminSwitchEnterprisePrepaid)
+	engine.GET("/api/admin/enterprise/group-options", asOperator, AdminListEnterpriseGroupOptions)
+	engine.POST("/api/admin/enterprise/enterprises", asOperator, AdminCreateEnterprise)
+	engine.GET("/api/admin/enterprise/enterprises/:id", asOperator, AdminGetEnterprise)
+	engine.PUT("/api/admin/enterprise/enterprises/:id", asOperator, AdminUpdateEnterprise)
 	return engine
 }
 
 func enterpriseAdjustmentRequest(router http.Handler, enterpriseId int, proof string, body string) *httptest.ResponseRecorder {
-	request := httptest.NewRequest(http.MethodPost, fmt.Sprintf("/api/admin/enterprise/enterprises/%d/adjustments", enterpriseId), strings.NewReader(body))
+	return enterpriseAdminRequest(router, http.MethodPost, fmt.Sprintf("/api/admin/enterprise/enterprises/%d/adjustments", enterpriseId), proof, body)
+}
+
+func enterpriseAdminRequest(router http.Handler, method string, path string, proof string, body string) *httptest.ResponseRecorder {
+	request := httptest.NewRequest(method, path, strings.NewReader(body))
 	request.Header.Set("Content-Type", "application/json")
 	if proof != "" {
 		request.Header.Set("X-Security-Proof", proof)
@@ -108,13 +119,13 @@ func TestAdminCreateEnterpriseAdjustment(t *testing.T) {
 
 	owner := &model.User{Username: "adjust-owner", Password: "placeholder", Role: common.RoleCommonUser, Status: common.UserStatusEnabled, Group: "default", Quota: 5 * int(common.QuotaPerUnit), AuthVersion: 1, AffCode: "adjust-own"}
 	require.NoError(t, model.DB.Create(owner).Error)
-	require.NoError(t, model.UpgradeUserToEnterprise(owner.Id, &model.Enterprise{Name: "Adjust Co"}))
+	require.NoError(t, model.UpgradeUserToEnterprise(owner.Id, &model.Enterprise{Name: "Adjust Co"}, ""))
 	enterprise, err := model.GetEnterpriseByUserId(owner.Id)
 	require.NoError(t, err)
 
 	otherOwner := &model.User{Username: "adjust-other", Password: "placeholder", Role: common.RoleCommonUser, Status: common.UserStatusEnabled, Group: "default", AuthVersion: 1, AffCode: "adjust-oth"}
 	require.NoError(t, model.DB.Create(otherOwner).Error)
-	require.NoError(t, model.UpgradeUserToEnterprise(otherOwner.Id, &model.Enterprise{Name: "Other Co"}))
+	require.NoError(t, model.UpgradeUserToEnterprise(otherOwner.Id, &model.Enterprise{Name: "Other Co"}, ""))
 	other, err := model.GetEnterpriseByUserId(otherOwner.Id)
 	require.NoError(t, err)
 	// 企业计费信息按 user_id 做进程内缓存，用例结束必须清掉，否则后续 sqlite 用例里同 id 的用户会命中这里的企业态
@@ -220,4 +231,128 @@ func TestAdminCreateEnterpriseAdjustment(t *testing.T) {
 		require.NoError(t, model.LOG_DB.Where("action = ?", "enterprise.adjustment.bill").First(&audit).Error)
 		assert.Equal(t, fmt.Sprintf("Adjusted bill TF-OWN-000001 of enterprise %d by -6 USD: September double billing", enterprise.Id), audit.Content)
 	})
+}
+
+// 开通 / 修改授信与切回预付都要求「企业主 user_id + enterprise_credit」的二次验证；无凭证或动作不符时计费模式不变
+func TestAdminEnterpriseCreditRequiresProof(t *testing.T) {
+	setupEnterpriseAdjustmentPostgres(t)
+	operator := &model.User{Username: "credit-root", Password: "root-operator-hash", Role: common.RoleRootUser, Status: common.UserStatusEnabled, Group: "default", AuthVersion: 1, AffCode: "credit-root"}
+	require.NoError(t, model.DB.Create(operator).Error)
+	identity, _ := createAccessTokenTestSession(t, operator.Id, "enterprise-credit-session")
+	router := newEnterpriseAdjustmentRouter(operator, identity)
+
+	owner := &model.User{Username: "credit-owner", Password: "placeholder", Role: common.RoleCommonUser, Status: common.UserStatusEnabled, Group: "default", AuthVersion: 1, AffCode: "credit-own"}
+	require.NoError(t, model.DB.Create(owner).Error)
+	require.NoError(t, model.UpgradeUserToEnterprise(owner.Id, &model.Enterprise{Name: "Credit Proof Co"}, ""))
+	enterprise, err := model.GetEnterpriseByUserId(owner.Id)
+	require.NoError(t, err)
+	for _, userId := range []int{operator.Id, owner.Id} {
+		model.InvalidateEnterpriseBillingInfo(userId)
+		t.Cleanup(func() { model.InvalidateEnterpriseBillingInfo(userId) })
+	}
+	creditPath := fmt.Sprintf("/api/admin/enterprise/enterprises/%d/credit", enterprise.Id)
+	billingMode := func() string {
+		stored, err := model.GetEnterpriseById(enterprise.Id)
+		require.NoError(t, err)
+		return stored.BillingMode
+	}
+	configureBody := `{"cycle_type":"natural_month","limit_usd":100}`
+
+	response := enterpriseAdminRequest(router, http.MethodPut, creditPath, "", configureBody)
+	assert.Equal(t, http.StatusForbidden, response.Code)
+	assert.Contains(t, response.Body.String(), "SECURITY_PROOF_REQUIRED")
+	response = enterpriseAdminRequest(router, http.MethodPut, creditPath, enterpriseAdjustProof(t, identity, owner.Id, "enterprise_adjust"), configureBody)
+	assert.Equal(t, http.StatusForbidden, response.Code)
+	assert.Contains(t, response.Body.String(), "SECURITY_PROOF_CONTEXT_MISMATCH")
+	assert.Equal(t, model.EnterpriseBillingModePrepaid, billingMode())
+
+	response = enterpriseAdminRequest(router, http.MethodPut, creditPath, enterpriseAdjustProof(t, identity, owner.Id, "enterprise_credit"), configureBody)
+	require.Equal(t, http.StatusOK, response.Code, response.Body.String())
+	assert.Contains(t, response.Body.String(), `"success":true`)
+	assert.Equal(t, model.EnterpriseBillingModeCredit, billingMode())
+	var audit model.AuditLog
+	require.NoError(t, model.LOG_DB.Where("action = ?", "enterprise.credit.configure").First(&audit).Error)
+	method, _ := common.Marshal(audit.Other.Op.Params["verification_method"])
+	assert.JSONEq(t, `"password"`, string(method))
+
+	response = enterpriseAdminRequest(router, http.MethodDelete, creditPath, "", "")
+	assert.Equal(t, http.StatusForbidden, response.Code)
+	assert.Contains(t, response.Body.String(), "SECURITY_PROOF_REQUIRED")
+	assert.Equal(t, model.EnterpriseBillingModeCredit, billingMode())
+	response = enterpriseAdminRequest(router, http.MethodDelete, creditPath, enterpriseAdjustProof(t, identity, owner.Id, "enterprise_credit"), "")
+	require.Equal(t, http.StatusOK, response.Code, response.Body.String())
+	assert.Contains(t, response.Body.String(), `"success":true`)
+	assert.Equal(t, model.EnterpriseBillingModePrepaid, billingMode())
+
+	response = enterpriseAdminRequest(router, http.MethodDelete, fmt.Sprintf("/api/admin/enterprise/enterprises/%d/credit", enterprise.Id+100), "", "")
+	assert.Equal(t, http.StatusNotFound, response.Code)
+}
+
+// 企业主账号分组：可选项来自分组倍率；新建 / 修改时非法分组被拒且不落任何写入；改分组让主账号登录态失效并留审计
+func TestAdminEnterpriseOwnerGroup(t *testing.T) {
+	setupEnterpriseAdjustmentPostgres(t)
+	previousGroupRatios := ratio_setting.GroupRatio2JSONString()
+	require.NoError(t, ratio_setting.UpdateGroupRatioByJSONString(`{"vip":0.8,"default":1}`))
+	t.Cleanup(func() { require.NoError(t, ratio_setting.UpdateGroupRatioByJSONString(previousGroupRatios)) })
+	operator := &model.User{Username: "group-root", Password: "root-operator-hash", Role: common.RoleRootUser, Status: common.UserStatusEnabled, Group: "default", AuthVersion: 1, AffCode: "group-root"}
+	require.NoError(t, model.DB.Create(operator).Error)
+	identity, _ := createAccessTokenTestSession(t, operator.Id, "enterprise-group-session")
+	router := newEnterpriseAdjustmentRouter(operator, identity)
+
+	response := enterpriseAdminRequest(router, http.MethodGet, "/api/admin/enterprise/group-options", "", "")
+	require.Equal(t, http.StatusOK, response.Code)
+	assert.JSONEq(t, `{"success":true,"message":"","data":[{"group":"default","ratio":1},{"group":"vip","ratio":0.8}]}`, response.Body.String())
+
+	createBody := func(group string, email string) string {
+		return fmt.Sprintf(`{"mode":"new_user","username":"group-owner","password":"password123","email":%q,"group":%q,"enterprise":{"name":"Group Co"}}`, email, group)
+	}
+	for name, body := range map[string]string{
+		"unknown group": createBody("missing", ""),
+		"invalid email": createBody("vip", "not-an-email"),
+	} {
+		response = enterpriseAdminRequest(router, http.MethodPost, "/api/admin/enterprise/enterprises", "", body)
+		assert.Contains(t, response.Body.String(), `"success":false`, name)
+	}
+	assert.Contains(t, enterpriseAdminRequest(router, http.MethodPost, "/api/admin/enterprise/enterprises", "", createBody("missing", "")).Body.String(), `"message":"invalid group"`)
+	var userCount int64
+	require.NoError(t, model.DB.Model(&model.User{}).Where("username = ?", "group-owner").Count(&userCount).Error)
+	assert.Equal(t, int64(0), userCount)
+
+	response = enterpriseAdminRequest(router, http.MethodPost, "/api/admin/enterprise/enterprises", "", createBody("vip", "Owner@Group.co"))
+	require.Contains(t, response.Body.String(), `"success":true`, response.Body.String())
+	assert.Contains(t, response.Body.String(), `"owner_group":"vip"`, "创建结果与详情同形，带实际分组")
+	var owner model.User
+	require.NoError(t, model.DB.Where("username = ?", "group-owner").First(&owner).Error)
+	assert.Equal(t, "vip", owner.Group)
+	assert.Equal(t, "owner@group.co", owner.Email)
+	enterprise, err := model.GetEnterpriseByUserId(owner.Id)
+	require.NoError(t, err)
+	t.Cleanup(func() { model.InvalidateEnterpriseBillingInfo(owner.Id) })
+	_, _ = createAccessTokenTestSession(t, owner.Id, "enterprise-group-owner-session")
+	enterprisePath := fmt.Sprintf("/api/admin/enterprise/enterprises/%d", enterprise.Id)
+
+	// 非法分组在资料写入之前拒绝：企业名不变
+	response = enterpriseAdminRequest(router, http.MethodPut, enterprisePath, "", `{"name":"Renamed Co","group":"missing"}`)
+	assert.Contains(t, response.Body.String(), `"message":"invalid group"`)
+	stored, err := model.GetEnterpriseById(enterprise.Id)
+	require.NoError(t, err)
+	assert.Equal(t, "Group Co", stored.Name)
+
+	response = enterpriseAdminRequest(router, http.MethodPut, enterprisePath, "", `{"name":"Renamed Co","group":"default"}`)
+	require.Contains(t, response.Body.String(), `"success":true`, response.Body.String())
+	var updated model.User
+	require.NoError(t, model.DB.First(&updated, owner.Id).Error)
+	assert.Equal(t, "default", updated.Group)
+	assert.Equal(t, owner.AuthVersion+1, updated.AuthVersion)
+	var session model.UserSession
+	require.NoError(t, model.DB.Where("sid = ?", "enterprise-group-owner-session").First(&session).Error)
+	assert.NotEqual(t, model.UserSessionStatusActive, session.Status)
+	var audit model.AuditLog
+	require.NoError(t, model.LOG_DB.Where("action = ?", "enterprise.update").First(&audit).Error)
+	groupChange, _ := common.Marshal(map[string]any{"from": audit.Other.Op.Params["group_from"], "to": audit.Other.Op.Params["group_to"]})
+	assert.JSONEq(t, `{"from":"vip","to":"default"}`, string(groupChange))
+
+	response = enterpriseAdminRequest(router, http.MethodGet, enterprisePath, "", "")
+	assert.Contains(t, response.Body.String(), `"owner_group":"default"`)
+	assert.Contains(t, response.Body.String(), `"name":"Renamed Co"`)
 }

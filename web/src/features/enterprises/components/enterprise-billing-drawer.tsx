@@ -31,7 +31,6 @@ import { requireServerSuccess } from '@/lib/server-error-message'
 
 import {
   adminUsageExportUrl,
-  disableEnterpriseCredit,
   getEnterprise,
   getEnterpriseUsageSummary,
   issueBillNow,
@@ -42,7 +41,6 @@ import {
 } from '../api'
 import type { EnterpriseListItem } from '../types'
 import { AdjustmentDialog } from './adjustment-dialog'
-import { CreditConfigForm } from './credit-config-form'
 import { useEnterprises } from './enterprises-provider'
 
 type EnterpriseBillingDrawerProps = {
@@ -51,14 +49,14 @@ type EnterpriseBillingDrawerProps = {
   currentRow?: EnterpriseListItem
 }
 
-/** 管理员：企业计费管理（计费模式、授信配置、线下充值、停用、流水） */
+/** 管理员：企业计费管理（账户、授信账期、调账、停用、流水、用量）；计费模式与授信配置在编辑抽屉里改 */
 export function EnterpriseBillingDrawer(props: EnterpriseBillingDrawerProps) {
   const { t } = useTranslation()
   const queryClient = useQueryClient()
-  const { triggerRefresh } = useEnterprises()
+  const { triggerRefresh, setOpen } = useEnterprises()
   const enterpriseId = props.currentRow?.id ?? 0
   const [confirm, setConfirm] = useState<
-    'suspend' | 'activate' | 'disable_credit' | 'open_period' | null
+    'suspend' | 'activate' | 'open_period' | null
   >(null)
   const [adjustOpen, setAdjustOpen] = useState(false)
 
@@ -112,9 +110,6 @@ export function EnterpriseBillingDrawer(props: EnterpriseBillingDrawerProps) {
   }
 
   const runConfirmedAction = () => {
-    if (confirm === 'disable_credit') {
-      return disableEnterpriseCredit(enterpriseId)
-    }
     if (confirm === 'open_period') {
       return openCreditPeriod(enterpriseId)
     }
@@ -167,12 +162,6 @@ export function EnterpriseBillingDrawer(props: EnterpriseBillingDrawerProps) {
     activate: {
       title: t('Activate enterprise'),
       desc: t('API keys of this enterprise will work again.'),
-    },
-    disable_credit: {
-      title: t('Switch to prepaid'),
-      desc: t(
-        'The current credit period will be closed and billed. Future usage is paid from the balance.'
-      ),
     },
   }
 
@@ -239,6 +228,14 @@ export function EnterpriseBillingDrawer(props: EnterpriseBillingDrawerProps) {
                     </span>
                   )}
                   <div className='flex-1' />
+                  {/* currentRow 仍是这一行，切到 update 即打开同一企业的编辑抽屉 */}
+                  <Button
+                    variant='outline'
+                    size='sm'
+                    onClick={() => setOpen('update')}
+                  >
+                    {t('Change billing settings')}
+                  </Button>
                   {!isCredit && (
                     <Button
                       variant='outline'
@@ -260,41 +257,6 @@ export function EnterpriseBillingDrawer(props: EnterpriseBillingDrawerProps) {
                       : t('Suspend enterprise')}
                   </Button>
                 </div>
-              </SideDrawerSection>
-            )}
-            {data && (
-              <SideDrawerSection>
-                <SideDrawerSectionHeader
-                  title={
-                    isCredit
-                      ? t('Credit configuration')
-                      : t('Enable credit billing')
-                  }
-                  description={
-                    isCredit
-                      ? t(
-                          'Credit replaces the prepaid balance; unpaid bills do not block the next period.'
-                        )
-                      : t(
-                          'Switch this enterprise to credit billing with a per-period limit.'
-                        )
-                  }
-                />
-                <CreditConfigForm
-                  enterprise={data}
-                  onSaved={refresh}
-                  secondaryAction={
-                    isCredit ? (
-                      <Button
-                        type='button'
-                        variant='outline'
-                        onClick={() => setConfirm('disable_credit')}
-                      >
-                        {t('Switch to prepaid')}
-                      </Button>
-                    ) : undefined
-                  }
-                />
               </SideDrawerSection>
             )}
             {isCredit && (

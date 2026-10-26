@@ -59,7 +59,7 @@ func newCreditEnterprise(t *testing.T, username string, mode string) (*model.Use
 	t.Helper()
 	user := &model.User{Username: username, Password: "password123", DisplayName: username, Role: common.RoleCommonUser, Status: common.UserStatusEnabled, Quota: 300, AffCode: username}
 	require.NoError(t, model.DB.Create(user).Error)
-	require.NoError(t, model.UpgradeUserToEnterprise(user.Id, &model.Enterprise{Name: username + " Co"}))
+	require.NoError(t, model.UpgradeUserToEnterprise(user.Id, &model.Enterprise{Name: username + " Co"}, ""))
 	if mode == model.EnterpriseBillingModeCredit {
 		require.NoError(t, model.ConfigureEnterpriseCredit(mustEnterprise(t, user.Id).Id, model.EnterpriseCreditConfig{CycleType: model.EnterpriseCreditCycleNaturalMonth, LimitQuota: 1000}, 1))
 	}

@@ -58,7 +58,7 @@ func TestEnterpriseConsoleBillExport(t *testing.T) {
 		&model.EnterpriseCreditPeriod{}, &model.EnterpriseLedgerEntry{}, &model.LogArchiveManifest{}))
 	owner := &model.User{Username: "export-owner", Password: "placeholder", Role: common.RoleCommonUser, Status: common.UserStatusEnabled, Group: "default", AuthVersion: 1, AffCode: "exp-own"}
 	require.NoError(t, model.DB.Create(owner).Error)
-	require.NoError(t, model.UpgradeUserToEnterprise(owner.Id, &model.Enterprise{Name: "Export Co"}))
+	require.NoError(t, model.UpgradeUserToEnterprise(owner.Id, &model.Enterprise{Name: "Export Co"}, ""))
 	ent, err := model.GetEnterpriseByUserId(owner.Id)
 	require.NoError(t, err)
 
@@ -137,7 +137,7 @@ func TestEnterpriseConsoleAccessTokenScopes(t *testing.T) {
 	require.NoError(t, model.DB.AutoMigrate(&model.Token{}, &model.Enterprise{}, &model.EnterpriseTeam{}, &model.EnterpriseMember{}, &model.EnterpriseTokenAssignment{}, &model.EnterpriseUsageDaily{}))
 	owner := &model.User{Username: "ent-owner", Password: "placeholder", Role: common.RoleCommonUser, Status: common.UserStatusEnabled, Group: "default", AuthVersion: 1, AffCode: "ent-owner"}
 	require.NoError(t, model.DB.Create(owner).Error)
-	require.NoError(t, model.UpgradeUserToEnterprise(owner.Id, &model.Enterprise{Name: "Owner Co"}))
+	require.NoError(t, model.UpgradeUserToEnterprise(owner.Id, &model.Enterprise{Name: "Owner Co"}, ""))
 
 	router := newEnterpriseConsoleRouter()
 	readToken, _ := createScopedAccessToken(t, owner.Id, 0, "enterprise:read")
@@ -174,7 +174,7 @@ func TestEnterpriseConsoleMemberRoles(t *testing.T) {
 	require.NoError(t, model.DB.AutoMigrate(&model.Token{}, &model.Enterprise{}, &model.EnterpriseTeam{}, &model.EnterpriseMember{}, &model.EnterpriseTokenAssignment{}, &model.EnterpriseUsageDaily{}, &model.EnterpriseBill{}))
 	owner := &model.User{Username: "role-owner", Password: "placeholder", Role: common.RoleCommonUser, Status: common.UserStatusEnabled, Group: "default", AuthVersion: 1, AffCode: "role-own"}
 	require.NoError(t, model.DB.Create(owner).Error)
-	require.NoError(t, model.UpgradeUserToEnterprise(owner.Id, &model.Enterprise{Name: "Role Co"}))
+	require.NoError(t, model.UpgradeUserToEnterprise(owner.Id, &model.Enterprise{Name: "Role Co"}, ""))
 	ent, err := model.GetEnterpriseByUserId(owner.Id)
 	require.NoError(t, err)
 	rd := &model.EnterpriseTeam{EnterpriseId: ent.Id, Name: "Research"}
@@ -234,7 +234,7 @@ func TestEnterpriseConsoleOverview(t *testing.T) {
 		&model.EnterpriseUsageDaily{}, &model.EnterpriseBill{}, &model.EnterpriseCreditPeriod{}, &model.EnterpriseTeamBudgetNotify{}, &model.EnterpriseTokenQuotaPolicy{}))
 	owner := &model.User{Username: "ov-owner", Password: "placeholder", Role: common.RoleCommonUser, Status: common.UserStatusEnabled, Group: "default", AuthVersion: 1, AffCode: "ov-own"}
 	require.NoError(t, model.DB.Create(owner).Error)
-	require.NoError(t, model.UpgradeUserToEnterprise(owner.Id, &model.Enterprise{Name: "Overview Co"}))
+	require.NoError(t, model.UpgradeUserToEnterprise(owner.Id, &model.Enterprise{Name: "Overview Co"}, ""))
 	ent, err := model.GetEnterpriseByUserId(owner.Id)
 	require.NoError(t, err)
 	// 研发团队预算 $0.002（1000 quota），本月已用 1500 → 超预算；QA 团队无预算
@@ -389,7 +389,7 @@ func TestEnterpriseConsoleTokenManagement(t *testing.T) {
 	require.NoError(t, model.DB.Create(&model.Ability{Group: "default", Model: "gpt-4o", ChannelId: 1, Enabled: true}).Error)
 	owner := &model.User{Username: "key-owner", Password: "placeholder", Role: common.RoleCommonUser, Status: common.UserStatusEnabled, Group: "default", AuthVersion: 1, AffCode: "key-own"}
 	require.NoError(t, model.DB.Create(owner).Error)
-	require.NoError(t, model.UpgradeUserToEnterprise(owner.Id, &model.Enterprise{Name: "Key Co"}))
+	require.NoError(t, model.UpgradeUserToEnterprise(owner.Id, &model.Enterprise{Name: "Key Co"}, ""))
 	ent, err := model.GetEnterpriseByUserId(owner.Id)
 	require.NoError(t, err)
 	rd := &model.EnterpriseTeam{EnterpriseId: ent.Id, Name: "Research"}
@@ -654,7 +654,7 @@ func TestRejectEnterpriseOwnerBlocksOnlineTopUp(t *testing.T) {
 	upgraded := newCreditBillingUser(t, "topup-upgraded", 100, 0)
 	status, _ = pay(upgraded.Id)
 	require.Equal(t, http.StatusOK, status)
-	require.NoError(t, model.UpgradeUserToEnterprise(upgraded.Id, &model.Enterprise{Name: "Upgraded Co"}))
+	require.NoError(t, model.UpgradeUserToEnterprise(upgraded.Id, &model.Enterprise{Name: "Upgraded Co"}, ""))
 	status, _ = pay(upgraded.Id)
 	assert.Equal(t, http.StatusForbidden, status)
 }
@@ -804,7 +804,7 @@ func TestAdminCannotManageEnterpriseAffiliatedUsers(t *testing.T) {
 	require.NoError(t, model.DB.AutoMigrate(&model.Enterprise{}, &model.EnterpriseTeam{}, &model.EnterpriseMember{}))
 	owner := &model.User{Username: "guard-owner", Password: "placeholder", Role: common.RoleCommonUser, Status: common.UserStatusEnabled, Group: "default", AuthVersion: 1, AffCode: "guard-own"}
 	require.NoError(t, model.DB.Create(owner).Error)
-	require.NoError(t, model.UpgradeUserToEnterprise(owner.Id, &model.Enterprise{Name: "Guard Co"}))
+	require.NoError(t, model.UpgradeUserToEnterprise(owner.Id, &model.Enterprise{Name: "Guard Co"}, ""))
 	ent, err := model.GetEnterpriseByUserId(owner.Id)
 	require.NoError(t, err)
 	employee := &model.User{Username: "guard-employee", Password: "placeholder", Role: common.RoleCommonUser, Status: common.UserStatusEnabled, Group: "default", AuthVersion: 1, AffCode: "guard-emp"}

@@ -4,6 +4,7 @@ package middleware
 func init() {
 	for key, rule := range map[string]accessTokenRouteRule{
 		// router/enterprise-router.go: /api/admin/enterprise
+		"GET /api/admin/enterprise/group-options":                        accessTokenScopeRule("user:read"),
 		"GET /api/admin/enterprise/enterprises":                          accessTokenScopeRule("user:read"),
 		"POST /api/admin/enterprise/enterprises":                         accessTokenScopeRule("user:write"),
 		"GET /api/admin/enterprise/enterprises/:id":                      accessTokenScopeRule("user:read"),

@@ -3,18 +3,17 @@ import {
   Activity,
   CalendarRange,
   CircleDollarSign,
-  TrendingDown,
-  TrendingUp,
   Zap,
 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
+import { ChangePill } from '@/components/change-pill'
 import { StatCard } from '@/features/dashboard/components/ui/stat-card'
 import { toIntlLocale } from '@/i18n/languages'
 import { formatQuotaWithCurrency } from '@/lib/currency'
 import { formatCompactNumber, formatNumber } from '@/lib/format'
 
-import { changePercent, type OverviewDailySnapshot } from '../lib/overview'
+import type { OverviewDailySnapshot } from '../lib/overview'
 
 const CARD_LINK_CLASS =
   'bg-card hover:border-primary/40 focus-visible:ring-ring rounded-xl border p-3 shadow-xs transition-colors focus-visible:ring-2 focus-visible:outline-none sm:p-4'
@@ -22,28 +21,6 @@ const CARD_LINK_CLASS =
 type OverviewKpiCardsProps = {
   snapshot: OverviewDailySnapshot
   loading: boolean
-}
-
-/** 环比徽标：上期为 0 时不显示；涨跌只表示方向，不代表好坏，统一用中性色 */
-function ChangePill(props: {
-  current: number
-  previous: number
-  label: string
-}) {
-  const delta = changePercent(props.current, props.previous)
-  if (delta === null) return null
-  const Icon = delta >= 0 ? TrendingUp : TrendingDown
-  const sign = delta >= 0 ? '+' : ''
-  return (
-    <span
-      className='bg-muted text-muted-foreground inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium tabular-nums'
-      title={props.label}
-    >
-      <Icon className='size-3' aria-hidden='true' />
-      {`${sign}${delta}%`}
-      <span className='sr-only'>{props.label}</span>
-    </span>
-  )
 }
 
 /** 概览四张 KPI：今日消耗 / 今日请求 / 今日 Token / 近 7 天消耗；底部 7 天迷你图，整卡下钻到同区间的用量报表 */

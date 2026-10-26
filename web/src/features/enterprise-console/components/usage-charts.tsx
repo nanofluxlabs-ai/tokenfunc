@@ -24,6 +24,9 @@ type UsageChartProps = {
   className?: string
 }
 
+/** 环形图可按切片指定颜色（调用方已按实体固定配色时用），缺省走品牌色板 */
+type UsageDonutChartProps = UsageChartProps & { colors?: string[] }
+
 const RANK_TOP = 10
 
 /** 主题就绪且有数据才画图，否则显示占位（jsdom 下 themeReady 为 false） */
@@ -56,7 +59,7 @@ function ThemedChart(props: {
 }
 
 /** 消耗构成环形图：前 6 项 + 其他，中心显示合计；不画图例，名称看旁边明细表 */
-export function UsageDonutChart(props: UsageChartProps) {
+export function UsageDonutChart(props: UsageDonutChartProps) {
   const { t } = useTranslation()
   const { resolvedTheme } = useChartTheme()
   const textColor =
@@ -78,7 +81,7 @@ export function UsageDonutChart(props: UsageChartProps) {
       valueField: 'quota',
       categoryField: 'name',
       // 颜色与明细表的色点一一对应：前 N 项取品牌色，「其他」固定灰
-      color: [...readUsagePalette(), USAGE_OTHERS_COLOR],
+      color: props.colors ?? [...readUsagePalette(), USAGE_OTHERS_COLOR],
       outerRadius: 0.92,
       innerRadius: 0.68,
       padAngle: 0.6,
@@ -123,7 +126,7 @@ export function UsageDonutChart(props: UsageChartProps) {
       },
       animationAppear: { duration: 400 },
     }
-  }, [props.data, props.id, t, textColor])
+  }, [props.colors, props.data, props.id, t, textColor])
 
   return (
     <ThemedChart
@@ -183,7 +186,13 @@ export function UsageRankChart(props: UsageChartProps) {
           tick: { visible: false },
           domainLine: { visible: false },
         },
-        { orient: 'bottom', visible: false, grid: { visible: false } },
+        {
+          orient: 'bottom',
+          visible: false,
+          grid: { visible: false },
+          // 给最长的条留出右侧空间，金额标签才能放在条外，不被挤进条内描边显示
+          expand: { max: 0.2 },
+        },
       ],
       tooltip: {
         mark: {

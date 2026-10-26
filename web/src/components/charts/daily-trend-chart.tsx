@@ -14,6 +14,8 @@ export type DailyTrendSeries = {
   field: string
   /** 已翻译的图例 / 提示名 */
   label: string
+  /** 指定颜色（按实体固定分配时用）；缺省按品牌图表色依次取 */
+  color?: string
 }
 
 export type DailyTrendRow = { day: string } & Record<string, number | string>
@@ -81,7 +83,10 @@ export function DailyTrendChart(props: DailyTrendChartProps) {
       props.valueFormat === 'currency'
         ? formatQuotaWithCurrency(value)
         : formatNumber(value, locale)
-    const colors = readSeriesColors(props.series.length)
+    const brandColors = readSeriesColors(props.series.length)
+    const colors = props.series.map(
+      (serie, index) => serie.color ?? brandColors[index]
+    )
     const colorByLabel = new Map(
       props.series.map((serie, index) => [serie.label, colors[index]])
     )
@@ -134,7 +139,15 @@ export function DailyTrendChart(props: DailyTrendChartProps) {
       legends: {
         visible: multiSeries,
         orient: 'bottom',
-        item: { label: { style: { fill: chartTextColor } } },
+        item: {
+          // 图例色块默认取面积的半透明渐变，颜色发白；改用系列实色
+          shape: {
+            style: (item: { label?: string }) => ({
+              fill: colorByLabel.get(String(item?.label)) ?? colors[0],
+            }),
+          },
+          label: { style: { fill: chartTextColor } },
+        },
       },
       axes: [
         {

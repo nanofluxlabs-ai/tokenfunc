@@ -39,9 +39,10 @@ const (
 // EnterpriseDefaultTeamName 每个企业自动拥有的默认团队名（不可删、不可归档）
 const EnterpriseDefaultTeamName = "Default"
 
-// EnterpriseUnboundRemarkPrefix 企业开通的登录账号被解绑 / 随成员删除后写入 users.remark 的固定前缀：
-// 该账号已停用并回到系统管理员的个人用户列表，前缀让管理员一眼识别出它是企业丢弃的账号，可按需清理
-const EnterpriseUnboundRemarkPrefix = "[enterprise-unbound]"
+// EnterpriseUnboundRemark 企业开通的登录账号被解绑 / 随成员删除后写入 users.remark 的固定备注：
+// 该账号已停用并回到系统管理员的个人用户列表，备注让管理员一眼识别出它是企业丢弃的员工账号，可按需清理。
+// 备注是展示给管理员看的数据，不走 i18n（站点管理员以中文为主）
+const EnterpriseUnboundRemark = "企业员工"
 
 var (
 	ErrEnterpriseResourceNotFound   = errors.New("resource not found in this enterprise")
@@ -625,10 +626,9 @@ func markProvisionedLoginUnbound(tx *gorm.DB, member *EnterpriseMember) error {
 	if member.UserId == 0 || !member.Provisioned {
 		return nil
 	}
-	remark := fmt.Sprintf("%s enterprise #%d member #%d %s", EnterpriseUnboundRemarkPrefix, member.EnterpriseId, member.Id, time.Now().Format("2006-01-02"))
 	return tx.Model(&User{}).
-		Where("id = ? AND (remark = '' OR remark IS NULL OR remark LIKE ?)", member.UserId, EnterpriseUnboundRemarkPrefix+"%").
-		Update("remark", remark).Error
+		Where("id = ? AND (remark = '' OR remark IS NULL OR remark = ?)", member.UserId, EnterpriseUnboundRemark).
+		Update("remark", EnterpriseUnboundRemark).Error
 }
 
 // UpdateEnterpriseMember 更新资料；换团队时名下 key 的团队归属同步更新；状态改为停用时停用其全部 key 与企业开通的登录账号
@@ -837,7 +837,7 @@ func ProvisionEnterpriseMemberLogin(enterpriseId int, memberId int, role string)
 				"email":        email,
 			}
 			// 解绑时写的孤儿标识随重新开通清掉；管理员手写的备注保留
-			if strings.HasPrefix(existing.Remark, EnterpriseUnboundRemarkPrefix) {
+			if existing.Remark == EnterpriseUnboundRemark {
 				updates["remark"] = ""
 			}
 			if err := tx.Model(&User{}).Where("id = ?", existing.Id).Updates(updates).Error; err != nil {

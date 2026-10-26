@@ -99,7 +99,7 @@
 `id, enterprise_id, team_id, name, email, employee_no, user_id, role(none/developer/team_admin/enterprise_admin), provisioned, status(active/disabled), remark, created_at, updated_at, deleted_at`
 - `user_id = 0`：不登录，只持 key（原「员工」）；`user_id > 0`：已绑定登录账号，`role` 决定控制台范围
 - 登录两种方式：绑定站内已有账号（邮箱 / 用户名查找，不能是另一企业的主账号或成员）；一键开通（`provisioned = true`，用户名 `<邮箱前缀>-e<企业>m<成员>`，随机密码只返回一次，个人余额 0）。解绑后再次开通复用旧账号（重置密码、重新启用、重新绑定）
-- 解绑：`user_id/role` 清零；开通的账号同时停用，并在 `users.remark` 写 `[enterprise-unbound] enterprise #<id> member #<id> <日期>`（管理员手写备注不覆盖；再次开通时清掉），让它回到个人用户列表后系统管理员一眼能识别、按需清理
+- 解绑：`user_id/role` 清零；开通的账号同时停用，并在 `users.remark` 写固定备注「企业员工」（`EnterpriseUnboundRemark`；管理员手写备注不覆盖；再次开通时清掉），让它回到个人用户列表后系统管理员一眼能识别、按需清理
 - 停用 / 删除成员 → 其名下 key 全部禁用（事务内）；删除同时解绑登录（开通账号同样写上述标识）。软删除，历史统计保留
 - 系统管理员的「个人用户」列表（`EnterpriseUserTypeScope(personal)`）排除企业主账号与**在职成员的登录账号**（`ent_members.user_id`，`deleted_at IS NULL`）；员工由企业自治，管理员在「企业用户」页签的企业行「成员」抽屉里**只读**查看（`GET /api/admin/enterprise/enterprises/:id/members`，全企业范围），企业列表回填 `member_count / login_count`
 - 成员换团队 → 其 key 的 `team_id` 事务内同步更新，历史聚合不变

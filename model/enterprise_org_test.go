@@ -1,8 +1,6 @@
 package model
 
 import (
-	"strconv"
-	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -260,8 +258,7 @@ func TestEnterpriseMemberLoginAndAccess(t *testing.T) {
 	provisioned, err = GetUserById(login.UserId, true)
 	require.NoError(t, err)
 	assert.Equal(t, common.UserStatusDisabled, provisioned.Status, "provisioned account is disabled on unbind")
-	assert.True(t, strings.HasPrefix(provisioned.Remark, EnterpriseUnboundRemarkPrefix), "orphaned provisioned account is tagged for admins: %q", provisioned.Remark)
-	assert.Contains(t, provisioned.Remark, "member #"+strconv.Itoa(carol.Id))
+	assert.Equal(t, EnterpriseUnboundRemark, provisioned.Remark, "orphaned provisioned account is tagged for admins")
 	assert.ErrorIs(t, UnbindEnterpriseMemberLogin(ent.Id, carol.Id), ErrEnterpriseMemberNoLogin)
 
 	// 解绑后再次一键开通：复用被停用的旧账号（用户名 / 邮箱仍被它占着），重置密码并重新启用
@@ -845,7 +842,7 @@ func TestEnterprisePersonalScopeAndAffiliation(t *testing.T) {
 	orphan, err := GetUserById(login.UserId, true)
 	require.NoError(t, err)
 	assert.Equal(t, common.UserStatusDisabled, orphan.Status)
-	assert.True(t, strings.HasPrefix(orphan.Remark, EnterpriseUnboundRemarkPrefix))
+	assert.Equal(t, EnterpriseUnboundRemark, orphan.Remark)
 	boundUser, err := GetUserById(bound.Id, true)
 	require.NoError(t, err)
 	assert.Empty(t, boundUser.Remark, "bound accounts are never tagged")

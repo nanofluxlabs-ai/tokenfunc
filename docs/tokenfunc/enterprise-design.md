@@ -566,7 +566,7 @@ GET /api/usage/token/                    令牌自身额度，上游原样
  └ 个人资料 / 安全访问
 管理员
  ├ 用户管理 /users（个人 | 企业页签；个人页签不含企业员工账号，企业行「成员」抽屉只读看员工）  企业客户 /enterprise-billing（企业列表、详情抽屉：授信配置 / 充值 / 调账 / 手动开期、账单页签）
- ├ 财务中心 /finance（账单列表含对账差异 Tab、账单详情 /finance/bills/:billId：快照 v2 / 冻结件明细 / 归档 / 差异确认）
+ ├ 财务中心 /finance（企业账单：查询条 企业名称 / 账单号 / 状态（全部、进行中、待出账、未付、部分已付、逾期、已付、已作废、月度对账单、对账差异）+ 一张表，进行中账期行在前、已出账账单在后同一分页；账单详情 /finance/bills/:billId：快照 v2 / 冻结件明细 / 归档 / 差异确认）
  └ 报价单 /quotes  线索 /enterprise-leads  文档中心 /docs/enterprise-integration（M12）
 ```
 侧边栏（`use-sidebar-view.ts`）：企业分组对主账号与已开通登录的成员可见；财务对账项仅 `actorAtLeast(enterprise_admin)`；`isEnterpriseAccount(actor)`（`is_owner || provisioned`，`lib/member-roles.ts`）为真时隐藏常规组与个人组的钱包 / 个人对账、显示日志组（绑定已有账号的成员保留普通菜单与个人 key 入口）。落地页：`/dashboard` 两个路由的 `beforeLoad` 经 `lib/enterprise-landing.ts` 把企业账户转到 `/enterprise/overview`，登录 / OAuth / 首页的 `/dashboard` 硬编码不动。
@@ -580,7 +580,7 @@ GET /api/usage/token/                    令牌自身额度，上游原样
 | 用量 | `usage-page` + `usage-panel` | search `group_by | team_id | member_id`；趋势图 + 三卡 + 维度 tabs + 下钻面包屑 + cache 列；导出跟随筛选 |
 | 财务对账 | `reconciliation-page` + `bills-table` / `billing-tables`（`CreditPeriodsTable` / `LedgerTable`）+ 共享 `reconciliation/components/usage-tab`、`finance` 的日期控件与 `ExportCsvControl` | search `tab | start | end | page`；账期账单 = 授信账期表（授信企业）+ 账单表（类型作一列，行操作「导出发票」「导出 CSV」）；消费账单 = `UsageTab` 以 `scope: enterprise` 取数；充值账单 = `LedgerTable` 按日期区间 + `SimplePager`。详情 `/enterprise/bills/:id` 直接渲染共享 `finance/components/bill-detail/bill-detail-view`（见 §4 账单详情共用正文），企业侧无独立详情组件 |
 
-管理员侧（`web/src/features/enterprises/`、`features/finance/`）：`enterprises-table` / `enterprise-mutate-drawer` / `enterprise-billing-drawer`（账户段「余额调账」、授信段、待收款提示 + 「手动开下一期」）/ `credit-config-form`（周期类型含「按额度」、auto_reset Switch、预警阈值）/ `topup-form` / `adjustment-dialog`（自挂二次验证）/ `bills-admin-page`（`reconcile` Tab、「账单调账」）/ `seller-profile-dialog` / `leads-admin-page`；财务账单详情 `bill-detail/bill-detail-page`（管理员页：解析 ref、`adminActions` 注入 `BillArchiveControl` / 账期 CSV、`onAckReconcile` 接 `reconcile-diff-alert`）→ 共用 `bill-detail-view` / `bill-detail-content`（快照 v2 分流、`usage_source` 与 live 横幅、已付未付、月结单五栏、按团队 / 成员归因）。
+管理员侧（`web/src/features/enterprises/`、`features/finance/`）：`enterprises-table` / `enterprise-mutate-drawer` / `enterprise-billing-drawer`（账户段「余额调账」、授信段、待收款提示 + 「手动开下一期」）/ `credit-config-form`（周期类型含「按额度」、auto_reset Switch、预警阈值）/ `topup-form` / `adjustment-dialog`（自挂二次验证）/ `finance/components/bills/bills-panel`（查询条 + 共用 `BillsTable`（行 = 账单 | 账期）+ 收款 / 账单调账 / 作废 / 开票方设置；接口 `GET /api/admin/finance/bills?status=&enterprise_name=&bill_no=`，账期与账单同一分页序列）/ `seller-profile-dialog` / `leads-admin-page`；财务账单详情 `bill-detail/bill-detail-page`（管理员页：解析 ref、`adminActions` 注入 `BillArchiveControl` / 账期 CSV、`onAckReconcile` 接 `reconcile-diff-alert`）→ 共用 `bill-detail-view` / `bill-detail-content`（快照 v2 分流、`usage_source` 与 live 横幅、已付未付、月结单五栏、按团队 / 成员归因）。
 
 ### 8.3 角色可见性（总方案 §3.5）
 | 能力 | owner | enterprise_admin | team_admin（本团队） | developer（本团队） |

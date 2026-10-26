@@ -2,6 +2,7 @@ package model
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/QuantumNous/new-api/common"
 )
@@ -45,13 +46,23 @@ type FinanceBillSummary struct {
 	DueAt          int64  `json:"due_at"`
 	LimitQuota     int64  `json:"limit_quota"`
 	UsedQuota      int64  `json:"used_quota"`
+	// Bill 列表里已出账的行带完整账单，行操作（发票 / CSV / 收款 / 调账 / 作废）不用再查
+	Bill *EnterpriseBill `json:"bill,omitempty"`
 }
 
-// FinanceBillList bills 接口返回：已出账分页 + 进行中账期（不分页，数量不超过授信企业数）
+// FinanceBillList bills 接口返回：进行中 / 待出账账期排在前面，之后是已出账账单，同一分页序列，Total 为两者合计
 type FinanceBillList struct {
-	Items       []*FinanceBillSummary `json:"items"`
-	Total       int64                 `json:"total"`
-	OpenPeriods []*FinanceBillSummary `json:"open_periods"`
+	Items []*FinanceBillSummary `json:"items"`
+	Total int64                 `json:"total"`
+}
+
+// FinanceBillListQuery 财务中心账单查询：账单过滤 + 是否带账期 + 账期状态
+type FinanceBillListQuery struct {
+	Bills          EnterpriseBillFilter
+	IncludeBills   bool
+	IncludePeriods bool
+	// PeriodStatus 只看某一状态的账期（open / closing）；空 = 两者
+	PeriodStatus string
 }
 
 // FinanceBillUser 详情页需要的主账号信息
@@ -126,32 +137,54 @@ func financeBillSummaryFromPeriod(period *EnterpriseCreditPeriod, brief financeE
 	}
 }
 
-// ListFinanceBills 已出账账单分页；includeOpen 时附带全部进行中 / 待出账账期
-func ListFinanceBills(filter EnterpriseBillFilter, includeOpen bool, startIdx int, num int) (*FinanceBillList, error) {
-	bills, total, err := ListEnterpriseBills(filter, startIdx, num)
-	if err != nil {
-		return nil, err
+// ListFinanceBills 财务中心账单列表：进行中 / 待出账账期作为前置行与已出账账单接成一个分页序列。
+// 账期按 end_at 升序排在最前，账单按 id 倒序；startIdx / num 跨越两段时自动衔接；账单号过滤只对账单生效
+func ListFinanceBills(query FinanceBillListQuery, startIdx int, num int) (*FinanceBillList, error) {
+	result := &FinanceBillList{Items: make([]*FinanceBillSummary, 0, num)}
+	openPeriods := make([]*EnterpriseCreditPeriod, 0)
+	if query.IncludePeriods && strings.TrimSpace(query.Bills.BillNo) == "" {
+		periodQuery := DB.Model(&EnterpriseCreditPeriod{})
+		if query.PeriodStatus != "" {
+			periodQuery = periodQuery.Where("status = ?", query.PeriodStatus)
+		} else {
+			periodQuery = periodQuery.Where("status IN ?", []string{EnterpriseCreditPeriodOpen, EnterpriseCreditPeriodClosing})
+		}
+		if query.Bills.EnterpriseId > 0 {
+			periodQuery = periodQuery.Where("enterprise_id = ?", query.Bills.EnterpriseId)
+		}
+		if name := strings.TrimSpace(query.Bills.EnterpriseName); name != "" {
+			periodQuery = periodQuery.Where("enterprise_id IN (?)", DB.Model(&Enterprise{}).Select("id").Where("name ILIKE ?", "%"+name+"%"))
+		}
+		if err := periodQuery.Order("end_at ASC, id ASC").Find(&openPeriods).Error; err != nil {
+			return nil, err
+		}
 	}
-	result := &FinanceBillList{Items: make([]*FinanceBillSummary, 0, len(bills)), Total: total, OpenPeriods: []*FinanceBillSummary{}}
-	enterpriseIds := make([]int, 0)
-	periodIds := make([]int64, 0)
+	periodCount := len(openPeriods)
+	result.Total = int64(periodCount)
+	pagePeriods := openPeriods[min(periodCount, startIdx):min(periodCount, startIdx+num)]
+
+	bills := make([]*EnterpriseBill, 0)
+	if query.IncludeBills {
+		remaining := num - len(pagePeriods)
+		rows, total, err := ListEnterpriseBills(query.Bills, max(0, startIdx-periodCount), remaining)
+		if err != nil {
+			return nil, err
+		}
+		if remaining > 0 {
+			bills = rows
+		}
+		result.Total += total
+	}
+
+	enterpriseIds := make([]int, 0, len(pagePeriods)+len(bills))
+	periodIds := make([]int64, 0, len(bills))
+	for _, period := range pagePeriods {
+		enterpriseIds = append(enterpriseIds, period.EnterpriseId)
+	}
 	for _, bill := range bills {
 		enterpriseIds = append(enterpriseIds, bill.EnterpriseId)
 		if bill.PeriodId > 0 {
 			periodIds = append(periodIds, bill.PeriodId)
-		}
-	}
-	openPeriods := make([]*EnterpriseCreditPeriod, 0)
-	if includeOpen {
-		query := DB.Where("status IN ?", []string{EnterpriseCreditPeriodOpen, EnterpriseCreditPeriodClosing})
-		if filter.EnterpriseId > 0 {
-			query = query.Where("enterprise_id = ?", filter.EnterpriseId)
-		}
-		if err := query.Order("end_at ASC, id ASC").Find(&openPeriods).Error; err != nil {
-			return nil, err
-		}
-		for _, period := range openPeriods {
-			enterpriseIds = append(enterpriseIds, period.EnterpriseId)
 		}
 	}
 	briefs, err := financeEnterpriseBriefs(enterpriseIds)
@@ -168,11 +201,13 @@ func ListFinanceBills(filter EnterpriseBillFilter, includeOpen bool, startIdx in
 			periods[row.Id] = row
 		}
 	}
-	for _, bill := range bills {
-		result.Items = append(result.Items, financeBillSummaryFromBill(bill, briefs[bill.EnterpriseId], periods[bill.PeriodId]))
+	for _, period := range pagePeriods {
+		result.Items = append(result.Items, financeBillSummaryFromPeriod(period, briefs[period.EnterpriseId]))
 	}
-	for _, period := range openPeriods {
-		result.OpenPeriods = append(result.OpenPeriods, financeBillSummaryFromPeriod(period, briefs[period.EnterpriseId]))
+	for _, bill := range bills {
+		summary := financeBillSummaryFromBill(bill, briefs[bill.EnterpriseId], periods[bill.PeriodId])
+		summary.Bill = bill
+		result.Items = append(result.Items, summary)
 	}
 	return result, nil
 }

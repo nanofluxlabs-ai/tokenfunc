@@ -401,9 +401,13 @@ func VoidBill(billId int64, operatorId int, remark string) error {
 
 type EnterpriseBillFilter struct {
 	EnterpriseId int
-	BillType     string
-	Status       string
-	OverdueOnly  bool
+	// EnterpriseName 企业名称模糊匹配（财务中心查询条）
+	EnterpriseName string
+	// BillNo 账单号模糊匹配
+	BillNo      string
+	BillType    string
+	Status      string
+	OverdueOnly bool
 	// ReconcileDiffOnly 只看出账时计数器与明细不一致的授信账单
 	ReconcileDiffOnly bool
 }
@@ -412,6 +416,12 @@ func ListEnterpriseBills(filter EnterpriseBillFilter, startIdx int, num int) ([]
 	query := DB.Model(&EnterpriseBill{})
 	if filter.EnterpriseId > 0 {
 		query = query.Where("enterprise_id = ?", filter.EnterpriseId)
+	}
+	if name := strings.TrimSpace(filter.EnterpriseName); name != "" {
+		query = query.Where("enterprise_id IN (?)", DB.Model(&Enterprise{}).Select("id").Where("name ILIKE ?", "%"+name+"%"))
+	}
+	if billNo := strings.TrimSpace(filter.BillNo); billNo != "" {
+		query = query.Where("bill_no ILIKE ?", "%"+billNo+"%")
 	}
 	if filter.BillType != "" {
 		query = query.Where("bill_type = ?", filter.BillType)

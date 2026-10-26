@@ -1528,6 +1528,7 @@
     "This enterprise has not added any members in its console.": "該企業尚未在控制台新增成員。",
     "Credit enterprises are settled by bill payment, not top-up": "授信企業透過帳單收款結清，不走儲值",
     "Credit enterprises are settled by bill payment": "授信企業透過帳單收款結清",
-    "Prepaid billing: usage is deducted from the balance; register offline top-ups with the Top-up action on the enterprise row.": "預付計費：消費從餘額扣除；線下到帳後用企業列的「儲值」操作登記。"
+    "Prepaid billing: usage is deducted from the balance; register offline top-ups with the Top-up action on the enterprise row.": "預付計費：消費從餘額扣除；線下到帳後用企業列的「儲值」操作登記。",
+    "Enterprise name": "企業名稱"
   }
 }

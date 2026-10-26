@@ -64,4 +64,3 @@ export function EnterprisesPanel() {
 }
 
 export { EnterprisesProvider }
-export { BillsAdminContent } from './components/bills-admin-page'

@@ -91,7 +91,10 @@ function StatementsTab(props: {
         </SectionBlock>
       )}
       <BillsTable
-        bills={bills.data?.items ?? []}
+        rows={(bills.data?.items ?? []).map((bill) => ({
+          kind: 'bill' as const,
+          bill,
+        }))}
         isLoading={bills.isLoading}
         isFetching={bills.isFetching}
         total={bills.data?.total ?? 0}

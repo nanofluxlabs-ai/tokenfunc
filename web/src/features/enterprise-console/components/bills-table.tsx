@@ -13,12 +13,13 @@ import { DataTablePage, useDataTable } from '@/components/data-table'
 import { StatusBadge } from '@/components/status-badge'
 import { Button } from '@/components/ui/button'
 import { readBlobError, saveBlob } from '@/features/finance/lib/csv'
+import type { FinanceBillSummary } from '@/features/finance/types'
 import { formatQuotaWithCurrency } from '@/lib/currency'
 import { formatTimestampToDate } from '@/lib/format'
 import { handleServerError } from '@/lib/handle-server-error'
 
 import { downloadBillCsv, type BillExportScope } from '../api'
-import { BILL_STATUSES, BILL_TYPES } from '../constants'
+import { BILL_STATUSES, BILL_TYPES, CREDIT_PERIOD_STATUSES } from '../constants'
 import { isBillOverdue } from '../lib/bill-utils'
 import { openInvoicePrintWindow } from '../lib/invoice-html'
 import type { Bill } from '../types'
@@ -118,8 +119,13 @@ export function BillExportCsvButton(props: {
   )
 }
 
+/** 账单表的一行：已出账账单，或进行中 / 待出账的授信账期（只有财务中心会传） */
+export type BillsTableRow =
+  | { kind: 'bill'; bill: Bill }
+  | { kind: 'period'; period: FinanceBillSummary }
+
 type BillsTableProps = {
-  bills: Bill[]
+  rows: BillsTableRow[]
   isLoading?: boolean
   isFetching?: boolean
   /** 服务端分页：传了 pagination 才显示分页条，total 为服务端总数 */
@@ -134,6 +140,8 @@ type BillsTableProps = {
   renderActions?: (bill: Bill) => ReactNode
   /** 账单号的渲染（控制台：链接到详情） */
   renderBillNo?: (bill: Bill) => ReactNode
+  /** 账期行「账单号」位置的渲染（财务中心：链接到账期详情） */
+  renderPeriodNo?: (period: FinanceBillSummary) => ReactNode
   showEnterprise?: boolean
   /** 管理员：显示对账差异列（企业侧不展示） */
   showReconcile?: boolean
@@ -171,82 +179,135 @@ export function ReconcileDiffCell(props: { bill: Bill }) {
   )
 }
 
-/** 账单列表：企业控制台与管理员财务中心共用，类型作独立列，行操作固定为导出发票 + 导出 CSV */
+/** 账期行的状态徽标：open 显示「进行中」，其余按账期状态表 */
+function PeriodStatusBadge(props: { period: FinanceBillSummary }) {
+  const { t } = useTranslation()
+  const config = CREDIT_PERIOD_STATUSES[props.period.status]
+  return (
+    <StatusBadge
+      label={
+        props.period.status === 'open'
+          ? t('In progress')
+          : t(config?.labelKey ?? props.period.status)
+      }
+      variant={config?.variant ?? 'info'}
+      copyable={false}
+    />
+  )
+}
+
+/** 只对账单行有内容的单元格，账期行显示「—」 */
+const billCell =
+  (render: (bill: Bill) => ReactNode) =>
+  ({ row }: CellContext<BillsTableRow, unknown>) =>
+    row.original.kind === 'bill' ? render(row.original.bill) : '—'
+
+/** 账单列表：企业控制台与管理员财务中心共用，账期行与账单行同一张表，行操作固定为导出发票 + 导出 CSV */
 export function BillsTable(props: BillsTableProps) {
   const { t } = useTranslation()
-  const columns: ColumnDef<Bill>[] = [
+  const columns: ColumnDef<BillsTableRow>[] = [
     {
       id: 'bill_no',
       header: t('Bill No.'),
-      cell: ({ row: { original: row } }) => (
+      cell: ({ row: { original } }) => (
         <span className='font-mono font-medium'>
-          {props.renderBillNo ? props.renderBillNo(row) : row.bill_no}
+          {original.kind === 'bill'
+            ? (props.renderBillNo?.(original.bill) ?? original.bill.bill_no)
+            : (props.renderPeriodNo?.(original.period) ??
+              t('Period #{{no}}', { no: original.period.period_no }))}
         </span>
       ),
     },
     {
       id: 'type',
       header: t('Type'),
-      cell: ({ row: { original: row } }) =>
-        t(BILL_TYPES[row.bill_type]?.labelKey ?? row.bill_type),
+      cell: ({ row: { original } }) =>
+        original.kind === 'bill'
+          ? t(
+              BILL_TYPES[original.bill.bill_type]?.labelKey ??
+                original.bill.bill_type
+            )
+          : t('Credit period'),
     },
     ...(props.showEnterprise
       ? [
           {
             id: 'enterprise',
             header: t('Enterprise'),
-            cell: ({ row: { original: row } }: CellContext<Bill, unknown>) =>
-              row.buyer_snapshot?.enterprise_name ?? `#${row.enterprise_id}`,
+            cell: ({
+              row: { original },
+            }: CellContext<BillsTableRow, unknown>) =>
+              original.kind === 'bill'
+                ? (original.bill.buyer_snapshot?.enterprise_name ??
+                  `#${original.bill.enterprise_id}`)
+                : original.period.enterprise_name,
           },
         ]
       : []),
     {
       id: 'period',
       header: t('Period'),
-      cell: ({ row: { original: row } }) =>
-        `${formatTimestampToDate(row.period_start)} ~ ${formatTimestampToDate(row.period_end)}`,
+      cell: ({ row: { original } }) => {
+        const range = original.kind === 'bill' ? original.bill : original.period
+        return `${formatTimestampToDate(range.period_start)} ~ ${formatTimestampToDate(range.period_end)}`
+      },
     },
     {
       id: 'total',
       header: t('Total'),
-      cell: ({ row: { original: row } }) => (
-        <span className='font-mono'>
-          {row.currency} {Number.parseFloat(row.total_usd).toFixed(2)}
-        </span>
-      ),
-    },
-    {
-      id: 'paid',
-      header: t('Paid'),
-      cell: ({ row: { original: row } }) =>
-        row.bill_type === 'statement' ? (
-          '—'
+      cell: ({ row: { original } }) =>
+        original.kind === 'bill' ? (
+          <span className='font-mono'>
+            {original.bill.currency}{' '}
+            {Number.parseFloat(original.bill.total_usd).toFixed(2)}
+          </span>
         ) : (
           <span className='font-mono'>
-            {Number.parseFloat(row.paid_usd).toFixed(2)}
+            {formatQuotaWithCurrency(original.period.used_quota)} /{' '}
+            {formatQuotaWithCurrency(original.period.limit_quota)}
           </span>
         ),
     },
     {
+      id: 'paid',
+      header: t('Paid'),
+      cell: billCell((bill) =>
+        bill.bill_type === 'statement' ? (
+          '—'
+        ) : (
+          <span className='font-mono'>
+            {Number.parseFloat(bill.paid_usd).toFixed(2)}
+          </span>
+        )
+      ),
+    },
+    {
       id: 'due',
       header: t('Due'),
-      cell: ({ row: { original: row } }) =>
-        row.due_at ? formatTimestampToDate(row.due_at) : '—',
+      cell: billCell((bill) =>
+        bill.due_at ? formatTimestampToDate(bill.due_at) : '—'
+      ),
     },
     {
       id: 'status',
       header: t('Status'),
-      cell: ({ row: { original: row } }) =>
-        row.bill_type === 'statement' ? '—' : <BillStatusBadge bill={row} />,
+      cell: ({ row: { original } }) => {
+        if (original.kind === 'period') {
+          return <PeriodStatusBadge period={original.period} />
+        }
+        return original.bill.bill_type === 'statement' ? (
+          '—'
+        ) : (
+          <BillStatusBadge bill={original.bill} />
+        )
+      },
     },
     ...(props.showReconcile
       ? [
           {
             id: 'reconcile',
             header: t('Reconciliation'),
-            cell: ({ row: { original: row } }: CellContext<Bill, unknown>) => (
-              <ReconcileDiffCell bill={row} />
-            ),
+            cell: billCell((bill) => <ReconcileDiffCell bill={bill} />),
           },
         ]
       : []),
@@ -254,24 +315,26 @@ export function BillsTable(props: BillsTableProps) {
       id: 'actions',
       header: t('Actions'),
       enableHiding: false,
-      cell: ({ row: { original: row } }) => (
+      cell: billCell((bill) => (
         <div className='flex items-center gap-1'>
-          <InvoiceButton bill={row} />
-          <BillExportCsvButton bill={row} scope={props.exportScope} />
-          {props.renderActions?.(row)}
+          <InvoiceButton bill={bill} />
+          <BillExportCsvButton bill={bill} scope={props.exportScope} />
+          {props.renderActions?.(bill)}
         </div>
-      ),
+      )),
     },
   ]
   const { table } = useDataTable({
-    data: props.bills,
+    data: props.rows,
     columns,
     pagination: props.pagination,
     onPaginationChange: props.onPaginationChange,
     manualPagination: true,
     manualFiltering: true,
-    totalCount: props.total ?? props.bills.length,
+    totalCount: props.total ?? props.rows.length,
     enableRowSelection: false,
+    getRowId: (row) =>
+      row.kind === 'bill' ? `bill-${row.bill.id}` : `period-${row.period.id}`,
   })
   return (
     <DataTablePage
@@ -285,7 +348,9 @@ export function BillsTable(props: BillsTableProps) {
       showPagination={props.pagination !== undefined}
       paginationInFooter={props.paginationInFooter}
       getRowClassName={(row) =>
-        isBillOverdue(row.original) ? 'bg-destructive/5' : undefined
+        row.original.kind === 'bill' && isBillOverdue(row.original.bill)
+          ? 'bg-destructive/5'
+          : undefined
       }
     />
   )

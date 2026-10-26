@@ -120,12 +120,16 @@ export async function downloadUsageExport(
   return res.data
 }
 
+/**
+ * 财务中心账单列表。status 一个参数覆盖全部口径：空 = 账期 + 账单；open / closing 只看账期；
+ * overdue / statement / reconcile 看账单的逾期 / 月度对账单 / 对账差异；其余按账单状态
+ */
 export async function listFinanceBills(params: {
   status?: string
-  bill_type?: string
-  overdue?: 'true'
+  enterprise_name?: string
+  bill_no?: string
   enterprise_id?: number
-  include_open?: 1
+  include_open?: 0 | 1
   p: number
   page_size: number
 }): Promise<ApiResponse<FinanceBillList>> {

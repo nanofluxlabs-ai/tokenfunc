@@ -1528,6 +1528,7 @@
     "This enterprise has not added any members in its console.": "Doanh nghiệp này chưa thêm thành viên nào trong bảng điều khiển.",
     "Credit enterprises are settled by bill payment, not top-up": "Doanh nghiệp tín dụng được thanh toán qua hóa đơn, không nạp tiền",
     "Credit enterprises are settled by bill payment": "Doanh nghiệp tín dụng được thanh toán qua hóa đơn",
-    "Prepaid billing: usage is deducted from the balance; register offline top-ups with the Top-up action on the enterprise row.": "Trả trước: mức dùng được trừ từ số dư; đăng ký nạp tiền ngoại tuyến bằng thao tác Nạp tiền trên dòng doanh nghiệp."
+    "Prepaid billing: usage is deducted from the balance; register offline top-ups with the Top-up action on the enterprise row.": "Trả trước: mức dùng được trừ từ số dư; đăng ký nạp tiền ngoại tuyến bằng thao tác Nạp tiền trên dòng doanh nghiệp.",
+    "Enterprise name": "Tên doanh nghiệp"
   }
 }

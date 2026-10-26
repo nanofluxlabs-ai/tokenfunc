@@ -1528,6 +1528,7 @@
     "This enterprise has not added any members in its console.": "This enterprise has not added any members in its console.",
     "Credit enterprises are settled by bill payment, not top-up": "Credit enterprises are settled by bill payment, not top-up",
     "Credit enterprises are settled by bill payment": "Credit enterprises are settled by bill payment",
-    "Prepaid billing: usage is deducted from the balance; register offline top-ups with the Top-up action on the enterprise row.": "Prepaid billing: usage is deducted from the balance; register offline top-ups with the Top-up action on the enterprise row."
+    "Prepaid billing: usage is deducted from the balance; register offline top-ups with the Top-up action on the enterprise row.": "Prepaid billing: usage is deducted from the balance; register offline top-ups with the Top-up action on the enterprise row.",
+    "Enterprise name": "Enterprise name"
   }
 }

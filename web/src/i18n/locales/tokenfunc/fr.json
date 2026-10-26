@@ -1528,6 +1528,7 @@
     "This enterprise has not added any members in its console.": "Cette entreprise n'a encore ajouté aucun membre dans sa console.",
     "Credit enterprises are settled by bill payment, not top-up": "Les entreprises à crédit sont réglées par paiement de facture, pas par recharge",
     "Credit enterprises are settled by bill payment": "Les entreprises à crédit sont réglées par paiement de facture",
-    "Prepaid billing: usage is deducted from the balance; register offline top-ups with the Top-up action on the enterprise row.": "Facturation prépayée : la consommation est déduite du solde ; enregistrez les recharges hors ligne via l'action Recharger de la ligne entreprise."
+    "Prepaid billing: usage is deducted from the balance; register offline top-ups with the Top-up action on the enterprise row.": "Facturation prépayée : la consommation est déduite du solde ; enregistrez les recharges hors ligne via l'action Recharger de la ligne entreprise.",
+    "Enterprise name": "Nom de l'entreprise"
   }
 }

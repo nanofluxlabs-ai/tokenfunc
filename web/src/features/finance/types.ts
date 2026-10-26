@@ -338,11 +338,12 @@ export interface FinanceBillSummary {
   due_at: number
   limit_quota: number
   used_quota: number
+  /** 已出账行带完整账单，行操作直接用；账期行没有 */
+  bill?: import('@/features/enterprise-console/types').Bill
 }
 
-export interface FinanceBillList extends PagedData<FinanceBillSummary> {
-  open_periods: FinanceBillSummary[]
-}
+/** 财务中心账单列表：进行中账期在前、已出账账单在后，同一分页序列 */
+export type FinanceBillList = PagedData<FinanceBillSummary>
 
 export interface FinanceBillContext {
   kind: FinanceBillKind

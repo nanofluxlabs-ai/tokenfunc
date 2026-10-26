@@ -378,14 +378,16 @@ func TestFinanceBillContextAndList(t *testing.T) {
 	insertFinanceLog(t, Log{UserId: owner.Id, Quota: 400, CreatedAt: end - 1})
 	insertFinanceLog(t, Log{UserId: owner.Id, Quota: 500, CreatedAt: end})
 
-	list, err := ListFinanceBills(EnterpriseBillFilter{}, true, 0, 20)
+	all := FinanceBillListQuery{IncludeBills: true, IncludePeriods: true}
+	list, err := ListFinanceBills(all, 0, 20)
 	require.NoError(t, err)
-	assert.Empty(t, list.Items)
-	require.Len(t, list.OpenPeriods, 2)
-	for _, period := range list.OpenPeriods {
+	require.Len(t, list.Items, 2, "没有账单时列表只有两个账期")
+	assert.Equal(t, int64(2), list.Total)
+	for _, period := range list.Items {
 		assert.Equal(t, FinanceBillKindPeriod, period.Kind)
 		assert.Equal(t, "Bill Co", period.EnterpriseName)
 		assert.Equal(t, "billowner", period.Username)
+		assert.Nil(t, period.Bill)
 	}
 
 	context, err := GetFinanceBillContext(FinanceBillKindPeriod, closing.Id)
@@ -431,12 +433,39 @@ func TestFinanceBillContextAndList(t *testing.T) {
 	require.NoError(t, err)
 	assert.Nil(t, stored.UsageSnapshotV2(), "现算结果不回写数据库")
 
-	list, err = ListFinanceBills(EnterpriseBillFilter{}, true, 0, 20)
+	// 出账后：进行中账期排在前，已出账账单在后，同一分页序列
+	list, err = ListFinanceBills(all, 0, 20)
 	require.NoError(t, err)
-	require.Len(t, list.Items, 1)
-	assert.Equal(t, bill.Id, list.Items[0].Id)
-	require.Len(t, list.OpenPeriods, 1, "出账后的账期不再出现在进行中列表")
-	assert.Equal(t, open.Id, list.OpenPeriods[0].Id)
+	require.Len(t, list.Items, 2)
+	assert.Equal(t, int64(2), list.Total)
+	assert.Equal(t, FinanceBillKindPeriod, list.Items[0].Kind)
+	assert.Equal(t, open.Id, list.Items[0].Id, "出账后的账期不再出现在进行中列表")
+	assert.Equal(t, FinanceBillKindBill, list.Items[1].Kind)
+	assert.Equal(t, bill.Id, list.Items[1].Id)
+	require.NotNil(t, list.Items[1].Bill, "已出账行带完整账单供行操作")
+	// 分页跨越账期段与账单段：跳过 1 行后只剩账单，总数不变
+	page2, err := ListFinanceBills(all, 1, 20)
+	require.NoError(t, err)
+	require.Len(t, page2.Items, 1)
+	assert.Equal(t, bill.Id, page2.Items[0].Id)
+	assert.Equal(t, int64(2), page2.Total)
+	// 只看某状态的账期
+	openOnly, err := ListFinanceBills(FinanceBillListQuery{IncludePeriods: true, PeriodStatus: EnterpriseCreditPeriodOpen}, 0, 20)
+	require.NoError(t, err)
+	require.Len(t, openOnly.Items, 1)
+	assert.Equal(t, open.Id, openOnly.Items[0].Id)
+	// 账单号过滤只对账单生效；企业名称不区分大小写，两段都过滤
+	byNo, err := ListFinanceBills(FinanceBillListQuery{Bills: EnterpriseBillFilter{BillNo: bill.BillNo[:6]}, IncludeBills: true, IncludePeriods: true}, 0, 20)
+	require.NoError(t, err)
+	require.Len(t, byNo.Items, 1)
+	assert.Equal(t, bill.Id, byNo.Items[0].Id)
+	byName, err := ListFinanceBills(FinanceBillListQuery{Bills: EnterpriseBillFilter{EnterpriseName: "bill co"}, IncludeBills: true, IncludePeriods: true}, 0, 20)
+	require.NoError(t, err)
+	assert.Equal(t, int64(2), byName.Total)
+	noName, err := ListFinanceBills(FinanceBillListQuery{Bills: EnterpriseBillFilter{EnterpriseName: "nobody"}, IncludeBills: true, IncludePeriods: true}, 0, 20)
+	require.NoError(t, err)
+	assert.Equal(t, int64(0), noName.Total)
+	assert.Empty(t, noName.Items)
 
 	_, err = GetFinanceBillContext("unknown", 1)
 	assert.Error(t, err)

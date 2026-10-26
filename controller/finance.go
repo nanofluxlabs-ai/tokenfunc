@@ -539,18 +539,44 @@ func GetSelfFinanceTopupExport(c *gin.Context) {
 // 企业账单
 // ---------------------------------------------------------------------------
 
+// AdminListFinanceBills 财务中心账单列表。status 一个参数覆盖全部口径：
+// 空 = 账期 + 账单；open / closing = 只看该状态账期；overdue / statement / reconcile = 账单的逾期 / 月度对账单 / 对账差异；
+// 其余值按账单状态过滤。enterprise_name / bill_no 模糊匹配；include_open=0 时不带账期（兼容旧调用）
 func AdminListFinanceBills(c *gin.Context) {
 	pageInfo := common.GetPageQuery(c)
-	filter := model.EnterpriseBillFilter{BillType: c.Query("bill_type"), Status: c.Query("status"), OverdueOnly: c.Query("overdue") == "true", ReconcileDiffOnly: c.Query("reconcile") == "diff"}
-	if id, err := strconv.Atoi(c.Query("enterprise_id")); err == nil && id > 0 {
-		filter.EnterpriseId = id
+	query := model.FinanceBillListQuery{
+		Bills:          model.EnterpriseBillFilter{EnterpriseName: c.Query("enterprise_name"), BillNo: c.Query("bill_no"), BillType: c.Query("bill_type")},
+		IncludeBills:   true,
+		IncludePeriods: c.Query("include_open") != "0" && c.Query("include_open") != "false",
 	}
-	list, err := model.ListFinanceBills(filter, c.Query("include_open") == "1" || c.Query("include_open") == "true", pageInfo.GetStartIdx(), pageInfo.GetPageSize())
+	if id, err := strconv.Atoi(c.Query("enterprise_id")); err == nil && id > 0 {
+		query.Bills.EnterpriseId = id
+	}
+	switch status := c.Query("status"); status {
+	case "":
+	case model.EnterpriseCreditPeriodOpen, model.EnterpriseCreditPeriodClosing:
+		query.IncludeBills = false
+		query.IncludePeriods = true
+		query.PeriodStatus = status
+	case "overdue":
+		query.IncludePeriods = false
+		query.Bills.OverdueOnly = true
+	case "statement":
+		query.IncludePeriods = false
+		query.Bills.BillType = model.EnterpriseBillTypeStatement
+	case "reconcile":
+		query.IncludePeriods = false
+		query.Bills.ReconcileDiffOnly = true
+	default:
+		query.IncludePeriods = false
+		query.Bills.Status = status
+	}
+	list, err := model.ListFinanceBills(query, pageInfo.GetStartIdx(), pageInfo.GetPageSize())
 	if err != nil {
 		financeApiError(c, err)
 		return
 	}
-	common.ApiSuccess(c, gin.H{"page": pageInfo.GetPage(), "page_size": pageInfo.GetPageSize(), "total": list.Total, "items": list.Items, "open_periods": list.OpenPeriods})
+	common.ApiSuccess(c, gin.H{"page": pageInfo.GetPage(), "page_size": pageInfo.GetPageSize(), "total": list.Total, "items": list.Items})
 }
 
 func AdminGetFinanceBill(c *gin.Context) {

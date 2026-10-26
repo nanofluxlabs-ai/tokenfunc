@@ -51,6 +51,8 @@ export const enterpriseUsageSearchSchema = z.object({
   /** 显式起止日期（YYYY-MM-DD）：概览下钻用服务端的“今天”，避免浏览器时区错位 */
   from: dayParam,
   to: dayParam,
+  /** 下钻来源：概览跳过来时报表顶部给「返回企业概览」 */
+  source: z.enum(['overview']).optional().catch(undefined),
 })
 
 export type EnterpriseUsageSearch = z.infer<typeof enterpriseUsageSearchSchema>

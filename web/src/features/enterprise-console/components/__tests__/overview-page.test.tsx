@@ -271,12 +271,15 @@ describe('EnterpriseOverview', () => {
     })
     expect(todaySpend).toHaveAttribute(
       'href',
-      '/enterprise/usage?from=2026-10-26&to=2026-10-26'
+      '/enterprise/usage?from=2026-10-26&to=2026-10-26&source=overview'
     )
     expect(within(todaySpend).getByText('+25%')).toBeInTheDocument()
     expect(
       screen.getByRole('link', { name: 'Spend in the last 7 days' })
-    ).toHaveAttribute('href', '/enterprise/usage?from=2026-10-20&to=2026-10-26')
+    ).toHaveAttribute(
+      'href',
+      '/enterprise/usage?from=2026-10-20&to=2026-10-26&source=overview'
+    )
   })
 
   test('trend card plots only the last 7 days and switches series by metric', async () => {
@@ -304,7 +307,7 @@ describe('EnterpriseOverview', () => {
     )
     expect(
       screen.getByRole('link', { name: /View longer range/ })
-    ).toHaveAttribute('href', '/enterprise/usage')
+    ).toHaveAttribute('href', '/enterprise/usage?source=overview')
   })
 
   test('today top models queries today by model and keeps the top 5 rows', async () => {
@@ -337,7 +340,7 @@ describe('EnterpriseOverview', () => {
     expect(screen.getByText('28.6%')).toBeInTheDocument()
     expect(screen.getByRole('link', { name: /View all/ })).toHaveAttribute(
       'href',
-      '/enterprise/usage?from=2026-10-26&to=2026-10-26&group_by=model'
+      '/enterprise/usage?from=2026-10-26&to=2026-10-26&group_by=model&source=overview'
     )
   })
 
@@ -353,7 +356,7 @@ describe('EnterpriseOverview', () => {
       screen.getByRole('link', { name: 'View the last 7 days' })
     ).toHaveAttribute(
       'href',
-      '/enterprise/usage?from=2026-10-20&to=2026-10-26&group_by=model'
+      '/enterprise/usage?from=2026-10-20&to=2026-10-26&group_by=model&source=overview'
     )
   })
 

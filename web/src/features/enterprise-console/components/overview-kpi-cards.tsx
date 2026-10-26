@@ -52,8 +52,16 @@ export function OverviewKpiCards(props: OverviewKpiCardsProps) {
   const locale = toIntlLocale(i18n.resolvedLanguage || i18n.language)
   const { today, yesterday, last7 } = props.snapshot
   const todayTokens = today.prompt_tokens + today.completion_tokens
-  const todaySearch = { from: today.day, to: today.day }
-  const weekSearch = { from: last7[0]?.day ?? today.day, to: today.day }
+  const todaySearch = {
+    from: today.day,
+    to: today.day,
+    source: 'overview' as const,
+  }
+  const weekSearch = {
+    from: last7[0]?.day ?? today.day,
+    to: today.day,
+    source: 'overview' as const,
+  }
   const vsYesterday = t('vs yesterday')
 
   return (

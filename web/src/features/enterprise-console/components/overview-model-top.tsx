@@ -76,7 +76,12 @@ export function OverviewModelTop(props: OverviewModelTopProps) {
         <CardAction>
           <Link
             to='/enterprise/usage'
-            search={{ from: props.today, to: props.today, group_by: 'model' }}
+            search={{
+              from: props.today,
+              to: props.today,
+              group_by: 'model',
+              source: 'overview',
+            }}
             className='text-muted-foreground hover:text-foreground inline-flex items-center gap-1 text-xs'
           >
             {t('View all')}
@@ -95,7 +100,7 @@ export function OverviewModelTop(props: OverviewModelTopProps) {
               <span>{t('No model calls today')}</span>
               <Link
                 to='/enterprise/usage'
-                search={{ ...weekRange, group_by: 'model' }}
+                search={{ ...weekRange, group_by: 'model', source: 'overview' }}
                 className='text-xs underline-offset-4 hover:underline'
               >
                 {t('View the last 7 days')}

@@ -25,6 +25,7 @@ import {
   matchUsagePreset,
   sharePercent,
   USAGE_RANGE_PRESETS,
+  usageAttributionFor,
   type UsageDayRange,
   usageRangeFromPreset,
 } from '../lib/usage-range'
@@ -49,16 +50,15 @@ type UsagePanelProps = {
   initialRange?: UsageDayRange
   /** 团队角色只有一个团队，归属页签不显示「团队」，默认落到成员 */
   hideTeamDimension?: boolean
+  /** 受控区间：报表页把区间写进地址栏，后退 / 刷新 / 分享看到同一视图；不传则面板自管 */
+  range?: UsageDayRange
+  onRangeChange?: (range: UsageDayRange) => void
+  /** 受控归属页签，用法同 range */
+  attribution?: UsageAttributionGroup
+  onAttributionChange?: (group: UsageAttributionGroup) => void
 }
 
 const STAT_CARD_CLASS = 'bg-card rounded-xl border p-4 shadow-xs'
-
-function initialAttribution(props: UsagePanelProps): UsageAttributionGroup {
-  const group = props.initialGroupBy
-  if (group === 'member' || group === 'token') return group
-  if (group === 'team' && !props.hideTeamDimension) return 'team'
-  return props.hideTeamDimension ? 'member' : 'team'
-}
 
 /**
  * 用量报表（企业控制台与管理员抽屉共用）：区间 + 快捷档 + 区间合计 + 按日 / 按模型 / 按归属三块；
@@ -67,12 +67,23 @@ function initialAttribution(props: UsagePanelProps): UsageAttributionGroup {
 export function UsagePanel(props: UsagePanelProps) {
   const { t, i18n } = useTranslation()
   const locale = toIntlLocale(i18n.resolvedLanguage || i18n.language)
-  const [range, setRange] = useState<UsageDayRange>(
+  const [rangeState, setRangeState] = useState<UsageDayRange>(
     () => props.initialRange ?? usageRangeFromPreset('month')
   )
-  const [attribution, setAttribution] = useState<UsageAttributionGroup>(() =>
-    initialAttribution(props)
-  )
+  const [attributionState, setAttributionState] =
+    useState<UsageAttributionGroup>(() =>
+      usageAttributionFor(props.initialGroupBy, props.hideTeamDimension)
+    )
+  const range = props.range ?? rangeState
+  const attribution = props.attribution ?? attributionState
+  const setRange = (next: UsageDayRange) => {
+    setRangeState(next)
+    props.onRangeChange?.(next)
+  }
+  const setAttribution = (next: UsageAttributionGroup) => {
+    setAttributionState(next)
+    props.onAttributionChange?.(next)
+  }
   const [exporting, setExporting] = useState(false)
   const filter = props.filter ?? {}
   const invalidRange = range.from > range.to
@@ -160,7 +171,7 @@ export function UsagePanel(props: UsagePanelProps) {
         <DatePicker
           selected={dayjs(range.from).toDate()}
           onSelect={(date) =>
-            date && setRange((r) => ({ ...r, from: formatDateStr(date) }))
+            date && setRange({ ...range, from: formatDateStr(date) })
           }
           placeholder={t('From')}
         />
@@ -168,7 +179,7 @@ export function UsagePanel(props: UsagePanelProps) {
         <DatePicker
           selected={dayjs(range.to).toDate()}
           onSelect={(date) =>
-            date && setRange((r) => ({ ...r, to: formatDateStr(date) }))
+            date && setRange({ ...range, to: formatDateStr(date) })
           }
           placeholder={t('To')}
         />

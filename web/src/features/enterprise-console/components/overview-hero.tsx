@@ -101,7 +101,9 @@ export function OverviewHero(props: OverviewHeroProps) {
         )}
         <Button
           variant={props.teamScoped ? 'default' : 'outline'}
-          render={<Link to='/enterprise/usage' search={{}} />}
+          render={
+            <Link to='/enterprise/usage' search={{ source: 'overview' }} />
+          }
         >
           <BarChart3 className='size-4' aria-hidden='true' />
           {t('Usage Report')}

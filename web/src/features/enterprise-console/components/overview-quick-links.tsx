@@ -98,7 +98,11 @@ export function OverviewQuickLinks(props: OverviewQuickLinksProps) {
           description={orgHint}
         />
       </Link>
-      <Link to='/enterprise/usage' search={{}} className={ROW_CLASS}>
+      <Link
+        to='/enterprise/usage'
+        search={{ source: 'overview' }}
+        className={ROW_CLASS}
+      >
         <QuickLinkContent
           icon={<BarChart3 />}
           tone='info'

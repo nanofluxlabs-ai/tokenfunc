@@ -45,7 +45,7 @@ export function OverviewTrendCard(props: OverviewTrendCardProps) {
           footer={
             <Link
               to='/enterprise/usage'
-              search={{}}
+              search={{ source: 'overview' }}
               className='hover:text-foreground inline-flex items-center gap-1'
             >
               {t('View longer range')}

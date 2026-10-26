@@ -102,6 +102,7 @@
     "Authenticate requests with Bearer tokens or Anthropic-style headers.": "リクエストは Bearer トークンまたは Anthropic 形式のヘッダーで認証します。",
     "Average daily spend (7 days)": "直近 7 日の日平均消費",
     "Awaiting invoice": "インボイス発行待ち",
+    "Back to Enterprise Overview": "企業概要に戻る",
     "Back to bills": "請求書一覧へ戻る",
     "Balance After": "変動後残高",
     "Balance exhausted": "残高がありません",

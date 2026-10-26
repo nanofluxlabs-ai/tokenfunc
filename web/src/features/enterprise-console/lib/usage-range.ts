@@ -1,6 +1,6 @@
 import dayjs from 'dayjs'
 
-import type { UsageDayItem, UsageSummaryItem } from '../types'
+import type { UsageDayItem, UsageGroupBy, UsageSummaryItem } from '../types'
 
 /** 用量报表快捷区间；概览下钻时也按这几档对齐 */
 export type UsageRangePreset = 'today' | '7d' | 'month' | '30d'
@@ -80,4 +80,14 @@ export function fillUsageDays(
 export function sharePercent(value: number, total: number): number {
   if (total <= 0) return 0
   return Math.round((value / total) * 1000) / 10
+}
+
+/** 深链维度对应的归属页签；团队角色没有「团队」页签 */
+export function usageAttributionFor(
+  group: UsageGroupBy | undefined,
+  hideTeamDimension?: boolean
+): Extract<UsageGroupBy, 'team' | 'member' | 'token'> {
+  if (group === 'member' || group === 'token') return group
+  if (group === 'team' && !hideTeamDimension) return 'team'
+  return hideTeamDimension ? 'member' : 'team'
 }

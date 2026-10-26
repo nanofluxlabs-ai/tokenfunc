@@ -26,6 +26,12 @@
 - 图表颜色取 body 上的品牌预设变量（`data-theme-preset` 挂在 body，读 documentElement 会拿到默认主题的蓝色）。
 - 七个 tokenfunc locale 末尾追加 42 个键。
 
+### 追加：下钻来源提示与地址栏同步（同一 PR）
+
+- 黑鹰验收时问「下钻子页面不能返回上级」。结论：概览与报表是侧边栏平级菜单，不加「上级」按钮；真正缺口是下钻后没有来源提示，以及区间 / 归属页签只在组件状态里，浏览器后退会跳过中间切换、刷新与分享丢视图。
+- 概览全部跳报表的链接带 `source=overview`，报表顶部显示「← 返回企业概览」，从侧边栏进入不显示；团队筛选条合并为同一上下文条，「清除筛选」保留当前区间。
+- `UsagePanel` 支持受控 `range` / `attribution`（管理员抽屉不传，仍自管状态）；报表页以地址栏为准，切换区间写 `from/to`、切页签写 `group_by`，每次压一条历史；去掉按 search 整体 remount 面板的 `key`。
+
 ## 验证
 
 - `make test-db PKG="./model/ -run TestEnterpriseUsage -count=1 -v"`：PASS（PG，`TestEnterpriseUsageAggregationSnapshotsAttribution` 新增按天 token 断言）。
@@ -35,6 +41,7 @@
   - 报表：本月默认、`group_by=model` 深链滚动到模型区块，环形色点对应，团队排行 $44.93 与团队管理员概览的本团队本月消耗一致。
   - 团队管理员概览：本团队预算卡、快捷入口无财务对账。
   - 管理员企业计费抽屉：合计两列、模型区块单列，表格横向滚动。
+- 追加项：`bun run typecheck`、`bunx oxlint src/features/enterprise-console` 无 error；`bunx vitest run src/features/enterprise-console src/features/enterprises`：28 文件 122 用例全过（新增 `usage-page.test.tsx` 6 例，概览链接断言补 `source=overview`）。浏览器：概览点今日消耗 → 报表出现「返回企业概览」；点近 7 天、切 API 密钥页签后连按两次后退，依次回到「近 7 天 + 团队」「今天」；带 `group_by=token` 的地址刷新后仍为近 7 天 + API 密钥。
 
 ## 遗留
 

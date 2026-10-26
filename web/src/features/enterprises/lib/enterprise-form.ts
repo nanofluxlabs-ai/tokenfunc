@@ -163,7 +163,13 @@ export function getEnterpriseFormSchema(t: TFunction, isUpdate: boolean) {
       }
       if (isUpdate) return
       if (values.mode === 'new_user') {
-        if (values.email && !z.email().safeParse(values.email).success) {
+        if (!values.email) {
+          ctx.addIssue({
+            code: 'custom',
+            path: ['email'],
+            message: t('Login email is required'),
+          })
+        } else if (!z.email().safeParse(values.email).success) {
           ctx.addIssue({
             code: 'custom',
             path: ['email'],

@@ -374,6 +374,7 @@ test('creating a credit enterprise creates it first, then verifies against the n
 
   await userEvent.type(screen.getByLabelText('Username'), 'acme')
   await userEvent.type(screen.getByLabelText('Password'), 'password123')
+  await userEvent.type(screen.getByLabelText('Login Email'), 'owner@acme.test')
   await userEvent.type(screen.getByLabelText('Enterprise Name'), 'Acme')
   await userEvent.click(screen.getByRole('radio', { name: /^Credit/ }))
   await setLimit('100')
@@ -409,6 +410,7 @@ test('creating a prepaid enterprise does not ask for verification', async () => 
 
   await userEvent.type(screen.getByLabelText('Username'), 'acme')
   await userEvent.type(screen.getByLabelText('Password'), 'password123')
+  await userEvent.type(screen.getByLabelText('Login Email'), 'owner@acme.test')
   await userEvent.type(screen.getByLabelText('Enterprise Name'), 'Acme')
   await save()
 
@@ -501,6 +503,7 @@ test('a cleared credit limit shows the error under the field and focuses it with
 
   await userEvent.type(screen.getByLabelText('Username'), 'wtcorp')
   await userEvent.type(screen.getByLabelText('Password'), 'password123')
+  await userEvent.type(screen.getByLabelText('Login Email'), 'owner@acme.test')
   await userEvent.type(screen.getByLabelText('Enterprise Name'), 'WT Corp')
   await userEvent.click(screen.getByRole('radio', { name: /^Credit/ }))
   const limit = screen.getByLabelText('Credit limit per period (USD)')
@@ -515,11 +518,27 @@ test('a cleared credit limit shows the error under the field and focuses it with
   expect(apiMock.createEnterprise).not.toHaveBeenCalled()
 })
 
+test('a new owner account without a login email is rejected before any request', async () => {
+  renderDrawer()
+
+  await userEvent.type(screen.getByLabelText('Username'), 'wtcorp')
+  await userEvent.type(screen.getByLabelText('Password'), 'password123')
+  await userEvent.type(screen.getByLabelText('Enterprise Name'), 'WT Corp')
+  await save()
+
+  expect(await screen.findByText('Login email is required')).toBeInTheDocument()
+  await waitFor(() =>
+    expect(screen.getByLabelText('Login Email')).toHaveFocus()
+  )
+  expect(apiMock.createEnterprise).not.toHaveBeenCalled()
+})
+
 test('a missing enterprise name is reported in the enterprise profile and focused', async () => {
   renderDrawer()
 
   await userEvent.type(screen.getByLabelText('Username'), 'wtcorp')
   await userEvent.type(screen.getByLabelText('Password'), 'password123')
+  await userEvent.type(screen.getByLabelText('Login Email'), 'owner@acme.test')
   await save()
 
   expect(

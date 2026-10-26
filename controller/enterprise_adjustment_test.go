@@ -307,13 +307,15 @@ func TestAdminEnterpriseOwnerGroup(t *testing.T) {
 		return fmt.Sprintf(`{"mode":"new_user","username":"group-owner","password":"password123","email":%q,"group":%q,"enterprise":{"name":"Group Co"}}`, email, group)
 	}
 	for name, body := range map[string]string{
-		"unknown group": createBody("missing", ""),
+		"unknown group": createBody("missing", "owner@group.co"),
 		"invalid email": createBody("vip", "not-an-email"),
+		"missing email": createBody("vip", ""),
 	} {
 		response = enterpriseAdminRequest(router, http.MethodPost, "/api/admin/enterprise/enterprises", "", body)
 		assert.Contains(t, response.Body.String(), `"success":false`, name)
 	}
-	assert.Contains(t, enterpriseAdminRequest(router, http.MethodPost, "/api/admin/enterprise/enterprises", "", createBody("missing", "")).Body.String(), `"message":"invalid group"`)
+	assert.Contains(t, enterpriseAdminRequest(router, http.MethodPost, "/api/admin/enterprise/enterprises", "", createBody("missing", "owner@group.co")).Body.String(), `"message":"invalid group"`)
+	assert.Contains(t, enterpriseAdminRequest(router, http.MethodPost, "/api/admin/enterprise/enterprises", "", createBody("vip", "  ")).Body.String(), `"message":"Login email is required"`)
 	var userCount int64
 	require.NoError(t, model.DB.Model(&model.User{}).Where("username = ?", "group-owner").Count(&userCount).Error)
 	assert.Equal(t, int64(0), userCount)

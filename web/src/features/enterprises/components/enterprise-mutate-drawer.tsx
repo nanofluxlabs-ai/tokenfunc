@@ -441,7 +441,7 @@ export function EnterpriseMutateDrawer(props: EnterpriseMutateDrawerProps) {
                           name='email'
                           label={t('Login Email')}
                           description={t(
-                            'Optional. Filled from the contact email until you edit it.'
+                            'Required. Filled from the contact email until you edit it.'
                           )}
                           onUserInput={(value) => {
                             loginEmailEdited.current = value !== ''

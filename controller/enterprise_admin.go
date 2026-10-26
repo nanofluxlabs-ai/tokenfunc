@@ -44,7 +44,7 @@ type adminCreateEnterpriseRequest struct {
 	Username    string `json:"username"`
 	Password    string `json:"password"`
 	DisplayName string `json:"display_name"`
-	// Email 新建主账号的登录邮箱，可空
+	// Email 新建主账号的登录邮箱，必填（升级已有用户不用）
 	Email string `json:"email"`
 	// Group 主账号分组：新建时空值为 default，升级时空值保留原分组
 	Group      string                   `json:"group"`
@@ -149,7 +149,11 @@ func AdminCreateEnterprise(c *gin.Context) {
 		if user.DisplayName == "" {
 			user.DisplayName = user.Username
 		}
-		if user.Email != "" && common.Validate.Var(user.Email, "email,max=50") != nil {
+		if user.Email == "" {
+			common.ApiErrorT(c, "Login email is required")
+			return
+		}
+		if common.Validate.Var(user.Email, "email,max=50") != nil {
 			common.ApiErrorT(c, "Invalid email address")
 			return
 		}

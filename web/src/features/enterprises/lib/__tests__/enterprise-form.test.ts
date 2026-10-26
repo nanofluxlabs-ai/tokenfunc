@@ -78,13 +78,13 @@ function errorPaths(values: EnterpriseFormValues, isUpdate: boolean) {
 }
 
 describe('enterprise form validation', () => {
-  test('new account without username or valid password reports both fields', () => {
+  test('new account without username, valid password or login email reports all three', () => {
     const values = {
       ...ENTERPRISE_FORM_DEFAULT_VALUES,
       name: 'Acme',
       password: 'short',
     }
-    expect(errorPaths(values, false)).toEqual(['username', 'password'])
+    expect(errorPaths(values, false)).toEqual(['email', 'username', 'password'])
   })
 
   test('upgrade mode without a picked user reports it and ignores account fields', () => {
@@ -136,7 +136,12 @@ describe('enterprise form validation', () => {
     }
     expect(
       errorPaths(
-        { ...values, username: 'acme', password: 'password123' },
+        {
+          ...values,
+          username: 'acme',
+          password: 'password123',
+          email: 'owner@acme.test',
+        },
         false
       )
     ).toEqual(['group'])
@@ -173,7 +178,7 @@ describe('enterprise form validation', () => {
     expect(errorPaths(values, true)).toEqual(['name', 'credit.limit_usd'])
   })
 
-  test('a new account rejects an invalid login email but accepts an empty one', () => {
+  test('a new account requires a valid login email', () => {
     const values = {
       ...ENTERPRISE_FORM_DEFAULT_VALUES,
       name: 'Acme',
@@ -181,7 +186,10 @@ describe('enterprise form validation', () => {
       password: 'password123',
     }
     expect(errorPaths({ ...values, email: 'nope' }, false)).toEqual(['email'])
-    expect(errorPaths({ ...values, email: '' }, false)).toEqual([])
+    expect(errorPaths({ ...values, email: '' }, false)).toEqual(['email'])
+    expect(errorPaths({ ...values, email: 'owner@acme.test' }, false)).toEqual(
+      []
+    )
   })
 
   test.each(['natural_month', 'fixed_days', 'quota_based'] as const)(

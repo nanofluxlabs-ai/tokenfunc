@@ -23,9 +23,11 @@ import {
   DASHBOARD_SECTION_IDS,
   DASHBOARD_DEFAULT_SECTION,
 } from '@/features/dashboard/section-registry'
+import { redirectEnterpriseAccountToOverview } from '@/features/enterprise-console/lib/enterprise-landing'
 
 export const Route = createFileRoute('/_authenticated/dashboard/$section')({
-  beforeLoad: ({ params }) => {
+  beforeLoad: async ({ context, params }) => {
+    await redirectEnterpriseAccountToOverview(context.queryClient)
     const validSections = DASHBOARD_SECTION_IDS as unknown as string[]
     if (!validSections.includes(params.section)) {
       throw redirect({

@@ -17,6 +17,7 @@ import (
 
 	"github.com/QuantumNous/new-api/common"
 	"github.com/QuantumNous/new-api/i18n"
+	"github.com/QuantumNous/new-api/middleware"
 	"github.com/QuantumNous/new-api/model"
 	"github.com/QuantumNous/new-api/pkg/objectstore"
 	"github.com/QuantumNous/new-api/service"
@@ -151,13 +152,27 @@ func TestAdminFinanceUsageReadsArchivedStatementAfterLogsPurged(t *testing.T) {
 	router.GET("/usage/detail", AdminListFinanceUsageDetail)
 	router.GET("/usage/export", AdminExportFinanceUsage)
 	router.GET("/bills/:kind/:id", AdminGetFinanceBill)
-	base := "?user_id=" + strconv.Itoa(owner.Id) + "&bill_id=" + strconv.FormatInt(bill.Id, 10) +
-		"&ts_start=" + strconv.FormatInt(periodStart.Unix(), 10) + "&ts_end=" + strconv.FormatInt(periodEnd.Unix()-1, 10)
+	// 企业控制台同一主体：不带 user_id，按上下文里的企业主账号取数；用内联中间件代替 EnterpriseAuth 注入企业
+	otherEnterprise := &model.Enterprise{UserId: other.Id, Name: "Other Co", BillingMode: model.EnterpriseBillingModeCredit, Status: model.EnterpriseStatusActive}
+	require.NoError(t, model.DB.Create(otherEnterprise).Error)
+	enterpriseRoute := router.Group("/enterprise", func(c *gin.Context) { c.Set(middleware.ContextKeyEnterprise, enterprise) })
+	enterpriseRoute.GET("/finance/usage/summary", GetEnterpriseFinanceUsageSummary)
+	enterpriseRoute.GET("/finance/usage/detail", ListEnterpriseFinanceUsageDetail)
+	otherRoute := router.Group("/other-enterprise", func(c *gin.Context) { c.Set(middleware.ContextKeyEnterprise, otherEnterprise) })
+	otherRoute.GET("/finance/usage/detail", ListEnterpriseFinanceUsageDetail)
+	rangeQuery := "ts_start=" + strconv.FormatInt(periodStart.Unix(), 10) + "&ts_end=" + strconv.FormatInt(periodEnd.Unix()-1, 10)
+	base := "?user_id=" + strconv.Itoa(owner.Id) + "&bill_id=" + strconv.FormatInt(bill.Id, 10) + "&" + rangeQuery
+	enterpriseBase := "?bill_id=" + strconv.FormatInt(bill.Id, 10) + "&" + rangeQuery
 
 	// logs 未清理：照旧走实时，不带 source
 	body := decodeFinanceJSON(t, financeUsageRequest(router, "/usage/detail"+base+"&p=1&page_size=20"))
 	assert.Equal(t, float64(3), body["data"].(map[string]any)["total"])
 	assert.NotContains(t, body["data"].(map[string]any), "source")
+	// 企业侧不带 bill_id：按企业主账号实时聚合
+	enterpriseLive := decodeFinanceJSON(t, financeUsageRequest(router, "/enterprise/finance/usage/summary?"+rangeQuery))["data"].(map[string]any)
+	assert.Equal(t, float64(3), enterpriseLive["total_calls"])
+	assert.Equal(t, float64(600), enterpriseLive["total_quota"])
+	assert.NotContains(t, enterpriseLive, "source")
 	context, err := model.GetFinanceBillContext(model.FinanceBillKindBill, bill.Id)
 	require.NoError(t, err)
 	assert.Equal(t, model.FinanceUsageSourceLive, context.UsageSource)
@@ -181,6 +196,13 @@ func TestAdminFinanceUsageReadsArchivedStatementAfterLogsPurged(t *testing.T) {
 	assert.Equal(t, float64(100), page2["items"].([]any)[0].(map[string]any)["quota"])
 	page3 := decodeFinanceJSON(t, financeUsageRequest(router, "/usage/detail"+base+"&p=3&page_size=2"))["data"].(map[string]any)
 	assert.Empty(t, page3["items"])
+
+	// 企业侧带 bill_id：同样读冻结件，total 与管理员路径一致；别家企业借这张 bill_id 一律 404
+	enterprisePage := decodeFinanceJSON(t, financeUsageRequest(router, "/enterprise/finance/usage/detail"+enterpriseBase+"&p=1&page_size=2"))["data"].(map[string]any)
+	assert.Equal(t, model.FinanceUsageSourceArchive, enterprisePage["source"])
+	assert.Equal(t, page1["total"], enterprisePage["total"])
+	require.Len(t, enterprisePage["items"], 2)
+	assert.Equal(t, http.StatusNotFound, financeUsageRequest(router, "/other-enterprise/finance/usage/detail"+enterpriseBase+"&p=1&page_size=2").Code)
 
 	// 汇总：来自冻结件，账期按账单
 	summary := decodeFinanceJSON(t, financeUsageRequest(router, "/usage/summary"+base))["data"].(map[string]any)

@@ -1,7 +1,9 @@
 import { createFileRoute } from '@tanstack/react-router'
 
-import { EnterpriseBills } from '@/features/enterprise-console'
+import { EnterpriseReconciliation } from '@/features/enterprise-console'
+import { enterpriseReconciliationSearchSchema } from '@/features/enterprise-console/lib/reconciliation-search'
 
 export const Route = createFileRoute('/_authenticated/enterprise/bills/')({
-  component: EnterpriseBills,
+  validateSearch: enterpriseReconciliationSearchSchema,
+  component: EnterpriseReconciliation,
 })

@@ -4,7 +4,12 @@ import type { ReactNode } from 'react'
 import { afterEach, expect, test, vi } from 'vitest'
 
 import type { UsageRangeParams } from '../../types'
-import { usageKey, useUsageDetail } from '../use-usage-breakdown-queries'
+import {
+  usageKey,
+  usageScopeOf,
+  usageScopeReady,
+  useUsageDetail,
+} from '../use-usage-breakdown-queries'
 
 const apiMock = vi.hoisted(() => ({
   getUsageSummary: vi.fn(),
@@ -65,4 +70,20 @@ test('useUsageDetail forwards bill_id to the detail API and keeps a separate cac
     .map((query) => query.queryKey)
   expect(keys).toHaveLength(1)
   expect(keys[0]).toContain(42)
+})
+
+test('an enterprise subject keys the cache by bill_id and is always ready to query', () => {
+  const withBill = usageKey('detail', {
+    scope: 'enterprise',
+    bill_id: 42,
+    ...range,
+  })
+  const withoutBill = usageKey('detail', { scope: 'enterprise', ...range })
+  expect(withBill).not.toEqual(withoutBill)
+  expect(withBill).toContain(42)
+  expect(usageScopeReady({ scope: 'enterprise', ...range })).toBe(true)
+  expect(usageScopeOf({ scope: 'enterprise', bill_id: 42, ...range })).toEqual({
+    scope: 'enterprise',
+    bill_id: 42,
+  })
 })

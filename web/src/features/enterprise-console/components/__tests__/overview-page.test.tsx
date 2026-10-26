@@ -215,16 +215,19 @@ describe('EnterpriseOverview', () => {
       '/enterprise/keys'
     )
 
-    // 财务区默认收起：触发器在，表格不在
+    // 资金流水与授信账期已迁到财务对账页：概览不再有折叠区，第一张卡深链过去
     expect(
-      screen.getByRole('button', { name: 'Credit Periods' })
-    ).toHaveAttribute('aria-expanded', 'false')
-    expect(screen.getByRole('button', { name: 'Ledger' })).toHaveAttribute(
-      'aria-expanded',
-      'false'
-    )
+      screen.queryByRole('button', { name: 'Credit Periods' })
+    ).not.toBeInTheDocument()
+    expect(
+      screen.queryByRole('button', { name: 'Ledger' })
+    ).not.toBeInTheDocument()
     expect(screen.queryByRole('table')).not.toBeInTheDocument()
+    expect(
+      screen.getByRole('link', { name: 'View reconciliation' })
+    ).toHaveAttribute('href', '/enterprise/bills')
     expect(apiMock.listCreditPeriods).not.toHaveBeenCalled()
+    expect(apiMock.listLedger).not.toHaveBeenCalled()
   })
 
   test('prepaid owner sees the balance card with the last top-up and no credit periods section', async () => {
@@ -253,9 +256,8 @@ describe('EnterpriseOverview', () => {
     expect(await screen.findByText(/^Last top-up /)).toBeInTheDocument()
     expect(screen.queryByText('Current period usage')).not.toBeInTheDocument()
     expect(
-      screen.queryByRole('button', { name: 'Credit Periods' })
-    ).not.toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Ledger' })).toBeInTheDocument()
+      screen.getByRole('link', { name: 'View reconciliation' })
+    ).toHaveAttribute('href', '/enterprise/bills')
     // 没有待办时整块不渲染
     expect(screen.queryByRole('alert')).not.toBeInTheDocument()
     expect(
@@ -313,10 +315,7 @@ describe('EnterpriseOverview', () => {
     expect(screen.queryByText('Current period usage')).not.toBeInTheDocument()
     expect(screen.queryByText('Balance')).not.toBeInTheDocument()
     expect(
-      screen.queryByRole('button', { name: 'Ledger' })
-    ).not.toBeInTheDocument()
-    expect(
-      screen.queryByRole('button', { name: 'Credit Periods' })
+      screen.queryByRole('link', { name: 'View reconciliation' })
     ).not.toBeInTheDocument()
     expect(apiMock.listLedger).not.toHaveBeenCalled()
     // 只有本团队的 key 待办，没有账单待办

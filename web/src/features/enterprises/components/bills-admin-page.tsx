@@ -3,6 +3,7 @@ import {
   useQuery,
   useQueryClient,
 } from '@tanstack/react-query'
+import type { PaginationState } from '@tanstack/react-table'
 import { Ban, HandCoins, Scale, Settings2 } from 'lucide-react'
 import { useState, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -22,7 +23,7 @@ import { AdjustmentDialog } from './adjustment-dialog'
 import { BillPaymentDialog } from './bill-payment-dialog'
 import { SellerProfileDialog } from './seller-profile-dialog'
 
-const PAGE_SIZE = 20
+const DEFAULT_PAGE_SIZE = 20
 type Filter = 'all' | 'unpaid' | 'overdue' | 'paid' | 'statement' | 'reconcile'
 
 /** 企业账单管理（列表 + 收款 / 作废 + 开票方设置）；在财务中心的「企业账单」tab 内渲染 */
@@ -34,7 +35,10 @@ export function BillsAdminContent(props: {
   const queryClient = useQueryClient()
   const [sellerOpen, setSellerOpen] = useState(false)
   const [filter, setFilter] = useState<Filter>('unpaid')
-  const [page, setPage] = useState(1)
+  const [pagination, setPagination] = useState<PaginationState>({
+    pageIndex: 0,
+    pageSize: DEFAULT_PAGE_SIZE,
+  })
   const [paying, setPaying] = useState<Bill | null>(null)
   const [adjusting, setAdjusting] = useState<Bill | null>(null)
   const [voiding, setVoiding] = useState<Bill | null>(null)
@@ -48,16 +52,24 @@ export function BillsAdminContent(props: {
     statement: { bill_type: 'statement' },
     reconcile: { reconcile: 'diff' as const },
   }[filter]
-  const { data, isLoading } = useQuery({
-    queryKey: ['admin-enterprise', 'bills', filter, page],
+  const { data, isLoading, isFetching } = useQuery({
+    queryKey: [
+      'admin-enterprise',
+      'bills',
+      filter,
+      pagination.pageIndex,
+      pagination.pageSize,
+    ],
     queryFn: async () =>
       requireServerSuccess(
-        await listAdminBills({ ...params, p: page, page_size: PAGE_SIZE })
+        await listAdminBills({
+          ...params,
+          p: pagination.pageIndex + 1,
+          page_size: pagination.pageSize,
+        })
       ).data ?? { items: [], total: 0 },
     placeholderData: keepPreviousData,
   })
-  const total = data?.total ?? 0
-  const pageCount = Math.max(1, Math.ceil(total / PAGE_SIZE))
   const refresh = () =>
     void queryClient.invalidateQueries({ queryKey: ['admin-enterprise'] })
 
@@ -85,7 +97,7 @@ export function BillsAdminContent(props: {
           value={filter}
           onValueChange={(value) => {
             setFilter(value as Filter)
-            setPage(1)
+            setPagination((prev) => ({ ...prev, pageIndex: 0 }))
           }}
         >
           <TabsList className='max-w-full flex-wrap justify-start group-data-horizontal/tabs:h-auto'>
@@ -110,6 +122,11 @@ export function BillsAdminContent(props: {
       <BillsTable
         bills={data?.items ?? []}
         isLoading={isLoading}
+        isFetching={isFetching}
+        total={data?.total ?? 0}
+        pagination={pagination}
+        onPaginationChange={setPagination}
+        paginationInFooter={false}
         exportScope='admin'
         showEnterprise
         showReconcile
@@ -146,28 +163,6 @@ export function BillsAdminContent(props: {
           ) : null
         }
       />
-      <div className='text-muted-foreground flex items-center justify-end gap-2 text-sm'>
-        <span>{t('Total: {{count}}', { count: total })}</span>
-        <Button
-          variant='outline'
-          size='sm'
-          disabled={page <= 1}
-          onClick={() => setPage(page - 1)}
-        >
-          {t('Previous')}
-        </Button>
-        <span>
-          {page} / {pageCount}
-        </span>
-        <Button
-          variant='outline'
-          size='sm'
-          disabled={page >= pageCount}
-          onClick={() => setPage(page + 1)}
-        >
-          {t('Next')}
-        </Button>
-      </div>
       <BillPaymentDialog
         bill={paying}
         onOpenChange={(open) => !open && setPaying(null)}

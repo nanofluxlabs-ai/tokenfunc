@@ -942,6 +942,7 @@
     "Top-ups are registered by your account manager after bank transfer.": "Пополнения регистрирует ваш менеджер после банковского перевода.",
     "Total amount (USD)": "Общая сумма (USD)",
     "Total due": "Итого к оплате",
+    "Total amount": "Общая сумма",
     "Total quota": "Общая квота",
     "Total requests": "Всего запросов",
     "Total value": "Общая стоимость",
@@ -1520,6 +1521,8 @@
     "no account found for this username or email": "Учётная запись с таким именем пользователя или e-mail не найдена",
     "Team Management": "Управление командами",
     "Add members or import them to start issuing keys.": "Добавьте или импортируйте участников, чтобы выдавать ключи.",
+    "Period statements": "Счета за период",
+    "View reconciliation": "Открыть сверку",
     "This account belongs to an enterprise, manage it from the enterprise module": "Этот аккаунт принадлежит предприятию, управляйте им в модуле предприятия",
     "{{members}} members, {{logins}} can sign in. Members are managed by the enterprise itself; this list is read-only.": "{{members}} участников, {{logins}} могут входить. Участниками управляет само предприятие; этот список только для чтения.",
     "This enterprise has not added any members in its console.": "Это предприятие ещё не добавило участников в своей консоли."

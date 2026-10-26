@@ -188,7 +188,8 @@ func GetFinanceBillContext(kind string, id int64) (*FinanceBillContext, error) {
 		if err != nil {
 			return nil, err
 		}
-		context.Bill = bill
+		// 旧快照（无 v2 财务块）在 logs 未清理时现算 v2 块，管理员与企业侧同一口径
+		context.Bill = bill.WithLiveUsageSnapshot()
 		enterpriseId = bill.EnterpriseId
 		if bill.PeriodId > 0 {
 			if period, err := GetCreditPeriodById(bill.PeriodId); err == nil {

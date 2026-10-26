@@ -942,6 +942,7 @@
     "Top-ups are registered by your account manager after bank transfer.": "银行转账后由客户经理登记充值。",
     "Total amount (USD)": "消费总额 (USD)",
     "Total due": "应付总额",
+    "Total amount": "总金额",
     "Total quota": "总额度",
     "Total requests": "总请求",
     "Total value": "总计价值",
@@ -1520,6 +1521,8 @@
     "no account found for this username or email": "找不到该用户名或邮箱对应的账号",
     "Team Management": "团队管理",
     "Add members or import them to start issuing keys.": "添加或导入成员后即可发放密钥。",
+    "Period statements": "账期账单",
+    "View reconciliation": "查看财务对账",
     "This account belongs to an enterprise, manage it from the enterprise module": "该账号属于企业，请到企业模块管理",
     "{{members}} members, {{logins}} can sign in. Members are managed by the enterprise itself; this list is read-only.": "共 {{members}} 名成员，{{logins}} 人可登录。成员由企业自行管理，此列表仅供查看。",
     "This enterprise has not added any members in its console.": "该企业尚未在控制台添加成员。"

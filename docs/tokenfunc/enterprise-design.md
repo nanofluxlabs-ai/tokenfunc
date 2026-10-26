@@ -416,7 +416,7 @@ reserveExtra()    -> 发送前补充预扣：图片类必须在额度内（失�
 - 账单明细 = `ent_usage_daily` 按 period_id 汇总（`detail_total_quota`），出账时与计数器比对，差异写 `reconcile_diff_quota` 并告警（4.7）
 - 财务块 = logs 口径（`logs_total_quota`），前端在 `logs_total_quota ≠ amount_quota` 时提示在途尾差
 - 预付企业月度对账单 = 期初余额 + 充值 − 消耗 ± 钱包调整 = 期末余额（由 `ent_ledger` + 聚合表生成，可核对）
-- 两侧账单详情统一口径：已结算读 `usage_snapshot` v2，进行中账期实时 logs（财务中心 `UsageBreakdownSection`）；逐条明细管理员侧归档后读冻结件（4.9），企业侧不做逐条明细
+- 两侧账单详情**共用同一份正文**（`finance/components/bill-detail/bill-detail-content.tsx` + 骨架 `bill-detail-view.tsx`，2026-10-26）：企业侧 `GET /api/enterprise/bills/:id` 与管理员 `GET /api/admin/finance/bills/bill/:id` 都返回 `FinanceBillContext`（企业侧 `user` 置空），v1 旧账单由 `GetFinanceBillContext` 现算 v2 并标 `snapshot_source = live`；已结算读 `usage_snapshot` v2，进行中账期实时 logs；逐条明细两侧都有，企业侧走 `/api/enterprise/finance/usage/*`（按企业钱包取数，`bill_id` 读冻结件）；管理员专属的对账核对 / 归档 / 账期 CSV 由管理员页通过 `adminActions` / `onAckReconcile` 注入；企业侧不支持进行中账期详情。口径：账期结束日按半开区间减一天，详情总额 2 位小数（与列表、发票一致）
 
 ### 5.4 概览统计（M6，`model/enterprise_overview.go`）
 - `month{quota, prev_quota}`、`keys{total, active, disabled, exhausted, expired, expiring_7d}`、`org{teams, members, login_members}`、`daily[30]`（补零）、`todos{unpaid_bills, overdue_bills, exhausted_keys, expiring_keys, credit_alert_hit, team_budget_warn[], team_budget_exceeded[]}`、`team_budget`（团队角色本团队）、`scope{team_id, team_name}`；全部来自 `tokens / ent_*`，不扫 `logs`
@@ -550,33 +550,37 @@ GET /api/usage/token/                    令牌自身额度，上游原样
 
 ### 8.1 信息架构（总方案 §3.3）
 ```
-企业（owner / enterprise_admin / team_admin / developer 同一套菜单，范围由 scope 决定）
+企业（owner / enterprise_admin / team_admin / developer 同一套菜单，范围由 scope 决定；企业账户 = owner + 企业一键开通的账号，登录默认落到企业概览）
  ├ 企业概览   /enterprise/overview        M6
- ├ 团队       /enterprise/teams           M1 / M2 / M14   （/enterprise/organization、/enterprise/projects 重定向至此）
+ ├ 团队管理   /enterprise/teams           M1 / M2 / M14   （/enterprise/organization、/enterprise/projects 重定向至此）
  ├ API 密钥   /enterprise/keys            M3 / M4
  ├ 用量报表   /enterprise/usage           M5
- └ 账单       /enterprise/bills, /enterprise/bills/:id   M9（team_admin / developer 不可见）
-常规
- ├ 概览 / 仪表盘 / [API 密钥 /keys ← 企业主与企业开通账号隐藏] / 使用日志 / 审计日志
+ └ 财务对账   /enterprise/bills?tab=statements|usage|ledger, /enterprise/bills/:id   M9（team_admin / developer 不可见）
+                账期账单（授信账期 + 账单表）/ 消费账单（复用个人对账页 `UsageTab`，企业主体）/ 充值账单（企业账本，按日期区间）
+日志（仅企业账户；普通用户这三项仍在常规组）
+ ├ 使用日志 / 审计日志 / 任务日志
+常规（企业账户整组隐藏；绑定已有账号的成员与普通用户不变）
+ ├ 概览 / 仪表盘 / [API 密钥 /keys ← 企业主与企业开通账号隐藏] / 使用日志 / 审计日志 / 任务日志
 个人
- └ 钱包 /wallet：企业主隐藏充值 / 兑换 / 订阅 / 邀请卡，提示线下充值
+ ├ 钱包 /wallet、财务对账 /reconciliation：企业账户隐藏（都归企业财务对账）
+ └ 个人资料 / 安全访问
 管理员
  ├ 用户管理 /users（个人 | 企业页签；个人页签不含企业员工账号，企业行「成员」抽屉只读看员工）  企业客户 /enterprise-billing（企业列表、详情抽屉：授信配置 / 充值 / 调账 / 手动开期、账单页签）
  ├ 财务中心 /finance（账单列表含对账差异 Tab、账单详情 /finance/bills/:billId：快照 v2 / 冻结件明细 / 归档 / 差异确认）
  └ 报价单 /quotes  线索 /enterprise-leads  文档中心 /docs/enterprise-integration（M12）
 ```
-侧边栏（`use-sidebar-view.ts`）：企业分组对主账号与已开通登录的成员可见；账单项仅 `actorAtLeast(enterprise_admin)`；`/keys` 对 `is_owner || provisioned` 隐藏（绑定已有账号的成员保留个人 key 入口）。
+侧边栏（`use-sidebar-view.ts`）：企业分组对主账号与已开通登录的成员可见；财务对账项仅 `actorAtLeast(enterprise_admin)`；`isEnterpriseAccount(actor)`（`is_owner || provisioned`，`lib/member-roles.ts`）为真时隐藏常规组与个人组的钱包 / 个人对账、显示日志组（绑定已有账号的成员保留普通菜单与个人 key 入口）。落地页：`/dashboard` 两个路由的 `beforeLoad` 经 `lib/enterprise-landing.ts` 把企业账户转到 `/enterprise/overview`，登录 / OAuth / 首页的 `/dashboard` 硬编码不动。
 
 ### 8.2 页面清单（`web/src/features/enterprise-console/`）
 | 页面 | 组件 | 要点 |
 |---|---|---|
-| 概览 | `overview-page` + `overview-kpi-cards` / `overview-todos` / `charts/daily-quota-bar-chart`（共享） | 四 KPI（本期已用或本团队消耗 → 本月消耗环比 → 活跃密钥与即将过期 → 团队 · 成员）→ 待办（按严重程度，无待办不渲染）→ 30 天柱图 → 折叠账期 / 流水（默认收起，展开再请求；团队角色不渲染）；深链 `/enterprise/keys?status=4`、`?expiring=true`、`/enterprise/teams?team_id=`、`/enterprise/usage`、`/enterprise/bills`；授信进度条下显示预警阈值与「已达阈值 / 已用尽」徽标、quota_based 待收款徽标 |
+| 概览 | `overview-page` + `overview-kpi-cards` / `overview-todos` / `charts/daily-quota-bar-chart`（共享） | 四 KPI（本期已用或本团队消耗 → 本月消耗环比 → 活跃密钥与即将过期 → 团队 · 成员）→ 待办（按严重程度，无待办不渲染）→ 30 天柱图（账期 / 流水列表已迁到财务对账页，第一张卡深链「查看财务对账」；预付企业最近充值仍从流水取）；深链 `/enterprise/keys?status=4`、`?expiring=true`、`/enterprise/teams?team_id=`、`/enterprise/usage`、`/enterprise/bills`；授信进度条下显示预警阈值与「已达阈值 / 已用尽」徽标、quota_based 待收款徽标 |
 | 团队 | `teams-page` + `team-panel` / `members-section` / `team-dialog` / `team-admin-dialog` / `member-dialog` / `member-login-dialog` / `member-import-dialog` / `team-budget-meter` | search `team_id | status | login | q | page`；左团队列表（人数、本月消耗 / 预算进度与 warn / exceeded / Blocked 徽标、归档态），团队行「编辑（名称 / 预算 / 阈值 / 拦截）」「设团队管理员」「归档」「删除」；右成员表（姓名、工号、登录 + 角色、密钥数 →、本月消耗 →、状态），成员行「发放密钥」+ 更多（控制台登录 / 编辑 / 停启用 / 删除）；导入 CSV `name,email,employee_no,team`；team_admin / developer 固定本团队 |
 | API 密钥 | `keys-page` + `token-mutate-sheet` / `token-quota-cell` / `token-quota-policy-dialog` / `token-quota-policy-fields` | 筛选 团队 / 持有人 / 状态四态 / 即将过期 / 关键字进 URL；列 = 名称 + 掩码 · 团队 · 持有人 · 额度（固定额度复用上游 `ApiKeyQuotaCell`，周期限额显示剩余 / 周期 · 频率 + 下次重置）· 本月消耗（环比）· 限制（分组 · N 模型 · N IP）· 状态（+ Blocked by budget）· 最近使用 · 操作；多选批量启停 / 删除 / 周期限额；新建与编辑共用四段抽屉（基本 / 额度三选一 / 访问限制 / 成功态含明文 + 交付文案，文档链接 `/docs/enterprise-integration`）；总数达上限九成提示 |
 | 用量 | `usage-page` + `usage-panel` | search `group_by | team_id | member_id`；趋势图 + 三卡 + 维度 tabs + 下钻面包屑 + cache 列；导出跟随筛选 |
-| 账单 | `bills-page` + `bills-table` / `bill-detail-page` / `billing-tables` | 单列表（类型作一列），行操作「导出发票」「导出 CSV」；详情：v2 走共享 `finance/components/usage-breakdown/bill-snapshot-section`（按模型 / 按天 + 尾差提示），v1 旧快照按模型表并提示；按团队 / 成员块含缓存列；状态卡「导出 CSV」 |
+| 财务对账 | `reconciliation-page` + `bills-table` / `billing-tables`（`CreditPeriodsTable` / `LedgerTable`）+ 共享 `reconciliation/components/usage-tab`、`finance` 的日期控件与 `ExportCsvControl` | search `tab | start | end | page`；账期账单 = 授信账期表（授信企业）+ 账单表（类型作一列，行操作「导出发票」「导出 CSV」）；消费账单 = `UsageTab` 以 `scope: enterprise` 取数；充值账单 = `LedgerTable` 按日期区间 + `SimplePager`。详情 `/enterprise/bills/:id` 直接渲染共享 `finance/components/bill-detail/bill-detail-view`（见 §4 账单详情共用正文），企业侧无独立详情组件 |
 
-管理员侧（`web/src/features/enterprises/`、`features/finance/`）：`enterprises-table` / `enterprise-mutate-drawer` / `enterprise-billing-drawer`（账户段「余额调账」、授信段、待收款提示 + 「手动开下一期」）/ `credit-config-form`（周期类型含「按额度」、auto_reset Switch、预警阈值）/ `topup-form` / `adjustment-dialog`（自挂二次验证）/ `bills-admin-page`（`reconcile` Tab、「账单调账」）/ `seller-profile-dialog` / `leads-admin-page`；财务账单详情 `bill-detail/bill-detail-page`（快照 v2 分流、`usage_source` 横幅、`BillArchiveControl`、`reconcile-diff-alert`）。
+管理员侧（`web/src/features/enterprises/`、`features/finance/`）：`enterprises-table` / `enterprise-mutate-drawer` / `enterprise-billing-drawer`（账户段「余额调账」、授信段、待收款提示 + 「手动开下一期」）/ `credit-config-form`（周期类型含「按额度」、auto_reset Switch、预警阈值）/ `topup-form` / `adjustment-dialog`（自挂二次验证）/ `bills-admin-page`（`reconcile` Tab、「账单调账」）/ `seller-profile-dialog` / `leads-admin-page`；财务账单详情 `bill-detail/bill-detail-page`（管理员页：解析 ref、`adminActions` 注入 `BillArchiveControl` / 账期 CSV、`onAckReconcile` 接 `reconcile-diff-alert`）→ 共用 `bill-detail-view` / `bill-detail-content`（快照 v2 分流、`usage_source` 与 live 横幅、已付未付、月结单五栏、按团队 / 成员归因）。
 
 ### 8.3 角色可见性（总方案 §3.5）
 | 能力 | owner | enterprise_admin | team_admin（本团队） | developer（本团队） |
@@ -585,7 +589,8 @@ GET /api/usage/token/                    令牌自身额度，上游原样
 | 成员增删改、导入、登录、角色 | ✓ | ✓（≤ team_admin） | ✓（≤ developer，不挪出团队） | 只读（仅发放密钥） |
 | key 全部操作 / 明文 / 批量 / 周期限额 | ✓ | ✓ | ✓ | ✓ |
 | 用量 | 全部 | 全部 | 本团队 | 本团队 |
-| 账单 / 流水 / 账期 / 概览财务卡 | ✓ | ✓ | 隐藏 + 403 | 隐藏 + 403 |
+| 财务对账（账单 / 流水 / 账期 / 消费账单）/ 概览财务卡 | ✓ | ✓ | 隐藏 + 403 | 隐藏 + 403 |
+| 常规组 / 个人组钱包与个人对账 | 隐藏，日志组代替 | 保留（绑定账号）/ 隐藏（企业开通） | 同左 | 同左 |
 | 常规 `/keys` | 隐藏 | 保留（绑定账号）/ 隐藏（企业开通） | 同左 | 同左 |
 | 钱包充值 / 订阅 / 划转 | 隐藏，线下充值提示 | 不变 | 不变 | 不变 |
 

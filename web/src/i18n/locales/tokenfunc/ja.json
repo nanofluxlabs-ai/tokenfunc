@@ -942,6 +942,7 @@
     "Top-ups are registered by your account manager after bank transfer.": "銀行振込後、担当者がチャージを登録します。",
     "Total amount (USD)": "合計金額（USD）",
     "Total due": "請求合計",
+    "Total amount": "合計金額",
     "Total quota": "合計クォータ",
     "Total requests": "総リクエスト数",
     "Total value": "累計の価値",
@@ -1520,6 +1521,8 @@
     "no account found for this username or email": "このユーザー名またはメールアドレスのアカウントは見つかりません",
     "Team Management": "チーム管理",
     "Add members or import them to start issuing keys.": "メンバーを追加またはインポートするとキーを発行できます。",
+    "Period statements": "請求期間の明細",
+    "View reconciliation": "財務照合を見る",
     "This account belongs to an enterprise, manage it from the enterprise module": "このアカウントは企業に属しています。企業モジュールから管理してください",
     "{{members}} members, {{logins}} can sign in. Members are managed by the enterprise itself; this list is read-only.": "メンバー {{members}} 人、うち {{logins}} 人がログイン可能。メンバーは企業自身が管理し、この一覧は閲覧専用です。",
     "This enterprise has not added any members in its console.": "この企業はコンソールでまだメンバーを追加していません。"

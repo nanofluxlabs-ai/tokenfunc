@@ -3,14 +3,13 @@ import {
   useQuery,
   useQueryClient,
 } from '@tanstack/react-query'
+import type { ColumnDef, PaginationState } from '@tanstack/react-table'
+import { Inbox } from 'lucide-react'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 
-import {
-  StaticDataTable,
-  type StaticDataTableColumn,
-} from '@/components/data-table'
+import { DataTablePage, useDataTable } from '@/components/data-table'
 import { Dialog } from '@/components/dialog'
 import { SectionPageLayout } from '@/components/layout'
 import { Badge } from '@/components/ui/badge'
@@ -33,7 +32,7 @@ import { requireServerSuccess } from '@/lib/server-error-message'
 import { listTrialLeads, updateTrialLead } from '../api'
 import type { TrialLead } from '../types'
 
-const PAGE_SIZE = 20
+const DEFAULT_PAGE_SIZE = 20
 
 const STATUS_LABEL: Record<TrialLead['status'], string> = {
   new: 'New',
@@ -154,55 +153,74 @@ function LeadsAdminContent() {
   const { t } = useTranslation()
   const queryClient = useQueryClient()
   const [filter, setFilter] = useState<'all' | TrialLead['status']>('new')
-  const [page, setPage] = useState(1)
+  const [pagination, setPagination] = useState<PaginationState>({
+    pageIndex: 0,
+    pageSize: DEFAULT_PAGE_SIZE,
+  })
   const [editing, setEditing] = useState<TrialLead | null>(null)
 
-  const { data, isLoading } = useQuery({
-    queryKey: ['admin-enterprise', 'leads', filter, page],
+  const { data, isLoading, isFetching } = useQuery({
+    queryKey: [
+      'admin-enterprise',
+      'leads',
+      filter,
+      pagination.pageIndex,
+      pagination.pageSize,
+    ],
     queryFn: async () =>
       requireServerSuccess(
         await listTrialLeads({
           status: filter === 'all' ? undefined : filter,
-          p: page,
-          page_size: PAGE_SIZE,
+          p: pagination.pageIndex + 1,
+          page_size: pagination.pageSize,
         })
       ).data ?? { items: [], total: 0 },
     placeholderData: keepPreviousData,
   })
-  const total = data?.total ?? 0
-  const pageCount = Math.max(1, Math.ceil(total / PAGE_SIZE))
 
-  const columns: StaticDataTableColumn<TrialLead>[] = [
-    { id: 'company', header: t('Company'), cell: (row) => row.company },
+  const columns: ColumnDef<TrialLead>[] = [
+    {
+      id: 'company',
+      header: t('Company'),
+      cell: ({ row: { original: row } }) => row.company,
+    },
     {
       id: 'contact',
       header: t('Contact'),
-      cell: (row) => <span className='font-mono'>{row.contact}</span>,
+      cell: ({ row: { original: row } }) => (
+        <span className='font-mono'>{row.contact}</span>
+      ),
     },
     {
       id: 'volume',
       header: t('Estimated monthly usage'),
-      cell: (row) => VOLUME_LABEL[row.volume] ?? '—',
+      cell: ({ row: { original: row } }) => VOLUME_LABEL[row.volume] ?? '—',
     },
     {
       id: 'status',
       header: t('Status'),
-      cell: (row) => (
+      cell: ({ row: { original: row } }) => (
         <Badge variant={row.status === 'new' ? 'default' : 'outline'}>
           {t(STATUS_LABEL[row.status])}
         </Badge>
       ),
     },
-    { id: 'remark', header: t('Remark'), cell: (row) => row.remark || '—' },
+    {
+      id: 'remark',
+      header: t('Remark'),
+      cell: ({ row: { original: row } }) => row.remark || '—',
+    },
     {
       id: 'created',
       header: t('Created'),
-      cell: (row) => formatTimestampToDate(row.created_at),
+      cell: ({ row: { original: row } }) =>
+        formatTimestampToDate(row.created_at),
     },
     {
       id: 'actions',
       header: t('Actions'),
-      cell: (row) => (
+      enableHiding: false,
+      cell: ({ row: { original: row } }) => (
         <Button variant='outline' size='sm' onClick={() => setEditing(row)}>
           {t('Follow up')}
         </Button>
@@ -210,13 +228,24 @@ function LeadsAdminContent() {
     },
   ]
 
+  const { table } = useDataTable({
+    data: data?.items ?? [],
+    columns,
+    pagination,
+    onPaginationChange: setPagination,
+    manualPagination: true,
+    manualFiltering: true,
+    totalCount: data?.total ?? 0,
+    enableRowSelection: false,
+  })
+
   return (
     <div className='flex flex-col gap-4'>
       <Tabs
         value={filter}
         onValueChange={(value) => {
           setFilter(value as typeof filter)
-          setPage(1)
+          setPagination((prev) => ({ ...prev, pageIndex: 0 }))
         }}
       >
         <TabsList>
@@ -226,35 +255,16 @@ function LeadsAdminContent() {
           <TabsTrigger value='all'>{t('All')}</TabsTrigger>
         </TabsList>
       </Tabs>
-      <StaticDataTable
+      <DataTablePage
+        table={table}
         columns={columns}
-        data={data?.items ?? []}
-        getRowKey={(row) => row.id}
-        empty={!isLoading && (data?.items.length ?? 0) === 0}
-        emptyContent={t('No trial requests yet')}
+        isLoading={isLoading}
+        isFetching={isFetching}
+        emptyTitle={t('No trial requests yet')}
+        emptyIcon={<Inbox />}
+        skeletonKeyPrefix='lead-skeleton'
+        paginationInFooter={false}
       />
-      <div className='text-muted-foreground flex items-center justify-end gap-2 text-sm'>
-        <span>{t('Total: {{count}}', { count: total })}</span>
-        <Button
-          variant='outline'
-          size='sm'
-          disabled={page <= 1}
-          onClick={() => setPage(page - 1)}
-        >
-          {t('Previous')}
-        </Button>
-        <span>
-          {page} / {pageCount}
-        </span>
-        <Button
-          variant='outline'
-          size='sm'
-          disabled={page >= pageCount}
-          onClick={() => setPage(page + 1)}
-        >
-          {t('Next')}
-        </Button>
-      </div>
       <LeadFollowUpDialog
         lead={editing}
         onOpenChange={(open) => {

@@ -23,7 +23,10 @@ import { useTranslation } from 'react-i18next'
 import { resolveSidebarView } from '@/components/layout/lib/sidebar-view-registry'
 import type { NavGroup, ResolvedSidebarView } from '@/components/layout/types'
 import { useEnterpriseSelf } from '@/features/enterprise-console/hooks/use-enterprise-self'
-import { actorAtLeast } from '@/features/enterprise-console/lib/member-roles'
+import {
+  actorAtLeast,
+  isEnterpriseAccount,
+} from '@/features/enterprise-console/lib/member-roles'
 import { usePromoterSelf } from '@/features/promoter-center/hooks/use-promoter-self'
 import { ROLE } from '@/lib/roles'
 import { useAuthStore } from '@/stores/auth-store'
@@ -47,6 +50,9 @@ const ROOT_VIEW_KEY = '__root'
  * — those filters target known dashboard URLs only, and gating is
  * already enforced at the route level (`beforeLoad` redirects).
  */
+/** 企业账户在「个人」组里不展示的入口：钱包与个人对账都归企业财务对账 */
+const PERSONAL_WALLET_URLS = new Set(['/wallet', '/reconciliation'])
+
 export function useSidebarView(): ResolvedSidebarView {
   const { t } = useTranslation()
   const pathname = useLocation({ select: (l) => l.pathname })
@@ -60,11 +66,10 @@ export function useSidebarView(): ResolvedSidebarView {
     enterprise?.actor,
     'enterprise_admin'
   )
-  // 企业的 key 只在企业密钥页管：企业主与企业开通的账号不再看到上游 /keys；绑定已有账号的成员保留个人 key 入口
-  const hideUpstreamKeys = Boolean(
-    enterprise?.actor &&
-    (enterprise.actor.is_owner || enterprise.actor.provisioned)
-  )
+  // 企业账户（企业主与企业开通的账号）：钱包与 key 都在企业名下，只看企业菜单——
+  // 隐藏「常规」组（企业组已有概览 / 密钥 / 用量）、「个人」组的钱包与个人对账，日志改在企业组下面的「日志」组；
+  // 绑定已有账号的成员仍是普通钱包，菜单与普通用户一致
+  const enterpriseAccount = isEnterpriseAccount(enterprise?.actor)
   const isPromoter = Boolean(usePromoterSelf().data)
 
   const rootNavGroups = useMemo<NavGroup[]>(() => {
@@ -76,6 +81,8 @@ export function useSidebarView(): ResolvedSidebarView {
         group.id === 'enterprise' ? isEnterpriseMember : true
       )
       .filter((group) => (group.id === 'promoter' ? isPromoter : true))
+      .filter((group) => (group.id === 'general' ? !enterpriseAccount : true))
+      .filter((group) => (group.id === 'logs' ? enterpriseAccount : true))
       .map((group) => {
         const items = group.items.filter(
           (item) =>
@@ -83,7 +90,11 @@ export function useSidebarView(): ResolvedSidebarView {
             (group.id !== 'enterprise' ||
               canSeeEnterpriseFinance ||
               item.url !== '/enterprise/bills') &&
-            !(hideUpstreamKeys && item.url === '/keys')
+            !(
+              enterpriseAccount &&
+              group.id === 'personal' &&
+              PERSONAL_WALLET_URLS.has(String(item.url ?? ''))
+            )
         )
         return items.length === group.items.length ? group : { ...group, items }
       })
@@ -92,7 +103,7 @@ export function useSidebarView(): ResolvedSidebarView {
     userRole,
     isEnterpriseMember,
     canSeeEnterpriseFinance,
-    hideUpstreamKeys,
+    enterpriseAccount,
     isPromoter,
   ])
 

@@ -1,12 +1,15 @@
+import type {
+  CellContext,
+  ColumnDef,
+  OnChangeFn,
+  PaginationState,
+} from '@tanstack/react-table'
 import { Check, Download, FileText } from 'lucide-react'
 import { useState, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 
-import {
-  StaticDataTable,
-  type StaticDataTableColumn,
-} from '@/components/data-table'
+import { DataTablePage, useDataTable } from '@/components/data-table'
 import { StatusBadge } from '@/components/status-badge'
 import { Button } from '@/components/ui/button'
 import { readBlobError, saveBlob } from '@/features/finance/lib/csv'
@@ -118,6 +121,13 @@ export function BillExportCsvButton(props: {
 type BillsTableProps = {
   bills: Bill[]
   isLoading?: boolean
+  isFetching?: boolean
+  /** 服务端分页：传了 pagination 才显示分页条，total 为服务端总数 */
+  total?: number
+  pagination?: PaginationState
+  onPaginationChange?: OnChangeFn<PaginationState>
+  /** 分页条挂到页脚（需要 SectionPageLayout fixedContent）还是跟在表格下面 */
+  paginationInFooter?: boolean
   /** 账单 CSV 走哪条路由：企业控制台 / 管理员财务中心 */
   exportScope: BillExportScope
   /** 额外的行操作（管理员：收款、作废） */
@@ -164,11 +174,11 @@ export function ReconcileDiffCell(props: { bill: Bill }) {
 /** 账单列表：企业控制台与管理员财务中心共用，类型作独立列，行操作固定为导出发票 + 导出 CSV */
 export function BillsTable(props: BillsTableProps) {
   const { t } = useTranslation()
-  const columns: StaticDataTableColumn<Bill>[] = [
+  const columns: ColumnDef<Bill>[] = [
     {
       id: 'bill_no',
       header: t('Bill No.'),
-      cell: (row) => (
+      cell: ({ row: { original: row } }) => (
         <span className='font-mono font-medium'>
           {props.renderBillNo ? props.renderBillNo(row) : row.bill_no}
         </span>
@@ -177,14 +187,15 @@ export function BillsTable(props: BillsTableProps) {
     {
       id: 'type',
       header: t('Type'),
-      cell: (row) => t(BILL_TYPES[row.bill_type]?.labelKey ?? row.bill_type),
+      cell: ({ row: { original: row } }) =>
+        t(BILL_TYPES[row.bill_type]?.labelKey ?? row.bill_type),
     },
     ...(props.showEnterprise
       ? [
           {
             id: 'enterprise',
             header: t('Enterprise'),
-            cell: (row: Bill) =>
+            cell: ({ row: { original: row } }: CellContext<Bill, unknown>) =>
               row.buyer_snapshot?.enterprise_name ?? `#${row.enterprise_id}`,
           },
         ]
@@ -192,13 +203,13 @@ export function BillsTable(props: BillsTableProps) {
     {
       id: 'period',
       header: t('Period'),
-      cell: (row) =>
+      cell: ({ row: { original: row } }) =>
         `${formatTimestampToDate(row.period_start)} ~ ${formatTimestampToDate(row.period_end)}`,
     },
     {
       id: 'total',
       header: t('Total'),
-      cell: (row) => (
+      cell: ({ row: { original: row } }) => (
         <span className='font-mono'>
           {row.currency} {Number.parseFloat(row.total_usd).toFixed(2)}
         </span>
@@ -207,7 +218,7 @@ export function BillsTable(props: BillsTableProps) {
     {
       id: 'paid',
       header: t('Paid'),
-      cell: (row) =>
+      cell: ({ row: { original: row } }) =>
         row.bill_type === 'statement' ? (
           '—'
         ) : (
@@ -219,12 +230,13 @@ export function BillsTable(props: BillsTableProps) {
     {
       id: 'due',
       header: t('Due'),
-      cell: (row) => (row.due_at ? formatTimestampToDate(row.due_at) : '—'),
+      cell: ({ row: { original: row } }) =>
+        row.due_at ? formatTimestampToDate(row.due_at) : '—',
     },
     {
       id: 'status',
       header: t('Status'),
-      cell: (row) =>
+      cell: ({ row: { original: row } }) =>
         row.bill_type === 'statement' ? '—' : <BillStatusBadge bill={row} />,
     },
     ...(props.showReconcile
@@ -232,14 +244,17 @@ export function BillsTable(props: BillsTableProps) {
           {
             id: 'reconcile',
             header: t('Reconciliation'),
-            cell: (row: Bill) => <ReconcileDiffCell bill={row} />,
+            cell: ({ row: { original: row } }: CellContext<Bill, unknown>) => (
+              <ReconcileDiffCell bill={row} />
+            ),
           },
         ]
       : []),
     {
       id: 'actions',
       header: t('Actions'),
-      cell: (row) => (
+      enableHiding: false,
+      cell: ({ row: { original: row } }) => (
         <div className='flex items-center gap-1'>
           <InvoiceButton bill={row} />
           <BillExportCsvButton bill={row} scope={props.exportScope} />
@@ -248,16 +263,30 @@ export function BillsTable(props: BillsTableProps) {
       ),
     },
   ]
+  const { table } = useDataTable({
+    data: props.bills,
+    columns,
+    pagination: props.pagination,
+    onPaginationChange: props.onPaginationChange,
+    manualPagination: true,
+    manualFiltering: true,
+    totalCount: props.total ?? props.bills.length,
+    enableRowSelection: false,
+  })
   return (
-    <StaticDataTable
+    <DataTablePage
+      table={table}
       columns={columns}
-      data={props.bills}
-      getRowKey={(row) => row.id}
+      isLoading={props.isLoading}
+      isFetching={props.isFetching}
+      emptyTitle={t('No bills yet')}
+      emptyIcon={<FileText />}
+      skeletonKeyPrefix='bill-skeleton'
+      showPagination={props.pagination !== undefined}
+      paginationInFooter={props.paginationInFooter}
       getRowClassName={(row) =>
-        isBillOverdue(row) ? 'bg-destructive/5' : undefined
+        isBillOverdue(row.original) ? 'bg-destructive/5' : undefined
       }
-      empty={!props.isLoading && props.bills.length === 0}
-      emptyContent={t('No bills yet')}
     />
   )
 }

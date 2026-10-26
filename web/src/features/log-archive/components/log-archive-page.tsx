@@ -4,6 +4,7 @@ import {
   useQuery,
   useQueryClient,
 } from '@tanstack/react-query'
+import type { ColumnDef, PaginationState } from '@tanstack/react-table'
 import { Archive, RotateCcw } from 'lucide-react'
 import { useState, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -11,8 +12,7 @@ import { toast } from 'sonner'
 
 import { ConfirmDialog } from '@/components/confirm-dialog'
 import { CopyButton } from '@/components/copy-button'
-import { StaticDataTable } from '@/components/data-table'
-import { EmptyState } from '@/components/empty-state'
+import { DataTablePage, useDataTable } from '@/components/data-table'
 import { SectionPageLayout } from '@/components/layout'
 import { StatusBadge } from '@/components/status-badge'
 import { Alert, AlertDescription } from '@/components/ui/alert'
@@ -39,11 +39,17 @@ import type { LogArchiveManifest } from '../types'
 const EMPTY_CELL = '—'
 
 /** 归档清单（Root）：保留任务状态 + 按天清单 + 单日重试 */
+/** 右对齐的数字列 */
+const NUMERIC_COLUMN_IDS = new Set(['rows', 'bytes', 'purged'])
+
 export function LogArchivePage() {
   const { t, i18n } = useTranslation()
   const locale = toIntlLocale(i18n.resolvedLanguage || i18n.language)
   const queryClient = useQueryClient()
-  const [page, setPage] = useState(1)
+  const [pagination, setPagination] = useState<PaginationState>({
+    pageIndex: 0,
+    pageSize: LOG_ARCHIVE_PAGE_SIZE,
+  })
   const [retrying, setRetrying] = useState<LogArchiveManifest | null>(null)
 
   const status = useQuery({
@@ -52,12 +58,17 @@ export function LogArchivePage() {
       requireServerSuccess(await getLogArchiveStatus()).data ?? null,
   })
   const manifests = useQuery({
-    queryKey: [LOG_ARCHIVE_QUERY_KEY, 'manifests', page],
+    queryKey: [
+      LOG_ARCHIVE_QUERY_KEY,
+      'manifests',
+      pagination.pageIndex,
+      pagination.pageSize,
+    ],
     queryFn: async () =>
       requireServerSuccess(
         await listLogArchiveManifests({
-          p: page,
-          page_size: LOG_ARCHIVE_PAGE_SIZE,
+          p: pagination.pageIndex + 1,
+          page_size: pagination.pageSize,
         })
       ).data ?? null,
     placeholderData: keepPreviousData,
@@ -83,8 +94,6 @@ export function LogArchivePage() {
   const retention = status.data?.status
   const summary = status.data?.summary
   const items = manifests.data?.items ?? []
-  const total = manifests.data?.total ?? 0
-  const pageCount = Math.max(1, Math.ceil(total / LOG_ARCHIVE_PAGE_SIZE))
 
   let retentionValue = EMPTY_CELL
   if (retention) {
@@ -114,18 +123,18 @@ export function LogArchivePage() {
     )
   }
 
-  const columns = [
+  const columns: ColumnDef<LogArchiveManifest>[] = [
     {
       id: 'day',
       header: t('Date'),
-      cell: (row: LogArchiveManifest) => (
+      cell: ({ row: { original: row } }) => (
         <span className='font-mono'>{row.day}</span>
       ),
     },
     {
       id: 'status',
       header: t('Status'),
-      cell: (row: LogArchiveManifest) => (
+      cell: ({ row: { original: row } }) => (
         <StatusBadge
           label={t(LOG_ARCHIVE_STATUS_TAGS[row.status].labelKey)}
           variant={LOG_ARCHIVE_STATUS_TAGS[row.status].variant}
@@ -137,9 +146,7 @@ export function LogArchivePage() {
     {
       id: 'rows',
       header: t('Rows'),
-      className: 'text-right',
-      cellClassName: 'text-right tabular-nums',
-      cell: (row: LogArchiveManifest) =>
+      cell: ({ row: { original: row } }) =>
         row.parts > 1
           ? `${formatCompactNumber(row.total_rows, locale)} (${row.parts})`
           : formatCompactNumber(row.row_count, locale),
@@ -147,7 +154,7 @@ export function LogArchivePage() {
     {
       id: 'object',
       header: t('Object'),
-      cell: (row: LogArchiveManifest) =>
+      cell: ({ row: { original: row } }) =>
         row.object_key ? (
           <div className='flex min-w-0 items-center gap-1'>
             <span className='truncate font-mono text-xs'>{row.object_key}</span>
@@ -166,23 +173,19 @@ export function LogArchivePage() {
     {
       id: 'bytes',
       header: t('Size'),
-      className: 'text-right',
-      cellClassName: 'text-right tabular-nums',
-      cell: (row: LogArchiveManifest) =>
+      cell: ({ row: { original: row } }) =>
         row.bytes ? formatBytes(row.bytes) : EMPTY_CELL,
     },
     {
       id: 'purged',
       header: t('Deleted rows'),
-      className: 'text-right',
-      cellClassName: 'text-right tabular-nums',
-      cell: (row: LogArchiveManifest) =>
+      cell: ({ row: { original: row } }) =>
         formatCompactNumber(row.purged_rows, locale),
     },
     {
       id: 'error',
       header: t('Last error'),
-      cell: (row: LogArchiveManifest) =>
+      cell: ({ row: { original: row } }) =>
         row.last_error ? (
           <span className='text-destructive line-clamp-2 text-xs'>
             {row.last_error}
@@ -194,7 +197,7 @@ export function LogArchivePage() {
     {
       id: 'updated',
       header: t('Updated at'),
-      cell: (row: LogArchiveManifest) => (
+      cell: ({ row: { original: row } }) => (
         <span className='text-muted-foreground text-xs'>
           {formatTimestampToDate(row.updated_at)}
         </span>
@@ -203,8 +206,8 @@ export function LogArchivePage() {
     {
       id: 'actions',
       header: '',
-      className: 'w-10',
-      cell: (row: LogArchiveManifest) =>
+      enableHiding: false,
+      cell: ({ row: { original: row } }) =>
         row.status === 'purged' ? null : (
           <Button
             variant='ghost'
@@ -217,6 +220,17 @@ export function LogArchivePage() {
         ),
     },
   ]
+
+  const { table } = useDataTable({
+    data: items,
+    columns,
+    pagination,
+    onPaginationChange: setPagination,
+    manualPagination: true,
+    manualFiltering: true,
+    totalCount: manifests.data?.total ?? 0,
+    enableRowSelection: false,
+  })
 
   return (
     <>
@@ -310,52 +324,25 @@ export function LogArchivePage() {
                 )}
               </p>
             )}
-            {!manifests.isLoading && items.length === 0 ? (
-              <EmptyState
-                icon={Archive}
-                title={t('No archived days yet')}
-                description={t(
-                  'Days appear here after the first retention run.'
-                )}
-                bordered
-              />
-            ) : (
-              <>
-                <StaticDataTable
-                  columns={columns}
-                  data={items}
-                  getRowKey={(row) => row.day}
-                  empty={items.length === 0}
-                  emptyContent={t('Loading...')}
-                />
-                <div className='flex items-center justify-between text-sm'>
-                  <span className='text-muted-foreground'>
-                    {t('Page {{page}} of {{total}}', {
-                      page,
-                      total: pageCount,
-                    })}
-                  </span>
-                  <div className='flex gap-2'>
-                    <Button
-                      variant='outline'
-                      size='sm'
-                      disabled={page <= 1}
-                      onClick={() => setPage(page - 1)}
-                    >
-                      {t('Previous')}
-                    </Button>
-                    <Button
-                      variant='outline'
-                      size='sm'
-                      disabled={page >= pageCount}
-                      onClick={() => setPage(page + 1)}
-                    >
-                      {t('Next')}
-                    </Button>
-                  </div>
-                </div>
-              </>
-            )}
+            <DataTablePage
+              table={table}
+              columns={columns}
+              isLoading={manifests.isLoading}
+              isFetching={manifests.isFetching}
+              emptyTitle={t('No archived days yet')}
+              emptyDescription={t(
+                'Days appear here after the first retention run.'
+              )}
+              emptyIcon={<Archive />}
+              skeletonKeyPrefix='log-archive-skeleton'
+              paginationInFooter={false}
+              getColumnClassName={(columnId, kind) => {
+                if (!NUMERIC_COLUMN_IDS.has(columnId)) return undefined
+                return kind === 'header'
+                  ? 'text-right'
+                  : 'text-right tabular-nums'
+              }}
+            />
           </div>
         </SectionPageLayout.Content>
       </SectionPageLayout>

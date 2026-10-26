@@ -942,6 +942,7 @@
     "Top-ups are registered by your account manager after bank transfer.": "Người quản lý tài khoản sẽ ghi nhận nạp tiền sau khi bạn chuyển khoản.",
     "Total amount (USD)": "Tổng số tiền (USD)",
     "Total due": "Tổng phải trả",
+    "Total amount": "Tổng số tiền",
     "Total quota": "Tổng hạn mức",
     "Total requests": "Tổng số yêu cầu",
     "Total value": "Tổng giá trị",
@@ -1520,6 +1521,8 @@
     "no account found for this username or email": "Không tìm thấy tài khoản với tên người dùng hoặc email này",
     "Team Management": "Quản lý nhóm",
     "Add members or import them to start issuing keys.": "Thêm hoặc nhập thành viên để bắt đầu cấp khóa.",
+    "Period statements": "Sao kê kỳ",
+    "View reconciliation": "Xem đối soát",
     "This account belongs to an enterprise, manage it from the enterprise module": "Tài khoản này thuộc một doanh nghiệp, hãy quản lý trong mô-đun doanh nghiệp",
     "{{members}} members, {{logins}} can sign in. Members are managed by the enterprise itself; this list is read-only.": "{{members}} thành viên, {{logins}} có thể đăng nhập. Thành viên do doanh nghiệp tự quản lý; danh sách này chỉ để xem.",
     "This enterprise has not added any members in its console.": "Doanh nghiệp này chưa thêm thành viên nào trong bảng điều khiển."

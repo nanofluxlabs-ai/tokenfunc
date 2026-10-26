@@ -2,6 +2,7 @@ package controller
 
 import (
 	"errors"
+	"strconv"
 	"time"
 
 	"github.com/QuantumNous/new-api/common"
@@ -266,7 +267,10 @@ func ListEnterpriseCreditPeriodsSelf(c *gin.Context) {
 
 func writeEnterpriseLedger(c *gin.Context, enterpriseId int) {
 	pageInfo := common.GetPageQuery(c)
-	entries, total, err := model.ListEnterpriseLedger(enterpriseId, c.Query("type"), pageInfo.GetStartIdx(), pageInfo.GetPageSize())
+	// ts_start / ts_end：秒级时间戳，缺省或非法按 0（不限）处理
+	tsStart, _ := strconv.ParseInt(c.Query("ts_start"), 10, 64)
+	tsEnd, _ := strconv.ParseInt(c.Query("ts_end"), 10, 64)
+	entries, total, err := model.ListEnterpriseLedger(enterpriseId, c.Query("type"), tsStart, tsEnd, pageInfo.GetStartIdx(), pageInfo.GetPageSize())
 	if err != nil {
 		common.ApiError(c, err)
 		return

@@ -134,6 +134,12 @@ function BillingCard(props: {
             {formatQuotaWithCurrency(overview.balance_quota)}
             {suspended}
           </CardTitle>
+          <CardAction>
+            <Link to='/enterprise/bills' search={{}} className={LINK_CLASS}>
+              {t('View reconciliation')}
+              <ArrowRight className='size-3' aria-hidden='true' />
+            </Link>
+          </CardAction>
         </CardHeader>
         <CardContent className='text-muted-foreground text-xs'>
           {topupHint}
@@ -176,6 +182,12 @@ function BillingCard(props: {
           </span>
           {suspended}
         </CardTitle>
+        <CardAction>
+          <Link to='/enterprise/bills' search={{}} className={LINK_CLASS}>
+            {t('View reconciliation')}
+            <ArrowRight className='size-3' aria-hidden='true' />
+          </Link>
+        </CardAction>
       </CardHeader>
       <CardContent className='flex flex-col gap-2'>
         <Progress

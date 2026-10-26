@@ -15,7 +15,7 @@ export const usageKey = (kind: string, params: UsageRangeParams) => [
   kind,
   params.scope,
   params.scope === 'admin' ? params.user_id : 0,
-  params.scope === 'admin' ? (params.bill_id ?? 0) : 0,
+  params.scope === 'self' ? 0 : (params.bill_id ?? 0),
   params.ts_start,
   params.ts_end,
 ]
@@ -25,12 +25,15 @@ export function usageScopeOf(params: UsageRangeParams): UsageScope {
   if (params.scope === 'admin') {
     return { scope: 'admin', user_id: params.user_id, bill_id: params.bill_id }
   }
+  if (params.scope === 'enterprise') {
+    return { scope: 'enterprise', bill_id: params.bill_id }
+  }
   return { scope: 'self' }
 }
 
-/** admin 主体必须有合法 user_id；self 主体总是可查 */
+/** admin 主体必须有合法 user_id；self / enterprise 主体总是可查 */
 export function usageScopeReady(params: UsageRangeParams): boolean {
-  return params.scope === 'self' || params.user_id > 0
+  return params.scope !== 'admin' || params.user_id > 0
 }
 
 export function useUsageSummary(params: UsageBreakdownParams) {

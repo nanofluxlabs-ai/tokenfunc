@@ -942,6 +942,7 @@
     "Top-ups are registered by your account manager after bank transfer.": "銀行轉帳後由客戶經理登記儲值。",
     "Total amount (USD)": "消費總額 (USD)",
     "Total due": "應付總額",
+    "Total amount": "總金額",
     "Total quota": "總額度",
     "Total requests": "總請求",
     "Total value": "總計價值",
@@ -1520,11 +1521,13 @@
     "no account found for this username or email": "找不到該使用者名稱或電子郵件對應的帳號",
     "Team Management": "團隊管理",
     "Add members or import them to start issuing keys.": "新增或匯入成員後即可發放金鑰。",
-    "Credit enterprises are settled by bill payment, not top-up": "授信企業透過帳單收款結清，不走儲值",
-    "Credit enterprises are settled by bill payment": "授信企業透過帳單收款結清",
-    "Prepaid billing: usage is deducted from the balance; register offline top-ups with the Top-up action on the enterprise row.": "預付計費：消費從餘額扣除；線下到帳後用企業列的「儲值」操作登記。",
+    "Period statements": "帳期帳單",
+    "View reconciliation": "查看財務對帳",
     "This account belongs to an enterprise, manage it from the enterprise module": "該帳號屬於企業，請到企業模組管理",
     "{{members}} members, {{logins}} can sign in. Members are managed by the enterprise itself; this list is read-only.": "共 {{members}} 名成員，{{logins}} 人可登入。成員由企業自行管理，此列表僅供查看。",
-    "This enterprise has not added any members in its console.": "該企業尚未在控制台新增成員。"
+    "This enterprise has not added any members in its console.": "該企業尚未在控制台新增成員。",
+    "Credit enterprises are settled by bill payment, not top-up": "授信企業透過帳單收款結清，不走儲值",
+    "Credit enterprises are settled by bill payment": "授信企業透過帳單收款結清",
+    "Prepaid billing: usage is deducted from the balance; register offline top-ups with the Top-up action on the enterprise row.": "預付計費：消費從餘額扣除；線下到帳後用企業列的「儲值」操作登記。"
   }
 }

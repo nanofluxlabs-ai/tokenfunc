@@ -1,3 +1,4 @@
+import type { FinanceBillContext } from '@/features/finance/types'
 import { api } from '@/lib/api'
 
 import type {
@@ -255,6 +256,10 @@ export async function getEnterpriseOverview(): Promise<
 export async function listLedger(params: {
   p?: number
   page_size?: number
+  ts_start?: number
+  ts_end?: number
+  /** 账本类型，逗号分隔多个；不传为全部 */
+  type?: string
 }): Promise<ApiResponse<PageData<LedgerEntry>>> {
   const res = await api.get(`${BASE}/ledger`, { params })
   return res.data
@@ -303,7 +308,9 @@ export async function listBills(params: {
   return res.data
 }
 
-export async function getBill(id: number): Promise<ApiResponse<Bill>> {
+export async function getBill(
+  id: number
+): Promise<ApiResponse<FinanceBillContext>> {
   const res = await api.get(`${BASE}/bills/${id}`)
   return res.data
 }

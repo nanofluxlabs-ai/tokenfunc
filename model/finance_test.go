@@ -416,6 +416,20 @@ func TestFinanceBillContextAndList(t *testing.T) {
 	assert.Equal(t, int64(1_000_000), billContext.Summary.LimitQuota)
 	assert.Equal(t, 99, billContext.Summary.PeriodNo)
 	assert.Equal(t, end-1, billContext.UsageTsEnd)
+	require.NotNil(t, billContext.Bill.UsageSnapshotV2(), "出账时已冻结 v2 财务块")
+	assert.NotContains(t, string(billContext.Bill.UsageSnapshot), "snapshot_source", "原生 v2 快照不标来源")
+
+	// 旧快照（v1，没有财务块）的账单：logs 未清理时上下文里现算 v2 块并标 snapshot_source=live，不落库
+	require.NoError(t, DB.Model(&EnterpriseBill{}).Where("id = ?", bill.Id).Update("usage_snapshot", JSONValue(`{"by_model":[],"detail_total_quota":0}`)).Error)
+	legacyContext, err := GetFinanceBillContext(FinanceBillKindBill, bill.Id)
+	require.NoError(t, err)
+	live := legacyContext.Bill.UsageSnapshotV2()
+	require.NotNil(t, live, "旧快照按当前 logs 现算 v2 块")
+	assert.Equal(t, int64(700), live.LogsTotalQuota)
+	assert.Contains(t, string(legacyContext.Bill.UsageSnapshot), `"snapshot_source":"live"`)
+	stored, err := GetEnterpriseBill(bill.Id)
+	require.NoError(t, err)
+	assert.Nil(t, stored.UsageSnapshotV2(), "现算结果不回写数据库")
 
 	list, err = ListFinanceBills(EnterpriseBillFilter{}, true, 0, 20)
 	require.NoError(t, err)

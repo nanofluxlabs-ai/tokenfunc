@@ -49,10 +49,10 @@ const (
 )
 
 // adminUserManageActions are the ManageUser actions that change a user's
-// status or role, plus the manual wallet top-up and the enterprise manual
-// adjustment (TokenFunc). Quota adjustments are not gated and deletion has its
-// own scope.
-var adminUserManageActions = []string{"disable", "enable", "promote", "demote", "topup", "enterprise_adjust"}
+// status or role, plus the manual wallet top-up, the enterprise manual
+// adjustment and the enterprise credit configure / switch-to-prepaid
+// (TokenFunc). Quota adjustments are not gated and deletion has its own scope.
+var adminUserManageActions = []string{"disable", "enable", "promote", "demote", "topup", "enterprise_adjust", "enterprise_credit"}
 
 var (
 	ErrVerificationFailed         = errors.New("Verification failed. Please try again.")

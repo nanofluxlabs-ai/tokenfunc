@@ -50,7 +50,7 @@ func setupChannelUsagePostgres(t *testing.T) *gorm.DB {
 }
 
 var channelUsageTestTables = []any{
-	&User{}, &Log{}, &Channel{}, &Enterprise{}, &EnterpriseTeam{}, &EnterpriseCreditPeriod{}, &EnterpriseCreditNotifyRecord{}, &EnterpriseLedgerEntry{},
+	&User{}, &Log{}, &Channel{}, &Enterprise{}, &EnterpriseTeam{}, &EnterpriseMember{}, &EnterpriseCreditPeriod{}, &EnterpriseCreditNotifyRecord{}, &EnterpriseLedgerEntry{},
 	&SubscriptionPlan{}, &UserSubscription{}, &ChannelHourlyUsage{}, &ChannelDailyDimUsage{}, &ChannelUsageTotal{},
 }
 
@@ -328,8 +328,8 @@ func TestLoadChannelUsagePayerProfiles(t *testing.T) {
 	for _, u := range []*User{prepaid, credit, solo} {
 		require.NoError(t, DB.Create(u).Error)
 	}
-	require.NoError(t, UpgradeUserToEnterprise(prepaid.Id, &Enterprise{Name: "Prepaid Co"}))
-	require.NoError(t, UpgradeUserToEnterprise(credit.Id, &Enterprise{Name: "Credit Co"}))
+	require.NoError(t, UpgradeUserToEnterprise(prepaid.Id, &Enterprise{Name: "Prepaid Co"}, ""))
+	require.NoError(t, UpgradeUserToEnterprise(credit.Id, &Enterprise{Name: "Credit Co"}, ""))
 	creditEnterprise, err := GetEnterpriseByUserId(credit.Id)
 	require.NoError(t, err)
 	require.NoError(t, ConfigureEnterpriseCredit(creditEnterprise.Id, EnterpriseCreditConfig{CycleType: EnterpriseCreditCycleNaturalMonth, LimitQuota: 100000}, 1))

@@ -6,15 +6,15 @@ import { toast } from 'sonner'
 import { Dialog } from '@/components/dialog'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
+import { type PickedUser, UserPicker } from '@/components/user-picker'
 import { handleServerError } from '@/lib/handle-server-error'
 import { requireServerSuccess } from '@/lib/server-error-message'
 
 import { createPromoter } from '../api'
 import { EMPTY_PROMOTER_FIELDS } from '../constants'
-import type { PickedUser, PromoterEditableFields } from '../types'
+import type { PromoterEditableFields } from '../types'
 import { PromoterFields } from './promoter-fields'
 import { usePromoters } from './promoters-provider'
-import { UserPicker } from './user-picker'
 
 type AddPromoterDialogProps = {
   open: boolean

@@ -47,6 +47,8 @@ func enterpriseApiError(c *gin.Context, err error) {
 		model.ErrEnterpriseLoginUserNotFound,
 		model.ErrEnterpriseInvalidRole,
 		model.ErrEnterpriseTokenQuotaPolicy,
+		model.ErrEnterpriseInvalidGroup,
+		model.ErrEnterpriseUserIsMember,
 	} {
 		if errors.Is(err, businessErr) {
 			common.ApiErrorMsg(c, err.Error())

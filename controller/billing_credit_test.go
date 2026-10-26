@@ -110,7 +110,7 @@ func newCreditBillingUser(t *testing.T, username string, quota int, usedQuota in
 func newCreditBillingEnterprise(t *testing.T, username string, mode string) (*model.User, *model.Enterprise) {
 	t.Helper()
 	user := newCreditBillingUser(t, username, 300, 50)
-	require.NoError(t, model.UpgradeUserToEnterprise(user.Id, &model.Enterprise{Name: username + " Co"}))
+	require.NoError(t, model.UpgradeUserToEnterprise(user.Id, &model.Enterprise{Name: username + " Co"}, ""))
 	enterprise, err := model.GetEnterpriseByUserId(user.Id)
 	require.NoError(t, err)
 	if mode == model.EnterpriseBillingModeCredit {

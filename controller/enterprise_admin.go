@@ -2,12 +2,15 @@ package controller
 
 import (
 	"errors"
+	"maps"
 	"net/http"
+	"slices"
 	"strconv"
 	"strings"
 
 	"github.com/QuantumNous/new-api/common"
 	"github.com/QuantumNous/new-api/model"
+	"github.com/QuantumNous/new-api/setting/ratio_setting"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
@@ -17,6 +20,8 @@ import (
 const (
 	enterpriseCreateModeNewUser = "new_user"
 	enterpriseCreateModeUpgrade = "upgrade"
+	// enterpriseDefaultOwnerGroup 新建主账号未指定分组时的默认分组
+	enterpriseDefaultOwnerGroup = "default"
 )
 
 type enterpriseProfileRequest struct {
@@ -29,15 +34,33 @@ type enterpriseProfileRequest struct {
 	Remark           string                         `json:"remark"`
 	// MaxTokens 企业 key 总数上限；0 沿用站点每用户上限
 	MaxTokens int `json:"max_tokens"`
+	// Group 企业主账号分组，nil 表示不修改；仅资料更新接口使用
+	Group *string `json:"group"`
 }
 
 type adminCreateEnterpriseRequest struct {
-	Mode        string                   `json:"mode"`
-	UserId      int                      `json:"user_id"`
-	Username    string                   `json:"username"`
-	Password    string                   `json:"password"`
-	DisplayName string                   `json:"display_name"`
-	Enterprise  enterpriseProfileRequest `json:"enterprise"`
+	Mode        string `json:"mode"`
+	UserId      int    `json:"user_id"`
+	Username    string `json:"username"`
+	Password    string `json:"password"`
+	DisplayName string `json:"display_name"`
+	// Email 新建主账号的登录邮箱，可空
+	Email string `json:"email"`
+	// Group 主账号分组：新建时空值为 default，升级时空值保留原分组
+	Group      string                   `json:"group"`
+	Enterprise enterpriseProfileRequest `json:"enterprise"`
+}
+
+// adminEnterpriseDetail 管理员企业详情：企业资料 + 主账号分组
+type adminEnterpriseDetail struct {
+	*model.Enterprise
+	OwnerGroup string `json:"owner_group"`
+}
+
+// enterpriseGroupOption 企业主账号可选分组及其倍率
+type enterpriseGroupOption struct {
+	Group string  `json:"group"`
+	Ratio float64 `json:"ratio"`
 }
 
 func (r enterpriseProfileRequest) toEnterprise() *model.Enterprise {
@@ -80,7 +103,22 @@ func AdminGetEnterprise(c *gin.Context) {
 		common.ApiError(c, err)
 		return
 	}
-	common.ApiSuccess(c, enterprise)
+	ownerGroup, err := model.GetUserGroup(enterprise.UserId, true)
+	if err != nil {
+		common.ApiError(c, err)
+		return
+	}
+	common.ApiSuccess(c, adminEnterpriseDetail{Enterprise: enterprise, OwnerGroup: ownerGroup})
+}
+
+// AdminListEnterpriseGroupOptions 企业主账号可选分组：分组倍率里已配置的全部分组，按名称升序
+func AdminListEnterpriseGroupOptions(c *gin.Context) {
+	ratios := ratio_setting.GetGroupRatioCopy()
+	options := make([]enterpriseGroupOption, 0, len(ratios))
+	for _, group := range slices.Sorted(maps.Keys(ratios)) {
+		options = append(options, enterpriseGroupOption{Group: group, Ratio: ratios[group]})
+	}
+	common.ApiSuccess(c, options)
 }
 
 func AdminCreateEnterprise(c *gin.Context) {
@@ -90,13 +128,19 @@ func AdminCreateEnterprise(c *gin.Context) {
 		return
 	}
 	enterprise := req.Enterprise.toEnterprise()
+	group := strings.TrimSpace(req.Group)
 
 	switch req.Mode {
 	case enterpriseCreateModeNewUser:
+		if group == "" {
+			group = enterpriseDefaultOwnerGroup
+		}
 		user := &model.User{
 			Username:    strings.TrimSpace(req.Username),
 			Password:    req.Password,
 			DisplayName: strings.TrimSpace(req.DisplayName),
+			Email:       model.NormalizeEmail(req.Email),
+			Group:       group,
 		}
 		if user.Username == "" || user.Password == "" {
 			common.ApiErrorMsg(c, "username and password are required")
@@ -105,12 +149,20 @@ func AdminCreateEnterprise(c *gin.Context) {
 		if user.DisplayName == "" {
 			user.DisplayName = user.Username
 		}
+		if user.Email != "" && common.Validate.Var(user.Email, "email,max=50") != nil {
+			common.ApiErrorT(c, "Invalid email address")
+			return
+		}
 		if err := common.Validate.Struct(user); err != nil {
 			common.ApiErrorMsg(c, "invalid user input: "+err.Error())
 			return
 		}
 		if err := model.CreateEnterpriseWithNewUser(user, enterprise); err != nil {
-			common.ApiError(c, err)
+			if errors.Is(err, model.ErrEmailAlreadyTaken) {
+				common.ApiErrorT(c, "Email address is already in use")
+				return
+			}
+			enterpriseApiError(c, err)
 			return
 		}
 	case enterpriseCreateModeUpgrade:
@@ -118,8 +170,8 @@ func AdminCreateEnterprise(c *gin.Context) {
 			common.ApiErrorMsg(c, "user_id is required")
 			return
 		}
-		if err := model.UpgradeUserToEnterprise(req.UserId, enterprise); err != nil {
-			common.ApiError(c, err)
+		if err := model.UpgradeUserToEnterprise(req.UserId, enterprise, group); err != nil {
+			enterpriseApiError(c, err)
 			return
 		}
 	default:
@@ -131,8 +183,11 @@ func AdminCreateEnterprise(c *gin.Context) {
 		"enterprise_id":   enterprise.Id,
 		"enterprise_name": enterprise.Name,
 		"mode":            req.Mode,
+		"group":           group,
 	})
-	common.ApiSuccess(c, enterprise)
+	// 与详情接口同形：升级时分组可能是「保留原分组」，前端需要拿到实际分组
+	ownerGroup, _ := model.GetUserGroup(enterprise.UserId, true)
+	common.ApiSuccess(c, adminEnterpriseDetail{Enterprise: enterprise, OwnerGroup: ownerGroup})
 }
 
 func AdminUpdateEnterprise(c *gin.Context) {
@@ -151,6 +206,14 @@ func AdminUpdateEnterprise(c *gin.Context) {
 		common.ApiError(c, err)
 		return
 	}
+	// 先校验分组再写资料，避免资料已更新而分组被拒的半成功
+	group := ""
+	if req.Group != nil {
+		if group, err = model.NormalizeEnterpriseOwnerGroup(*req.Group); err != nil {
+			enterpriseApiError(c, err)
+			return
+		}
+	}
 	enterprise := req.toEnterprise()
 	enterprise.Id = existing.Id
 	// 计费模式与状态不在资料接口里修改，沿用原值以通过校验
@@ -160,11 +223,23 @@ func AdminUpdateEnterprise(c *gin.Context) {
 		common.ApiError(c, err)
 		return
 	}
-	recordManageAuditFor(c, existing.UserId, "enterprise.update", map[string]any{
+	auditParams := map[string]any{
 		"enterprise_id":   existing.Id,
 		"enterprise_name": enterprise.Name,
 		"max_tokens":      enterprise.MaxTokens,
-	})
+	}
+	if req.Group != nil {
+		// 分组变化时 model 层已递增 auth_version、刷新缓存并吊销主账号全部会话
+		oldGroup, changed, err := model.UpdateEnterpriseOwnerGroup(existing.Id, group)
+		if err != nil {
+			enterpriseApiError(c, err)
+			return
+		}
+		if changed {
+			auditParams["group_from"], auditParams["group_to"] = oldGroup, group
+		}
+	}
+	recordManageAuditFor(c, existing.UserId, "enterprise.update", auditParams)
 	common.ApiSuccess(c, nil)
 }
 

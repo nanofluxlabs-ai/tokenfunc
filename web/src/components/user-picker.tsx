@@ -15,12 +15,21 @@ import {
 } from '@/components/ui/combobox'
 import { selectTriggerClassName } from '@/components/ui/select'
 import { searchUsers } from '@/features/users/api'
+import type { UserListType } from '@/features/users/types'
 import { useDebounce } from '@/hooks/use-debounce'
 import { ROLE } from '@/lib/roles'
 import { requireServerSuccess } from '@/lib/server-error-message'
 import { cn } from '@/lib/utils'
 
-import type { PickedUser } from '../types'
+/** 用户选择器选中的用户摘要 */
+export interface PickedUser {
+  id: number
+  username: string
+  display_name: string
+  role: number
+  /** 用户当前分组；搜索结果里总会带上 */
+  group?: string
+}
 
 type UserOption = {
   value: number
@@ -37,15 +46,19 @@ type UserPickerProps = {
   disabledIds?: number[]
   /** 管理员账号不可选（不能当推广人、不能被绑定） */
   disableAdmins?: boolean
+  /** 只搜某类用户，如 personal：排除企业主与企业员工 */
+  userType?: UserListType
   id?: string
   'aria-label'?: string
+  // FormControl 注入的可访问性属性，透传给触发按钮
+  'aria-describedby'?: string
+  'aria-invalid'?: boolean
   placeholder?: string
 }
 
 /**
  * 可搜索的「已有用户」选择器：按用户名 / ID / 邮箱 / 显示名从服务端搜索启用中的用户（最多 10 条）。
- * 能力缺口说明：仓库里没有通用的用户选择器，企业抽屉关联用户是手填 ID；
- * 这里照 enterprise-console/employee-picker 的 Combobox + useDebounce + useQuery 组合实现。
+ * 推广人与企业升级共用；照 enterprise-console/employee-picker 的 Combobox + useDebounce + useQuery 组合实现。
  */
 export function UserPicker(props: UserPickerProps) {
   const { t } = useTranslation()
@@ -54,10 +67,16 @@ export function UserPicker(props: UserPickerProps) {
   const keyword = useDebounce(search.trim(), 300)
 
   const { data, isFetching } = useQuery({
-    queryKey: ['users', 'picker', keyword],
+    queryKey: ['users', 'picker', props.userType ?? 'all', keyword],
     queryFn: async () =>
       requireServerSuccess(
-        await searchUsers({ keyword, status: '1', p: 1, page_size: 10 })
+        await searchUsers({
+          keyword,
+          status: '1',
+          p: 1,
+          page_size: 10,
+          user_type: props.userType,
+        })
       ).data?.items ?? [],
     enabled: open,
     staleTime: 30 * 1000,
@@ -65,7 +84,7 @@ export function UserPicker(props: UserPickerProps) {
 
   const options = useMemo<UserOption[]>(() => {
     const disabledIds = new Set(props.disabledIds ?? [])
-    const fromServer = (data ?? []).map((user) => ({
+    const fromServer: UserOption[] = (data ?? []).map((user) => ({
       value: user.id,
       label: `${user.username} #${user.id}`,
       description: user.display_name || '',
@@ -77,6 +96,7 @@ export function UserPicker(props: UserPickerProps) {
         username: user.username,
         display_name: user.display_name,
         role: user.role,
+        group: user.group,
       },
     }))
     if (
@@ -119,6 +139,8 @@ export function UserPicker(props: UserPickerProps) {
       <ComboboxTrigger
         id={props.id}
         aria-label={props['aria-label'] ?? t('Select user')}
+        aria-describedby={props['aria-describedby']}
+        aria-invalid={props['aria-invalid']}
         icon={UnfoldMoreIcon}
         className={cn(selectTriggerClassName, 'w-full')}
         data-size='default'

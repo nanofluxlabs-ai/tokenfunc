@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/QuantumNous/new-api/common"
+	"github.com/QuantumNous/new-api/setting/ratio_setting"
 
 	"gorm.io/gorm"
 )
@@ -49,6 +50,9 @@ const (
 var (
 	ErrEnterpriseAlreadyExists   = errors.New("user is already an enterprise account")
 	ErrEnterpriseUserNotEligible = errors.New("only active common users can be upgraded to enterprise accounts")
+	ErrEnterpriseInvalidGroup    = errors.New("invalid group")
+	// ErrEnterpriseUserIsMember 已是某企业成员（含一键开通与绑定已有账号）的登录账号不能再升级为企业主
+	ErrEnterpriseUserIsMember = errors.New("this user is an enterprise member and cannot be upgraded")
 )
 
 // EnterpriseBillingProfile 企业开票抬头，出账时快照进账单
@@ -119,6 +123,7 @@ type EnterpriseListItem struct {
 	Username         string `json:"username"`
 	DisplayName      string `json:"display_name"`
 	Email            string `json:"email"`
+	OwnerGroup       string `json:"owner_group"`
 	Quota            int    `json:"quota"`
 	UsedQuota        int    `json:"used_quota"`
 	UserStatus       int    `json:"user_status"`
@@ -229,7 +234,7 @@ func ListEnterprises(keyword string, billingMode string, startIdx int, num int) 
 	}
 	items := make([]*EnterpriseListItem, 0)
 	err := query.
-		Select("enterprises.*, users.username, users.display_name, users.email, users.quota, users.used_quota, users.status AS user_status, " +
+		Select("enterprises.*, users.username, users.display_name, users.email, users." + commonGroupCol + " AS owner_group, users.quota, users.used_quota, users.status AS user_status, " +
 			"COALESCE(open_period.limit_quota, 0) AS period_limit_quota, COALESCE(open_period.used_quota, 0) AS period_used_quota, " +
 			"COALESCE(open_period.start_at, 0) AS period_start_at, COALESCE(open_period.end_at, 0) AS period_end_at, " +
 			"(SELECT COUNT(*) FROM ent_members m WHERE m.enterprise_id = enterprises.id AND m.deleted_at IS NULL) AS member_count, " +
@@ -243,14 +248,29 @@ func ListEnterprises(keyword string, billingMode string, startIdx int, num int) 
 	return items, total, nil
 }
 
+// NormalizeEnterpriseOwnerGroup 去空格并校验企业主账号分组：必须是分组倍率里已配置的分组
+func NormalizeEnterpriseOwnerGroup(group string) (string, error) {
+	group = strings.TrimSpace(group)
+	if group == "" || !ratio_setting.ContainsGroupRatio(group) {
+		return "", ErrEnterpriseInvalidGroup
+	}
+	return group, nil
+}
+
 // CreateEnterpriseWithNewUser 新建企业主账号并创建企业资料（同一事务）。
 // 企业主账号不发放新用户赠送额度，预付余额只能由管理员登记线下转账充值。
+// user.Group 必须是已配置的分组，user.Email 可空（非空时与其它账号去重）。
 func CreateEnterpriseWithNewUser(user *User, enterprise *Enterprise) error {
 	if err := enterprise.Normalize(); err != nil {
 		return err
 	}
+	group, err := NormalizeEnterpriseOwnerGroup(user.Group)
+	if err != nil {
+		return err
+	}
+	user.Group = group
 	user.Role = common.RoleCommonUser
-	err := DB.Transaction(func(tx *gorm.DB) error {
+	err = DB.Transaction(func(tx *gorm.DB) error {
 		if err := user.InsertWithTx(tx, 0); err != nil {
 			return err
 		}
@@ -278,11 +298,20 @@ func CreateEnterpriseWithNewUser(user *User, enterprise *Enterprise) error {
 	return nil
 }
 
-// UpgradeUserToEnterprise 把已有的普通用户升级为企业主账号，保留其现有余额与历史
-func UpgradeUserToEnterprise(userId int, enterprise *Enterprise) error {
+// UpgradeUserToEnterprise 把已有的普通用户升级为企业主账号，保留其现有余额与历史。
+// group 为空保留原分组，非空且与原分组不同时同事务改分组并让该用户的登录态失效（auth_version +1）
+func UpgradeUserToEnterprise(userId int, enterprise *Enterprise, group string) error {
 	if err := enterprise.Normalize(); err != nil {
 		return err
 	}
+	if group != "" {
+		normalized, err := NormalizeEnterpriseOwnerGroup(group)
+		if err != nil {
+			return err
+		}
+		group = normalized
+	}
+	groupChanged := false
 	err := DB.Transaction(func(tx *gorm.DB) error {
 		var user User
 		if err := lockForUpdate(tx).First(&user, "id = ?", userId).Error; err != nil {
@@ -291,12 +320,26 @@ func UpgradeUserToEnterprise(userId int, enterprise *Enterprise) error {
 		if user.Role != common.RoleCommonUser || user.Status != common.UserStatusEnabled {
 			return ErrEnterpriseUserNotEligible
 		}
+		// 员工账号的消费计入所属企业，再升级会形成「既是员工又是企业主」的双重身份；软删除的成员已离职，不拦
+		var memberCount int64
+		if err := tx.Model(&EnterpriseMember{}).Where("user_id = ?", userId).Count(&memberCount).Error; err != nil {
+			return err
+		}
+		if memberCount > 0 {
+			return ErrEnterpriseUserIsMember
+		}
 		var count int64
 		if err := tx.Model(&Enterprise{}).Where("user_id = ?", userId).Count(&count).Error; err != nil {
 			return err
 		}
 		if count > 0 {
 			return ErrEnterpriseAlreadyExists
+		}
+		if group != "" && group != user.Group {
+			if err := setUserGroupWithTx(tx, userId, group); err != nil {
+				return err
+			}
+			groupChanged = true
 		}
 		now := common.GetTimestamp()
 		enterprise.Id = 0
@@ -314,7 +357,59 @@ func UpgradeUserToEnterprise(userId int, enterprise *Enterprise) error {
 	}
 	// 升级前该用户一定被当作非企业用户缓存过（负缓存），立刻失效消除 15s 内仍可在线充值的窗口
 	InvalidateEnterpriseBillingInfo(userId)
+	if groupChanged {
+		return publishUserGroupChange(userId, "admin_enterprise_group")
+	}
 	return nil
+}
+
+// UpdateEnterpriseOwnerGroup 修改企业主账号分组：分组决定可用模型与倍率，属于鉴权敏感变更，
+// 变化时同事务 auth_version +1，提交后刷新用户缓存并吊销该账号全部会话。返回修改前的分组与是否发生变化
+func UpdateEnterpriseOwnerGroup(enterpriseId int, group string) (string, bool, error) {
+	group, err := NormalizeEnterpriseOwnerGroup(group)
+	if err != nil {
+		return "", false, err
+	}
+	var ownerId int
+	var oldGroup string
+	changed := false
+	err = DB.Transaction(func(tx *gorm.DB) error {
+		var enterprise Enterprise
+		if err := tx.Select("id", "user_id").First(&enterprise, "id = ?", enterpriseId).Error; err != nil {
+			return err
+		}
+		var owner User
+		if err := lockForUpdate(tx).Select("id", commonGroupCol).First(&owner, "id = ?", enterprise.UserId).Error; err != nil {
+			return err
+		}
+		ownerId, oldGroup = owner.Id, owner.Group
+		if owner.Group == group {
+			return nil
+		}
+		changed = true
+		return setUserGroupWithTx(tx, owner.Id, group)
+	})
+	if err != nil || !changed {
+		return oldGroup, false, err
+	}
+	return oldGroup, true, publishUserGroupChange(ownerId, "admin_enterprise_group")
+}
+
+// setUserGroupWithTx 在调用方事务内改用户分组并递增 auth_version（与上游 EditWithTx 改分组同一语义）
+func setUserGroupWithTx(tx *gorm.DB, userId int, group string) error {
+	if _, err := IncrementUserAuthVersionWithTx(tx, userId); err != nil {
+		return err
+	}
+	return tx.Model(&User{}).Where("id = ?", userId).Update("group", group).Error
+}
+
+// publishUserGroupChange 分组变更提交后：刷新用户缓存（auth_version 与分组），并吊销该账号全部会话
+func publishUserGroupChange(userId int, reason string) error {
+	if err := PublishUserAuthCache(userId); err != nil {
+		return err
+	}
+	_, err := RevokeAllUserSessions(userId, reason)
+	return err
 }
 
 // UpdateEnterpriseProfile 更新企业资料（不含计费模式与授信配置，授信由专门接口维护）

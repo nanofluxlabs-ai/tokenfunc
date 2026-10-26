@@ -3,6 +3,8 @@ import dayjs from 'dayjs'
 import { useTranslation } from 'react-i18next'
 
 import { CopyButton } from '@/components/copy-button'
+import { BadgeCell } from '@/components/data-table'
+import { GroupBadge } from '@/components/group-badge'
 import { StatusBadge } from '@/components/status-badge'
 import { TableId } from '@/components/table-id'
 import { UsageLogsUserLink } from '@/components/usage-logs-user-link'
@@ -66,6 +68,22 @@ export function useEnterprisesColumns(): ColumnDef<EnterpriseListItem>[] {
         />
       ),
       size: 140,
+    },
+    {
+      accessorKey: 'owner_group',
+      header: t('Group'),
+      meta: { mobileHidden: true },
+      // 企业主账号的分组即企业所有 key 的分组，徽标与上游用户列表一致
+      cell: ({ row }) => (
+        <BadgeCell>
+          <GroupBadge
+            group={row.original.owner_group}
+            className='font-normal'
+          />
+        </BadgeCell>
+      ),
+      enableSorting: false,
+      size: 120,
     },
     {
       accessorKey: 'email',

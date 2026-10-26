@@ -34,6 +34,8 @@ export interface Enterprise {
   status: EnterpriseStatus
   /** 企业 key 总数上限；0 表示沿用站点每用户上限 */
   max_tokens: number
+  /** 企业主账号的分组：决定企业所有 key 可用的分组与倍率 */
+  owner_group: string
   remark: string
   created_at: number
   updated_at: number
@@ -76,13 +78,28 @@ export interface EnterpriseProfilePayload {
   max_tokens: number
 }
 
+/** 编辑企业：group 不传即不改；改了分组企业主账号会被强制下线 */
+export interface UpdateEnterprisePayload extends EnterpriseProfilePayload {
+  group?: string
+}
+
 export interface CreateEnterprisePayload {
   mode: EnterpriseCreateMode
   user_id?: number
   username?: string
   password?: string
   display_name?: string
+  /** 新建账号的登录邮箱，可空 */
+  email?: string
+  /** 新建账号留空即 default；升级已有用户留空即保留其原分组 */
+  group?: string
   enterprise: EnterpriseProfilePayload
+}
+
+/** 企业可选分组与倍率 */
+export interface EnterpriseGroupOption {
+  group: string
+  ratio: number
 }
 
 export interface ApiResponse<T = unknown> {

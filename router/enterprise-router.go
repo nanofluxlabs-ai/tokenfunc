@@ -13,6 +13,7 @@ func registerEnterpriseRoutes(apiRouter *gin.RouterGroup) {
 	adminRoute := apiRouter.Group("/admin/enterprise")
 	adminRoute.Use(middleware.AdminAuth())
 	{
+		adminRoute.GET("/group-options", controller.AdminListEnterpriseGroupOptions)
 		adminRoute.GET("/enterprises", controller.AdminListEnterprises)
 		adminRoute.POST("/enterprises", controller.AdminCreateEnterprise)
 		adminRoute.GET("/enterprises/:id", controller.AdminGetEnterprise)

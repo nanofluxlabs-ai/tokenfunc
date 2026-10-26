@@ -18,11 +18,12 @@ import type {
   CreateEnterprisePayload,
   CreditConfigPayload,
   Enterprise,
-  EnterpriseProfilePayload,
+  EnterpriseGroupOption,
   EnterpriseStatus,
   ListEnterpriseMembersParams,
   ListEnterprisesParams,
   ListEnterprisesResponse,
+  UpdateEnterprisePayload,
 } from './types'
 
 const ADMIN_ENTERPRISE_BASE = '/api/admin/enterprise/enterprises'
@@ -61,24 +62,45 @@ export async function createEnterprise(
 
 export async function updateEnterprise(
   id: number,
-  payload: EnterpriseProfilePayload
+  payload: UpdateEnterprisePayload
 ): Promise<ApiResponse> {
   const res = await api.put(`${ADMIN_ENTERPRISE_BASE}/${id}`, payload)
   return res.data
 }
 
-export async function configureEnterpriseCredit(
-  id: number,
-  payload: CreditConfigPayload
-): Promise<ApiResponse> {
-  const res = await api.put(`${ADMIN_ENTERPRISE_BASE}/${id}/credit`, payload)
+export async function listEnterpriseGroupOptions(): Promise<
+  ApiResponse<EnterpriseGroupOption[]>
+> {
+  const res = await api.get('/api/admin/enterprise/group-options')
   return res.data
 }
 
-export async function disableEnterpriseCredit(
-  id: number
+/**
+ * 开通或修改授信；需要 `admin.user.manage` + action `enterprise_credit`
+ * 绑定企业主 user_id 的二次验证凭证
+ */
+export async function configureEnterpriseCredit(
+  id: number,
+  payload: CreditConfigPayload,
+  proofToken: string
 ): Promise<ApiResponse> {
-  const res = await api.delete(`${ADMIN_ENTERPRISE_BASE}/${id}/credit`)
+  const res = await api.put(
+    `${ADMIN_ENTERPRISE_BASE}/${id}/credit`,
+    payload,
+    securityProofConfig(proofToken)
+  )
+  return res.data
+}
+
+/** 切回预付；二次验证同 configureEnterpriseCredit */
+export async function disableEnterpriseCredit(
+  id: number,
+  proofToken: string
+): Promise<ApiResponse> {
+  const res = await api.delete(
+    `${ADMIN_ENTERPRISE_BASE}/${id}/credit`,
+    securityProofConfig(proofToken)
+  )
   return res.data
 }
 

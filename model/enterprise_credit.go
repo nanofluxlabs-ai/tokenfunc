@@ -112,14 +112,14 @@ func (c EnterpriseCreditConfig) validate() error {
 			return fmt.Errorf("%w: cycle days must be between 1 and 366", ErrEnterpriseCreditConfig)
 		}
 	case EnterpriseCreditCycleQuotaBased:
-		// 额度为 0 时首次预扣就会"用满"，翻转后新期仍为 0，陷入死循环；额度信用必须有正额度
-		if c.LimitQuota <= 0 {
-			return fmt.Errorf("%w: quota based credit requires a positive limit", ErrEnterpriseCreditConfig)
-		}
 	default:
 		return fmt.Errorf("%w: unknown cycle type %q", ErrEnterpriseCreditConfig, c.CycleType)
 	}
-	if c.LimitQuota < 0 || c.LimitQuota > common.MaxWalletQuota {
+	// 授信额度必须为正：额度为 0 时开通即全部拒绝；额度信用更会在首次预扣就"用满"翻转、新期仍为 0 陷入死循环
+	if c.LimitQuota <= 0 {
+		return fmt.Errorf("%w: credit limit must be positive", ErrEnterpriseCreditConfig)
+	}
+	if c.LimitQuota > common.MaxWalletQuota {
 		return fmt.Errorf("%w: credit limit out of range", ErrEnterpriseCreditConfig)
 	}
 	return nil

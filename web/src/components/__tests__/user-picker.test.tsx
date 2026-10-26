@@ -3,13 +3,12 @@ import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { useState } from 'react'
 import { afterEach, beforeEach, expect, test, vi } from 'vitest'
 
-import { UserPicker } from '../components/user-picker'
-import type { PickedUser } from '../types'
+import { type PickedUser, UserPicker } from '../user-picker'
 
 const searchUsersMock = vi.hoisted(() => vi.fn())
 vi.mock('@/features/users/api', () => ({ searchUsers: searchUsersMock }))
 
-function user(id: number, username: string, role = 1) {
+function user(id: number, username: string, role = 1, group = 'default') {
   return {
     id,
     username,
@@ -19,11 +18,13 @@ function user(id: number, username: string, role = 1) {
     quota: 0,
     used_quota: 0,
     request_count: 0,
-    group: 'default',
+    group,
   }
 }
 
-function Harness(props: { disabledIds?: number[] }) {
+type HarnessProps = { disabledIds?: number[]; userType?: 'personal' }
+
+function Harness(props: HarnessProps) {
   const [value, setValue] = useState<PickedUser | null>(null)
   return (
     <>
@@ -31,14 +32,17 @@ function Harness(props: { disabledIds?: number[] }) {
         value={value}
         onChange={setValue}
         disabledIds={props.disabledIds}
+        userType={props.userType}
         aria-label='User'
       />
-      <output data-testid='picked'>{value ? value.id : 'none'}</output>
+      <output data-testid='picked'>
+        {value ? `${value.id}:${value.group}` : 'none'}
+      </output>
     </>
   )
 }
 
-function renderPicker(props: { disabledIds?: number[] } = {}) {
+function renderPicker(props: HarnessProps = {}) {
   const client = new QueryClient({
     defaultOptions: { queries: { retry: false } },
   })
@@ -53,7 +57,11 @@ beforeEach(() => {
   searchUsersMock.mockResolvedValue({
     success: true,
     data: {
-      items: [user(7, 'alice'), user(9, 'root', 100), user(11, 'bob')],
+      items: [
+        user(7, 'alice', 1, 'vip'),
+        user(9, 'root', 100),
+        user(11, 'bob'),
+      ],
       total: 3,
     },
   })
@@ -94,8 +102,26 @@ test('selecting an option reports the user and shows it in the trigger', async (
   fireEvent.click(screen.getByRole('combobox', { name: 'User' }))
   fireEvent.click(await screen.findByRole('option', { name: /alice #7/ }))
 
-  expect(screen.getByTestId('picked')).toHaveTextContent('7')
+  expect(screen.getByTestId('picked')).toHaveTextContent('7:vip')
   expect(screen.getByRole('combobox', { name: 'User' })).toHaveTextContent(
     'alice #7'
   )
+})
+
+test('a user type limits the search to that kind of user', async () => {
+  renderPicker({ userType: 'personal' })
+  fireEvent.click(screen.getByRole('combobox', { name: 'User' }))
+
+  await screen.findByRole('option', { name: /alice #7/ })
+  expect(searchUsersMock).toHaveBeenCalledWith(
+    expect.objectContaining({ status: '1', user_type: 'personal' })
+  )
+})
+
+test('without a user type no user_type filter is sent', async () => {
+  renderPicker()
+  fireEvent.click(screen.getByRole('combobox', { name: 'User' }))
+
+  await screen.findByRole('option', { name: /alice #7/ })
+  expect(searchUsersMock.mock.calls[0][0].user_type).toBeUndefined()
 })

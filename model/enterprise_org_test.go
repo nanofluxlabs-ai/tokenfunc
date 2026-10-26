@@ -17,7 +17,7 @@ import (
 func newEnterpriseForTest(t *testing.T, username string, name string) (*User, *Enterprise) {
 	t.Helper()
 	owner := createEnterpriseTestUser(t, username, common.RoleCommonUser)
-	require.NoError(t, UpgradeUserToEnterprise(owner.Id, &Enterprise{Name: name}))
+	require.NoError(t, UpgradeUserToEnterprise(owner.Id, &Enterprise{Name: name}, ""))
 	ent, err := GetEnterpriseByUserId(owner.Id)
 	require.NoError(t, err)
 	return owner, ent
@@ -445,7 +445,7 @@ func TestEnterpriseOrgV2Migration(t *testing.T) {
 	setupEnterprisePostgres(t)
 	owner := createEnterpriseTestUser(t, "migowner", common.RoleCommonUser)
 	t.Cleanup(func() { _ = DB.Exec("DROP TABLE IF EXISTS ent_usage_daily_legacy").Error })
-	require.NoError(t, UpgradeUserToEnterprise(owner.Id, &Enterprise{Name: "Mig Co"}))
+	require.NoError(t, UpgradeUserToEnterprise(owner.Id, &Enterprise{Name: "Mig Co"}, ""))
 	ent, err := GetEnterpriseByUserId(owner.Id)
 	require.NoError(t, err)
 

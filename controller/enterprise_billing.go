@@ -2,15 +2,21 @@ package controller
 
 import (
 	"errors"
+	"net/http"
 	"strconv"
 	"time"
 
 	"github.com/QuantumNous/new-api/common"
 	"github.com/QuantumNous/new-api/model"
+	"github.com/QuantumNous/new-api/service"
 
 	"github.com/gin-gonic/gin"
 	"github.com/shopspring/decimal"
+	"gorm.io/gorm"
 )
+
+// enterpriseCreditVerificationAction 开通 / 修改授信与切回预付的二次验证动作名（service.adminUserManageActions 白名单）
+const enterpriseCreditVerificationAction = "enterprise_credit"
 
 // 金额在接口层用 USD（小数）表达，内部换算成 quota 整数
 func usdToQuota(usd float64) (int, error) {
@@ -30,7 +36,27 @@ type adminEnterpriseCreditRequest struct {
 	AutoReset bool `json:"auto_reset"`
 }
 
-// AdminConfigureEnterpriseCredit 开通/修改授信（额度立即生效，周期从下一期生效）
+// loadEnterpriseForCreditChange 读取授信变更的目标企业并要求管理员二次验证（proof 走 X-Security-Proof 请求头）；
+// 失败时已写响应并返回 nil
+func loadEnterpriseForCreditChange(c *gin.Context, id int) (*model.Enterprise, *model.AuthFlowAuthorization) {
+	enterprise, err := model.GetEnterpriseById(id)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			c.JSON(http.StatusNotFound, gin.H{"success": false, "message": "enterprise not found"})
+			return nil, nil
+		}
+		common.ApiError(c, err)
+		return nil, nil
+	}
+	authorization := requireAdminUserProof(c, service.VerificationScopeAdminUserManage, service.AdminUserManageContext{UserID: enterprise.UserId, Action: enterpriseCreditVerificationAction})
+	if authorization == nil {
+		return nil, nil
+	}
+	return enterprise, authorization
+}
+
+// AdminConfigureEnterpriseCredit 开通/修改授信（额度立即生效，周期从下一期生效）。
+// 参数校验在二次验证之前，验证在任何授信写入之前
 func AdminConfigureEnterpriseCredit(c *gin.Context) {
 	id, ok := paramId(c)
 	if !ok {
@@ -51,9 +77,13 @@ func AdminConfigureEnterpriseCredit(c *gin.Context) {
 		AlertPercent: model.EnterpriseDefaultCreditAlertPercent,
 		AutoReset:    req.CycleType == model.EnterpriseCreditCycleQuotaBased && req.AutoReset,
 	}
+	current, authorization := loadEnterpriseForCreditChange(c, id)
+	if authorization == nil {
+		return
+	}
 	if req.AlertPercent != nil {
 		config.AlertPercent = *req.AlertPercent
-	} else if current, err := model.GetEnterpriseById(id); err == nil && current.BillingMode == model.EnterpriseBillingModeCredit {
+	} else if current.BillingMode == model.EnterpriseBillingModeCredit {
 		config.AlertPercent = current.CreditAlertPercent
 	}
 	if err := model.ConfigureEnterpriseCredit(id, config, c.GetInt("id")); err != nil {
@@ -64,10 +94,9 @@ func AdminConfigureEnterpriseCredit(c *gin.Context) {
 		enterpriseApiError(c, err)
 		return
 	}
-	enterprise, _ := model.GetEnterpriseById(id)
-	recordManageAuditFor(c, enterpriseOwnerId(enterprise), "enterprise.credit.configure", map[string]any{
+	recordManageAuditFor(c, current.UserId, "enterprise.credit.configure", map[string]any{
 		"enterprise_id": id, "cycle_type": req.CycleType, "cycle_days": req.CycleDays, "limit_usd": req.LimitUSD, "alert_percent": config.AlertPercent,
-		"auto_reset": config.AutoReset,
+		"auto_reset": config.AutoReset, "verification_method": authorization.Method,
 	})
 	common.ApiSuccess(c, nil)
 }
@@ -100,12 +129,17 @@ func AdminSwitchEnterprisePrepaid(c *gin.Context) {
 	if !ok {
 		return
 	}
+	enterprise, authorization := loadEnterpriseForCreditChange(c, id)
+	if authorization == nil {
+		return
+	}
 	if err := model.SwitchEnterpriseToPrepaid(id, c.GetInt("id")); err != nil {
 		enterpriseApiError(c, err)
 		return
 	}
-	enterprise, _ := model.GetEnterpriseById(id)
-	recordManageAuditFor(c, enterpriseOwnerId(enterprise), "enterprise.credit.disable", map[string]any{"enterprise_id": id})
+	recordManageAuditFor(c, enterprise.UserId, "enterprise.credit.disable", map[string]any{
+		"enterprise_id": id, "verification_method": authorization.Method,
+	})
 	common.ApiSuccess(c, nil)
 }
 

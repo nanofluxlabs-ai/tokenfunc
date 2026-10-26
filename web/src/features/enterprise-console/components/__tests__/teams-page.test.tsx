@@ -224,6 +224,10 @@ describe('EnterpriseTeams', () => {
       screen.getByRole('button', { name: 'Import CSV' })
     ).toBeInTheDocument()
     expect(screen.getAllByRole('button', { name: 'Open menu' })).toHaveLength(2)
+    // 团队行的编辑 / 设管理员 / 归档 / 删除收进竖向三点菜单
+    expect(
+      screen.getAllByRole('button', { name: 'Team actions' }).length
+    ).toBeGreaterThan(0)
   })
 
   test('a developer only sees their own team and the issue-key action', async () => {
@@ -235,6 +239,7 @@ describe('EnterpriseTeams', () => {
     expect(screen.queryByRole('button', { name: 'Add Team' })).toBeNull()
     expect(screen.queryByRole('button', { name: 'Add Member' })).toBeNull()
     expect(screen.queryByRole('button', { name: 'Open menu' })).toBeNull()
+    expect(screen.queryByRole('button', { name: 'Team actions' })).toBeNull()
     expect(
       screen.getAllByRole('button', { name: 'Issue API Key' })
     ).toHaveLength(2)

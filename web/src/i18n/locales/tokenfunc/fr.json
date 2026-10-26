@@ -1426,6 +1426,7 @@
     "Requests and quota consumed today and this month by this key.": "Requêtes et quota consommés aujourd’hui et ce mois-ci par cette clé.",
     "Error code": "Code d’erreur",
     "HTTP status": "Statut HTTP",
-    "This bill was issued before unit prices were snapshotted; the breakdown below is computed from current logs.": "Cette facture a été émise avant le gel des prix unitaires ; le détail ci-dessous est calculé à partir des journaux actuels."
+    "This bill was issued before unit prices were snapshotted; the breakdown below is computed from current logs.": "Cette facture a été émise avant le gel des prix unitaires ; le détail ci-dessous est calculé à partir des journaux actuels.",
+    "Team actions": "Actions de l’équipe"
   }
 }

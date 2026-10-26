@@ -75,6 +75,19 @@ export function MemberPicker(props: MemberPickerProps) {
     staleTime: 30 * 1000,
   })
 
+  // 从 URL 深链进来时只有 id：弹层未打开、调用方也没给 selectedLabel，按 id 回查一次成员名
+  const needsLabel = props.value > 0 && !props.selectedLabel
+  const selectedMember = useQuery({
+    queryKey: ['enterprise', 'members', 'by-id', props.value],
+    queryFn: async () =>
+      requireServerSuccess(
+        await listMembers({ member_id: props.value, page_size: 1 })
+      ).data?.items[0] ?? null,
+    enabled: needsLabel,
+    staleTime: 30 * 1000,
+  })
+  const selectedLabel = props.selectedLabel ?? selectedMember.data?.name
+
   const options = useMemo<MemberOption[]>(() => {
     const fixed: MemberOption[] = []
     if (props.allowAny) {
@@ -91,23 +104,16 @@ export function MemberPicker(props: MemberPickerProps) {
     const hasSelected =
       props.value <= 0 ||
       fromServer.some((option) => option.value === props.value)
-    if (!hasSelected && props.selectedLabel) {
-      fromServer.unshift({ value: props.value, label: props.selectedLabel })
+    if (!hasSelected && selectedLabel) {
+      fromServer.unshift({ value: props.value, label: selectedLabel })
     }
     return [...fixed, ...fromServer]
-  }, [
-    data,
-    props.allowAny,
-    props.noneLabel,
-    props.value,
-    props.selectedLabel,
-    t,
-  ])
+  }, [data, props.allowAny, props.noneLabel, props.value, selectedLabel, t])
 
   const selected =
     options.find((option) => option.value === props.value) ?? null
   // 弹层未打开时搜索结果可能为空，已选成员靠 selectedLabel 回显
-  const displayedLabel = selected?.label ?? props.selectedLabel ?? ''
+  const displayedLabel = selected?.label ?? selectedLabel ?? ''
 
   return (
     <Combobox

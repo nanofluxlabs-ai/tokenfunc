@@ -1426,6 +1426,7 @@
     "Requests and quota consumed today and this month by this key.": "Запросы и квота, израсходованные этим ключом сегодня и за текущий месяц.",
     "Error code": "Код ошибки",
     "HTTP status": "HTTP-статус",
-    "This bill was issued before unit prices were snapshotted; the breakdown below is computed from current logs.": "Этот счёт был выставлен до фиксации цен; приведённая ниже разбивка рассчитана по текущим журналам."
+    "This bill was issued before unit prices were snapshotted; the breakdown below is computed from current logs.": "Этот счёт был выставлен до фиксации цен; приведённая ниже разбивка рассчитана по текущим журналам.",
+    "Team actions": "Действия с командой"
   }
 }

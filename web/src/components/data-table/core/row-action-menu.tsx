@@ -16,7 +16,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import { MoreHorizontal } from 'lucide-react'
+import { MoreHorizontal, MoreVertical } from 'lucide-react'
 import * as React from 'react'
 
 import { Button } from '@/components/ui/button'
@@ -33,6 +33,9 @@ type DataTableRowActionMenuProps = {
   contentClassName?: string
   modal?: boolean
   onOpenChange?: (open: boolean) => void
+  /** 触发图标方向：列表行用横向三点（默认），侧栏紧凑行用竖向三点 */
+  icon?: 'horizontal' | 'vertical'
+  size?: 'icon' | 'icon-sm'
 }
 
 export function DataTableRowActionMenu(props: DataTableRowActionMenuProps) {
@@ -42,13 +45,17 @@ export function DataTableRowActionMenu(props: DataTableRowActionMenuProps) {
         render={
           <Button
             variant='ghost'
-            size='icon'
+            size={props.size ?? 'icon'}
             className='data-popup-open:bg-muted'
             aria-label={props.ariaLabel}
           />
         }
       >
-        <MoreHorizontal aria-hidden='true' />
+        {props.icon === 'vertical' ? (
+          <MoreVertical aria-hidden='true' />
+        ) : (
+          <MoreHorizontal aria-hidden='true' />
+        )}
       </DropdownMenuTrigger>
       <DropdownMenuContent
         align='end'

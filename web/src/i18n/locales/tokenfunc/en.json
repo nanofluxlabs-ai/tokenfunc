@@ -1426,6 +1426,7 @@
     "Requests and quota consumed today and this month by this key.": "Requests and quota consumed today and this month by this key.",
     "Error code": "Error code",
     "HTTP status": "HTTP status",
-    "This bill was issued before unit prices were snapshotted; the breakdown below is computed from current logs.": "This bill was issued before unit prices were snapshotted; the breakdown below is computed from current logs."
+    "This bill was issued before unit prices were snapshotted; the breakdown below is computed from current logs.": "This bill was issued before unit prices were snapshotted; the breakdown below is computed from current logs.",
+    "Team actions": "Team actions"
   }
 }

@@ -54,6 +54,13 @@
 - 接口复验：`make api` 重启后用周期限额 key 调 `/v1/enterprise/employee/me`，返回 `team.budget_state=none`、`key.quota_policy={reset_period:daily, period_quota:500000, next_reset_at:…}`。
 - 浏览器复验：发放密钥抽屉周期下拉显示「每天」并可选；密钥页表头「本月消耗」；`/enterprise/usage?member_id=2` 顶部出现「成员: 王五」与「清除筛选」；`/enterprise/bills/1`（旧快照）显示「按当前日志实时计算」提示 + 按令牌分组 / 按天汇总表，与财务中心同一账单一致；文档页错误码表表头「错误码 / HTTP 状态」、`usage` 示例为 `{requests, quota}`；管理端 Billing 抽屉调账 +1 后头部余额 199 → 200 即时更新。
 
+## 追加：用户手机验收反馈（2026-10-26 早）
+
+- **密钥状态显示 `undefined`**：不是代码问题，是主 checkout 的 API 进程在合入「派生四态」分支后没重启，前端已读 `effective_status` 而旧进程不返回；`make api` 重启即恢复。
+- **团队列表操作太挤**：团队行的编辑 / 设管理员 / 归档 / 删除四个图标按钮收进一个竖向三点菜单，放在团队名最右侧；`DataTableRowActionMenu` 新增 `icon='vertical'` 与 `size='icon-sm'` 两个可选属性，菜单项样式与密钥页行菜单一致；aria-label 用新键 `Team actions`（七语言）。
+- **从成员行密钥数进密钥页时持有人筛选不回显**：`MemberPicker` 只在弹层打开后才搜索成员，深链只有 id 时没有标签可显示；现在 `value>0` 且调用方没给 `selectedLabel` 时按 `member_id` 回查一次成员名。
+- 验证：`bun run typecheck`；`bunx vitest run src/features/enterprise-console src/i18n` 17 文件 64 用例通过；oxlint 改动文件 0 error；浏览器复验见下。
+
 ## 遗留
 
 - 验收时在 dev 库造的 `qa-admin`（id 6）与 acme 下的 key `wangwu-daily`、-1 美元调账流水是测试数据，可保留给后续验收。

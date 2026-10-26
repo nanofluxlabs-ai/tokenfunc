@@ -1426,6 +1426,7 @@
     "Requests and quota consumed today and this month by this key.": "這把金鑰今日與本月的請求數與消耗。",
     "Error code": "錯誤碼",
     "HTTP status": "HTTP 狀態",
-    "This bill was issued before unit prices were snapshotted; the breakdown below is computed from current logs.": "該帳單出帳時尚未凍結單價快照，以下明細依目前日誌即時計算。"
+    "This bill was issued before unit prices were snapshotted; the breakdown below is computed from current logs.": "該帳單出帳時尚未凍結單價快照，以下明細依目前日誌即時計算。",
+    "Team actions": "團隊操作"
   }
 }

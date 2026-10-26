@@ -5,7 +5,8 @@ import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 
 import { ConfirmDialog } from '@/components/confirm-dialog'
-import { Button } from '@/components/ui/button'
+import { DataTableRowActionMenu } from '@/components/data-table'
+import { DropdownMenuItem } from '@/components/ui/dropdown-menu'
 import { handleServerError } from '@/lib/handle-server-error'
 import { cn } from '@/lib/utils'
 
@@ -71,46 +72,34 @@ function TeamRow(props: {
         <TeamBudgetMeter team={team} />
       </button>
       {props.canManage && (
-        <div className='flex opacity-0 group-focus-within:opacity-100 group-hover:opacity-100'>
-          <Button
-            variant='ghost'
-            size='icon-sm'
-            aria-label={t('Edit')}
-            onClick={() => props.onEdit(team)}
-          >
-            <Pencil />
-          </Button>
+        <DataTableRowActionMenu
+          ariaLabel={t('Team actions')}
+          icon='vertical'
+          size='icon-sm'
+          modal={false}
+        >
+          <DropdownMenuItem onClick={() => props.onEdit(team)}>
+            <Pencil className='size-4' /> {t('Edit')}
+          </DropdownMenuItem>
           {!archived && (
-            <Button
-              variant='ghost'
-              size='icon-sm'
-              aria-label={t('Set team admin')}
-              onClick={() => props.onSetAdmin(team)}
-            >
-              <UserCog />
-            </Button>
+            <DropdownMenuItem onClick={() => props.onSetAdmin(team)}>
+              <UserCog className='size-4' /> {t('Set team admin')}
+            </DropdownMenuItem>
           )}
           {!team.is_default && !archived && (
-            <Button
-              variant='ghost'
-              size='icon-sm'
-              aria-label={t('Archive')}
-              onClick={() => props.onArchive(team)}
-            >
-              <Archive />
-            </Button>
+            <DropdownMenuItem onClick={() => props.onArchive(team)}>
+              <Archive className='size-4' /> {t('Archive')}
+            </DropdownMenuItem>
           )}
           {!team.is_default && (
-            <Button
-              variant='ghost'
-              size='icon-sm'
-              aria-label={t('Delete')}
+            <DropdownMenuItem
+              variant='destructive'
               onClick={() => props.onDelete(team)}
             >
-              <Trash2 />
-            </Button>
+              <Trash2 className='size-4' /> {t('Delete')}
+            </DropdownMenuItem>
           )}
-        </div>
+        </DataTableRowActionMenu>
       )}
     </div>
   )

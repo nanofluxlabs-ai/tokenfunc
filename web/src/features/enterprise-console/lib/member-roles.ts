@@ -56,6 +56,16 @@ export function assignableRolesFor(
   )
 }
 
+/**
+ * 企业账户：企业主与企业一键开通的登录账号。他们的钱包与 key 都在企业名下，
+ * 后台只看企业菜单、落地页为企业概览；绑定已有账号的成员仍是普通钱包，不算企业账户
+ */
+export function isEnterpriseAccount(
+  actor: EnterpriseActor | null | undefined
+): boolean {
+  return Boolean(actor && (actor.is_owner || actor.provisioned))
+}
+
 /** 团队角色（team_admin / developer）只能看到自己团队 */
 export function isTeamScoped(actor: EnterpriseActor | null | undefined) {
   return Boolean(actor) && !actorAtLeast(actor, 'enterprise_admin')

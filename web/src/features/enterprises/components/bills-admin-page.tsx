@@ -9,6 +9,7 @@ import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 
 import { ConfirmDialog } from '@/components/confirm-dialog'
+import { SimplePager } from '@/components/simple-pager'
 import { Button } from '@/components/ui/button'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Textarea } from '@/components/ui/textarea'
@@ -57,7 +58,6 @@ export function BillsAdminContent(props: {
     placeholderData: keepPreviousData,
   })
   const total = data?.total ?? 0
-  const pageCount = Math.max(1, Math.ceil(total / PAGE_SIZE))
   const refresh = () =>
     void queryClient.invalidateQueries({ queryKey: ['admin-enterprise'] })
 
@@ -146,28 +146,12 @@ export function BillsAdminContent(props: {
           ) : null
         }
       />
-      <div className='text-muted-foreground flex items-center justify-end gap-2 text-sm'>
-        <span>{t('Total: {{count}}', { count: total })}</span>
-        <Button
-          variant='outline'
-          size='sm'
-          disabled={page <= 1}
-          onClick={() => setPage(page - 1)}
-        >
-          {t('Previous')}
-        </Button>
-        <span>
-          {page} / {pageCount}
-        </span>
-        <Button
-          variant='outline'
-          size='sm'
-          disabled={page >= pageCount}
-          onClick={() => setPage(page + 1)}
-        >
-          {t('Next')}
-        </Button>
-      </div>
+      <SimplePager
+        page={page}
+        pageSize={PAGE_SIZE}
+        total={total}
+        onPageChange={setPage}
+      />
       <BillPaymentDialog
         bill={paying}
         onOpenChange={(open) => !open && setPaying(null)}

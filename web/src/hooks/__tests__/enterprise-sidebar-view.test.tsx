@@ -91,4 +91,55 @@ describe('enterprise sidebar visibility', () => {
     const bound = renderHook(() => useSidebarView())
     expect(urlsOf(bound.result.current.navGroups, 'general')).toContain('/keys')
   })
+
+  it('shows the enterprise account only enterprise, logs and a trimmed personal group', () => {
+    enterpriseState.actor = {
+      member_id: 0,
+      role: 'enterprise_admin',
+      team_id: 0,
+      is_owner: true,
+      provisioned: false,
+    }
+    const { result } = renderHook(() => useSidebarView())
+    const ids = result.current.navGroups.map((group) => group.id)
+    expect(ids).not.toContain('general')
+    expect(ids.indexOf('logs')).toBe(ids.indexOf('enterprise') + 1)
+    expect(urlsOf(result.current.navGroups, 'logs')).toEqual([
+      '/usage-logs/common',
+      '/usage-logs/audit',
+      '/usage-logs/task',
+    ])
+    expect(urlsOf(result.current.navGroups, 'personal')).toEqual([
+      '/profile',
+      '/security',
+    ])
+    expect(urlsOf(result.current.navGroups, 'enterprise')).toContain(
+      '/enterprise/bills'
+    )
+  })
+
+  it('keeps the ordinary menu for a member bound to an existing account and hides the logs group from non-enterprise users', () => {
+    const ordinary = renderHook(() => useSidebarView())
+    expect(ordinary.result.current.navGroups.map((g) => g.id)).not.toContain(
+      'logs'
+    )
+    expect(urlsOf(ordinary.result.current.navGroups, 'general')).toContain(
+      '/usage-logs/common'
+    )
+
+    enterpriseState.actor = {
+      member_id: 8,
+      role: 'team_admin',
+      team_id: 6,
+      is_owner: false,
+      provisioned: false,
+    }
+    const bound = renderHook(() => useSidebarView())
+    const ids = bound.result.current.navGroups.map((g) => g.id)
+    expect(ids).toContain('general')
+    expect(ids).not.toContain('logs')
+    expect(urlsOf(bound.result.current.navGroups, 'personal')).toContain(
+      '/wallet'
+    )
+  })
 })

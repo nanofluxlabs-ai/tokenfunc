@@ -942,6 +942,7 @@
     "Top-ups are registered by your account manager after bank transfer.": "Top-ups are registered by your account manager after bank transfer.",
     "Total amount (USD)": "Total amount (USD)",
     "Total due": "Total due",
+    "Total amount": "Total amount",
     "Total quota": "Total quota",
     "Total requests": "Total requests",
     "Total value": "Total value",
@@ -1519,6 +1520,8 @@
     "you cannot manage this member's role": "you cannot manage this member's role",
     "no account found for this username or email": "no account found for this username or email",
     "Team Management": "Team Management",
-    "Add members or import them to start issuing keys.": "Add members or import them to start issuing keys."
+    "Add members or import them to start issuing keys.": "Add members or import them to start issuing keys.",
+    "Period statements": "Period statements",
+    "View reconciliation": "View reconciliation"
   }
 }

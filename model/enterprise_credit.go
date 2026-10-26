@@ -3,6 +3,7 @@ package model
 import (
 	"errors"
 	"fmt"
+	"strings"
 	"sync"
 	"time"
 
@@ -664,10 +665,23 @@ func RegisterEnterpriseTopup(enterpriseId int, amountQuota int, operatorId int, 
 	return entry, nil
 }
 
-func ListEnterpriseLedger(enterpriseId int, entryType string, startIdx int, num int) ([]*EnterpriseLedgerEntry, int64, error) {
+// ListEnterpriseLedger 企业账本分页；entryType 为空不限，可用逗号给多个类型；start / end 为秒级时间戳，区间 [start, end)，0 表示该端不限
+func ListEnterpriseLedger(enterpriseId int, entryType string, start int64, end int64, startIdx int, num int) ([]*EnterpriseLedgerEntry, int64, error) {
 	query := DB.Model(&EnterpriseLedgerEntry{}).Where("enterprise_id = ?", enterpriseId)
 	if entryType != "" {
-		query = query.Where("type = ?", entryType)
+		types := make([]string, 0, 4)
+		for entry := range strings.SplitSeq(entryType, ",") {
+			if entry = strings.TrimSpace(entry); entry != "" {
+				types = append(types, entry)
+			}
+		}
+		query = query.Where("type IN ?", types)
+	}
+	if start > 0 {
+		query = query.Where("created_at >= ?", start)
+	}
+	if end > 0 {
+		query = query.Where("created_at < ?", end)
 	}
 	var total int64
 	if err := query.Count(&total).Error; err != nil {

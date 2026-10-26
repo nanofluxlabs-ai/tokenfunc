@@ -65,6 +65,11 @@ func registerEnterpriseRoutes(apiRouter *gin.RouterGroup) {
 			financeRoute.GET("/bills", controller.ListEnterpriseBillsSelf)
 			financeRoute.GET("/bills/:id", controller.GetEnterpriseBillSelf)
 			financeRoute.GET("/bills/:id/export", controller.ExportEnterpriseBillSelf)
+			// 企业维度用量：与管理员财务中心同一主体，按企业主账号聚合，bill_id 指向已归档账单时读冻结件
+			financeRoute.GET("/finance/usage/summary", controller.GetEnterpriseFinanceUsageSummary)
+			financeRoute.GET("/finance/usage/daily", controller.GetEnterpriseFinanceUsageDaily)
+			financeRoute.GET("/finance/usage/detail", controller.ListEnterpriseFinanceUsageDetail)
+			financeRoute.GET("/finance/usage/export", controller.ExportEnterpriseFinanceUsage)
 		}
 
 		consoleRoute.GET("/teams", controller.ListEnterpriseTeams)

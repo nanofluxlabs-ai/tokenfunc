@@ -13,6 +13,7 @@ import {
 } from '@/components/data-table'
 import { Dialog } from '@/components/dialog'
 import { SectionPageLayout } from '@/components/layout'
+import { SimplePager } from '@/components/simple-pager'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
@@ -170,7 +171,6 @@ function LeadsAdminContent() {
     placeholderData: keepPreviousData,
   })
   const total = data?.total ?? 0
-  const pageCount = Math.max(1, Math.ceil(total / PAGE_SIZE))
 
   const columns: StaticDataTableColumn<TrialLead>[] = [
     { id: 'company', header: t('Company'), cell: (row) => row.company },
@@ -233,28 +233,12 @@ function LeadsAdminContent() {
         empty={!isLoading && (data?.items.length ?? 0) === 0}
         emptyContent={t('No trial requests yet')}
       />
-      <div className='text-muted-foreground flex items-center justify-end gap-2 text-sm'>
-        <span>{t('Total: {{count}}', { count: total })}</span>
-        <Button
-          variant='outline'
-          size='sm'
-          disabled={page <= 1}
-          onClick={() => setPage(page - 1)}
-        >
-          {t('Previous')}
-        </Button>
-        <span>
-          {page} / {pageCount}
-        </span>
-        <Button
-          variant='outline'
-          size='sm'
-          disabled={page >= pageCount}
-          onClick={() => setPage(page + 1)}
-        >
-          {t('Next')}
-        </Button>
-      </div>
+      <SimplePager
+        page={page}
+        pageSize={PAGE_SIZE}
+        total={total}
+        onPageChange={setPage}
+      />
       <LeadFollowUpDialog
         lead={editing}
         onOpenChange={(open) => {

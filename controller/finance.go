@@ -325,10 +325,32 @@ func financeBillPeriod(bill *model.EnterpriseBill) gin.H {
 }
 
 func AdminGetFinanceUsageSummary(c *gin.Context) {
-	userId, ok := financeUserIdQuery(c)
-	if !ok {
-		return
+	if userId, ok := financeUserIdQuery(c); ok {
+		financeUsageSummaryWithArchive(c, userId)
 	}
+}
+
+func AdminGetFinanceUsageDaily(c *gin.Context) {
+	if userId, ok := financeUserIdQuery(c); ok {
+		financeUsageDailyWithArchive(c, userId)
+	}
+}
+
+func AdminListFinanceUsageDetail(c *gin.Context) {
+	if userId, ok := financeUserIdQuery(c); ok {
+		financeUsageDetailWithArchive(c, userId)
+	}
+}
+
+func AdminExportFinanceUsage(c *gin.Context) {
+	if userId, ok := financeUserIdQuery(c); ok {
+		financeUsageExportWithArchive(c, userId)
+	}
+}
+
+// 下面四个是管理员与企业控制台共用的主体：bill_id 指向的账单已归档且 logs 已清理时读冻结件，否则回落实时 logs
+
+func financeUsageSummaryWithArchive(c *gin.Context, userId int) {
 	bill, payload, handled := financeArchivedBillPayload(c, userId)
 	if !handled {
 		financeUsageSummary(c, userId)
@@ -344,11 +366,7 @@ func AdminGetFinanceUsageSummary(c *gin.Context) {
 	})
 }
 
-func AdminGetFinanceUsageDaily(c *gin.Context) {
-	userId, ok := financeUserIdQuery(c)
-	if !ok {
-		return
-	}
+func financeUsageDailyWithArchive(c *gin.Context, userId int) {
 	bill, payload, handled := financeArchivedBillPayload(c, userId)
 	if !handled {
 		financeUsageDaily(c, userId)
@@ -364,12 +382,8 @@ func AdminGetFinanceUsageDaily(c *gin.Context) {
 	})
 }
 
-// AdminListFinanceUsageDetail 冻结件明细在内存里分页（冻结件已按时间倒序，与实时查询同序）
-func AdminListFinanceUsageDetail(c *gin.Context) {
-	userId, ok := financeUserIdQuery(c)
-	if !ok {
-		return
-	}
+// financeUsageDetailWithArchive 冻结件明细在内存里分页（冻结件已按时间倒序，与实时查询同序）
+func financeUsageDetailWithArchive(c *gin.Context, userId int) {
 	_, payload, handled := financeArchivedBillPayload(c, userId)
 	if !handled {
 		financeUsageDetail(c, userId)
@@ -391,12 +405,8 @@ func AdminListFinanceUsageDetail(c *gin.Context) {
 	})
 }
 
-// AdminExportFinanceUsage 冻结件导出：含明细时直接透传 statement.csv.gz（与对象逐字节一致），不含明细时用同一载荷重写
-func AdminExportFinanceUsage(c *gin.Context) {
-	userId, ok := financeUserIdQuery(c)
-	if !ok {
-		return
-	}
+// financeUsageExportWithArchive 冻结件导出：含明细时直接透传 statement.csv.gz（与对象逐字节一致），不含明细时用同一载荷重写
+func financeUsageExportWithArchive(c *gin.Context, userId int) {
 	bill, payload, handled := financeArchivedBillPayload(c, userId)
 	if !handled {
 		financeUsageExport(c, userId)
@@ -443,6 +453,21 @@ func GetSelfFinanceUsageSummary(c *gin.Context) { financeUsageSummary(c, c.GetIn
 func GetSelfFinanceUsageDaily(c *gin.Context)   { financeUsageDaily(c, c.GetInt("id")) }
 func GetSelfFinanceUsageDetail(c *gin.Context)  { financeUsageDetail(c, c.GetInt("id")) }
 func GetSelfFinanceUsageExport(c *gin.Context)  { financeUsageExport(c, c.GetInt("id")) }
+
+// 企业控制台（企业主 / 企业管理员）按企业主账号看用量：与管理员财务中心同一主体，bill_id 的归属校验在 financeArchivedBillPayload
+// 里按 enterprise.UserId == userId 完成，企业用户无法借别家账单读冻结件
+func GetEnterpriseFinanceUsageSummary(c *gin.Context) {
+	financeUsageSummaryWithArchive(c, currentEnterprise(c).UserId)
+}
+func GetEnterpriseFinanceUsageDaily(c *gin.Context) {
+	financeUsageDailyWithArchive(c, currentEnterprise(c).UserId)
+}
+func ListEnterpriseFinanceUsageDetail(c *gin.Context) {
+	financeUsageDetailWithArchive(c, currentEnterprise(c).UserId)
+}
+func ExportEnterpriseFinanceUsage(c *gin.Context) {
+	financeUsageExportWithArchive(c, currentEnterprise(c).UserId)
+}
 
 func GetSelfFinanceTopupSummary(c *gin.Context) {
 	r, ok := financeUsageRange(c, model.FinanceMaxRangeDays)

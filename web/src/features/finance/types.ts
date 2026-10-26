@@ -188,6 +188,8 @@ export interface ListModelConsumptionsParams {
  */
 export type UsageScope =
   | { scope: 'admin'; user_id: number; bill_id?: number }
+  // 企业控制台：按当前企业的钱包取数，user_id 由后端从企业上下文取
+  | { scope: 'enterprise'; bill_id?: number }
   | { scope: 'self' }
 
 export type UsageRangeParams = UsageScope & {

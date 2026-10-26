@@ -26,6 +26,7 @@ import {
   type StaticDataTableColumn,
 } from '@/components/data-table'
 import { SectionPageLayout } from '@/components/layout'
+import { SimplePager } from '@/components/simple-pager'
 import { StatusBadge } from '@/components/status-badge'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
@@ -218,7 +219,6 @@ function KeysTable(props: KeysTableProps) {
   })
   const items = useMemo(() => data?.items ?? [], [data])
   const total = data?.total ?? 0
-  const pageCount = Math.max(1, Math.ceil(total / PAGE_SIZE))
 
   const options = useQuery({
     queryKey: ['enterprise', 'token-options'],
@@ -685,28 +685,12 @@ function KeysTable(props: KeysTableProps) {
         empty={!isLoading && items.length === 0}
         emptyContent={t('No API keys yet')}
       />
-      <div className='text-muted-foreground flex items-center justify-end gap-2 text-sm'>
-        <span>{t('Total: {{count}}', { count: total })}</span>
-        <Button
-          variant='outline'
-          size='sm'
-          disabled={page <= 1}
-          onClick={() => update({ page: page - 1 })}
-        >
-          {t('Previous')}
-        </Button>
-        <span>
-          {page} / {pageCount}
-        </span>
-        <Button
-          variant='outline'
-          size='sm'
-          disabled={page >= pageCount}
-          onClick={() => update({ page: page + 1 })}
-        >
-          {t('Next')}
-        </Button>
-      </div>
+      <SimplePager
+        page={page}
+        pageSize={PAGE_SIZE}
+        total={total}
+        onPageChange={(next) => update({ page: next })}
+      />
       <ConfirmDialog
         open={deleting !== null}
         onOpenChange={(open) => !open && setDeleting(null)}

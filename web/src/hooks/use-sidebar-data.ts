@@ -22,7 +22,6 @@ import {
   Briefcase,
   Building2,
   Gauge,
-  Receipt,
   ReceiptText,
   KeyRound,
   ClipboardList,
@@ -44,7 +43,7 @@ import {
 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
-import type { SidebarData } from '@/components/layout/types'
+import type { NavGroup, SidebarData } from '@/components/layout/types'
 import { ROLE } from '@/lib/roles'
 
 /**
@@ -55,6 +54,27 @@ import { ROLE } from '@/lib/roles'
  */
 export function useSidebarData(): SidebarData {
   const { t } = useTranslation()
+
+  // 日志三项：普通用户在「常规」组；企业账户隐藏常规组，改在企业组下面的「日志」组展示（见 use-sidebar-view）
+  const logItems: NavGroup['items'] = [
+    {
+      title: t('Usage Logs'),
+      url: '/usage-logs/common',
+      icon: FileText,
+    },
+    {
+      title: t('Audit Logs'),
+      url: '/usage-logs/audit',
+      icon: ClipboardList,
+    },
+    {
+      title: t('Task Logs'),
+      url: '/usage-logs/task',
+      activeUrls: ['/usage-logs/drawing'],
+      configUrls: ['/usage-logs/drawing', '/usage-logs/task'],
+      icon: ListTodo,
+    },
+  ]
 
   return {
     navGroups: [
@@ -93,23 +113,7 @@ export function useSidebarData(): SidebarData {
             url: '/keys',
             icon: Key,
           },
-          {
-            title: t('Usage Logs'),
-            url: '/usage-logs/common',
-            icon: FileText,
-          },
-          {
-            title: t('Audit Logs'),
-            url: '/usage-logs/audit',
-            icon: ClipboardList,
-          },
-          {
-            title: t('Task Logs'),
-            url: '/usage-logs/task',
-            activeUrls: ['/usage-logs/drawing'],
-            configUrls: ['/usage-logs/drawing', '/usage-logs/task'],
-            icon: ListTodo,
-          },
+          ...logItems,
         ],
       },
       {
@@ -138,11 +142,17 @@ export function useSidebarData(): SidebarData {
             icon: BarChart3,
           },
           {
-            title: t('Bills'),
+            title: t('Reconciliation'),
             url: '/enterprise/bills',
-            icon: Receipt,
+            icon: Scale,
           },
         ],
+      },
+      {
+        // 企业账户的日志组：常规组对其隐藏后，日志放在企业组下面（见 use-sidebar-view）
+        id: 'logs',
+        title: t('Logs'),
+        items: logItems,
       },
       {
         id: 'personal',

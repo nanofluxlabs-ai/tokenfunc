@@ -942,6 +942,7 @@
     "Top-ups are registered by your account manager after bank transfer.": "Les recharges sont enregistrées par votre chargé de compte après virement.",
     "Total amount (USD)": "Montant total (USD)",
     "Total due": "Total dû",
+    "Total amount": "Montant total",
     "Total quota": "Quota total",
     "Total requests": "Total des requêtes",
     "Total value": "Valeur totale",
@@ -1519,6 +1520,8 @@
     "you cannot manage this member's role": "Vous ne pouvez pas gérer le rôle de ce membre",
     "no account found for this username or email": "Aucun compte trouvé pour ce nom d’utilisateur ou cet e-mail",
     "Team Management": "Gestion des équipes",
-    "Add members or import them to start issuing keys.": "Ajoutez ou importez des membres pour commencer à émettre des clés."
+    "Add members or import them to start issuing keys.": "Ajoutez ou importez des membres pour commencer à émettre des clés.",
+    "Period statements": "Relevés de période",
+    "View reconciliation": "Voir le rapprochement"
   }
 }

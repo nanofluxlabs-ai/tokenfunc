@@ -2,10 +2,9 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { cleanup, render, screen } from '@testing-library/react'
 import { afterEach, expect, test, vi } from 'vitest'
 
-import type { Bill } from '@/features/enterprise-console/types'
-
 import type { FinanceBillContext, UsageSource } from '../../../types'
-import { BillDetailContent } from '../bill-detail-page'
+import { BillDetailContent, type BillDetailScope } from '../bill-detail-content'
+import { contextWith as billContextWith } from './fixtures'
 
 const emptyPage = { items: [], total: 0, page: 1, page_size: 20 }
 const apiMock = vi.hoisted(() => ({
@@ -15,88 +14,37 @@ const apiMock = vi.hoisted(() => ({
   downloadUsageExport: vi.fn(),
 }))
 vi.mock('../../../api', () => apiMock)
+vi.mock('@/features/enterprise-console/api', () => ({
+  downloadBillCsv: vi.fn(),
+}))
 vi.mock('@/features/enterprises/api', () => ({ ackReconcileAlert: vi.fn() }))
 
 const ARCHIVE_BANNER =
   /row-level detail below is read from the statement snapshot archived on/
 const PURGED_WARNING = /the breakdown below may be incomplete/
 
-const bill: Bill = {
-  id: 42,
-  bill_no: 'TF-202603-000042',
-  enterprise_id: 1,
-  period_id: 1,
-  bill_type: 'credit',
-  period_start: 1_772_985_600,
-  period_end: 1_773_158_400,
-  amount_quota: 600,
-  amount_usd: '0.0012',
-  adjustment_usd: '0',
-  total_usd: '0.0012',
-  paid_usd: '0',
-  currency: 'USD',
-  status: 'unpaid',
-  issued_at: 1_773_158_400,
-  due_at: 0,
-  paid_at: 0,
-  reminder_count: 0,
-  reconcile_diff_quota: 0,
-  reconcile_acked_at: 0,
-  reconcile_acked_by: 0,
-  reconcile_ack_note: '',
-  remark: '',
-  archive_info: null,
-  archived_at: 1_776_000_000,
-  usage_snapshot: null,
-  seller_snapshot: null,
-  buyer_snapshot: null,
-}
-
+/** 已归档账单：archived_at 对应 2026-04-12 */
 function contextWith(
   usageSource: UsageSource,
   logsPurged: boolean
 ): FinanceBillContext {
-  return {
-    kind: 'bill',
-    summary: {
-      kind: 'bill',
-      id: bill.id,
-      enterprise_id: 1,
-      enterprise_name: 'Archive Co',
-      user_id: 7,
-      username: 'archive-owner',
-      bill_no: bill.bill_no,
-      bill_type: 'credit',
-      period_no: 3,
-      period_start: bill.period_start,
-      period_end: bill.period_end,
-      amount_quota: bill.amount_quota,
-      total_usd: bill.total_usd,
-      paid_usd: bill.paid_usd,
-      status: bill.status,
-      issued_at: bill.issued_at,
-      due_at: 0,
-      limit_quota: 0,
-      used_quota: bill.amount_quota,
-    },
-    enterprise: null,
-    user: null,
-    bill,
-    period: null,
-    usage_ts_start: bill.period_start,
-    usage_ts_end: bill.period_end - 1,
-    logs_purged: logsPurged,
+  return billContextWith({
+    bill: { archived_at: 1_776_000_000, due_at: 0 },
     usage_source: usageSource,
-  }
+    logs_purged: logsPurged,
+  })
 }
 
-function renderContent(context: FinanceBillContext) {
+function renderContent(
+  context: FinanceBillContext,
+  scope: BillDetailScope = 'admin'
+) {
   const client = new QueryClient({
     defaultOptions: { queries: { retry: false } },
   })
   return render(
     <QueryClientProvider client={client}>
-      <BillDetailContent context={context} />
+      <BillDetailContent context={context} scope={scope} />
     </QueryClientProvider>
   )
 }
@@ -135,6 +83,18 @@ test('usage_source=live with logs intact shows neither banner and still queries 
   expect(screen.queryByText(PURGED_WARNING)).not.toBeInTheDocument()
   expect(await screen.findByText('No usage')).toBeInTheDocument()
   expect(apiMock.listUsageDetail).toHaveBeenCalledWith(
-    expect.objectContaining({ user_id: 7, bill_id: 42 })
+    expect.objectContaining({ scope: 'admin', user_id: 7, bill_id: 42 })
+  )
+})
+
+test('scope=enterprise queries usage with the enterprise scope and bill_id but no user_id', async () => {
+  stubUsageApis()
+  renderContent(contextWith('live', false), 'enterprise')
+  expect(await screen.findByText('No usage')).toBeInTheDocument()
+  expect(apiMock.listUsageDetail).toHaveBeenCalledWith(
+    expect.objectContaining({ scope: 'enterprise', bill_id: 42 })
+  )
+  expect(apiMock.listUsageDetail).not.toHaveBeenCalledWith(
+    expect.objectContaining({ user_id: expect.anything() })
   )
 })

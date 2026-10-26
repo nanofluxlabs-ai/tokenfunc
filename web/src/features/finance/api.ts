@@ -26,20 +26,26 @@ const FINANCE_BASE = '/api/admin/finance'
 /** 个人财务对账：本人消费账单与钱包流水 */
 export const SELF_FINANCE_BASE = '/api/user/finance'
 
-/** 用量接口按主体选路径与参数：admin 走财务中心并带 user_id，self 走个人对账 */
-function usageRequest(params: UsageRangeParams, path: string) {
+/** 企业财务对账：企业钱包的消费账单，后端从企业上下文取 user_id */
+export const ENTERPRISE_FINANCE_BASE = '/api/enterprise/finance'
+
+/** 用量接口按主体选路径与参数：admin 走财务中心并带 user_id，enterprise 走企业控制台，self 走个人对账 */
+export function usageRequest(params: UsageRangeParams, path: string) {
   const query: Record<string, number> = {
     ts_start: params.ts_start,
     ts_end: params.ts_end,
   }
+  if (params.scope === 'self') {
+    return { url: `${SELF_FINANCE_BASE}${path}`, query }
+  }
+  if (params.bill_id) {
+    query.bill_id = params.bill_id
+  }
   if (params.scope === 'admin') {
     query.user_id = params.user_id
-    if (params.bill_id) {
-      query.bill_id = params.bill_id
-    }
     return { url: `${FINANCE_BASE}${path}`, query }
   }
-  return { url: `${SELF_FINANCE_BASE}${path}`, query }
+  return { url: `${ENTERPRISE_FINANCE_BASE}${path}`, query }
 }
 
 export async function getFinanceOverview(params: {

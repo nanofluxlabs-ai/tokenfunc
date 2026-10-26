@@ -942,6 +942,7 @@
     "Top-ups are registered by your account manager after bank transfer.": "Пополнения регистрирует ваш менеджер после банковского перевода.",
     "Total amount (USD)": "Общая сумма (USD)",
     "Total due": "Итого к оплате",
+    "Total amount": "Общая сумма",
     "Total quota": "Общая квота",
     "Total requests": "Всего запросов",
     "Total value": "Общая стоимость",
@@ -1519,6 +1520,8 @@
     "you cannot manage this member's role": "Вы не можете управлять ролью этого участника",
     "no account found for this username or email": "Учётная запись с таким именем пользователя или e-mail не найдена",
     "Team Management": "Управление командами",
-    "Add members or import them to start issuing keys.": "Добавьте или импортируйте участников, чтобы выдавать ключи."
+    "Add members or import them to start issuing keys.": "Добавьте или импортируйте участников, чтобы выдавать ключи.",
+    "Period statements": "Счета за период",
+    "View reconciliation": "Открыть сверку"
   }
 }

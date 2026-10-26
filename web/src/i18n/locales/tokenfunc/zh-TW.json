@@ -942,6 +942,7 @@
     "Top-ups are registered by your account manager after bank transfer.": "銀行轉帳後由客戶經理登記儲值。",
     "Total amount (USD)": "消費總額 (USD)",
     "Total due": "應付總額",
+    "Total amount": "總金額",
     "Total quota": "總額度",
     "Total requests": "總請求",
     "Total value": "總計價值",
@@ -1519,6 +1520,8 @@
     "you cannot manage this member's role": "你不能管理該成員的角色",
     "no account found for this username or email": "找不到該使用者名稱或電子郵件對應的帳號",
     "Team Management": "團隊管理",
-    "Add members or import them to start issuing keys.": "新增或匯入成員後即可發放金鑰。"
+    "Add members or import them to start issuing keys.": "新增或匯入成員後即可發放金鑰。",
+    "Period statements": "帳期帳單",
+    "View reconciliation": "查看財務對帳"
   }
 }

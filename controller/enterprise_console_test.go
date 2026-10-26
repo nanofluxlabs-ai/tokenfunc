@@ -32,7 +32,9 @@ func newEnterpriseConsoleRouter() *gin.Engine {
 	console.GET("/members", ListEnterpriseMembers)
 	console.POST("/members", middleware.RequireEnterpriseRole(model.EnterpriseMemberRoleTeamAdmin), CreateEnterpriseMember)
 	console.PUT("/members/:id/role", middleware.RequireEnterpriseRole(model.EnterpriseMemberRoleTeamAdmin), SetEnterpriseMemberRole)
+	console.GET("/ledger", middleware.RequireEnterpriseRole(model.EnterpriseMemberRoleEnterpriseAdmin), ListEnterpriseLedgerSelf)
 	console.GET("/bills", middleware.RequireEnterpriseRole(model.EnterpriseMemberRoleEnterpriseAdmin), ListEnterpriseBillsSelf)
+	console.GET("/bills/:id", middleware.RequireEnterpriseRole(model.EnterpriseMemberRoleEnterpriseAdmin), GetEnterpriseBillSelf)
 	console.GET("/bills/:id/export", middleware.RequireEnterpriseRole(model.EnterpriseMemberRoleEnterpriseAdmin), ExportEnterpriseBillSelf)
 	console.GET("/tokens", ListEnterpriseTokens)
 	console.GET("/tokens/options", GetEnterpriseTokenOptions)
@@ -48,10 +50,12 @@ func newEnterpriseConsoleRouter() *gin.Engine {
 	return router
 }
 
-// 企业侧账单 CSV：未归档的账单从快照 v2 还原财务汇总（多块 CSV，含单价列）；旧快照没有财务块时拒绝导出；别家企业的账单 404
+// 企业侧账单 CSV：未归档的账单从快照 v2 还原财务汇总（多块 CSV，含单价列）；旧快照没有财务块时拒绝导出；别家企业的账单 404。
+// 账单详情与管理员同一上下文但不带主账号用户信息；账本按 ts_start / ts_end 过滤
 func TestEnterpriseConsoleBillExport(t *testing.T) {
 	setupAccessTokenAudit(t)
-	require.NoError(t, model.DB.AutoMigrate(&model.Token{}, &model.Enterprise{}, &model.EnterpriseTeam{}, &model.EnterpriseMember{}, &model.EnterpriseTokenAssignment{}, &model.EnterpriseBill{}))
+	require.NoError(t, model.DB.AutoMigrate(&model.Token{}, &model.Enterprise{}, &model.EnterpriseTeam{}, &model.EnterpriseMember{}, &model.EnterpriseTokenAssignment{}, &model.EnterpriseBill{},
+		&model.EnterpriseCreditPeriod{}, &model.EnterpriseLedgerEntry{}, &model.LogArchiveManifest{}))
 	owner := &model.User{Username: "export-owner", Password: "placeholder", Role: common.RoleCommonUser, Status: common.UserStatusEnabled, Group: "default", AuthVersion: 1, AffCode: "exp-own"}
 	require.NoError(t, model.DB.Create(owner).Error)
 	require.NoError(t, model.UpgradeUserToEnterprise(owner.Id, &model.Enterprise{Name: "Export Co"}))
@@ -97,6 +101,34 @@ func TestEnterpriseConsoleBillExport(t *testing.T) {
 	assert.Contains(t, response.Body.String(), "usage breakdown snapshot")
 
 	assert.Equal(t, http.StatusNotFound, accessTokenRequest(router, "GET", "/api/enterprise/bills/"+strconv.FormatInt(foreign.Id, 10)+"/export", readToken, "", "").Code)
+
+	// 账单详情：返回与管理员账单详情同形的上下文（kind / summary / 用量闭区间 / 快照），但 user 置空
+	response = accessTokenRequest(router, "GET", "/api/enterprise/bills/"+strconv.FormatInt(v2.Id, 10), readToken, "", "")
+	require.Equal(t, http.StatusOK, response.Code, response.Body.String())
+	detail := decodeFinanceJSON(t, response)["data"].(map[string]any)
+	assert.Equal(t, model.FinanceBillKindBill, detail["kind"])
+	assert.Equal(t, "TF-202603-000001", detail["summary"].(map[string]any)["bill_no"])
+	assert.Equal(t, float64(v2.PeriodEnd-1), detail["usage_ts_end"], "对外闭区间 = 账期结束 − 1")
+	assert.Nil(t, detail["user"], "企业侧不暴露主账号的用户名 / 邮箱")
+	assert.Equal(t, float64(2), detail["bill"].(map[string]any)["usage_snapshot"].(map[string]any)["snapshot_version"])
+	assert.Equal(t, http.StatusNotFound, accessTokenRequest(router, "GET", "/api/enterprise/bills/"+strconv.FormatInt(foreign.Id, 10), readToken, "", "").Code)
+
+	// 账本：ts_start 闭、ts_end 开，缺省不限
+	for _, createdAt := range []int64{100, 200, 300} {
+		require.NoError(t, model.DB.Create(&model.EnterpriseLedgerEntry{EnterpriseId: ent.Id, Type: model.EnterpriseLedgerAdjustment, AmountQuota: createdAt, CreatedAt: createdAt}).Error)
+	}
+	ledger := decodeFinanceJSON(t, accessTokenRequest(router, "GET", "/api/enterprise/ledger?p=1&page_size=10&ts_start=200&ts_end=300", readToken, "", ""))["data"].(map[string]any)
+	assert.Equal(t, float64(1), ledger["total"])
+	require.Len(t, ledger["items"], 1)
+	assert.Equal(t, float64(200), ledger["items"].([]any)[0].(map[string]any)["created_at"])
+	all := decodeFinanceJSON(t, accessTokenRequest(router, "GET", "/api/enterprise/ledger?p=1&page_size=10", readToken, "", ""))["data"].(map[string]any)
+	assert.Equal(t, float64(3), all["total"])
+	// type 可逗号给多个：充值账单只要资金变动，授信配置变更不进账单
+	require.NoError(t, model.DB.Create(&model.EnterpriseLedgerEntry{EnterpriseId: ent.Id, Type: model.EnterpriseLedgerCreditLimitChange, CreatedAt: 400}).Error)
+	require.NoError(t, model.DB.Create(&model.EnterpriseLedgerEntry{EnterpriseId: ent.Id, Type: model.EnterpriseLedgerTopup, AmountQuota: 50, CreatedAt: 500}).Error)
+	typed := decodeFinanceJSON(t, accessTokenRequest(router, "GET", "/api/enterprise/ledger?p=1&page_size=10&type=topup,adjustment", readToken, "", ""))["data"].(map[string]any)
+	assert.Equal(t, float64(4), typed["total"])
+	assert.Equal(t, float64(500), typed["items"].([]any)[0].(map[string]any)["created_at"])
 }
 
 // 企业控制台通过访问令牌（PAT）自动化访问：必须带 enterprise:* 作用域，且令牌所属用户必须是企业主账号或已绑定登录的成员

@@ -942,6 +942,7 @@
     "Top-ups are registered by your account manager after bank transfer.": "银行转账后由客户经理登记充值。",
     "Total amount (USD)": "消费总额 (USD)",
     "Total due": "应付总额",
+    "Total amount": "总金额",
     "Total quota": "总额度",
     "Total requests": "总请求",
     "Total value": "总计价值",
@@ -1519,6 +1520,8 @@
     "you cannot manage this member's role": "你不能管理该成员的角色",
     "no account found for this username or email": "找不到该用户名或邮箱对应的账号",
     "Team Management": "团队管理",
-    "Add members or import them to start issuing keys.": "添加或导入成员后即可发放密钥。"
+    "Add members or import them to start issuing keys.": "添加或导入成员后即可发放密钥。",
+    "Period statements": "账期账单",
+    "View reconciliation": "查看财务对账"
   }
 }

@@ -304,10 +304,20 @@ func currentEnterpriseBill(c *gin.Context) (*model.EnterpriseBill, bool) {
 	return bill, true
 }
 
+// GetEnterpriseBillSelf GET /api/enterprise/bills/:id：与管理员账单详情同一上下文（账单 + 账期 + 用量区间 + 数据来源），
+// 但不暴露主账号的用户名 / 邮箱
 func GetEnterpriseBillSelf(c *gin.Context) {
-	if bill, ok := currentEnterpriseBill(c); ok {
-		common.ApiSuccess(c, bill.WithLiveUsageSnapshot())
+	bill, ok := currentEnterpriseBill(c)
+	if !ok {
+		return
 	}
+	context, err := model.GetFinanceBillContext(model.FinanceBillKindBill, bill.Id)
+	if err != nil {
+		financeApiError(c, err)
+		return
+	}
+	context.User = nil
+	common.ApiSuccess(c, context)
 }
 
 // ExportEnterpriseBillSelf GET /api/enterprise/bills/:id/export

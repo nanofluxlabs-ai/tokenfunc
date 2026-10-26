@@ -2,6 +2,7 @@ import { VChart } from '@visactor/react-vchart'
 import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 
+import { useMediaQuery } from '@/hooks/use-media-query'
 import { formatQuotaWithCurrency } from '@/lib/currency'
 import { useChartTheme } from '@/lib/use-chart-theme'
 import { cn } from '@/lib/utils'
@@ -136,6 +137,9 @@ export function UsageDonutChart(props: UsageChartProps) {
 /** 消耗排行横向条形图：前 10 项，按消耗从高到低自上而下 */
 export function UsageRankChart(props: UsageChartProps) {
   const { resolvedTheme } = useChartTheme()
+  // 手机上标签收窄，给条形留出宽度
+  const isMobile = useMediaQuery('(max-width: 640px)')
+  const labelLimit = isMobile ? 80 : 140
   const textColor =
     resolvedTheme === 'dark'
       ? 'rgba(255, 255, 255, 0.68)'
@@ -174,7 +178,7 @@ export function UsageRankChart(props: UsageChartProps) {
           label: {
             style: { fill: textColor, fontSize: 11 },
             autoLimit: true,
-            limitLength: 140,
+            limitLength: labelLimit,
           },
           tick: { visible: false },
           domainLine: { visible: false },
@@ -195,7 +199,7 @@ export function UsageRankChart(props: UsageChartProps) {
       },
       animationAppear: { duration: 400 },
     }
-  }, [props.id, textColor, values])
+  }, [props.id, textColor, values, labelLimit])
 
   return (
     <ThemedChart

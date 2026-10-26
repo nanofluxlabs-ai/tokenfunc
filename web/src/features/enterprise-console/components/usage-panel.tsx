@@ -59,7 +59,7 @@ type UsagePanelProps = {
   onAttributionChange?: (group: UsageAttributionGroup) => void
 }
 
-const STAT_CARD_CLASS = 'bg-card rounded-xl border p-4 shadow-xs'
+const STAT_CARD_CLASS = 'bg-card rounded-xl border p-3 shadow-xs sm:p-4'
 
 /**
  * 用量报表（企业控制台与管理员抽屉共用）：区间 + 快捷档 + 区间合计 + 按日 / 按模型 / 按归属三块；
@@ -233,7 +233,7 @@ export function UsagePanel(props: UsagePanelProps) {
       )}
 
       <div
-        className='grid gap-4 @xl:grid-cols-2 @5xl:grid-cols-4'
+        className='grid grid-cols-2 gap-2 sm:gap-4 @5xl:grid-cols-4'
         role='group'
         aria-label={t('Range totals')}
       >
@@ -249,6 +249,7 @@ export function UsagePanel(props: UsagePanelProps) {
             sparkline={days.map((day) => day.quota)}
             sparklineVariant='line'
             loading={loading}
+            compactMobile
           />
         </div>
         <div className={STAT_CARD_CLASS}>
@@ -266,6 +267,7 @@ export function UsagePanel(props: UsagePanelProps) {
             sparkline={days.map((day) => day.request_count)}
             sparklineVariant='line'
             loading={loading}
+            compactMobile
           />
         </div>
         <div className={STAT_CARD_CLASS}>
@@ -286,6 +288,7 @@ export function UsagePanel(props: UsagePanelProps) {
             )}
             sparklineVariant='line'
             loading={loading}
+            compactMobile
           />
         </div>
         <div className={STAT_CARD_CLASS}>
@@ -300,6 +303,7 @@ export function UsagePanel(props: UsagePanelProps) {
             sparkline={days.map((day) => day.cache_tokens)}
             sparklineVariant='bars'
             loading={loading}
+            compactMobile
           />
         </div>
       </div>

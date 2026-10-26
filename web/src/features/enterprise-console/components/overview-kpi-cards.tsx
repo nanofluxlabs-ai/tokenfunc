@@ -17,7 +17,7 @@ import { formatCompactNumber, formatNumber } from '@/lib/format'
 import { changePercent, type OverviewDailySnapshot } from '../lib/overview'
 
 const CARD_LINK_CLASS =
-  'bg-card hover:border-primary/40 focus-visible:ring-ring rounded-xl border p-4 shadow-xs transition-colors focus-visible:ring-2 focus-visible:outline-none'
+  'bg-card hover:border-primary/40 focus-visible:ring-ring rounded-xl border p-3 shadow-xs transition-colors focus-visible:ring-2 focus-visible:outline-none sm:p-4'
 
 type OverviewKpiCardsProps = {
   snapshot: OverviewDailySnapshot
@@ -65,7 +65,8 @@ export function OverviewKpiCards(props: OverviewKpiCardsProps) {
   const vsYesterday = t('vs yesterday')
 
   return (
-    <div className='grid gap-4 sm:grid-cols-2 xl:grid-cols-4'>
+    // 手机两列紧凑卡（迷你图隐藏），与上游控制台首页一致
+    <div className='grid grid-cols-2 gap-2 sm:gap-4 xl:grid-cols-4'>
       <Link
         to='/enterprise/usage'
         search={todaySearch}
@@ -83,6 +84,7 @@ export function OverviewKpiCards(props: OverviewKpiCardsProps) {
           sparkline={last7.map((day) => day.quota)}
           sparklineVariant='line'
           loading={props.loading}
+          compactMobile
           action={
             <ChangePill
               current={today.quota}
@@ -109,6 +111,7 @@ export function OverviewKpiCards(props: OverviewKpiCardsProps) {
           sparkline={last7.map((day) => day.request_count)}
           sparklineVariant='line'
           loading={props.loading}
+          compactMobile
           action={
             <ChangePill
               current={today.request_count}
@@ -138,6 +141,7 @@ export function OverviewKpiCards(props: OverviewKpiCardsProps) {
           )}
           sparklineVariant='line'
           loading={props.loading}
+          compactMobile
           action={
             <ChangePill
               current={todayTokens}
@@ -164,6 +168,7 @@ export function OverviewKpiCards(props: OverviewKpiCardsProps) {
           sparkline={last7.map((day) => day.quota)}
           sparklineVariant='bars'
           loading={props.loading}
+          compactMobile
           action={
             <ChangePill
               current={props.snapshot.last7Quota}

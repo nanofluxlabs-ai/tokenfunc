@@ -14,6 +14,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { toIntlLocale } from '@/i18n/languages'
 
+import { CARD_ACTION_STACKED } from '../lib/card-layout'
 import {
   readUsagePalette,
   USAGE_OTHERS_COLOR,
@@ -66,7 +67,7 @@ export const UsageDailySection = forwardRef<
         <CardDescription>
           {t('Daily cost, tokens and requests')}
         </CardDescription>
-        <CardAction>
+        <CardAction className={CARD_ACTION_STACKED}>
           <UsageMetricTabs value={metric} onChange={setMetric} />
         </CardAction>
       </CardHeader>
@@ -201,7 +202,7 @@ export const UsageAttributionSection = forwardRef<
         <CardDescription>
           {t('Who spent it: team, member or key')}
         </CardDescription>
-        <CardAction>
+        <CardAction className={CARD_ACTION_STACKED}>
           <Tabs
             value={props.group}
             onValueChange={(value) =>

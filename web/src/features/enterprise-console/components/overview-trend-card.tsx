@@ -12,6 +12,7 @@ import {
   CardTitle,
 } from '@/components/ui/card'
 
+import { CARD_ACTION_STACKED } from '../lib/card-layout'
 import type { UsageDayItem } from '../types'
 import { type UsageMetric, UsageMetricTabs, UsageTrend } from './usage-trend'
 
@@ -32,7 +33,7 @@ export function OverviewTrendCard(props: OverviewTrendCardProps) {
         <CardDescription>
           {t('Daily cost, tokens and requests')}
         </CardDescription>
-        <CardAction>
+        <CardAction className={CARD_ACTION_STACKED}>
           <UsageMetricTabs value={metric} onChange={setMetric} />
         </CardAction>
       </CardHeader>

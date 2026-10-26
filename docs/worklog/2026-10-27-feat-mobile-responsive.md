@@ -2,7 +2,7 @@
 
 - 日期：2026-10-27
 - 分支：worktree-feat-mobile-responsive（worktree）
-- PR：（创建后补）
+- PR：#67
 - 关键 commit：8d80526b5 … 见 PR 提交列表
 
 ## 背景

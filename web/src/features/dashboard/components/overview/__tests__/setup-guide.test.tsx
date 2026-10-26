@@ -33,6 +33,11 @@ import { useSystemConfigStore } from '@/stores/system-config-store'
 
 import { OverviewDashboard } from '../overview-dashboard'
 
+// 用量看板有独立测试（personal/__tests__），这里只验证新手引导，换成占位避免加载图表
+vi.mock('../../personal/personal-overview', () => ({
+  PersonalOverview: () => <section aria-label='Personal usage' />,
+}))
+
 const storageKey = 'dashboard_overview_setup_guide_expanded'
 let client: QueryClient
 let keyLookupError: Error | null
@@ -114,7 +119,10 @@ describe('overview setup guide', () => {
     expect(toggle).toHaveAttribute('aria-expanded', 'false')
     expect(
       screen.getAllByRole('heading').map((heading) => heading.textContent)
-    ).toEqual(['Overview', 'Usage at a glance'])
+    ).toEqual(['Overview'])
+    expect(
+      screen.getByRole('region', { name: 'Personal usage' })
+    ).toBeInTheDocument()
     expect(screen.queryByText('Setup guide complete')).not.toBeInTheDocument()
     expect(screen.queryByText('Setup progress: 3/3')).not.toBeInTheDocument()
     for (const name of ['API Keys', 'Channels', 'Usage Logs', 'Pricing']) {

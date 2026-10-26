@@ -20,6 +20,12 @@ const apiMock = vi.hoisted(() => ({
 }))
 vi.mock('../../api', () => apiMock)
 
+// 抽屉内嵌用量报表面板；jsdom 下不渲染真实图表
+vi.mock('@visactor/react-vchart', () => ({ VChart: () => null }))
+vi.mock('@/lib/use-chart-theme', () => ({
+  useChartTheme: () => ({ resolvedTheme: 'light', themeReady: false }),
+}))
+
 vi.mock('@/features/auth/secure-verification', () => ({
   useSecureVerification: () => ({
     requestVerification: vi.fn(),

@@ -46,6 +46,8 @@
   - 编辑：分组改 vip、授信切预付 → 请求链 PUT 资料 → POST /api/verify → DELETE /credit，列表变为预付；验证期间表单保持「预付」。
   - 升级：检索「wt」只出现个人用户 wtperson 与置灰的管理员，企业主不在列表；选中后分组自动带出 vip；保存后列表新增企业分组 vip、预付。
   - 登录邮箱随联系人邮箱自动带入。
+- rebase 到 #63 合入后的 main（3124a3bcd）：七个 locale 尾部追加键冲突，两边合并、无重复键；计费抽屉内嵌 #63 的报表面板（图表懒加载 vchart），`enterprise-billing-drawer.test.tsx` 补 vchart / 图表主题 mock。复检：`go build ./...`、`go vet`；`make test-db PKG="-count=1 ./model/... ./controller/... ./service/... ./middleware/... ./router/..."` 全 ok；`bun run typecheck`；`vitest run src/features/enterprises src/features/enterprise-console src/features/users src/features/promoters src/components src/i18n` 72 文件 328 条通过。
+- CI 首轮后端失败为偶发：上游 `AddChannel` 起的 `runPostCreateChannelChecks` goroutine 在测试收尾 DB 置空后访问 `model.DB` 触发 nil panic，与本 PR 无关；本地 `go test ./controller/ -count=1` 连跑三次均 ok。
 
 ## 遗留
 

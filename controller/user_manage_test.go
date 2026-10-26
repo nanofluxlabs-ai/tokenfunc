@@ -69,7 +69,8 @@ func setupManageUserTestDB(t *testing.T) *gorm.DB {
 			}
 		}
 	})
-	require.NoError(t, db.AutoMigrate(&model.User{}, &model.UserSession{}, &model.CasbinRule{}, &model.AuthzRole{}, &model.AuthFlow{}, &model.TwoFA{}, &model.PasskeyCredential{}, &model.UserAccessToken{}))
+	// Enterprise / EnterpriseMember：删除 / 禁用 / 提权前会反查企业归属（rejectEnterpriseAffiliatedUser）
+	require.NoError(t, db.AutoMigrate(&model.User{}, &model.UserSession{}, &model.CasbinRule{}, &model.AuthzRole{}, &model.AuthFlow{}, &model.TwoFA{}, &model.PasskeyCredential{}, &model.UserAccessToken{}, &model.Enterprise{}, &model.EnterpriseMember{}))
 	require.NoError(t, logDB.AutoMigrate(&model.Log{}, &model.AuditLog{}))
 	versionQuery := "SELECT version()"
 	if dialect == "sqlite" {

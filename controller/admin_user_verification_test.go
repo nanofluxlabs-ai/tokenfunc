@@ -20,6 +20,8 @@ import (
 func setupAdminUserTest(t *testing.T) (*model.User, service.AuthIdentity, *model.User) {
 	t.Helper()
 	operator, identity := setupSecurityEnrollmentTest(t)
+	// 删除 / 禁用 / 提权前会反查企业归属（rejectEnterpriseAffiliatedUser），夹具里要有这两张表
+	require.NoError(t, model.DB.AutoMigrate(&model.Enterprise{}, &model.EnterpriseMember{}))
 	require.NoError(t, model.DB.Model(operator).Update("role", common.RoleRootUser).Error)
 	require.NoError(t, model.PublishUserAuthCache(operator.Id))
 	password, err := common.Password2Hash("managed-password")

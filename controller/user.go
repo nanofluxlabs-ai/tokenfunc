@@ -941,6 +941,9 @@ func DeleteUser(c *gin.Context) {
 		common.ApiErrorT(c, "No permission to update users of same or higher permission level")
 		return
 	}
+	if rejectEnterpriseAffiliatedUser(c, originUser.Id) {
+		return
+	}
 	authorization := requireAdminUserProof(c, service.VerificationScopeAdminUserDelete, service.AdminUserContext{UserID: originUser.Id})
 	if authorization == nil {
 		return
@@ -1122,11 +1125,17 @@ func ManageUser(c *gin.Context) {
 			common.ApiErrorT(c, "Cannot disable super administrator user")
 			return
 		}
+		if rejectEnterpriseAffiliatedUser(c, user.Id) {
+			return
+		}
 	case "enable":
 		user.Status = common.UserStatusEnabled
 	case "delete":
 		if user.Role == common.RoleRootUser {
 			common.ApiErrorT(c, "Cannot delete super administrator account")
+			return
+		}
+		if rejectEnterpriseAffiliatedUser(c, user.Id) {
 			return
 		}
 		authorization := requireAdminUserProof(c, service.VerificationScopeAdminUserDelete, service.AdminUserContext{UserID: user.Id})
@@ -1162,6 +1171,9 @@ func ManageUser(c *gin.Context) {
 		}
 		if user.Role >= common.RoleAdminUser {
 			common.ApiErrorT(c, "This user is already an administrator")
+			return
+		}
+		if rejectEnterpriseAffiliatedUser(c, user.Id) {
 			return
 		}
 		user.Role = common.RoleAdminUser

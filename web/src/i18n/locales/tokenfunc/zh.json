@@ -1522,6 +1522,9 @@
     "Team Management": "团队管理",
     "Add members or import them to start issuing keys.": "添加或导入成员后即可发放密钥。",
     "Period statements": "账期账单",
-    "View reconciliation": "查看财务对账"
+    "View reconciliation": "查看财务对账",
+    "This account belongs to an enterprise, manage it from the enterprise module": "该账号属于企业，请到企业模块管理",
+    "{{members}} members, {{logins}} can sign in. Members are managed by the enterprise itself; this list is read-only.": "共 {{members}} 名成员，{{logins}} 人可登录。成员由企业自行管理，此列表仅供查看。",
+    "This enterprise has not added any members in its console.": "该企业尚未在控制台添加成员。"
   }
 }

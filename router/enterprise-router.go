@@ -16,6 +16,7 @@ func registerEnterpriseRoutes(apiRouter *gin.RouterGroup) {
 		adminRoute.GET("/enterprises", controller.AdminListEnterprises)
 		adminRoute.POST("/enterprises", controller.AdminCreateEnterprise)
 		adminRoute.GET("/enterprises/:id", controller.AdminGetEnterprise)
+		adminRoute.GET("/enterprises/:id/members", controller.AdminListEnterpriseMembers)
 		adminRoute.PUT("/enterprises/:id", controller.AdminUpdateEnterprise)
 		adminRoute.PUT("/enterprises/:id/credit", controller.AdminConfigureEnterpriseCredit)
 		adminRoute.DELETE("/enterprises/:id/credit", controller.AdminSwitchEnterprisePrepaid)

@@ -797,3 +797,53 @@ func TestEnterpriseEmployeeMe(t *testing.T) {
 		assert.Equal(t, "insufficient_user_quota", creditBillingErrorCode(body))
 	})
 }
+
+// 系统管理员不能删除 / 禁用 / 提权企业账号：企业主账号与在职成员的登录账号都被拒绝并指引去企业模块；解绑后的账号恢复可管理
+func TestAdminCannotManageEnterpriseAffiliatedUsers(t *testing.T) {
+	setupAccessTokenAudit(t)
+	require.NoError(t, model.DB.AutoMigrate(&model.Enterprise{}, &model.EnterpriseTeam{}, &model.EnterpriseMember{}))
+	owner := &model.User{Username: "guard-owner", Password: "placeholder", Role: common.RoleCommonUser, Status: common.UserStatusEnabled, Group: "default", AuthVersion: 1, AffCode: "guard-own"}
+	require.NoError(t, model.DB.Create(owner).Error)
+	require.NoError(t, model.UpgradeUserToEnterprise(owner.Id, &model.Enterprise{Name: "Guard Co"}))
+	ent, err := model.GetEnterpriseByUserId(owner.Id)
+	require.NoError(t, err)
+	employee := &model.User{Username: "guard-employee", Password: "placeholder", Role: common.RoleCommonUser, Status: common.UserStatusEnabled, Group: "default", AuthVersion: 1, AffCode: "guard-emp"}
+	require.NoError(t, model.DB.Create(employee).Error)
+	member := &model.EnterpriseMember{EnterpriseId: ent.Id, Name: "Employee"}
+	require.NoError(t, model.CreateEnterpriseMember(member))
+	require.NoError(t, model.BindEnterpriseMemberLogin(ent.Id, member.Id, employee, model.EnterpriseMemberRoleDeveloper))
+
+	router := gin.New()
+	asRoot := func(c *gin.Context) {
+		c.Set("id", 1)
+		c.Set("role", common.RoleRootUser)
+	}
+	router.POST("/api/user/manage", asRoot, ManageUser)
+	router.DELETE("/api/user/:id", asRoot, DeleteUser)
+	call := func(method, path, body string) map[string]any {
+		request := httptest.NewRequest(method, path, strings.NewReader(body))
+		request.Header.Set("Content-Type", "application/json")
+		response := httptest.NewRecorder()
+		router.ServeHTTP(response, request)
+		parsed := map[string]any{}
+		require.NoError(t, common.Unmarshal(response.Body.Bytes(), &parsed), response.Body.String())
+		return parsed
+	}
+	const rejected = "This account belongs to an enterprise, manage it from the enterprise module"
+
+	for _, action := range []string{"disable", "delete", "promote"} {
+		body := call(http.MethodPost, "/api/user/manage", `{"id":`+strconv.Itoa(employee.Id)+`,"action":"`+action+`"}`)
+		assert.Equal(t, false, body["success"], action)
+		assert.Equal(t, rejected, body["message"], action)
+	}
+	body := call(http.MethodDelete, "/api/user/"+strconv.Itoa(owner.Id), "")
+	assert.Equal(t, false, body["success"])
+	assert.Equal(t, rejected, body["message"])
+	body = call(http.MethodPost, "/api/user/manage", `{"id":`+strconv.Itoa(employee.Id)+`,"action":"enable"}`)
+	assert.NotEqual(t, rejected, body["message"], "enable is never blocked by the enterprise guard")
+
+	// 解绑后账号回到普通用户，守卫放行（后续是否成功取决于二次验证，这里只看守卫）
+	require.NoError(t, model.UnbindEnterpriseMemberLogin(ent.Id, member.Id))
+	body = call(http.MethodPost, "/api/user/manage", `{"id":`+strconv.Itoa(employee.Id)+`,"action":"disable"}`)
+	assert.NotEqual(t, rejected, body["message"])
+}

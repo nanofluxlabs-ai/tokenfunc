@@ -1522,6 +1522,9 @@
     "Team Management": "Управление командами",
     "Add members or import them to start issuing keys.": "Добавьте или импортируйте участников, чтобы выдавать ключи.",
     "Period statements": "Счета за период",
-    "View reconciliation": "Открыть сверку"
+    "View reconciliation": "Открыть сверку",
+    "This account belongs to an enterprise, manage it from the enterprise module": "Этот аккаунт принадлежит предприятию, управляйте им в модуле предприятия",
+    "{{members}} members, {{logins}} can sign in. Members are managed by the enterprise itself; this list is read-only.": "{{members}} участников, {{logins}} могут входить. Участниками управляет само предприятие; этот список только для чтения.",
+    "This enterprise has not added any members in its console.": "Это предприятие ещё не добавило участников в своей консоли."
   }
 }

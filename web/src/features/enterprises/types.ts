@@ -51,6 +51,18 @@ export interface EnterpriseListItem extends Enterprise {
   period_used_quota: number
   period_start_at: number
   period_end_at: number
+  /** 在职成员数与其中已绑定 / 开通登录账号的人数 */
+  member_count: number
+  login_count: number
+}
+
+export interface ListEnterpriseMembersParams {
+  keyword?: string
+  status?: 'active' | 'disabled'
+  has_login?: boolean
+  team_id?: number
+  p?: number
+  page_size?: number
 }
 
 export interface EnterpriseProfilePayload {
@@ -91,7 +103,7 @@ export type ListEnterprisesResponse = ApiResponse<{
   total: number
 }>
 
-export type EnterprisesDialogType = 'create' | 'update' | 'billing'
+export type EnterprisesDialogType = 'create' | 'update' | 'billing' | 'members'
 
 export type CreditCycleType = 'natural_month' | 'fixed_days' | 'quota_based'
 

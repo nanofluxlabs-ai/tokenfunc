@@ -99,8 +99,9 @@
 `id, enterprise_id, team_id, name, email, employee_no, user_id, role(none/developer/team_admin/enterprise_admin), provisioned, status(active/disabled), remark, created_at, updated_at, deleted_at`
 - `user_id = 0`：不登录，只持 key（原「员工」）；`user_id > 0`：已绑定登录账号，`role` 决定控制台范围
 - 登录两种方式：绑定站内已有账号（邮箱 / 用户名查找，不能是另一企业的主账号或成员）；一键开通（`provisioned = true`，用户名 `<邮箱前缀>-e<企业>m<成员>`，随机密码只返回一次，个人余额 0）。解绑后再次开通复用旧账号（重置密码、重新启用、重新绑定）
-- 解绑：`user_id/role` 清零；开通的账号同时停用
-- 停用 / 删除成员 → 其名下 key 全部禁用（事务内）；删除同时解绑登录。软删除，历史统计保留
+- 解绑：`user_id/role` 清零；开通的账号同时停用，并在 `users.remark` 写固定备注「企业员工」（`EnterpriseUnboundRemark`；管理员手写备注不覆盖；再次开通时清掉），让它回到个人用户列表后系统管理员一眼能识别、按需清理
+- 停用 / 删除成员 → 其名下 key 全部禁用（事务内）；删除同时解绑登录（开通账号同样写上述标识）。软删除，历史统计保留
+- 系统管理员的「个人用户」列表（`EnterpriseUserTypeScope(personal)`）排除企业主账号与**在职成员的登录账号**（`ent_members.user_id`，`deleted_at IS NULL`）；员工由企业自治，管理员在「企业用户」页签的企业行「成员」抽屉里**只读**查看（`GET /api/admin/enterprise/enterprises/:id/members`，全企业范围），企业列表回填 `member_count / login_count`
 - 成员换团队 → 其 key 的 `team_id` 事务内同步更新，历史聚合不变
 - 一人只属一个团队；`(enterprise_id, employee_no)`、`user_id` 部分唯一
 - 列表接口回填 `month_quota`（本月持有人为该成员的 key 消耗；团队公共 key 不计入成员）
@@ -564,7 +565,7 @@ GET /api/usage/token/                    令牌自身额度，上游原样
  ├ 钱包 /wallet、财务对账 /reconciliation：企业账户隐藏（都归企业财务对账）
  └ 个人资料 / 安全访问
 管理员
- ├ 用户管理 /users（普通 | 企业页签）  企业客户 /enterprise-billing（企业列表、详情抽屉：授信配置 / 充值 / 调账 / 手动开期、账单页签）
+ ├ 用户管理 /users（个人 | 企业页签；个人页签不含企业员工账号，企业行「成员」抽屉只读看员工）  企业客户 /enterprise-billing（企业列表、详情抽屉：授信配置 / 充值 / 调账 / 手动开期、账单页签）
  ├ 财务中心 /finance（账单列表含对账差异 Tab、账单详情 /finance/bills/:billId：快照 v2 / 冻结件明细 / 归档 / 差异确认）
  └ 报价单 /quotes  线索 /enterprise-leads  文档中心 /docs/enterprise-integration（M12）
 ```
@@ -608,6 +609,7 @@ GET /api/usage/token/                    令牌自身额度，上游原样
 - 管理员敏感操作写审计（`controller/audit.go` 模板 `enterprise.*`、`bill.archive`）：企业增改、授信配置 / 切回预付 / 手动开期、状态、充值、收款、作废、立即出账、调账（wallet / bill）、卖方信息、对账差异确认；控制台侧：团队增改归档删、成员登录绑定 / 开通 / 解绑 / 改角色、key 增改启停删与批量、周期限额与批量
 - **人工调账二次验证**：`requireAdminUserProof(admin.user.manage, {user_id: 企业主, action: enterprise_adjust})`，凭证一次性、上下文不匹配 403 `SECURITY_PROOF_CONTEXT_MISMATCH`；审计记录 `verification_method`
 - 在线充值 / 订阅 / 划转对企业主账号服务端拦截（3.4），前端隐藏只是体验
+- 系统管理员不能删除（硬删 / 软删）、禁用、提权企业账号——主账号与在职成员的登录账号都算（`rejectEnterpriseAffiliatedUser`，按 `GetUserEnterpriseAffiliation` 反查 `enterprises` / `ent_members`），提示去企业模块处理；enable / demote / 编辑资料不拦。个人列表只是遮住入口，守卫才是真正的保护
 - 不存请求体/响应体/提示词；用量聚合表只有计数；归档的原始日志为上游 logs 列
 
 ---

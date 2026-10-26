@@ -258,6 +258,7 @@ func TestEnterpriseMemberLoginAndAccess(t *testing.T) {
 	provisioned, err = GetUserById(login.UserId, true)
 	require.NoError(t, err)
 	assert.Equal(t, common.UserStatusDisabled, provisioned.Status, "provisioned account is disabled on unbind")
+	assert.Equal(t, EnterpriseUnboundRemark, provisioned.Remark, "orphaned provisioned account is tagged for admins")
 	assert.ErrorIs(t, UnbindEnterpriseMemberLogin(ent.Id, carol.Id), ErrEnterpriseMemberNoLogin)
 
 	// 解绑后再次一键开通：复用被停用的旧账号（用户名 / 邮箱仍被它占着），重置密码并重新启用
@@ -271,6 +272,7 @@ func TestEnterpriseMemberLoginAndAccess(t *testing.T) {
 	assert.Equal(t, common.UserStatusEnabled, provisioned.Status)
 	assert.True(t, common.ValidatePasswordAndHash(relogin.Password, provisioned.Password), "new password is usable")
 	assert.False(t, common.ValidatePasswordAndHash(login.Password, provisioned.Password), "old password is gone")
+	assert.Empty(t, provisioned.Remark, "re-provisioning clears the unbound tag")
 	_, actor, err = GetEnterpriseAccess(login.UserId)
 	require.NoError(t, err)
 	assert.True(t, actor.Provisioned)
@@ -778,4 +780,87 @@ func TestEnterpriseTokenQuotaPolicy(t *testing.T) {
 	require.NoError(t, SetTokenQuotaPolicies(ent.Id, owner.Id, EnterpriseScope{}, []int{qaKey.Id}, TokenQuotaPolicyInput{ResetPeriod: TokenQuotaResetCustom, CustomSeconds: 7200, PeriodQuota: 100}))
 	require.NoError(t, findPolicy(qaKey.Id))
 	assert.Equal(t, policy.UpdatedAt+7200, policy.NextResetAt)
+}
+
+// 系统管理员的「个人用户」列表只放自然注册用户：企业主账号、绑定 / 开通登录的在职成员都不出现，解绑或删除成员后账号回到列表；
+// 账号归属查询与企业列表的成员统计同样以 ent_members 为唯一事实来源
+func TestEnterprisePersonalScopeAndAffiliation(t *testing.T) {
+	setupEnterprisePostgres(t)
+	owner, ent := newEnterpriseForTest(t, "scopeowner", "Scope Co")
+	personal := createEnterpriseTestUser(t, "scope-personal", common.RoleCommonUser)
+	bound := createEnterpriseTestUser(t, "scope-bound", common.RoleCommonUser)
+	alice := &EnterpriseMember{EnterpriseId: ent.Id, Name: "Alice", Email: "alice@scope.test"}
+	require.NoError(t, CreateEnterpriseMember(alice))
+	bob := &EnterpriseMember{EnterpriseId: ent.Id, Name: "Bob", Email: "bob@scope.test"}
+	require.NoError(t, CreateEnterpriseMember(bob))
+	keyOnly := &EnterpriseMember{EnterpriseId: ent.Id, Name: "Carol"}
+	require.NoError(t, CreateEnterpriseMember(keyOnly))
+	require.NoError(t, BindEnterpriseMemberLogin(ent.Id, alice.Id, bound, EnterpriseMemberRoleDeveloper))
+	login, err := ProvisionEnterpriseMemberLogin(ent.Id, bob.Id, EnterpriseMemberRoleDeveloper)
+	require.NoError(t, err)
+
+	personalIds := func() []int {
+		ids := make([]int, 0)
+		require.NoError(t, DB.Model(&User{}).Scopes(EnterpriseUserTypeScope(UserTypePersonal)).Order("id").Pluck("id", &ids).Error)
+		return ids
+	}
+	ids := personalIds()
+	assert.Contains(t, ids, personal.Id, "registered user stays in the personal list")
+	assert.NotContains(t, ids, owner.Id, "enterprise owner is excluded")
+	assert.NotContains(t, ids, bound.Id, "bound member account is excluded")
+	assert.NotContains(t, ids, login.UserId, "provisioned member account is excluded")
+
+	ownerAffiliation, err := GetUserEnterpriseAffiliation(owner.Id)
+	require.NoError(t, err)
+	require.NotNil(t, ownerAffiliation)
+	assert.True(t, ownerAffiliation.IsOwner)
+	assert.Equal(t, ent.Id, ownerAffiliation.EnterpriseId)
+	memberAffiliation, err := GetUserEnterpriseAffiliation(bound.Id)
+	require.NoError(t, err)
+	require.NotNil(t, memberAffiliation)
+	assert.False(t, memberAffiliation.IsOwner)
+	assert.Equal(t, alice.Id, memberAffiliation.MemberId)
+	none, err := GetUserEnterpriseAffiliation(personal.Id)
+	require.NoError(t, err)
+	assert.Nil(t, none)
+
+	items, _, err := ListEnterprises("Scope Co", "", 0, 10)
+	require.NoError(t, err)
+	require.Len(t, items, 1)
+	assert.Equal(t, 3, items[0].MemberCount)
+	assert.Equal(t, 2, items[0].LoginCount)
+
+	// 解绑已有账号：账号原样回到个人列表、无归属；删除开通账号的成员：账号停用并带孤儿标识回到个人列表
+	require.NoError(t, UnbindEnterpriseMemberLogin(ent.Id, alice.Id))
+	require.NoError(t, DeleteEnterpriseMember(ent.Id, bob.Id))
+	ids = personalIds()
+	assert.Contains(t, ids, bound.Id)
+	assert.Contains(t, ids, login.UserId)
+	none, err = GetUserEnterpriseAffiliation(login.UserId)
+	require.NoError(t, err)
+	assert.Nil(t, none, "soft-deleted member no longer counts as affiliation")
+	orphan, err := GetUserById(login.UserId, true)
+	require.NoError(t, err)
+	assert.Equal(t, common.UserStatusDisabled, orphan.Status)
+	assert.Equal(t, EnterpriseUnboundRemark, orphan.Remark)
+	boundUser, err := GetUserById(bound.Id, true)
+	require.NoError(t, err)
+	assert.Empty(t, boundUser.Remark, "bound accounts are never tagged")
+
+	// 管理员手写的备注不被孤儿标识覆盖
+	require.NoError(t, DB.Model(&User{}).Where("id = ?", login.UserId).Update("remark", "VIP customer").Error)
+	dave := &EnterpriseMember{EnterpriseId: ent.Id, Name: "Dave", Email: "dave@scope.test"}
+	require.NoError(t, CreateEnterpriseMember(dave))
+	daveLogin, err := ProvisionEnterpriseMemberLogin(ent.Id, dave.Id, EnterpriseMemberRoleDeveloper)
+	require.NoError(t, err)
+	require.NoError(t, DB.Model(&User{}).Where("id = ?", daveLogin.UserId).Update("remark", "VIP customer").Error)
+	require.NoError(t, UnbindEnterpriseMemberLogin(ent.Id, dave.Id))
+	daveUser, err := GetUserById(daveLogin.UserId, true)
+	require.NoError(t, err)
+	assert.Equal(t, "VIP customer", daveUser.Remark)
+	items, _, err = ListEnterprises("Scope Co", "", 0, 10)
+	require.NoError(t, err)
+	require.Len(t, items, 1)
+	assert.Equal(t, 3, items[0].MemberCount, "bob deleted, dave added")
+	assert.Equal(t, 0, items[0].LoginCount)
 }

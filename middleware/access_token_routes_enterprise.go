@@ -7,6 +7,7 @@ func init() {
 		"GET /api/admin/enterprise/enterprises":                          accessTokenScopeRule("user:read"),
 		"POST /api/admin/enterprise/enterprises":                         accessTokenScopeRule("user:write"),
 		"GET /api/admin/enterprise/enterprises/:id":                      accessTokenScopeRule("user:read"),
+		"GET /api/admin/enterprise/enterprises/:id/members":              accessTokenScopeRule("user:read"),
 		"PUT /api/admin/enterprise/enterprises/:id":                      accessTokenScopeRule("user:write"),
 		"PUT /api/admin/enterprise/enterprises/:id/credit":               accessTokenScopeRule("billing:write"),
 		"DELETE /api/admin/enterprise/enterprises/:id/credit":            accessTokenScopeRule("billing:write"),

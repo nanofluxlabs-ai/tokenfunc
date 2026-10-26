@@ -19,14 +19,23 @@ vi.mock('@/features/enterprise-console/hooks/use-enterprise-self', () => ({
   useEnterpriseSelf: () => useEnterpriseSelfMock(),
 }))
 
-// 支付相关 hooks 不是本用例的被测对象，全部给惰性返回值，避免发请求与弹窗
+// 支付相关 hooks 不是本用例的被测对象，全部给惰性返回值，避免发请求与弹窗；
+// topupInfo 与金额预算函数可被单个用例替换，用来验证企业主不发 /api/user/amount
+const paymentMock = vi.hoisted(() => ({
+  topupInfo: null as unknown,
+  calculatePaymentAmount: vi.fn(),
+}))
 vi.mock('../hooks', () => ({
-  useTopupInfo: () => ({ topupInfo: null, presetAmounts: [], loading: false }),
+  useTopupInfo: () => ({
+    topupInfo: paymentMock.topupInfo,
+    presetAmounts: [],
+    loading: false,
+  }),
   usePayment: () => ({
     amount: 0,
     calculating: false,
     processing: false,
-    calculatePaymentAmount: vi.fn(),
+    calculatePaymentAmount: paymentMock.calculatePaymentAmount,
     processPayment: vi.fn(),
   }),
   useAffiliate: () => ({
@@ -121,6 +130,31 @@ afterEach(() => {
   cleanup()
   vi.restoreAllMocks()
   useEnterpriseSelfMock.mockReset()
+  paymentMock.topupInfo = null
+  paymentMock.calculatePaymentAmount.mockReset()
+})
+
+// 在线充值已开启的站点配置：页面加载会按最小充值额预算一次支付金额
+const onlineTopupInfo = {
+  enable_online_topup: true,
+  min_topup: 5,
+  pay_methods: [{ type: 'alipay', name: 'Alipay' }],
+}
+
+test('enterprise owner never asks the server for a payment amount because online top-up is rejected for owners', async () => {
+  paymentMock.topupInfo = onlineTopupInfo
+  await renderWallet({ data: ownerSelf, isLoading: false })
+
+  await screen.findByText('Enterprise accounts are topped up offline')
+  expect(paymentMock.calculatePaymentAmount).not.toHaveBeenCalled()
+})
+
+test('personal user still gets the initial payment amount for the minimum top-up', async () => {
+  paymentMock.topupInfo = onlineTopupInfo
+  await renderWallet({ data: null, isLoading: false })
+
+  await screen.findByText('Add Funds')
+  expect(paymentMock.calculatePaymentAmount).toHaveBeenCalledWith(5, 'alipay')
 })
 
 test('enterprise owner sees the offline top-up notice instead of recharge, subscription and referral cards', async () => {

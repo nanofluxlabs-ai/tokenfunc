@@ -1525,6 +1525,9 @@
     "View reconciliation": "查看财务对账",
     "This account belongs to an enterprise, manage it from the enterprise module": "该账号属于企业，请到企业模块管理",
     "{{members}} members, {{logins}} can sign in. Members are managed by the enterprise itself; this list is read-only.": "共 {{members}} 名成员，{{logins}} 人可登录。成员由企业自行管理，此列表仅供查看。",
-    "This enterprise has not added any members in its console.": "该企业尚未在控制台添加成员。"
+    "This enterprise has not added any members in its console.": "该企业尚未在控制台添加成员。",
+    "Credit enterprises are settled by bill payment, not top-up": "授信企业通过账单收款结清，不走充值",
+    "Credit enterprises are settled by bill payment": "授信企业通过账单收款结清",
+    "Prepaid billing: usage is deducted from the balance; register offline top-ups with the Top-up action on the enterprise row.": "预付计费：消费从余额扣除；线下到账后用企业行的「充值」操作登记。"
   }
 }

@@ -277,7 +277,10 @@ func TestEnterpriseCreditPeriodsAndUsage(t *testing.T) {
 	assert.Equal(t, int64(70), entries[0].AmountQuota)
 
 	// 授信企业不能登记充值；切回预付后 open 期转为 closing
-	_, err = RegisterEnterpriseTopup(ent.Id, 100, 1, "", "")
+	err = DB.Transaction(func(tx *gorm.DB) error {
+		_, err := registerEnterpriseTopupTx(tx, ent.Id, 100, 1, "", "")
+		return err
+	})
 	assert.ErrorIs(t, err, ErrEnterpriseNotPrepaid)
 	require.NoError(t, SwitchEnterpriseToPrepaid(ent.Id, 1))
 	_, err = GetOpenCreditPeriod(ent.Id)
@@ -293,13 +296,22 @@ func TestEnterpriseTopupAndStatus(t *testing.T) {
 	ent, err := GetEnterpriseByUserId(owner.Id)
 	require.NoError(t, err)
 
-	entry, err := RegisterEnterpriseTopup(ent.Id, 250, 9, "WIRE-001", "Oct top-up")
+	registerTopup := func(amount int, reference string, remark string) (*EnterpriseLedgerEntry, error) {
+		var entry *EnterpriseLedgerEntry
+		err := DB.Transaction(func(tx *gorm.DB) error {
+			var err error
+			entry, err = registerEnterpriseTopupTx(tx, ent.Id, amount, 9, reference, remark)
+			return err
+		})
+		return entry, err
+	}
+	entry, err := registerTopup(250, "WIRE-001", "Oct top-up")
 	require.NoError(t, err)
 	assert.Equal(t, int64(1250), entry.BalanceAfterQuota)
 	quota, err := GetUserQuota(owner.Id, true)
 	require.NoError(t, err)
 	assert.Equal(t, 1250, quota)
-	_, err = RegisterEnterpriseTopup(ent.Id, 0, 9, "", "")
+	_, err = registerTopup(0, "", "")
 	assert.Error(t, err)
 	entries, total, err := ListEnterpriseLedger(ent.Id, "", 0, 0, 0, 10)
 	require.NoError(t, err)

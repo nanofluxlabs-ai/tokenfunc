@@ -1525,6 +1525,9 @@
     "View reconciliation": "Открыть сверку",
     "This account belongs to an enterprise, manage it from the enterprise module": "Этот аккаунт принадлежит предприятию, управляйте им в модуле предприятия",
     "{{members}} members, {{logins}} can sign in. Members are managed by the enterprise itself; this list is read-only.": "{{members}} участников, {{logins}} могут входить. Участниками управляет само предприятие; этот список только для чтения.",
-    "This enterprise has not added any members in its console.": "Это предприятие ещё не добавило участников в своей консоли."
+    "This enterprise has not added any members in its console.": "Это предприятие ещё не добавило участников в своей консоли.",
+    "Credit enterprises are settled by bill payment, not top-up": "Кредитные предприятия рассчитываются оплатой счёта, а не пополнением",
+    "Credit enterprises are settled by bill payment": "Кредитные предприятия рассчитываются оплатой счёта",
+    "Prepaid billing: usage is deducted from the balance; register offline top-ups with the Top-up action on the enterprise row.": "Предоплата: расход списывается с баланса; офлайн-пополнения регистрируйте действием «Пополнить» в строке предприятия."
   }
 }

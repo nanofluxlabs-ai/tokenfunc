@@ -44,7 +44,6 @@ import type { EnterpriseListItem } from '../types'
 import { AdjustmentDialog } from './adjustment-dialog'
 import { CreditConfigForm } from './credit-config-form'
 import { useEnterprises } from './enterprises-provider'
-import { TopupForm } from './topup-form'
 
 type EnterpriseBillingDrawerProps = {
   open: boolean
@@ -200,7 +199,7 @@ export function EnterpriseBillingDrawer(props: EnterpriseBillingDrawerProps) {
                     'Credit billing: usage is limited per period and billed when the period ends.'
                   )
                 : t(
-                    'Prepaid billing: usage is deducted from the balance; top-ups are registered here after bank transfer.'
+                    'Prepaid billing: usage is deducted from the balance; register offline top-ups with the Top-up action on the enterprise row.'
                   )}
             </SheetDescription>
           </SheetHeader>
@@ -209,7 +208,29 @@ export function EnterpriseBillingDrawer(props: EnterpriseBillingDrawerProps) {
               <SideDrawerSection>
                 <SideDrawerSectionHeader title={t('Account')} />
                 <div className='flex flex-wrap items-center gap-3 text-sm'>
-                  {!isCredit && (
+                  {/* 预付看余额；授信看本期额度与已用，避免左侧空着只剩一个按钮 */}
+                  {isCredit ? (
+                    <span className='flex flex-wrap items-center gap-x-3'>
+                      <span>
+                        {t('Credit Limit')}:{' '}
+                        <span className='font-mono'>
+                          {props.currentRow?.period_limit_quota
+                            ? formatQuotaWithCurrency(
+                                props.currentRow.period_limit_quota
+                              )
+                            : '—'}
+                        </span>
+                      </span>
+                      <span>
+                        {t('Used')}:{' '}
+                        <span className='font-mono'>
+                          {formatQuotaWithCurrency(
+                            props.currentRow?.period_used_quota ?? 0
+                          )}
+                        </span>
+                      </span>
+                    </span>
+                  ) : (
                     <span>
                       {t('Balance')}:{' '}
                       <span className='font-mono'>
@@ -241,17 +262,6 @@ export function EnterpriseBillingDrawer(props: EnterpriseBillingDrawerProps) {
                 </div>
               </SideDrawerSection>
             )}
-            {data && !isCredit && (
-              <SideDrawerSection>
-                <SideDrawerSectionHeader
-                  title={t('Register top-up')}
-                  description={t(
-                    'Record an offline bank transfer and add it to the balance.'
-                  )}
-                />
-                <TopupForm enterpriseId={enterpriseId} onSaved={refresh} />
-              </SideDrawerSection>
-            )}
             {data && (
               <SideDrawerSection>
                 <SideDrawerSectionHeader
@@ -270,18 +280,21 @@ export function EnterpriseBillingDrawer(props: EnterpriseBillingDrawerProps) {
                         )
                   }
                 />
-                <CreditConfigForm enterprise={data} onSaved={refresh} />
-                {isCredit && (
-                  <div className='flex justify-end'>
-                    <Button
-                      variant='outline'
-                      size='sm'
-                      onClick={() => setConfirm('disable_credit')}
-                    >
-                      {t('Switch to prepaid')}
-                    </Button>
-                  </div>
-                )}
+                <CreditConfigForm
+                  enterprise={data}
+                  onSaved={refresh}
+                  secondaryAction={
+                    isCredit ? (
+                      <Button
+                        type='button'
+                        variant='outline'
+                        onClick={() => setConfirm('disable_credit')}
+                      >
+                        {t('Switch to prepaid')}
+                      </Button>
+                    ) : undefined
+                  }
+                />
               </SideDrawerSection>
             )}
             {isCredit && (

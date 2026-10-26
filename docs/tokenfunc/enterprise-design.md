@@ -283,7 +283,7 @@ reserveExtra()    -> 发送前补充预扣：图片类必须在额度内（失�
 
 ### 3.4 预付企业
 - 直接复用 WalletFunding（users.quota），**零改动**
-- 充值：**只支持线下转账，由管理员登记**（写 `ent_ledger.topup`，同时加 users.quota）；`middleware.RejectEnterpriseOwner()` 对企业主账号拦 `/api/user/topup|pay|amount|stripe/*|creem/pay|waffo*/*|aff_transfer` 与订阅购买共 16 条路由（403，消息为前端 locale key）；回调 / notify 不拦；只拦主账号（`enterprises.user_id`），绑定登录的成员仍是普通钱包
+- 充值：**只支持线下收款，由管理员登记**，入口与普通用户的快捷充值同一条（`POST /api/user/topup/manual`，企业用户页签企业行的「充值」操作复用 `UserTopupDialog`，带支付方式与二次验证）：`RegisterManualTopUp` 发现目标是企业主时，同一事务内写 `top_ups`（provider=admin）+ `ent_ledger.topup`（remark 为订单号）+ 加 users.quota（预付校验、钱包上限），事后写充值日志与审计；授信企业返回 `ErrEnterpriseNotPrepaid`。订单中心与对账因此能看到企业充值；钱包流水（`ListFinanceTopupEntries`）对企业主排除 provider=admin 的 top_ups 行，以 `ent_ledger.topup` 为准，避免重复计入；`middleware.RejectEnterpriseOwner()` 对企业主账号拦 `/api/user/topup|pay|amount|stripe/*|creem/pay|waffo*/*|aff_transfer` 与订阅购买共 16 条路由（403，消息为前端 locale key）；回调 / notify 不拦；只拦主账号（`enterprises.user_id`），绑定登录的成员仍是普通钱包
 - 钱包页企业主隐藏充值 / 兑换码 / 订阅 / 邀请卡，改为提示跳企业概览
 - 授信企业**只走授信额度**，不使用 users.quota 余额（二者互斥，切换模式时由管理员处理余额）
 
@@ -473,7 +473,7 @@ GET    /enterprises/:id  PUT /enterprises/:id
 PUT    /enterprises/:id/credit {cycle_type, cycle_days, limit_usd, alert_percent?, auto_reset}   开通 / 修改授信
 DELETE /enterprises/:id/credit            切回预付
 PUT    /enterprises/:id/status {status}   active / suspended
-POST   /enterprises/:id/topup {amount_usd, reference, remark}   登记线下充值
+（登记线下充值不再有企业专用接口：走 `POST /api/user/topup/manual`，见 3.4）
 POST   /enterprises/:id/adjustments {kind, bill_id, amount_usd, remark}   人工调账（二次验证，4.8）
 GET    /enterprises/:id/ledger  GET /enterprises/:id/credit-periods
 POST   /enterprises/:id/credit-periods/open   手动开下一期（额度信用待收款）

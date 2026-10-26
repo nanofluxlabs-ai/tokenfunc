@@ -1,4 +1,4 @@
-import { Edit, Users, Wallet } from 'lucide-react'
+import { Edit, HandCoins, Users, Wallet } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
 import { Button } from '@/components/ui/button'
@@ -16,6 +16,8 @@ export function EnterpriseRowActions(props: {
 }) {
   const { t } = useTranslation()
   const { setOpen, setCurrentRow } = useEnterprises()
+  // 授信企业不走钱包，欠款通过账单收款结清；只有预付企业能充值
+  const isCredit = props.enterprise.billing_mode === 'credit'
   return (
     <div className='-ml-1.5 flex items-center gap-1'>
       <Tooltip>
@@ -71,6 +73,29 @@ export function EnterpriseRowActions(props: {
           <Users />
         </TooltipTrigger>
         <TooltipContent>{t('Members')}</TooltipContent>
+      </Tooltip>
+      <Tooltip>
+        <TooltipTrigger
+          render={
+            <Button
+              variant='ghost'
+              size='icon-sm'
+              disabled={isCredit}
+              onClick={() => {
+                setCurrentRow(props.enterprise)
+                setOpen('topup')
+              }}
+              aria-label={t('Top-up')}
+            />
+          }
+        >
+          <HandCoins />
+        </TooltipTrigger>
+        <TooltipContent>
+          {isCredit
+            ? t('Credit enterprises are settled by bill payment')
+            : t('Top-up')}
+        </TooltipContent>
       </Tooltip>
     </div>
   )

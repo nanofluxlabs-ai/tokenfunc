@@ -478,8 +478,11 @@ func TestFinanceTopupLedger(t *testing.T) {
 	redemption := &Redemption{UserId: 1, Key: "ledgerkey00000000000000000000001", Status: 3, Name: "新客礼包", Quota: 250000, CreatedTime: base, RedeemedTime: base + 30, UsedUserId: owner.Id}
 	require.NoError(t, DB.Create(redemption).Error)
 	require.NoError(t, DB.Delete(redemption).Error)
-	// 4. 企业线下充值（预付模式）
-	_, err = RegisterEnterpriseTopup(enterprise.Id, 2_000_000, 1, "BANK-001", "首期款")
+	// 4. 企业线下充值（预付模式）：只造台账行，top_ups 那半边由 TestRegisterManualTopUpForEnterpriseOwnerWritesOrderAndLedger 覆盖
+	err = DB.Transaction(func(tx *gorm.DB) error {
+		_, err := registerEnterpriseTopupTx(tx, enterprise.Id, 2_000_000, 1, "BANK-001", "首期款")
+		return err
+	})
 	require.NoError(t, err)
 	require.NoError(t, DB.Model(&EnterpriseLedgerEntry{}).Where("enterprise_id = ?", enterprise.Id).Update("created_at", base+40).Error)
 	// 4b. 企业余额人工调账（负数）：进钱包流水；账单调账 / 作废（ref_type = bill）不动钱包，不进

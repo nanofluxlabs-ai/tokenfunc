@@ -1,5 +1,5 @@
 import { zodResolver } from '@hookform/resolvers/zod'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import { useForm, useWatch } from 'react-hook-form'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
@@ -46,6 +46,8 @@ function toCycleType(value: string): CreditCycleType {
 type CreditConfigFormProps = {
   enterprise: Enterprise
   onSaved: () => void
+  /** 与提交按钮并排的次要操作（如「切回预付」），避免在表单外另起一行 */
+  secondaryAction?: ReactNode
 }
 
 /** 与后端 EnterpriseDefaultCreditAlertPercent 一致 */
@@ -285,7 +287,8 @@ export function CreditConfigForm(props: CreditConfigFormProps) {
             </FormItem>
           )}
         />
-        <div className='flex justify-end'>
+        <div className='flex items-center justify-end gap-2'>
+          {props.secondaryAction}
           <Button type='submit' disabled={isSubmitting}>
             {submitLabel}
           </Button>

@@ -23,7 +23,6 @@ import type {
   ListEnterpriseMembersParams,
   ListEnterprisesParams,
   ListEnterprisesResponse,
-  TopupPayload,
 } from './types'
 
 const ADMIN_ENTERPRISE_BASE = '/api/admin/enterprise/enterprises'
@@ -88,14 +87,6 @@ export async function setEnterpriseStatus(
   status: EnterpriseStatus
 ): Promise<ApiResponse> {
   const res = await api.put(`${ADMIN_ENTERPRISE_BASE}/${id}/status`, { status })
-  return res.data
-}
-
-export async function registerEnterpriseTopup(
-  id: number,
-  payload: TopupPayload
-): Promise<ApiResponse<LedgerEntry>> {
-  const res = await api.post(`${ADMIN_ENTERPRISE_BASE}/${id}/topup`, payload)
   return res.data
 }
 

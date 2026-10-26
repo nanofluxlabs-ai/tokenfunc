@@ -12,9 +12,10 @@ import (
 
 // 个人财务对账·充值账单（TokenFunc 二开，PG-only）：钱包的非消费流水，满足 期末余额 = 期初 + Σ本账单 − Σ消费账单。
 // 上游写充值 / 调额日志时不写 quota，金额不能从 logs 取，按来源回到各自的事实表：
-//   - online：top_ups 成功单（含管理员补单与管理员手动充值 provider=admin，remark 取参考号），额度推导复用订单中心的 financeOrderItem；订阅镜像行用 NOT EXISTS 剔除
+//   - online：top_ups 成功单（含管理员补单与管理员手动充值 provider=admin，remark 取参考号），额度推导复用订单中心的 financeOrderItem；订阅镜像行用 NOT EXISTS 剔除。
+//     企业主的 provider=admin 行只可能来自管理员手动充值（在线充值对企业主已拦截），同一笔已由 ent_ledger.topup 表达，这里排除以免重复计入
 //   - redemption：redemptions.used_user_id（兑换后被删除的码也算，raw SQL 不受软删影响）
-//   - enterprise_topup：ent_ledger.topup（预付企业主的线下充值）
+//   - enterprise_topup：ent_ledger.topup（预付企业主的线下充值，由管理员手动充值同一事务写入，remark 为订单号）
 //   - enterprise_adjust：ent_ledger.adjustment 且 ref_type = wallet（预付企业余额人工调账，可负；账单调账 / 作废不动钱包，不算）
 //   - subscription_balance：余额购买订阅，钱包扣减记负数
 //   - admin_adjust：logs type=1 且 other.op.action = user.quota_*，金额 = to − from（可负）
@@ -93,6 +94,7 @@ const financeTopupMainSQL = `SELECT 'online' AS source, t.id::bigint AS source_i
 FROM top_ups t
 WHERE t.user_id = @uid AND t.status = @success AND t.complete_time >= @start AND t.complete_time < @end
 	AND NOT EXISTS (SELECT 1 FROM subscription_orders s WHERE s.trade_no = t.trade_no)
+	AND NOT (t.payment_provider = 'admin' AND EXISTS (SELECT 1 FROM enterprises e WHERE e.user_id = t.user_id))
 UNION ALL
 SELECT 'redemption', r.id::bigint, r.redeemed_time, '', '', 0::bigint, 0::double precision, r.quota::bigint, r.name, '', ''
 FROM redemptions r

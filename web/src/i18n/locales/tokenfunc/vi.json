@@ -1525,6 +1525,9 @@
     "View reconciliation": "Xem đối soát",
     "This account belongs to an enterprise, manage it from the enterprise module": "Tài khoản này thuộc một doanh nghiệp, hãy quản lý trong mô-đun doanh nghiệp",
     "{{members}} members, {{logins}} can sign in. Members are managed by the enterprise itself; this list is read-only.": "{{members}} thành viên, {{logins}} có thể đăng nhập. Thành viên do doanh nghiệp tự quản lý; danh sách này chỉ để xem.",
-    "This enterprise has not added any members in its console.": "Doanh nghiệp này chưa thêm thành viên nào trong bảng điều khiển."
+    "This enterprise has not added any members in its console.": "Doanh nghiệp này chưa thêm thành viên nào trong bảng điều khiển.",
+    "Credit enterprises are settled by bill payment, not top-up": "Doanh nghiệp tín dụng được thanh toán qua hóa đơn, không nạp tiền",
+    "Credit enterprises are settled by bill payment": "Doanh nghiệp tín dụng được thanh toán qua hóa đơn",
+    "Prepaid billing: usage is deducted from the balance; register offline top-ups with the Top-up action on the enterprise row.": "Trả trước: mức dùng được trừ từ số dư; đăng ký nạp tiền ngoại tuyến bằng thao tác Nạp tiền trên dòng doanh nghiệp."
   }
 }

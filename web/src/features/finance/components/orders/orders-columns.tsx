@@ -52,12 +52,10 @@ export function useOrdersColumns(): ColumnDef<FinanceOrder, unknown>[] {
       {
         accessorKey: 'trade_no',
         header: t('Order No.'),
+        // id 是 UNION 视图里 "<类型>:<源表 id>" 的程序行键（见 orders-panel getRowId），不是业务编号，不展示
         cell: ({ row }) => (
           <div className='flex min-w-0 flex-col'>
             <span className='truncate font-mono'>{row.original.trade_no}</span>
-            <span className='text-muted-foreground truncate font-mono text-xs'>
-              {row.original.id}
-            </span>
             {row.original.reference && (
               <span className='text-muted-foreground truncate text-xs'>
                 {t('Reference')}: {row.original.reference}

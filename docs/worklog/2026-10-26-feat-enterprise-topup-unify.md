@@ -25,6 +25,7 @@
 前端
 - `features/enterprises`：行操作加「充值」按钮（授信企业禁用并提示），复用 `@/features/users/components/dialogs/user-topup-dialog`（用户页已有 `UsersProvider` 提供二次验证）；删除 `topup-form.tsx`、`registerEnterpriseTopup`、账务抽屉的「登记充值」区块，抽屉预付说明改为指向企业行的充值操作。
 - `features/finance/components/orders/orders-columns.tsx`：订单号下方不再渲染合成 id；支付方式列保留。
+- 账务抽屉授信模式布局（用户截图反馈）：「账户」区左侧补本期授信额度 / 已用摘要，不再只剩一个「停用企业」按钮；`CreditConfigForm` 加 `secondaryAction`，「切回预付」与「更新授信」并排在同一按钮行。
 - 文案写入 `web/src/i18n/locales/tokenfunc/*.json` 七个语言文件。
 
 文档：`docs/tokenfunc/enterprise-design.md` §3.4 / §7 同步。
@@ -35,7 +36,7 @@
 - PG 实库（worktree schema `test_feat_enterprise_topup_unify`）`go test ./model -run 'TestRegisterManualTopUp|TestEnterpriseTopupAndStatus|TestEnterpriseCredit|TestFinanceTopupLedger'` 通过：预付企业主充值 → `top_ups` 一行（provider admin、method wxpay）+ 台账一行（operator / reference / remark=订单号 / balance_after）+ 余额增加；订单中心按 provider=admin 命中 1 条；钱包流水只有 1 条且来源为 enterprise_topup；切成授信后充值返回 `ErrEnterpriseNotPrepaid`，订单 / 台账 / 余额均不变；普通用户路径与失败路径行为不变。
 - `go test ./controller -run 'TopUp|Topup|Enterprise'` 通过。
 - 接口冒烟（worktree `make api`，端口 3003）：setup → 建预付企业 → `POST /api/verify`（password）拿凭证 → `POST /api/user/topup/manual {user_id: 企业主, amount_usd: 12.5, payment_method: wxpay}` 成功，返回 `ADMIN...` 订单号、provider admin；`GET /api/admin/finance/orders` 命中该订单（wallet_topup / wxpay / 12.5）；`GET /enterprises/1/ledger?type=topup` 一条，`remark` 等于订单号、`balance_after_quota=6250000`；企业列表 `quota=6250000`；企业主 `GET /api/user/finance/topup/detail` 只有 1 条，来源 enterprise_topup；`PUT /enterprises/1/credit` 切成授信后再充值返回 "Credit enterprises are settled by bill payment, not top-up"，台账仍 1 条。
-- 前端 `bun run typecheck` 通过；`oxlint` 对 `features/enterprises`、`finance/components/orders` 无报错；`vitest src/features/enterprises src/features/finance src/features/users/components/dialogs` 22 文件 79 用例通过，新增 `enterprise-row-actions.test.tsx`（预付可点开 topup、授信禁用）。
+- 前端 `bun run typecheck` 通过；`oxlint` 对 `features/enterprises`、`finance/components/orders` 无报错；`vitest src/features/enterprises src/features/finance src/features/users/components/dialogs` 22 文件 79 用例通过，新增 `enterprise-row-actions.test.tsx`（预付可点开 topup、授信禁用）；布局调整后新增 `credit-config-form.test.tsx`（次要操作与提交按钮同一行）通过。
 
 ## 遗留
 

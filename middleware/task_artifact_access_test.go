@@ -192,3 +192,25 @@ func urlQueryEscape(value string) string {
 	replacer := strings.NewReplacer("+", "%2B", "=", "%3D")
 	return replacer.Replace(value)
 }
+
+// JSON 访问日志同样要对 query 里的 key / token 等凭据脱敏（上游 #7972 只覆盖了 text 格式的写法）
+func TestSetUpLoggerJSONAccessLogMasksQueryCredentials(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	previousFormat := common.LogFormatJSON
+	common.LogFormatJSON = true
+	t.Cleanup(func() { common.LogFormatJSON = previousFormat })
+	previousWriter := gin.DefaultWriter
+	var output bytes.Buffer
+	gin.DefaultWriter = &output
+	t.Cleanup(func() { gin.DefaultWriter = previousWriter })
+
+	router := gin.New()
+	SetUpLogger(router)
+	router.GET("/v1beta/models", func(c *gin.Context) { c.Status(http.StatusUnauthorized) })
+	router.ServeHTTP(httptest.NewRecorder(), httptest.NewRequest(http.MethodGet, "/v1beta/models?key=sk-never-log-this&alt=sse", nil))
+
+	var entry map[string]any
+	require.NoError(t, common.Unmarshal(bytes.TrimSpace(output.Bytes()), &entry), output.String())
+	assert.Equal(t, "/v1beta/models?alt=sse&key=%2A%2A%2Amasked%2A%2A%2A", entry["path"])
+	assert.NotContains(t, output.String(), "sk-never-log-this")
+}

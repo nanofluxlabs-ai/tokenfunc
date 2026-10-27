@@ -2,10 +2,12 @@ package middleware
 
 import (
 	"fmt"
+	"net/url"
 	"strings"
 	"time"
 
 	"github.com/QuantumNous/new-api/common"
+	relaycommon "github.com/QuantumNous/new-api/relay/common"
 	"github.com/gin-gonic/gin"
 )
 
@@ -28,6 +30,7 @@ func SetUpLogger(server *gin.Engine) {
 		start := time.Now()
 		// 与 gin 原 logger 一致：进入时取 path / query（此时任务产物的 access 参数已被上一中间件摘掉）
 		path := c.Request.URL.Path
+		escapedPath := c.Request.URL.EscapedPath()
 		raw := c.Request.URL.RawQuery
 
 		c.Next()
@@ -41,6 +44,10 @@ func SetUpLogger(server *gin.Engine) {
 		// Redact the log value only; the handler still needs the original query.
 		if strings.HasPrefix(path, "/api/oauth/") || strings.HasPrefix(path, "/oauth/") {
 			path, _, _ = strings.Cut(path, "?")
+		} else if raw != "" {
+			// 上游 #7972：query 里的 key / token 等凭据脱敏后再记录（text / json 两种格式共用）
+			query, _ := url.ParseQuery(raw)
+			path = escapedPath + relaycommon.SanitizeURLForLog("?"+query.Encode())
 		}
 		// 用 c.GetString 读 Keys（带锁），避免与 handler 内后台 goroutine 并发写产生 data race
 		requestID := c.GetString(common.RequestIdKey)

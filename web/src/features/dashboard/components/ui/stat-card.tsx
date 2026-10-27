@@ -40,7 +40,7 @@ export interface StatCardDetail {
 
 interface StatCardProps {
   title: string
-  value: string | number
+  value: ReactNode
   description: string
   icon: LucideIcon
   sparkline?: number[]
@@ -52,6 +52,8 @@ interface StatCardProps {
   action?: ReactNode
   iconTone?: IconBadgeTone
   compactMobile?: boolean
+  /** 自定义图表区（如可交互迷你图），传入时替换内置迷你图与明细 */
+  visualization?: ReactNode
 }
 
 const TONE_CLASSES: Record<StatCardTone, string> = {
@@ -289,7 +291,9 @@ export function StatCard(props: StatCardProps) {
   }
 
   let visualization: ReactNode
-  if (props.details?.length) {
+  if (props.visualization) {
+    visualization = props.visualization
+  } else if (props.details?.length) {
     visualization = <StatCardDetails details={props.details} />
   } else if (sparklineVariant === 'line') {
     visualization = <LineSparkline values={props.sparkline} tone={tone} />

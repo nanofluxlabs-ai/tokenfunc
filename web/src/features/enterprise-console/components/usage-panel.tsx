@@ -10,6 +10,8 @@ import {
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
+import { AnimatedNumber } from '@/components/animated-number'
+import { InteractiveSparkline } from '@/components/charts/interactive-sparkline'
 import { DateRangePicker } from '@/components/date-range-picker'
 import { MobileFilterSheet } from '@/components/mobile-filter-sheet'
 import { Button } from '@/components/ui/button'
@@ -59,7 +61,8 @@ type UsagePanelProps = {
   onAttributionChange?: (group: UsageAttributionGroup) => void
 }
 
-const STAT_CARD_CLASS = 'bg-card rounded-xl border p-3 shadow-xs sm:p-4'
+const STAT_CARD_CLASS =
+  'bg-card hover:border-primary/40 rounded-xl border p-3 shadow-xs transition-[border-color,box-shadow,translate] duration-200 hover:-translate-y-0.5 hover:shadow-md motion-reduce:hover:translate-y-0 sm:p-4'
 
 /**
  * 用量报表（企业控制台与管理员抽屉共用）：区间 + 快捷档 + 区间合计 + 按日 / 按模型 / 按归属三块；
@@ -171,6 +174,12 @@ export function UsagePanel(props: UsagePanelProps) {
 
   const idPrefix = props.queryKey.join('-')
   const loading = daySummary.isLoading
+  const rangeKey = `${range.from}~${range.to}`
+  const formatQuota = (value: number) => formatQuotaWithCurrency(value)
+  const formatCount = (value: number) => formatNumber(Math.round(value), locale)
+  const formatTokens = (value: number) => formatCompactNumber(value, locale)
+  // 与 sharePercent 一致保留一位小数
+  const formatPercent = (value: number) => `${Math.round(value * 10) / 10}%`
 
   return (
     <div className='@container flex flex-col gap-4'>
@@ -240,14 +249,32 @@ export function UsagePanel(props: UsagePanelProps) {
         <div className={STAT_CARD_CLASS}>
           <StatCard
             title={t('Cost in range')}
-            value={formatQuotaWithCurrency(totals.quota)}
+            value={<AnimatedNumber value={totals.quota} format={formatQuota} />}
             description={t('Daily average {{value}}', {
               value: formatQuotaWithCurrency(totals.quota / dayCount),
             })}
             icon={CircleDollarSign}
             tone='accent-1'
-            sparkline={days.map((day) => day.quota)}
-            sparklineVariant='line'
+            visualization={
+              // 换区间后按新区间重新挂载，入场动画重播；加载中先占位
+              loading ? (
+                <div className='h-8' aria-hidden='true' />
+              ) : (
+                <InteractiveSparkline
+                  key={rangeKey}
+                  points={days.map((day) => ({
+                    label: day.day.slice(5),
+                    value: day.quota,
+                  }))}
+                  format={formatQuota}
+                  variant='line'
+                  tone='accent-1'
+                  ariaLabel={t('{{title}}, by day', {
+                    title: t('Cost in range'),
+                  })}
+                />
+              )
+            }
             loading={loading}
             compactMobile
           />
@@ -255,7 +282,9 @@ export function UsagePanel(props: UsagePanelProps) {
         <div className={STAT_CARD_CLASS}>
           <StatCard
             title={t('Requests')}
-            value={formatNumber(totals.requests, locale)}
+            value={
+              <AnimatedNumber value={totals.requests} format={formatCount} />
+            }
             description={t('Daily average {{value}}', {
               value: formatNumber(
                 Math.round(totals.requests / dayCount),
@@ -264,8 +293,24 @@ export function UsagePanel(props: UsagePanelProps) {
             })}
             icon={Activity}
             tone='accent-2'
-            sparkline={days.map((day) => day.request_count)}
-            sparklineVariant='line'
+            visualization={
+              // 换区间后按新区间重新挂载，入场动画重播；加载中先占位
+              loading ? (
+                <div className='h-8' aria-hidden='true' />
+              ) : (
+                <InteractiveSparkline
+                  key={rangeKey}
+                  points={days.map((day) => ({
+                    label: day.day.slice(5),
+                    value: day.request_count,
+                  }))}
+                  format={formatCount}
+                  variant='line'
+                  tone='accent-2'
+                  ariaLabel={t('{{title}}, by day', { title: t('Requests') })}
+                />
+              )
+            }
             loading={loading}
             compactMobile
           />
@@ -273,20 +318,36 @@ export function UsagePanel(props: UsagePanelProps) {
         <div className={STAT_CARD_CLASS}>
           <StatCard
             title={t('Tokens')}
-            value={formatCompactNumber(
-              totals.prompt + totals.completion,
-              locale
-            )}
+            value={
+              <AnimatedNumber
+                value={totals.prompt + totals.completion}
+                format={formatTokens}
+              />
+            }
             description={t('Input {{input}} · Output {{output}}', {
               input: formatCompactNumber(totals.prompt, locale),
               output: formatCompactNumber(totals.completion, locale),
             })}
             icon={Zap}
             tone='accent-3'
-            sparkline={days.map(
-              (day) => day.prompt_tokens + day.completion_tokens
-            )}
-            sparklineVariant='line'
+            visualization={
+              // 换区间后按新区间重新挂载，入场动画重播；加载中先占位
+              loading ? (
+                <div className='h-8' aria-hidden='true' />
+              ) : (
+                <InteractiveSparkline
+                  key={rangeKey}
+                  points={days.map((day) => ({
+                    label: day.day.slice(5),
+                    value: day.prompt_tokens + day.completion_tokens,
+                  }))}
+                  format={formatTokens}
+                  variant='line'
+                  tone='accent-3'
+                  ariaLabel={t('{{title}}, by day', { title: t('Tokens') })}
+                />
+              )
+            }
             loading={loading}
             compactMobile
           />
@@ -294,14 +355,37 @@ export function UsagePanel(props: UsagePanelProps) {
         <div className={STAT_CARD_CLASS}>
           <StatCard
             title={t('Cache hit rate')}
-            value={`${sharePercent(totals.cache, totals.prompt)}%`}
+            value={
+              <AnimatedNumber
+                value={sharePercent(totals.cache, totals.prompt)}
+                format={formatPercent}
+              />
+            }
             description={t('Cached: {{count}}', {
               count: formatCompactNumber(totals.cache, locale),
             })}
             icon={Database}
             tone='accent-1'
-            sparkline={days.map((day) => day.cache_tokens)}
-            sparklineVariant='bars'
+            visualization={
+              // 换区间后按新区间重新挂载，入场动画重播；加载中先占位
+              loading ? (
+                <div className='h-8' aria-hidden='true' />
+              ) : (
+                <InteractiveSparkline
+                  key={rangeKey}
+                  points={days.map((day) => ({
+                    label: day.day.slice(5),
+                    value: day.cache_tokens,
+                  }))}
+                  format={formatTokens}
+                  variant='bars'
+                  tone='accent-1'
+                  ariaLabel={t('{{title}}, by day', {
+                    title: t('Cache hit rate'),
+                  })}
+                />
+              )
+            }
             loading={loading}
             compactMobile
           />

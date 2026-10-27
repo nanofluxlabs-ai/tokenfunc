@@ -1,4 +1,5 @@
 import { VChart } from '@visactor/react-vchart'
+import { useReducedMotion } from 'motion/react'
 import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 
@@ -9,9 +10,9 @@ import { cn } from '@/lib/utils'
 import { VCHART_OPTION } from '@/lib/vchart'
 
 import {
-  readUsagePalette,
   USAGE_DONUT_TOP,
-  USAGE_OTHERS_COLOR,
+  usageOthersColor,
+  usagePalette,
 } from '../lib/usage-chart-palette'
 import { sharePercent } from '../lib/usage-range'
 
@@ -23,6 +24,9 @@ type UsageChartProps = {
   data: UsageChartSlice[]
   className?: string
 }
+
+/** 环形图可按切片指定颜色（调用方已按实体固定配色时用），缺省走品牌色板 */
+type UsageDonutChartProps = UsageChartProps & { colors?: string[] }
 
 const RANK_TOP = 10
 
@@ -56,9 +60,10 @@ function ThemedChart(props: {
 }
 
 /** 消耗构成环形图：前 6 项 + 其他，中心显示合计；不画图例，名称看旁边明细表 */
-export function UsageDonutChart(props: UsageChartProps) {
+export function UsageDonutChart(props: UsageDonutChartProps) {
   const { t } = useTranslation()
   const { resolvedTheme } = useChartTheme()
+  const reduceMotion = useReducedMotion()
   const textColor =
     resolvedTheme === 'dark'
       ? 'rgba(255, 255, 255, 0.68)'
@@ -78,7 +83,10 @@ export function UsageDonutChart(props: UsageChartProps) {
       valueField: 'quota',
       categoryField: 'name',
       // 颜色与明细表的色点一一对应：前 N 项取品牌色，「其他」固定灰
-      color: [...readUsagePalette(), USAGE_OTHERS_COLOR],
+      color: props.colors ?? [
+        ...usagePalette(resolvedTheme === 'dark'),
+        usageOthersColor(resolvedTheme === 'dark'),
+      ],
       outerRadius: 0.92,
       innerRadius: 0.68,
       padAngle: 0.6,
@@ -121,9 +129,19 @@ export function UsageDonutChart(props: UsageChartProps) {
           ],
         },
       },
-      animationAppear: { duration: 400 },
+      // 入场：曲线 / 扇区 / 条形以 0.8 秒缓出生长；系统要求减少动态效果时关闭
+      animation: !reduceMotion,
+      animationAppear: { duration: 800, easing: 'cubicOut' },
     }
-  }, [props.data, props.id, t, textColor])
+  }, [
+    props.colors,
+    props.data,
+    props.id,
+    reduceMotion,
+    resolvedTheme,
+    t,
+    textColor,
+  ])
 
   return (
     <ThemedChart
@@ -137,6 +155,7 @@ export function UsageDonutChart(props: UsageChartProps) {
 /** 消耗排行横向条形图：前 10 项，按消耗从高到低自上而下 */
 export function UsageRankChart(props: UsageChartProps) {
   const { resolvedTheme } = useChartTheme()
+  const reduceMotion = useReducedMotion()
   // 手机上标签收窄，给条形留出宽度
   const isMobile = useMediaQuery('(max-width: 640px)')
   const labelLimit = isMobile ? 80 : 140
@@ -183,7 +202,13 @@ export function UsageRankChart(props: UsageChartProps) {
           tick: { visible: false },
           domainLine: { visible: false },
         },
-        { orient: 'bottom', visible: false, grid: { visible: false } },
+        {
+          orient: 'bottom',
+          visible: false,
+          grid: { visible: false },
+          // 给最长的条留出右侧空间，金额标签才能放在条外，不被挤进条内描边显示
+          expand: { max: 0.2 },
+        },
       ],
       tooltip: {
         mark: {
@@ -197,9 +222,11 @@ export function UsageRankChart(props: UsageChartProps) {
           ],
         },
       },
-      animationAppear: { duration: 400 },
+      // 入场：曲线 / 扇区 / 条形以 0.8 秒缓出生长；系统要求减少动态效果时关闭
+      animation: !reduceMotion,
+      animationAppear: { duration: 800, easing: 'cubicOut' },
     }
-  }, [props.id, textColor, values, labelLimit])
+  }, [props.id, reduceMotion, textColor, values, labelLimit])
 
   return (
     <ThemedChart

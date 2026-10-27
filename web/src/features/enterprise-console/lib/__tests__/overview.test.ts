@@ -1,5 +1,7 @@
 import { describe, expect, test } from 'vitest'
 
+import { changePercent } from '@/lib/change-percent'
+
 import type {
   OverviewTeamBudget,
   OverviewTodos,
@@ -8,7 +10,6 @@ import type {
 import {
   buildOverviewDailySnapshot,
   buildOverviewTodos,
-  changePercent,
   overviewTodoKey,
 } from '../overview'
 

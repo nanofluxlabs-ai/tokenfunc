@@ -1,52 +1,26 @@
 import { Link } from '@tanstack/react-router'
-import {
-  Activity,
-  CalendarRange,
-  CircleDollarSign,
-  TrendingDown,
-  TrendingUp,
-  Zap,
-} from 'lucide-react'
+import { Activity, CalendarRange, CircleDollarSign, Zap } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
+import { AnimatedNumber } from '@/components/animated-number'
+import { ChangePill } from '@/components/change-pill'
+import { InteractiveSparkline } from '@/components/charts/interactive-sparkline'
 import { StatCard } from '@/features/dashboard/components/ui/stat-card'
 import { toIntlLocale } from '@/i18n/languages'
 import { formatQuotaWithCurrency } from '@/lib/currency'
 import { formatCompactNumber, formatNumber } from '@/lib/format'
 
-import { changePercent, type OverviewDailySnapshot } from '../lib/overview'
+import type { OverviewDailySnapshot } from '../lib/overview'
 
 const CARD_LINK_CLASS =
-  'bg-card hover:border-primary/40 focus-visible:ring-ring rounded-xl border p-3 shadow-xs transition-colors focus-visible:ring-2 focus-visible:outline-none sm:p-4'
+  'bg-card hover:border-primary/40 focus-visible:ring-ring rounded-xl border p-3 shadow-xs transition-[border-color,box-shadow,translate] duration-200 hover:-translate-y-0.5 hover:shadow-md focus-visible:ring-2 focus-visible:outline-none motion-reduce:hover:translate-y-0 sm:p-4'
 
 type OverviewKpiCardsProps = {
   snapshot: OverviewDailySnapshot
   loading: boolean
 }
 
-/** 环比徽标：上期为 0 时不显示；涨跌只表示方向，不代表好坏，统一用中性色 */
-function ChangePill(props: {
-  current: number
-  previous: number
-  label: string
-}) {
-  const delta = changePercent(props.current, props.previous)
-  if (delta === null) return null
-  const Icon = delta >= 0 ? TrendingUp : TrendingDown
-  const sign = delta >= 0 ? '+' : ''
-  return (
-    <span
-      className='bg-muted text-muted-foreground inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium tabular-nums'
-      title={props.label}
-    >
-      <Icon className='size-3' aria-hidden='true' />
-      {`${sign}${delta}%`}
-      <span className='sr-only'>{props.label}</span>
-    </span>
-  )
-}
-
-/** 概览四张 KPI：今日消耗 / 今日请求 / 今日 Token / 近 7 天消耗；底部 7 天迷你图，整卡下钻到同区间的用量报表 */
+/** 概览四张 KPI：今日消耗 / 今日请求 / 今日 Token / 近 7 天消耗；数值入场滚动，底部 7 天迷你图可悬停看每天的值，整卡下钻到同区间的用量报表 */
 export function OverviewKpiCards(props: OverviewKpiCardsProps) {
   const { t, i18n } = useTranslation()
   const locale = toIntlLocale(i18n.resolvedLanguage || i18n.language)
@@ -63,6 +37,9 @@ export function OverviewKpiCards(props: OverviewKpiCardsProps) {
     source: 'overview' as const,
   }
   const vsYesterday = t('vs yesterday')
+  const formatQuota = (value: number) => formatQuotaWithCurrency(value)
+  const formatCount = (value: number) => formatNumber(Math.round(value), locale)
+  const formatTokens = (value: number) => formatCompactNumber(value, locale)
 
   return (
     // 手机两列紧凑卡（迷你图隐藏），与上游控制台首页一致
@@ -75,14 +52,31 @@ export function OverviewKpiCards(props: OverviewKpiCardsProps) {
       >
         <StatCard
           title={t("Today's spend")}
-          value={formatQuotaWithCurrency(today.quota)}
+          value={<AnimatedNumber value={today.quota} format={formatQuota} />}
           description={t('Yesterday {{value}}', {
             value: formatQuotaWithCurrency(yesterday.quota),
           })}
           icon={CircleDollarSign}
           tone='accent-1'
-          sparkline={last7.map((day) => day.quota)}
-          sparklineVariant='line'
+          visualization={
+            props.loading ? (
+              <div className='h-8' aria-hidden='true' />
+            ) : (
+              <InteractiveSparkline
+                points={last7.map((day) => ({
+                  label: day.day.slice(5),
+                  value: day.quota,
+                }))}
+                format={formatQuota}
+                variant='line'
+                tone='accent-1'
+                ariaLabel={t('{{title}}, last 7 days', {
+                  title: t("Today's spend"),
+                })}
+                focusable={false}
+              />
+            )
+          }
           loading={props.loading}
           compactMobile
           action={
@@ -102,14 +96,33 @@ export function OverviewKpiCards(props: OverviewKpiCardsProps) {
       >
         <StatCard
           title={t("Today's requests")}
-          value={formatNumber(today.request_count, locale)}
+          value={
+            <AnimatedNumber value={today.request_count} format={formatCount} />
+          }
           description={t('Yesterday {{value}}', {
             value: formatNumber(yesterday.request_count, locale),
           })}
           icon={Activity}
           tone='accent-2'
-          sparkline={last7.map((day) => day.request_count)}
-          sparklineVariant='line'
+          visualization={
+            props.loading ? (
+              <div className='h-8' aria-hidden='true' />
+            ) : (
+              <InteractiveSparkline
+                points={last7.map((day) => ({
+                  label: day.day.slice(5),
+                  value: day.request_count,
+                }))}
+                format={formatCount}
+                variant='line'
+                tone='accent-2'
+                ariaLabel={t('{{title}}, last 7 days', {
+                  title: t("Today's requests"),
+                })}
+                focusable={false}
+              />
+            )
+          }
           loading={props.loading}
           compactMobile
           action={
@@ -129,17 +142,32 @@ export function OverviewKpiCards(props: OverviewKpiCardsProps) {
       >
         <StatCard
           title={t("Today's tokens")}
-          value={formatCompactNumber(todayTokens, locale)}
+          value={<AnimatedNumber value={todayTokens} format={formatTokens} />}
           description={t('Input {{input}} · Output {{output}}', {
             input: formatCompactNumber(today.prompt_tokens, locale),
             output: formatCompactNumber(today.completion_tokens, locale),
           })}
           icon={Zap}
           tone='accent-3'
-          sparkline={last7.map(
-            (day) => day.prompt_tokens + day.completion_tokens
-          )}
-          sparklineVariant='line'
+          visualization={
+            props.loading ? (
+              <div className='h-8' aria-hidden='true' />
+            ) : (
+              <InteractiveSparkline
+                points={last7.map((day) => ({
+                  label: day.day.slice(5),
+                  value: day.prompt_tokens + day.completion_tokens,
+                }))}
+                format={formatTokens}
+                variant='line'
+                tone='accent-3'
+                ariaLabel={t('{{title}}, last 7 days', {
+                  title: t("Today's tokens"),
+                })}
+                focusable={false}
+              />
+            )
+          }
           loading={props.loading}
           compactMobile
           action={
@@ -159,14 +187,36 @@ export function OverviewKpiCards(props: OverviewKpiCardsProps) {
       >
         <StatCard
           title={t('Spend in the last 7 days')}
-          value={formatQuotaWithCurrency(props.snapshot.last7Quota)}
+          value={
+            <AnimatedNumber
+              value={props.snapshot.last7Quota}
+              format={formatQuota}
+            />
+          }
           description={t('Previous 7 days {{value}}', {
             value: formatQuotaWithCurrency(props.snapshot.prev7Quota),
           })}
           icon={CalendarRange}
           tone='accent-1'
-          sparkline={last7.map((day) => day.quota)}
-          sparklineVariant='bars'
+          visualization={
+            props.loading ? (
+              <div className='h-8' aria-hidden='true' />
+            ) : (
+              <InteractiveSparkline
+                points={last7.map((day) => ({
+                  label: day.day.slice(5),
+                  value: day.quota,
+                }))}
+                format={formatQuota}
+                variant='bars'
+                tone='accent-1'
+                ariaLabel={t('{{title}}, last 7 days', {
+                  title: t('Spend in the last 7 days'),
+                })}
+                focusable={false}
+              />
+            )
+          }
           loading={props.loading}
           compactMobile
           action={

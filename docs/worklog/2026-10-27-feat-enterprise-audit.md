@@ -2,7 +2,7 @@
 
 - 日期：2026-10-27
 - 分支：feat/enterprise-audit
-- PR：
+- PR：#68
 - 关键 commit：be8e39115（后端）
 
 ## 背景

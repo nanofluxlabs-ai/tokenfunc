@@ -342,6 +342,15 @@ export function UserAuthForm({
     </>
   )
 
+  const legalConsent = (
+    <LegalConsent
+      status={status}
+      checked={agreedToLegal}
+      onCheckedChange={setAgreedToLegal}
+      className='mt-1'
+    />
+  )
+
   return (
     <Form {...form}>
       <form
@@ -395,6 +404,8 @@ export function UserAuthForm({
               )}
             />
 
+            {legalConsent}
+
             {/* Submit Button */}
             <Button
               type='submit'
@@ -419,12 +430,8 @@ export function UserAuthForm({
           </>
         )}
 
-        <LegalConsent
-          status={status}
-          checked={agreedToLegal}
-          onCheckedChange={setAgreedToLegal}
-          className='mt-1'
-        />
+        {/* 密码登录时协议放在登录按钮上方，未开密码登录时保持原位 */}
+        {!passwordLoginEnabled && legalConsent}
 
         {!hasAlternativeLogin && alternativeLoginMethods}
       </form>

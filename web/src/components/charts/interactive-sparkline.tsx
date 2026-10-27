@@ -136,11 +136,17 @@ export function InteractiveSparkline(props: InteractiveSparklineProps) {
       onKeyDown={handleKeyDown}
     >
       {variant === 'line' ? (
-        <svg
+        // 入场用裁剪从左到右展开：pathLength 与 non-scaling-stroke 在拉伸的 viewBox 下虚线长度对不上，线会画不完
+        <motion.svg
           viewBox={`0 0 ${VIEW_WIDTH} ${VIEW_HEIGHT}`}
           preserveAspectRatio='none'
           className='size-full overflow-visible'
           aria-hidden='true'
+          initial={
+            reduceMotion ? false : { clipPath: 'inset(-20% 100% -20% 0)' }
+          }
+          animate={{ clipPath: 'inset(-20% 0% -20% 0)' }}
+          transition={{ duration: 0.9, ease: EASE_OUT_CUBIC }}
         >
           <defs>
             <linearGradient id={gradientId} x1='0' x2='0' y1='0' y2='1'>
@@ -148,14 +154,8 @@ export function InteractiveSparkline(props: InteractiveSparklineProps) {
               <stop offset='100%' stopColor='currentColor' stopOpacity='0' />
             </linearGradient>
           </defs>
-          <motion.path
-            d={areaPath}
-            fill={`url(#${gradientId})`}
-            initial={reduceMotion ? false : { opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.6, delay: 0.3, ease: EASE_OUT_CUBIC }}
-          />
-          <motion.path
+          <path d={areaPath} fill={`url(#${gradientId})`} />
+          <path
             d={linePath}
             fill='none'
             stroke='currentColor'
@@ -163,11 +163,8 @@ export function InteractiveSparkline(props: InteractiveSparklineProps) {
             strokeLinejoin='round'
             strokeWidth='2.25'
             vectorEffect='non-scaling-stroke'
-            initial={reduceMotion ? false : { pathLength: 0 }}
-            animate={{ pathLength: 1 }}
-            transition={{ duration: 0.9, ease: EASE_OUT_CUBIC }}
           />
-        </svg>
+        </motion.svg>
       ) : (
         <div className='flex h-full items-end gap-1' aria-hidden='true'>
           {values.map((value, index) => {

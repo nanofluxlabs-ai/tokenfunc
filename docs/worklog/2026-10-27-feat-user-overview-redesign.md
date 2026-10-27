@@ -137,3 +137,5 @@
   - 入场约 350ms 的中间帧：数字在滚动，折线在描线，环图在展开，趋势图在生长。
   - KPI 折线和柱状悬停提示、热力图悬停提示。
   - `reduced_motion=reduce` 下首帧即终态。
+
+**修复（同日）**：用企业账号目测时发现迷你图折线没有画完，停在倒数第二个点附近，后面只剩面积。原因是 motion 的 `pathLength` 用虚线实现描线，和 `vector-effect: non-scaling-stroke` 在 `preserveAspectRatio="none"` 横向拉伸时，按屏幕像素计算的虚线长度与路径长度对不上。描线动画改为整张 SVG 用 `clip-path: inset()` 从左到右展开。截图确认折线完整，`src/components`、dashboard 和 enterprise 组件测试共 190 个用例全部通过。本地还用 admin 接口建了企业「Acme 科技」（主账号 acme），写入 60 天 `ent_usage_daily`（`.tmp/seed-enterprise.sql`）用于目测。

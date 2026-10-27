@@ -8,6 +8,7 @@ import { useSidebarView } from '../use-sidebar-view'
 
 const enterpriseState = vi.hoisted(() => ({
   actor: null as EnterpriseActor | null,
+  role: 1,
 }))
 
 vi.mock('@tanstack/react-router', () => ({
@@ -15,7 +16,7 @@ vi.mock('@tanstack/react-router', () => ({
 }))
 vi.mock('@/stores/auth-store', () => ({
   useAuthStore: (selector: (state: unknown) => unknown) =>
-    selector({ auth: { user: { role: 1 } } }),
+    selector({ auth: { user: { role: enterpriseState.role } } }),
 }))
 vi.mock('../use-sidebar-config', () => ({
   useSidebarConfig: (groups: NavGroup[]) => groups,
@@ -42,6 +43,7 @@ function urlsOf(groups: NavGroup[], id: string): string[] {
 
 beforeEach(() => {
   enterpriseState.actor = null
+  enterpriseState.role = 1
 })
 
 describe('enterprise sidebar visibility', () => {
@@ -141,5 +143,37 @@ describe('enterprise sidebar visibility', () => {
     expect(urlsOf(bound.result.current.navGroups, 'personal')).toContain(
       '/wallet'
     )
+  })
+
+  it('shows the audit log entry only to platform admins and enterprise owners / admins', () => {
+    const audit = '/usage-logs/audit'
+    const personal = renderHook(() => useSidebarView())
+    expect(urlsOf(personal.result.current.navGroups, 'general')).not.toContain(
+      audit
+    )
+
+    enterpriseState.actor = {
+      member_id: 8,
+      role: 'developer',
+      team_id: 6,
+      is_owner: false,
+      provisioned: true,
+    }
+    const developer = renderHook(() => useSidebarView())
+    expect(urlsOf(developer.result.current.navGroups, 'logs')).not.toContain(
+      audit
+    )
+
+    enterpriseState.actor = {
+      ...enterpriseState.actor,
+      role: 'enterprise_admin',
+    }
+    const entAdmin = renderHook(() => useSidebarView())
+    expect(urlsOf(entAdmin.result.current.navGroups, 'logs')).toContain(audit)
+
+    enterpriseState.actor = null
+    enterpriseState.role = 10
+    const admin = renderHook(() => useSidebarView())
+    expect(urlsOf(admin.result.current.navGroups, 'general')).toContain(audit)
   })
 })

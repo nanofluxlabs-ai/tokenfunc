@@ -54,13 +54,21 @@ export interface AuditFilters {
   username?: string
   request_id?: string
 }
+export type AuditScope = 'all' | 'self' | 'enterprise'
+
+const AUDIT_SCOPE_ENDPOINTS: Record<AuditScope, string> = {
+  all: '/api/audit',
+  self: '/api/audit/self',
+  enterprise: '/api/enterprise/audit',
+}
+
 export async function getAuditLogs(
-  scope: 'all' | 'self',
+  scope: AuditScope,
   params: AuditFilters
 ): Promise<{ items: AuditLog[]; total: number }> {
   const response = await api.get<
     ApiResponse<{ items: AuditLog[]; total: number }>
-  >(scope === 'all' ? '/api/audit' : '/api/audit/self', { params })
+  >(AUDIT_SCOPE_ENDPOINTS[scope], { params })
   if (!response.data.success || !response.data.data) {
     throw createServerError(response.data, t('Failed to load audit records'))
   }

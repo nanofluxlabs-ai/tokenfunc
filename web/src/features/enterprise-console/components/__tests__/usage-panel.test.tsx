@@ -120,6 +120,21 @@ describe('UsagePanel', () => {
     })
   })
 
+  test('the daily table caps at seven rows and scrolls inside with a pinned header', async () => {
+    renderPanel()
+
+    const daily = await screen.findByRole('region', { name: 'By day' })
+    const table = within(daily).getByRole('table')
+    // 表格自己的滚动层：限高到表头 + 7 行，纵横滚动都在这一层，表头 sticky 才能固定
+    expect(table.parentElement).toHaveClass('max-h-[460px]', 'overflow-auto')
+    expect(table.closest('[data-slot=table-container]')).toBeNull()
+    // 表头单元格由表头行的子选择器设为 sticky top-0
+    expect(within(table).getAllByRole('row')[0]).toHaveClass(
+      '[&>th]:sticky',
+      '[&>th]:top-0'
+    )
+  })
+
   test('model share is computed against the range total from daily data', async () => {
     renderPanel()
 

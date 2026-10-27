@@ -18,7 +18,7 @@ For commercial licensing, please contact support@quantumnous.com
 */
 /** @vitest-environment jsdom */
 import { cleanup, render, screen } from '@testing-library/react'
-import { lazy } from 'react'
+import { cloneElement, lazy, type ReactElement } from 'react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { DocsLayout } from '../components/docs-layout'
@@ -43,9 +43,16 @@ vi.mock('@/components/layout', () => ({
 
 vi.mock('@/components/ui/sheet', () => ({
   Sheet: (props: { children: React.ReactNode }) => <div>{props.children}</div>,
-  SheetTrigger: (props: { children: React.ReactNode }) => (
-    <button type='button'>{props.children}</button>
-  ),
+  // 与真实组件一致：有 render 时把触发器渲染成传入的元素
+  SheetTrigger: (props: {
+    children: React.ReactNode
+    render?: ReactElement
+  }) =>
+    props.render ? (
+      cloneElement(props.render, undefined, props.children)
+    ) : (
+      <button type='button'>{props.children}</button>
+    ),
   SheetContent: (props: { children: React.ReactNode }) => (
     <div>{props.children}</div>
   ),
@@ -95,7 +102,9 @@ describe('DocsLayout', () => {
       </DocsLayout>
     )
 
-    expect(screen.getAllByRole('button', { name: 'Docs pages' }).length).toBe(1)
+    const trigger = screen.getByRole('button', { name: 'Docs pages' })
+    // 吸顶条上直接显示当前页标题
+    expect(trigger).toHaveTextContent('List models')
   })
 
   it('shows the skeleton fallback first, then the lazy page content', async () => {

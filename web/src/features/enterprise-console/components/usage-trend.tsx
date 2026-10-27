@@ -114,7 +114,7 @@ export function UsageTrend(props: UsageTrendProps) {
           loading={props.loading}
         />
       </Suspense>
-      <div className='text-muted-foreground mt-2 flex items-center gap-3 text-xs tabular-nums'>
+      <div className='text-muted-foreground mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs tabular-nums'>
         <span className='flex-1'>{props.footer}</span>
         <span>
           {t('Peak')} {format(peak)}

@@ -55,7 +55,7 @@ export function useSettlementsColumns(
           if (node.kind === 'user') {
             const user = node.user
             return (
-              <div className='flex min-w-0 items-center gap-1.5 pl-8'>
+              <div className='flex min-w-0 items-center gap-1.5 pl-4 sm:pl-8'>
                 <span
                   className={cn(
                     'truncate',
@@ -83,7 +83,7 @@ export function useSettlementsColumns(
               {row.getCanExpand() ? (
                 <Button
                   variant='ghost'
-                  size='icon-xs'
+                  size='icon-sm'
                   aria-label={row.getIsExpanded() ? t('Collapse') : t('Expand')}
                   aria-expanded={row.getIsExpanded()}
                   onClick={row.getToggleExpandedHandler()}
@@ -107,6 +107,7 @@ export function useSettlementsColumns(
       {
         id: 'net_quota',
         header: () => <div className={NUMERIC}>{t('Consumption')}</div>,
+        meta: { label: t('Consumption'), mobileOrder: 10 },
         enableSorting: false,
         cell: ({ row }) => {
           const node = row.original
@@ -166,6 +167,7 @@ export function useSettlementsColumns(
       {
         id: 'status',
         header: t('Status'),
+        meta: { mobileBadge: true },
         enableSorting: false,
         cell: ({ row }) =>
           row.original.kind === 'month' ? (
@@ -176,6 +178,7 @@ export function useSettlementsColumns(
       {
         id: 'amount',
         header: () => <div className={NUMERIC}>{t('Amount')}</div>,
+        meta: { label: t('Amount'), mobileOrder: 20 },
         enableSorting: false,
         cell: ({ row }) =>
           row.original.kind === 'month' ? (

@@ -10,7 +10,8 @@ import {
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
-import { DatePicker } from '@/components/date-picker'
+import { DateRangePicker } from '@/components/date-range-picker'
+import { MobileFilterSheet } from '@/components/mobile-filter-sheet'
 import { Button } from '@/components/ui/button'
 import { StatCard } from '@/features/dashboard/components/ui/stat-card'
 import { toIntlLocale } from '@/i18n/languages'
@@ -58,7 +59,7 @@ type UsagePanelProps = {
   onAttributionChange?: (group: UsageAttributionGroup) => void
 }
 
-const STAT_CARD_CLASS = 'bg-card rounded-xl border p-4 shadow-xs'
+const STAT_CARD_CLASS = 'bg-card rounded-xl border p-3 shadow-xs sm:p-4'
 
 /**
  * 用量报表（企业控制台与管理员抽屉共用）：区间 + 快捷档 + 区间合计 + 按日 / 按模型 / 按归属三块；
@@ -88,6 +89,12 @@ export function UsagePanel(props: UsagePanelProps) {
   const filter = props.filter ?? {}
   const invalidRange = range.from > range.to
   const activePreset = matchUsagePreset(range)
+  const activePresetLabelKey = USAGE_RANGE_PRESETS.find(
+    (preset) => preset.value === activePreset
+  )?.labelKey
+  const rangeLabel = activePresetLabelKey
+    ? t(activePresetLabelKey)
+    : `${range.from} ~ ${range.to}`
 
   // 三块各一个查询：按日（趋势 / 每日明细 / 合计）、按模型、按当前归属维度
   const [daySummary, modelSummary, attributionSummary] = useQueries({
@@ -168,48 +175,55 @@ export function UsagePanel(props: UsagePanelProps) {
   return (
     <div className='@container flex flex-col gap-4'>
       <div className='flex flex-wrap items-center gap-2'>
-        <DatePicker
-          selected={dayjs(range.from).toDate()}
-          onSelect={(date) =>
-            date && setRange({ ...range, from: formatDateStr(date) })
-          }
-          placeholder={t('From')}
-        />
-        <span className='text-muted-foreground'>~</span>
-        <DatePicker
-          selected={dayjs(range.to).toDate()}
-          onSelect={(date) =>
-            date && setRange({ ...range, to: formatDateStr(date) })
-          }
-          placeholder={t('To')}
-        />
-        <div
-          className='bg-muted flex flex-wrap gap-1 rounded-lg p-1'
-          role='group'
-          aria-label={t('Quick range')}
-        >
-          {USAGE_RANGE_PRESETS.map((preset) => (
-            <Button
-              key={preset.value}
-              size='sm'
-              variant={activePreset === preset.value ? 'secondary' : 'ghost'}
-              className='h-7'
-              aria-pressed={activePreset === preset.value}
-              onClick={() => setRange(usageRangeFromPreset(preset.value))}
-            >
-              {t(preset.labelKey)}
-            </Button>
-          ))}
-        </div>
+        {/* 手机上区间与快捷档收进一个按钮，按钮上显示当前快捷档或区间 */}
+        <MobileFilterSheet label={rangeLabel}>
+          <DateRangePicker
+            value={{
+              from: dayjs(range.from).toDate(),
+              to: dayjs(range.to).toDate(),
+            }}
+            onChange={(next) =>
+              next.from &&
+              next.to &&
+              setRange({
+                from: formatDateStr(next.from),
+                to: formatDateStr(next.to),
+              })
+            }
+            className='w-full sm:w-auto sm:min-w-[240px]'
+          />
+          <div
+            className='bg-muted flex flex-wrap gap-1 rounded-lg p-1'
+            role='group'
+            aria-label={t('Quick range')}
+          >
+            {USAGE_RANGE_PRESETS.map((preset) => (
+              <Button
+                key={preset.value}
+                size='sm'
+                variant={activePreset === preset.value ? 'secondary' : 'ghost'}
+                className='h-9 flex-1 sm:h-7 sm:flex-none'
+                aria-pressed={activePreset === preset.value}
+                onClick={() => setRange(usageRangeFromPreset(preset.value))}
+              >
+                {t(preset.labelKey)}
+              </Button>
+            ))}
+          </div>
+        </MobileFilterSheet>
         <div className='flex-1' />
         <Button
           variant='outline'
           size='sm'
           onClick={() => void handleExport()}
           disabled={exporting || invalidRange}
+          aria-label={t('Export CSV')}
         >
           <Download className='h-4 w-4' />
-          {exporting ? t('Exporting...') : t('Export CSV')}
+          {/* 手机上只留图标，给区间按钮让出宽度 */}
+          <span className='hidden sm:inline'>
+            {exporting ? t('Exporting...') : t('Export CSV')}
+          </span>
         </Button>
       </div>
       {invalidRange && (
@@ -219,7 +233,7 @@ export function UsagePanel(props: UsagePanelProps) {
       )}
 
       <div
-        className='grid gap-4 @xl:grid-cols-2 @5xl:grid-cols-4'
+        className='grid grid-cols-2 gap-2 sm:gap-4 @5xl:grid-cols-4'
         role='group'
         aria-label={t('Range totals')}
       >
@@ -235,6 +249,7 @@ export function UsagePanel(props: UsagePanelProps) {
             sparkline={days.map((day) => day.quota)}
             sparklineVariant='line'
             loading={loading}
+            compactMobile
           />
         </div>
         <div className={STAT_CARD_CLASS}>
@@ -252,6 +267,7 @@ export function UsagePanel(props: UsagePanelProps) {
             sparkline={days.map((day) => day.request_count)}
             sparklineVariant='line'
             loading={loading}
+            compactMobile
           />
         </div>
         <div className={STAT_CARD_CLASS}>
@@ -272,6 +288,7 @@ export function UsagePanel(props: UsagePanelProps) {
             )}
             sparklineVariant='line'
             loading={loading}
+            compactMobile
           />
         </div>
         <div className={STAT_CARD_CLASS}>
@@ -286,6 +303,7 @@ export function UsagePanel(props: UsagePanelProps) {
             sparkline={days.map((day) => day.cache_tokens)}
             sparklineVariant='bars'
             loading={loading}
+            compactMobile
           />
         </div>
       </div>

@@ -97,6 +97,21 @@
     );
   filter: blur(24px);
 }
+/* 手机认证页：极光铺满整页，光斑落在顶部与表单下方 */
+.tf-aurora-page {
+  inset: -15%;
+  background:
+    radial-gradient(
+      46% 30% at 22% 14%,
+      color-mix(in srgb, var(--primary) 22%, transparent),
+      transparent 70%
+    ),
+    radial-gradient(
+      56% 34% at 80% 92%,
+      color-mix(in srgb, var(--primary) 20%, transparent),
+      transparent 70%
+    );
+}
 @media (prefers-reduced-motion: no-preference) {
   .tf-aurora {
     animation: tf-aurora 20s ease-in-out infinite alternate;

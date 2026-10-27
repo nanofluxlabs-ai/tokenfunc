@@ -73,7 +73,8 @@ function OverviewContent() {
             loading={overview.isFetching}
           />
         </div>
-        <div className='min-w-0'>
+        {/* 手机侧栏收在汉堡菜单里，快捷入口排到趋势图前面 */}
+        <div className='order-first min-w-0 xl:order-none'>
           <OverviewQuickLinks overview={data} teamScoped={teamScoped} />
         </div>
       </div>

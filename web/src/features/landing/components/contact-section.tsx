@@ -121,7 +121,7 @@ function TrialLeadForm(props: { onSubmitted: (contact: string) => void }) {
                         aria-checked={selected}
                         onClick={() => field.onChange(option.value)}
                         className={cn(
-                          'h-9 cursor-pointer rounded-full border px-4 font-mono text-[13px] transition-colors',
+                          'h-10 cursor-pointer rounded-full border px-4 font-mono text-[13px] transition-colors',
                           selected
                             ? 'bg-foreground text-background border-foreground'
                             : 'border-input text-foreground/90 hover:border-foreground bg-transparent'
@@ -190,7 +190,7 @@ export function ContactSection(props: {
             </Button>
           )}
         </div>
-        <Panel className='p-8'>
+        <Panel className='p-5 sm:p-8'>
           {submittedContact === null ? (
             <TrialLeadForm onSubmitted={setSubmittedContact} />
           ) : (

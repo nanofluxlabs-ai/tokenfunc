@@ -829,7 +829,7 @@
     "Size": "Size",
     "So our account manager can reach you": "So our account manager can reach you",
     "Some models accept extra fields such as mask (a PNG whose transparent areas mark where to edit) or input_fidelity to preserve the original look — pass through whatever fields your model documents.": "Some models accept extra fields such as mask (a PNG whose transparent areas mark where to edit) or input_fidelity to preserve the original look — pass through whatever fields your model documents.",
-    "Sorted by net consumption, showing users with consumption records in the selected range. Enterprise accounts show the enterprise name and billing mode. Hover over the balance or consumption to see input, cache, output, subscription, wallet and refund details. For credit-billed enterprises the balance column shows the remaining credit and the amount used this period (the bill is authoritative).": "Sorted by net consumption, showing users with consumption records in the selected range. Enterprise accounts show the enterprise name and billing mode. Hover over the balance or consumption to see input, cache, output, subscription, wallet and refund details. For credit-billed enterprises the balance column shows the remaining credit and the amount used this period (the bill is authoritative).",
+    "Sorted by net consumption, showing users with consumption records in the selected range. Enterprise accounts show the enterprise name and billing mode. Hover over or tap the balance or consumption to see input, cache, output, subscription, wallet and refund details. For credit-billed enterprises the balance column shows the remaining credit and the amount used this period (the bill is authoritative).": "Sorted by net consumption, showing users with consumption records in the selected range. Enterprise accounts show the enterprise name and billing mode. Hover over or tap the balance or consumption to see input, cache, output, subscription, wallet and refund details. For credit-billed enterprises the balance column shows the remaining credit and the amount used this period (the bill is authoritative).",
     "Sources": "Sources",
     "Spending is still limited by the enterprise balance or credit.": "Spending is still limited by the enterprise balance or credit.",
     "Stable supply": "Stable supply",
@@ -1591,6 +1591,9 @@
     "Failure rate": "Failure rate",
     "{{errors}} errors out of {{total}} requests": "{{errors}} errors out of {{total}} requests",
     "Live RPM / TPM": "Live RPM / TPM",
-    "Last 60 seconds, not affected by the time range": "Last 60 seconds, not affected by the time range"
+    "Last 60 seconds, not affected by the time range": "Last 60 seconds, not affected by the time range",
+    "Switch team": "Switch team",
+    "{{count}} more notes": "{{count}} more notes",
+    "Hide notes": "Hide notes"
   }
 }

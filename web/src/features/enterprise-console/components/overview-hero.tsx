@@ -127,8 +127,8 @@ function HeroAmount(props: { label: string; value: string; total?: string }) {
   return (
     <div>
       <div className='text-muted-foreground text-xs'>{props.label}</div>
-      <div className='mt-1 flex items-baseline gap-1.5 font-mono'>
-        <span className='text-3xl font-semibold tracking-tight sm:text-4xl'>
+      <div className='mt-1 flex flex-wrap items-baseline gap-x-1.5 font-mono'>
+        <span className='text-2xl font-semibold tracking-tight break-all sm:text-4xl'>
           {props.value}
         </span>
         {props.total && (

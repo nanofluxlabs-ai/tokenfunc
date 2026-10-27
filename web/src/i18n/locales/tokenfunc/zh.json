@@ -829,7 +829,7 @@
     "Size": "大小",
     "So our account manager can reach you": "用于商务经理添加你",
     "Some models accept extra fields such as mask (a PNG whose transparent areas mark where to edit) or input_fidelity to preserve the original look — pass through whatever fields your model documents.": "部分模型支持额外字段，例如 mask（透明区域标识编辑范围的 PNG）或保持原样的 input_fidelity —— 按模型文档透传所需字段即可。",
-    "Sorted by net consumption, showing users with consumption records in the selected range. Enterprise accounts show the enterprise name and billing mode. Hover over the balance or consumption to see input, cache, output, subscription, wallet and refund details. For credit-billed enterprises the balance column shows the remaining credit and the amount used this period (the bill is authoritative).": "默认按净消耗额度从高到低排序，展示所选日期范围内有消耗记录的用户。企业客户会显示企业名称与计费模式。将鼠标悬浮在余额或消耗上，可以查看输入、缓存、输出、订阅内消耗、钱包实扣和退款返还等详细信息。账期信用客户的余额列展示授信剩余与本期已用额度（精确值以账期账单为准）。",
+    "Sorted by net consumption, showing users with consumption records in the selected range. Enterprise accounts show the enterprise name and billing mode. Hover over or tap the balance or consumption to see input, cache, output, subscription, wallet and refund details. For credit-billed enterprises the balance column shows the remaining credit and the amount used this period (the bill is authoritative).": "默认按净消耗额度从高到低排序，展示所选日期范围内有消耗记录的用户。企业客户会显示企业名称与计费模式。将鼠标悬浮或点按余额、消耗，可以查看输入、缓存、输出、订阅内消耗、钱包实扣和退款返还等详细信息。账期信用客户的余额列展示授信剩余与本期已用额度（精确值以账期账单为准）。",
     "Sources": "来源数",
     "Spending is still limited by the enterprise balance or credit.": "消费仍受企业余额或授信额度限制。",
     "Stable supply": "供应稳定",
@@ -1591,6 +1591,9 @@
     "Failure rate": "失败率",
     "{{errors}} errors out of {{total}} requests": "{{total}} 次请求中失败 {{errors}} 次",
     "Live RPM / TPM": "实时 RPM / TPM",
-    "Last 60 seconds, not affected by the time range": "最近 60 秒，不受时间范围影响"
+    "Last 60 seconds, not affected by the time range": "最近 60 秒，不受时间范围影响",
+    "Switch team": "切换团队",
+    "{{count}} more notes": "另有 {{count}} 条说明",
+    "Hide notes": "收起说明"
   }
 }

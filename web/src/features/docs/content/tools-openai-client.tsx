@@ -25,6 +25,7 @@ import { BaseUrlCard } from '../components/base-url-card'
 import { CodeSample } from '../components/code-sample'
 import { P } from '../components/doc-prose'
 import { DocSection } from '../components/doc-section'
+import { DocsTableText } from '../components/docs-table-text'
 import { DOCS_API_KEY_ENV, useDocsBaseUrl } from '../hooks/use-docs-base-url'
 import { buildLangTabs } from '../lib/code-sample-tabs'
 import { buildChatCompletionsSample } from '../lib/samples'
@@ -73,7 +74,7 @@ export default function ToolsOpenAiClientPage() {
             {
               id: 'field',
               header: t('Field'),
-              className: 'h-9 w-32',
+              className: 'h-9 w-24 sm:w-32',
               cellClassName: 'py-2.5 align-top',
               cell: (row) => (
                 <code className='font-mono text-sm font-medium'>
@@ -85,12 +86,8 @@ export default function ToolsOpenAiClientPage() {
               id: 'value',
               header: t('Value'),
               className: 'h-9',
-              cellClassName: 'py-2.5 align-top',
-              cell: (row) => (
-                <span className='text-muted-foreground text-sm leading-relaxed'>
-                  {t(row.descriptionKey)}
-                </span>
-              ),
+              cellClassName: 'py-2.5 align-top whitespace-normal wrap-anywhere',
+              cell: (row) => <DocsTableText text={t(row.descriptionKey)} />,
             },
           ]}
         />

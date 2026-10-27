@@ -829,7 +829,7 @@
     "Size": "Taille",
     "So our account manager can reach you": "Pour que notre chargé de compte puisse vous joindre",
     "Some models accept extra fields such as mask (a PNG whose transparent areas mark where to edit) or input_fidelity to preserve the original look — pass through whatever fields your model documents.": "Certains modèles acceptent des champs supplémentaires comme mask (un PNG dont les zones transparentes marquent les zones à modifier) ou input_fidelity pour préserver l'apparence d'origine — transmettez les champs documentés par votre modèle.",
-    "Sorted by net consumption, showing users with consumption records in the selected range. Enterprise accounts show the enterprise name and billing mode. Hover over the balance or consumption to see input, cache, output, subscription, wallet and refund details. For credit-billed enterprises the balance column shows the remaining credit and the amount used this period (the bill is authoritative).": "Trié par consommation nette, affiche les utilisateurs ayant des enregistrements de consommation sur la plage sélectionnée. Les comptes entreprise affichent le nom de l'entreprise et le mode de facturation. Survolez le solde ou la consommation pour voir le détail entrée, cache, sortie, abonnement, portefeuille et remboursements. Pour les entreprises facturées à crédit, la colonne solde affiche le crédit restant et le montant utilisé sur la période (la facture fait foi).",
+    "Sorted by net consumption, showing users with consumption records in the selected range. Enterprise accounts show the enterprise name and billing mode. Hover over or tap the balance or consumption to see input, cache, output, subscription, wallet and refund details. For credit-billed enterprises the balance column shows the remaining credit and the amount used this period (the bill is authoritative).": "Trié par consommation nette, affiche les utilisateurs ayant des enregistrements de consommation sur la plage sélectionnée. Les comptes entreprise affichent le nom de l'entreprise et le mode de facturation. Survolez ou touchez le solde ou la consommation pour voir le détail entrée, cache, sortie, abonnement, portefeuille et remboursements. Pour les entreprises facturées à crédit, la colonne solde affiche le crédit restant et le montant utilisé sur la période (la facture fait foi).",
     "Sources": "Sources",
     "Spending is still limited by the enterprise balance or credit.": "Les dépenses restent limitées par le solde ou le crédit de l'entreprise.",
     "Stable supply": "Approvisionnement stable",
@@ -1591,6 +1591,9 @@
     "Failure rate": "Taux d’échec",
     "{{errors}} errors out of {{total}} requests": "{{errors}} erreurs sur {{total}} requêtes",
     "Live RPM / TPM": "RPM / TPM en direct",
-    "Last 60 seconds, not affected by the time range": "60 dernières secondes, indépendant de la période choisie"
+    "Last 60 seconds, not affected by the time range": "60 dernières secondes, indépendant de la période choisie",
+    "Switch team": "Changer d’équipe",
+    "{{count}} more notes": "{{count}} autres remarques",
+    "Hide notes": "Masquer les remarques"
   }
 }

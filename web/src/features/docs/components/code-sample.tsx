@@ -44,7 +44,7 @@ export function CodeSample(props: { tabs: CodeSampleTab[] }) {
               <TabsTrigger
                 key={tab.value}
                 value={tab.value}
-                className='h-7 px-2.5 text-xs'
+                className='h-9 px-3 text-xs sm:h-7 sm:px-2.5'
               >
                 {tab.label}
               </TabsTrigger>

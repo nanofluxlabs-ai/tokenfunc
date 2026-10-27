@@ -7,6 +7,7 @@ import { useTranslation } from 'react-i18next'
 import { SectionPageLayout } from '@/components/layout'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
+import { useMediaQuery } from '@/hooks/use-media-query'
 
 import { useEnterpriseSelf } from '../hooks/use-enterprise-self'
 import { useTeams } from '../hooks/use-team-options'
@@ -25,6 +26,7 @@ import { MembersSection } from './members-section'
 import { TeamBudgetMeter } from './team-budget-meter'
 import { TeamDialog } from './team-dialog'
 import { type TeamSelection, TeamPanel } from './team-panel'
+import { TeamSwitcherSheet } from './team-switcher-sheet'
 
 const route = getRouteApi('/_authenticated/enterprise/teams')
 
@@ -75,6 +77,8 @@ export function EnterpriseTeams() {
   if (teamScoped && actor) selected = actor.team_id
   // 团队角色：本团队；企业视角：当前选中的团队（「全部成员」时无）
   const selectedTeam = teams.data?.find((team) => team.id === selected)
+  // 手机上团队列表整卡压在成员表上方还会嵌套滚动，改成顶部的团队切换按钮
+  const isMobile = useMediaQuery('(max-width: 640px)')
   const ownTeam = teamScoped ? selectedTeam : undefined
 
   const updateSearch = (patch: Partial<EnterpriseTeamsSearch>) =>
@@ -87,12 +91,15 @@ export function EnterpriseTeams() {
       replace: true,
     })
 
+  const selectTeam = (selection: TeamSelection) =>
+    updateSearch({ team_id: selection === 'all' ? undefined : selection })
+
   const refresh = () =>
     void queryClient.invalidateQueries({ queryKey: ['enterprise'] })
 
   return (
     <>
-      <SectionPageLayout fixedContent>
+      <SectionPageLayout fixedContent stackActionsOnMobile>
         <SectionPageLayout.Title>
           <span className='flex items-center gap-2'>
             {t('Teams')}
@@ -141,21 +148,26 @@ export function EnterpriseTeams() {
               </div>
             ) : (
               <div className='grid h-full min-h-0 gap-4 overflow-y-auto lg:grid-cols-[300px_minmax(0,1fr)] lg:overflow-visible'>
-                <Card className='lg:h-full'>
-                  <CardContent>
-                    <TeamPanel
-                      teams={teams.data ?? []}
-                      selected={selected}
-                      showAll
-                      onSelect={(selection) =>
-                        updateSearch({
-                          team_id: selection === 'all' ? undefined : selection,
-                        })
-                      }
-                      canManage={canManageTeams(actor)}
-                    />
-                  </CardContent>
-                </Card>
+                {isMobile ? (
+                  <TeamSwitcherSheet
+                    teams={teams.data ?? []}
+                    selected={selected}
+                    onSelect={selectTeam}
+                    canManage={canManageTeams(actor)}
+                  />
+                ) : (
+                  <Card className='lg:h-full'>
+                    <CardContent>
+                      <TeamPanel
+                        teams={teams.data ?? []}
+                        selected={selected}
+                        showAll
+                        onSelect={selectTeam}
+                        canManage={canManageTeams(actor)}
+                      />
+                    </CardContent>
+                  </Card>
+                )}
                 <div className='flex min-h-0 flex-col gap-4'>
                   {selectedTeam && <TeamHeaderCard team={selectedTeam} />}
                   <MembersSection

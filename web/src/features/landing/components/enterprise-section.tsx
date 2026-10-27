@@ -47,13 +47,13 @@ function ManagementPanel(props: { tab: ManagementTab }) {
         />
       </div>
       <div className='bg-card min-w-0 overflow-x-auto'>
-        <table className='w-full min-w-[520px] border-collapse'>
+        <table className='w-full border-collapse sm:min-w-[520px]'>
           <thead>
             <tr className='bg-muted'>
               {props.tab.columns.map((column) => (
                 <th
                   key={column}
-                  className='text-muted-foreground px-6 py-3 text-left font-mono text-xs font-normal tracking-[1.2px] uppercase first:w-[35%]'
+                  className='text-muted-foreground px-3 py-3 text-left font-mono text-xs font-normal tracking-[1.2px] uppercase first:w-[35%] sm:px-6'
                 >
                   {t(column)}
                 </th>
@@ -70,7 +70,7 @@ function ManagementPanel(props: { tab: ManagementTab }) {
                   <td
                     key={props.tab.columns[index]}
                     className={cn(
-                      'px-6 py-4',
+                      'px-3 py-4 sm:px-6',
                       index === 0
                         ? 'text-foreground text-sm'
                         : 'font-mono text-[13px]',

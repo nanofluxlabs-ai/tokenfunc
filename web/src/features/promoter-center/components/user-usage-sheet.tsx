@@ -119,7 +119,7 @@ export function UserUsageSheet(props: UserUsageSheetProps) {
             <LoadingState />
           ) : (
             <>
-              <div className='grid grid-cols-3 gap-3'>
+              <div className='grid grid-cols-1 gap-3 sm:grid-cols-3'>
                 <MetricCard
                   label={t('Consumption')}
                   value={formatQuota(data?.summary.net_quota ?? 0)}

@@ -7,9 +7,8 @@ import { EmptyState } from '@/components/empty-state'
 import { SectionPageLayout } from '@/components/layout'
 import { Button } from '@/components/ui/button'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { DatePresetButtons } from '@/features/finance/components/date-preset-buttons'
-import { DayRangeControls } from '@/features/finance/components/day-range-controls'
 import { MetricCard } from '@/features/finance/components/metric-card'
+import { PeriodFilter } from '@/features/finance/components/period-filter'
 import { useFinanceDateRange } from '@/features/finance/hooks/use-finance-date-range'
 import {
   monthToDateRange,
@@ -17,6 +16,7 @@ import {
   type DatePresetId,
 } from '@/features/finance/lib/date-presets'
 import { generateAffiliateLink } from '@/features/wallet/lib/affiliate'
+import { useMediaQuery } from '@/hooks/use-media-query'
 import { toIntlLocale } from '@/i18n/languages'
 import { formatCompactNumber, formatQuota } from '@/lib/format'
 
@@ -63,6 +63,7 @@ function resolveTab(value: unknown): PromoterCenterTab {
 export function PromoterCenterPage(props: PromoterCenterPageProps) {
   const { t, i18n } = useTranslation()
   const locale = toIntlLocale(i18n.resolvedLanguage || i18n.language)
+  const isMobile = useMediaQuery('(max-width: 640px)')
   const isAdmin = props.scope.scope === 'admin'
   const range = useFinanceDateRange({
     search: props.search,
@@ -100,6 +101,14 @@ export function PromoterCenterPage(props: PromoterCenterPageProps) {
     })
   }
 
+  const periodFilter = (
+    <PeriodFilter
+      range={range}
+      presets={['today', 'month', 'lastMonth', 'last30']}
+      onPreset={applyPreset}
+    />
+  )
+
   return (
     <>
       <SectionPageLayout stackActionsOnMobile>
@@ -127,16 +136,8 @@ export function PromoterCenterPage(props: PromoterCenterPageProps) {
                 {t('Referral link')}
               </CopyButton>
             )}
-            <DatePresetButtons
-              presets={['today', 'month', 'lastMonth', 'last30']}
-              onSelect={applyPreset}
-            />
-            <DayRangeControls
-              draft={range.draft}
-              onDraftChange={range.setDraft}
-              onApply={range.apply}
-              onReset={range.reset}
-            />
+            {/* 页头 Actions 不随内容滚动：手机上账期筛选放进内容区顶部 */}
+            {!isMobile && periodFilter}
             {props.onBack && (
               <Button variant='outline' size='sm' onClick={props.onBack}>
                 <ArrowLeft className='h-4 w-4' />
@@ -147,6 +148,7 @@ export function PromoterCenterPage(props: PromoterCenterPageProps) {
         </SectionPageLayout.Actions>
         <SectionPageLayout.Content>
           <div className='flex flex-col gap-4'>
+            {isMobile && periodFilter}
             <p className='text-muted-foreground -mt-1 text-sm'>
               {t(
                 'Consumption of users bound to this promoter, net of refunds. Users who signed up through the referral link are bound automatically.'
@@ -161,7 +163,7 @@ export function PromoterCenterPage(props: PromoterCenterPageProps) {
                 )}
               </p>
             )}
-            <div className='grid gap-3 sm:grid-cols-2 lg:grid-cols-4'>
+            <div className='grid grid-cols-2 gap-3 lg:grid-cols-4'>
               <MetricCard
                 label={t('Bound users')}
                 value={formatCompactNumber(
@@ -204,7 +206,12 @@ export function PromoterCenterPage(props: PromoterCenterPageProps) {
               />
             ) : (
               <>
-                <Tabs value={tab} onValueChange={setTab}>
+                {/* 英文四个页签约 490px，手机上在自身内横滑 */}
+                <Tabs
+                  value={tab}
+                  onValueChange={setTab}
+                  className='max-w-full min-w-0 overflow-x-auto'
+                >
                   <TabsList variant='line'>
                     {PROMOTER_CENTER_TABS.map((id) => (
                       <TabsTrigger key={id} value={id}>

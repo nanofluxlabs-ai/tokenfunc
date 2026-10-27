@@ -37,13 +37,15 @@ export function TopupSourceTable(props: TopupSourceTableProps) {
     {
       id: 'payment_method',
       header: t('Payment method'),
+      className: 'hidden sm:table-cell',
+      cellClassName: 'hidden sm:table-cell',
       cell: (row) => paymentMethodLabel(row.payment_method, t),
     },
     {
       id: 'count',
       header: t('Entries'),
-      className: NUMERIC,
-      cellClassName: NUMERIC,
+      className: `${NUMERIC} hidden sm:table-cell`,
+      cellClassName: `${NUMERIC} hidden sm:table-cell`,
       cell: (row) => formatNumber(row.count, locale),
     },
     {

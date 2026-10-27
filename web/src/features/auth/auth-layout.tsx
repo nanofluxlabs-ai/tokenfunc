@@ -50,14 +50,49 @@ function riseDelay(index: number): CSSProperties {
   return { '--tf-rise-delay': `${120 + index * 90}ms` } as CSSProperties
 }
 
+/** 手机表单下方的一行信任信息：登录页三项指标，注册页三条卖点 */
+function MobileTrustStrip(props: { variant: AuthLayoutVariant }) {
+  const { t } = useTranslation()
+
+  if (props.variant === 'sign-up') {
+    return (
+      <ul className='text-muted-foreground m-0 flex list-none flex-col gap-2 p-0 text-[13px] lg:hidden'>
+        {SIGN_UP_POINTS.map((point) => (
+          <li key={point} className='flex items-center gap-2.5'>
+            <span
+              className='bg-primary size-1.5 shrink-0 rounded-full'
+              aria-hidden='true'
+            />
+            {t(point)}
+          </li>
+        ))}
+      </ul>
+    )
+  }
+
+  return (
+    <dl className='m-0 grid grid-cols-3 gap-3 text-center lg:hidden'>
+      {SIGN_IN_STATS.map((stat) => (
+        <div key={stat.label} className='flex flex-col gap-1'>
+          <dd className='text-foreground m-0 text-lg leading-none font-bold tracking-[-0.03em] tabular-nums'>
+            {stat.value}
+          </dd>
+          <dt className='text-muted-foreground text-xs'>{t(stat.label)}</dt>
+        </div>
+      ))}
+    </dl>
+  )
+}
+
 function BrandAside(props: { variant: AuthLayoutVariant }) {
   const { t } = useTranslation()
   const { systemName, logo, loading } = useSystemConfig()
   const isSignUp = props.variant === 'sign-up'
 
   return (
-    <aside className='bg-sidebar border-border relative flex flex-col justify-between gap-16 overflow-hidden border-b px-8 py-10 lg:border-r lg:border-b-0 lg:px-16'>
-      <div className='tf-aurora' aria-hidden='true' />
+    // 窄屏只留一条透明 Logo 栏（极光铺在整页底层），营销区与版权放到 lg 以上
+    <aside className='border-border lg:bg-sidebar relative flex flex-col justify-between overflow-hidden px-6 py-4 lg:gap-16 lg:border-r lg:px-16 lg:py-10'>
+      <div className='tf-aurora hidden lg:block' aria-hidden='true' />
       <Link
         to='/'
         className='tf-rise text-foreground relative inline-flex w-fit items-center gap-2.5 text-xl font-bold tracking-[-0.04em]'
@@ -75,7 +110,7 @@ function BrandAside(props: { variant: AuthLayoutVariant }) {
         {loading ? <Skeleton className='h-5 w-24' /> : systemName}
       </Link>
 
-      <div className='relative flex max-w-[460px] flex-col gap-8'>
+      <div className='relative hidden max-w-[460px] flex-col gap-8 lg:flex'>
         <h1 className='text-foreground m-0 flex flex-col text-[clamp(40px,4.6vw,64px)] leading-[1.15] font-light tracking-[-0.03em]'>
           <span className='tf-rise' style={riseDelay(1)}>
             {isSignUp ? t('Enterprise-grade') : t('One endpoint')}
@@ -143,24 +178,40 @@ function BrandAside(props: { variant: AuthLayoutVariant }) {
         )}
       </div>
 
-      <span className='text-muted-foreground/70 relative text-[13px]'>
+      <span className='text-muted-foreground/70 relative hidden text-[13px] lg:inline'>
         © {new Date().getFullYear()} {systemName}
       </span>
     </aside>
   )
 }
 
-/** 认证页布局：左栏品牌区 + 右栏表单（窄屏时上下堆叠） */
+/**
+ * 认证页布局：左栏品牌区 + 右栏表单。
+ * 窄屏：Logo 栏 + 垂直居中的毛玻璃表单卡 + 信任信息，品牌极光铺满整页；
+ * 内容超出一屏时（小屏、键盘弹起）从顶部自然排开。
+ */
 export function AuthLayout({ children, variant = 'sign-in' }: AuthLayoutProps) {
   return (
-    <div className='bg-background text-foreground grid min-h-svh lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]'>
+    <div className='bg-background text-foreground relative isolate grid min-h-svh grid-rows-[auto_1fr] lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:grid-rows-none'>
+      <div
+        className='pointer-events-none fixed inset-0 -z-10 overflow-hidden lg:hidden'
+        aria-hidden='true'
+      >
+        <div className='tf-aurora tf-aurora-page' />
+      </div>
       <BrandAside variant={variant} />
-      <main className='flex items-center justify-center px-6 py-12 md:px-8 md:py-16'>
+      <main className='flex flex-col items-center justify-center gap-6 px-4 pt-2 pb-8 sm:px-6 md:px-8 md:py-16'>
         <div
-          className='tf-rise flex w-full max-w-[400px] flex-col gap-8'
+          className='tf-rise bg-background/85 border-border/70 flex w-full max-w-[400px] flex-col gap-8 rounded-2xl border p-5 shadow-[0_24px_64px_-32px_rgb(0_0_0/0.5)] backdrop-blur-xl sm:p-7 lg:rounded-none lg:border-0 lg:bg-transparent lg:p-0 lg:shadow-none lg:backdrop-blur-none'
           style={riseDelay(2)}
         >
           {children}
+        </div>
+        <div
+          className='tf-rise w-full max-w-[400px] px-5 sm:px-7 lg:hidden'
+          style={riseDelay(4)}
+        >
+          <MobileTrustStrip variant={variant} />
         </div>
       </main>
     </div>

@@ -111,15 +111,18 @@ export function ChannelUsageTable(props: ChannelUsageTableProps) {
                   colSpan={columns.length}
                   className='bg-muted/30 px-4 py-3 whitespace-normal'
                 >
-                  <ChannelBreakdownPanel
-                    channel={channel}
-                    entry={props.entries.get(channel.id)}
-                    range={props.range}
-                    rangeLabel={props.rangeLabel}
-                    metric={props.metric}
-                    coverageStartTs={props.coverageStartTs}
-                    onRetry={props.onRetryBreakdown}
-                  />
+                  {/* 手机上宽表要横滑，明细面板钉在视口内，不跟表格一起被撑到约 1090px */}
+                  <div className='sticky left-0 max-w-[calc(100vw-3rem)] sm:max-w-none'>
+                    <ChannelBreakdownPanel
+                      channel={channel}
+                      entry={props.entries.get(channel.id)}
+                      range={props.range}
+                      rangeLabel={props.rangeLabel}
+                      metric={props.metric}
+                      coverageStartTs={props.coverageStartTs}
+                      onRetry={props.onRetryBreakdown}
+                    />
+                  </div>
                 </TableCell>
               </TableRow>
             )}

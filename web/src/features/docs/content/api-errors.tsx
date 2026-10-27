@@ -24,6 +24,7 @@ import { Badge } from '@/components/ui/badge'
 
 import { P } from '../components/doc-prose'
 import { DocSection } from '../components/doc-section'
+import { DocsTableText } from '../components/docs-table-text'
 
 const STATUS_ROWS = [
   {
@@ -123,7 +124,7 @@ export default function ApiErrorsPage() {
             {
               id: 'type',
               header: t('Type'),
-              className: 'h-9 w-48',
+              className: 'h-9 w-32 sm:w-48',
               cellClassName: 'py-2.5 align-top',
               cell: (row) => (
                 <Badge
@@ -138,12 +139,8 @@ export default function ApiErrorsPage() {
               id: 'meaning',
               header: t('Meaning'),
               className: 'h-9',
-              cellClassName: 'py-2.5 align-top',
-              cell: (row) => (
-                <span className='text-muted-foreground text-sm leading-relaxed'>
-                  {t(row.descriptionKey)}
-                </span>
-              ),
+              cellClassName: 'py-2.5 align-top whitespace-normal wrap-anywhere',
+              cell: (row) => <DocsTableText text={t(row.descriptionKey)} />,
             },
           ]}
         />

@@ -72,22 +72,22 @@ export function ModelsSection() {
           </div>
         ) : (
           <div className='border-border overflow-x-auto rounded-lg border'>
-            <table className='w-full min-w-[720px] border-collapse'>
+            <table className='w-full border-collapse sm:min-w-[720px]'>
               <thead>
                 <tr className='bg-muted text-muted-foreground font-mono text-xs tracking-[1.2px] uppercase'>
-                  <th className='px-5 py-3 text-left font-normal'>
+                  <th className='px-3 py-3 text-left font-normal sm:px-5'>
                     {t('Model')}
                   </th>
-                  <th className='px-5 py-3 text-left font-normal'>
+                  <th className='hidden px-5 py-3 text-left font-normal sm:table-cell'>
                     {t('Vendor')}
                   </th>
-                  <th className='px-5 py-3 text-right font-normal'>
+                  <th className='px-3 py-3 text-right font-normal sm:px-5'>
                     {t('Input / 1M')}
                   </th>
-                  <th className='px-5 py-3 text-right font-normal'>
+                  <th className='hidden px-5 py-3 text-right font-normal sm:table-cell'>
                     {t('Cache read / 1M')}
                   </th>
-                  <th className='px-5 py-3 text-right font-normal'>
+                  <th className='px-3 py-3 text-right font-normal sm:px-5'>
                     {t('Output / 1M')}
                   </th>
                 </tr>
@@ -106,19 +106,23 @@ export function ModelsSection() {
                     key={row.id}
                     className='border-border hover:bg-foreground/5 border-t'
                   >
-                    <td className='text-foreground px-5 py-4 font-mono text-sm'>
+                    <td className='text-foreground px-3 py-4 font-mono text-sm break-all sm:px-5'>
                       {row.id}
+                      {/* 手机上厂商列隐藏，挪到模型名下面 */}
+                      <span className='text-muted-foreground mt-1 block font-sans text-xs sm:hidden'>
+                        {row.vendorLabel}
+                      </span>
                     </td>
-                    <td className='text-muted-foreground px-5 py-4 text-sm'>
+                    <td className='text-muted-foreground hidden px-5 py-4 text-sm sm:table-cell'>
                       {row.vendorLabel}
                     </td>
-                    <td className='text-foreground px-5 py-4 text-right font-mono text-sm'>
+                    <td className='text-foreground px-3 py-4 text-right font-mono text-sm sm:px-5'>
                       {formatUsdPerMillion(row.inputUSD)}
                     </td>
-                    <td className='text-brand-ink px-5 py-4 text-right font-mono text-sm'>
+                    <td className='text-brand-ink hidden px-5 py-4 text-right font-mono text-sm sm:table-cell'>
                       {formatUsdPerMillion(row.cacheUSD)}
                     </td>
-                    <td className='text-foreground/90 px-5 py-4 text-right font-mono text-sm'>
+                    <td className='text-foreground/90 px-3 py-4 text-right font-mono text-sm sm:px-5'>
                       {formatUsdPerMillion(row.outputUSD)}
                     </td>
                   </tr>

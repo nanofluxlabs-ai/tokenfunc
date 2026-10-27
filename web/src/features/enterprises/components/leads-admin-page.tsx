@@ -182,11 +182,13 @@ function LeadsAdminContent() {
     {
       id: 'company',
       header: t('Company'),
+      meta: { mobileTitle: true },
       cell: ({ row: { original: row } }) => row.company,
     },
     {
       id: 'contact',
       header: t('Contact'),
+      meta: { mobileOrder: 10 },
       cell: ({ row: { original: row } }) => (
         <span className='font-mono'>{row.contact}</span>
       ),
@@ -194,11 +196,13 @@ function LeadsAdminContent() {
     {
       id: 'volume',
       header: t('Estimated monthly usage'),
+      meta: { mobileOrder: 20 },
       cell: ({ row: { original: row } }) => VOLUME_LABEL[row.volume] ?? '—',
     },
     {
       id: 'status',
       header: t('Status'),
+      meta: { mobileBadge: true },
       cell: ({ row: { original: row } }) => (
         <Badge variant={row.status === 'new' ? 'default' : 'outline'}>
           {t(STATUS_LABEL[row.status])}
@@ -208,11 +212,13 @@ function LeadsAdminContent() {
     {
       id: 'remark',
       header: t('Remark'),
+      meta: { mobileHidden: true },
       cell: ({ row: { original: row } }) => row.remark || '—',
     },
     {
       id: 'created',
       header: t('Created'),
+      meta: { mobileHidden: true },
       cell: ({ row: { original: row } }) =>
         formatTimestampToDate(row.created_at),
     },

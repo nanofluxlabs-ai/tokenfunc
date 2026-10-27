@@ -60,7 +60,8 @@ describe('EnterpriseIntegrationPage', () => {
       expect(screen.getByText(code)).toBeInTheDocument()
     }
     expect(screen.getAllByText('403').length).toBeGreaterThanOrEqual(4)
-    expect(screen.getByText('404')).toBeInTheDocument()
+    // 状态码在桌面「类型」列与手机参数名下各渲染一份
+    expect(screen.getAllByText('404')).toHaveLength(2)
   })
 
   it('shows curl samples against the configured base URL and the credit JSON sample', () => {

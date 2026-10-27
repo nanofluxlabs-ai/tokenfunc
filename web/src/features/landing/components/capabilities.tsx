@@ -22,6 +22,9 @@ const DEMOS: Record<Capability['id'], () => React.ReactElement> = {
   cache: CacheBillCard,
 }
 
+// 手机上只保留可交互的两个演示，静态示意卡隐藏，避免能力区拉得太长
+const MOBILE_DEMOS = new Set<Capability['id']>(['fidelity', 'supply'])
+
 function CapabilityRow(props: { capability: Capability }) {
   const { t } = useTranslation()
   const ref = useReveal<HTMLDivElement>()
@@ -29,11 +32,11 @@ function CapabilityRow(props: { capability: Capability }) {
   return (
     <div
       ref={ref}
-      className='tf-reveal border-border grid grid-cols-[repeat(auto-fit,minmax(min(100%,400px),1fr))] items-center gap-12 border-b py-14 last:border-b-0 last:pb-0'
+      className='tf-reveal border-border grid grid-cols-[repeat(auto-fit,minmax(min(100%,400px),1fr))] items-center gap-8 border-b py-10 last:border-b-0 last:pb-0 sm:gap-12 sm:py-14'
     >
       <div className='flex flex-col gap-5'>
         <Eyebrow>{props.capability.eyebrow}</Eyebrow>
-        <h3 className='text-foreground m-0 text-[32px] leading-10 font-medium tracking-[-0.6px]'>
+        <h3 className='text-foreground m-0 text-2xl leading-8 font-medium tracking-[-0.6px] sm:text-[32px] sm:leading-10'>
           {t(props.capability.title)}
         </h3>
         <p className='text-foreground/90 m-0 leading-[26px] text-pretty'>
@@ -41,7 +44,13 @@ function CapabilityRow(props: { capability: Capability }) {
         </p>
         <CheckList items={props.capability.points.map((point) => t(point))} />
       </div>
-      <Demo />
+      <div
+        className={
+          MOBILE_DEMOS.has(props.capability.id) ? undefined : 'hidden sm:block'
+        }
+      >
+        <Demo />
+      </div>
     </div>
   )
 }

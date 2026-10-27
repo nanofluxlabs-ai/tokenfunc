@@ -109,6 +109,7 @@ export function usePromoterUsersColumns(
             className='justify-end'
           />
         ),
+        meta: { label: t('Consumption'), mobileOrder: 10 },
         cell: ({ row }) => (
           <div className={`${NUMERIC} font-mono`}>
             {formatQuota(row.original.net_quota)}
@@ -126,6 +127,7 @@ export function usePromoterUsersColumns(
             className='justify-end'
           />
         ),
+        meta: { label: t('Requests'), mobileOrder: 20 },
         cell: ({ row }) => (
           <div className={NUMERIC}>
             {formatCompactNumber(row.original.request_count, locale)}

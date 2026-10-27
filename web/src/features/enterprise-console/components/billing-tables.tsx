@@ -36,18 +36,21 @@ export function LedgerTable(props: {
     {
       id: 'time',
       header: t('Time'),
+      meta: { mobileTitle: true },
       cell: ({ row: { original: row } }) =>
         formatTimestampToDate(row.created_at),
     },
     {
       id: 'type',
       header: t('Type'),
+      meta: { mobileOrder: 10 },
       cell: ({ row: { original: row } }) =>
         t(LEDGER_TYPES[row.type]?.labelKey ?? row.type),
     },
     {
       id: 'amount',
       header: t('Amount'),
+      meta: { mobileBadge: true },
       cell: ({ row: { original: row } }) => (
         <span className='font-mono'>
           {row.amount_quota === 0
@@ -60,6 +63,7 @@ export function LedgerTable(props: {
       id: 'balance',
       header: t('Balance After'),
       // 只有动余额的流水（充值、钱包调账）才有期后余额
+      meta: { mobileOrder: 20 },
       cell: ({ row: { original: row } }) =>
         row.type === 'topup' || row.ref_type === 'wallet' ? (
           <span className='font-mono'>
@@ -72,11 +76,13 @@ export function LedgerTable(props: {
     {
       id: 'reference',
       header: t('Reference'),
+      meta: { mobileHidden: true },
       cell: ({ row: { original: row } }) => row.reference || '—',
     },
     {
       id: 'remark',
       header: t('Remark'),
+      meta: { mobileHidden: true },
       cell: ({ row: { original: row } }) => row.remark || '—',
     },
   ]
@@ -114,7 +120,13 @@ export function CreditPeriodsTable(props: {
 }) {
   const { t } = useTranslation()
   const columns: StaticDataTableColumn<CreditPeriod>[] = [
-    { id: 'no', header: t('Period'), cell: (row) => `#${row.period_no}` },
+    {
+      id: 'no',
+      header: t('Period'),
+      className: 'hidden sm:table-cell',
+      cellClassName: 'hidden sm:table-cell',
+      cell: (row) => `#${row.period_no}`,
+    },
     {
       id: 'range',
       header: t('Date Range'),

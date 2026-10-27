@@ -829,7 +829,7 @@
     "Size": "Kích thước",
     "So our account manager can reach you": "Để người quản lý tài khoản có thể liên hệ với bạn",
     "Some models accept extra fields such as mask (a PNG whose transparent areas mark where to edit) or input_fidelity to preserve the original look — pass through whatever fields your model documents.": "Một số mô hình chấp nhận thêm các trường như mask (PNG có vùng trong suốt đánh dấu chỗ cần sửa) hoặc input_fidelity để giữ nguyên diện mạo gốc — hãy truyền qua các trường mà tài liệu mô hình của bạn ghi rõ.",
-    "Sorted by net consumption, showing users with consumption records in the selected range. Enterprise accounts show the enterprise name and billing mode. Hover over the balance or consumption to see input, cache, output, subscription, wallet and refund details. For credit-billed enterprises the balance column shows the remaining credit and the amount used this period (the bill is authoritative).": "Sắp xếp theo tiêu thụ ròng, hiển thị những người dùng có bản ghi tiêu thụ trong khoảng đã chọn. Tài khoản doanh nghiệp hiển thị tên doanh nghiệp và chế độ tính phí. Di chuột lên số dư hoặc tiêu thụ để xem chi tiết đầu vào, cache, đầu ra, gói đăng ký, ví và hoàn tiền. Với doanh nghiệp tính phí theo tín dụng, cột số dư hiển thị tín dụng còn lại và số đã dùng trong kỳ này (hóa đơn là căn cứ chính thức).",
+    "Sorted by net consumption, showing users with consumption records in the selected range. Enterprise accounts show the enterprise name and billing mode. Hover over or tap the balance or consumption to see input, cache, output, subscription, wallet and refund details. For credit-billed enterprises the balance column shows the remaining credit and the amount used this period (the bill is authoritative).": "Sắp xếp theo tiêu thụ ròng, hiển thị những người dùng có bản ghi tiêu thụ trong khoảng đã chọn. Tài khoản doanh nghiệp hiển thị tên doanh nghiệp và chế độ tính phí. Di chuột hoặc chạm vào số dư hoặc tiêu thụ để xem chi tiết đầu vào, cache, đầu ra, gói đăng ký, ví và hoàn tiền. Với doanh nghiệp tính phí theo tín dụng, cột số dư hiển thị tín dụng còn lại và số đã dùng trong kỳ này (hóa đơn là căn cứ chính thức).",
     "Sources": "Số nguồn",
     "Spending is still limited by the enterprise balance or credit.": "Chi tiêu vẫn bị giới hạn bởi số dư hoặc hạn mức tín dụng của doanh nghiệp.",
     "Stable supply": "Nguồn cung ổn định",
@@ -1591,6 +1591,9 @@
     "Failure rate": "Tỷ lệ lỗi",
     "{{errors}} errors out of {{total}} requests": "{{errors}} lỗi trên {{total}} yêu cầu",
     "Live RPM / TPM": "RPM / TPM hiện tại",
-    "Last 60 seconds, not affected by the time range": "60 giây gần nhất, không phụ thuộc khoảng thời gian"
+    "Last 60 seconds, not affected by the time range": "60 giây gần nhất, không phụ thuộc khoảng thời gian",
+    "Switch team": "Chuyển nhóm",
+    "{{count}} more notes": "Thêm {{count}} ghi chú",
+    "Hide notes": "Ẩn ghi chú"
   }
 }

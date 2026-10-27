@@ -90,6 +90,7 @@ export function useModelConsumptionColumns(): ColumnDef<
             className='justify-end'
           />
         ),
+        meta: { label: t('Cost (USD)') },
         cell: ({ row }) => (
           <div className='flex justify-end'>
             <ShareBar
@@ -111,6 +112,7 @@ export function useModelConsumptionColumns(): ColumnDef<
             className='justify-end'
           />
         ),
+        meta: { label: t('Requests') },
         cell: ({ row }) => (
           <div className={NUMERIC}>
             {formatCompactNumber(row.original.consumeCount, locale)}
@@ -128,6 +130,7 @@ export function useModelConsumptionColumns(): ColumnDef<
             className='justify-end'
           />
         ),
+        meta: { label: t('Tokens') },
         cell: ({ row }) => (
           <div className={NUMERIC}>
             {formatCompactNumber(row.original.totalTokens, locale)}

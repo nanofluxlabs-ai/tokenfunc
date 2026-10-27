@@ -12,6 +12,8 @@ import { hasCacheWrite1h } from '../../lib/usage-breakdown'
 import type { UsageDetailRow, UsageRangeParams } from '../../types'
 
 const NUM = 'text-right tabular-nums'
+// 数字单元格：桌面表格右对齐；手机卡片里左对齐，紧跟字段名
+const NUM_CELL = 'tabular-nums sm:text-right'
 
 /** 浏览器时区标签，表头标明明细时间按哪个时区展示 */
 function localUtcLabel(): string {
@@ -44,8 +46,10 @@ export function UsageDetailTable(props: UsageRangeParams) {
     ): ColumnDef<UsageDetailRow, unknown> => ({
       id,
       header: () => <div className={NUM}>{header}</div>,
+      // 函数表头在手机卡片上取不到文字，label 给卡片当字段名
+      meta: { label: header },
       cell: ({ row }) => (
-        <div className={NUM}>{number(value(row.original))}</div>
+        <div className={NUM_CELL}>{number(value(row.original))}</div>
       ),
       size: 110,
     })
@@ -95,8 +99,10 @@ export function UsageDetailTable(props: UsageRangeParams) {
       {
         id: 'amount',
         header: () => <div className={NUM}>{t('Amount (USD)')}</div>,
+        // 金额是这一行最关键的数，手机卡片放到右上角与时间同行
+        meta: { label: t('Amount (USD)'), mobileBadge: true },
         cell: ({ row }) => (
-          <div className={`${NUM} font-mono`}>
+          <div className={`${NUM_CELL} font-mono`}>
             ${Number.parseFloat(row.original.amount_usd).toFixed(6)}
           </div>
         ),

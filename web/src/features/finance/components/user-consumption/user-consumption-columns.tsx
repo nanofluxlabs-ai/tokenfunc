@@ -39,6 +39,7 @@ export function useUserConsumptionColumns(
       {
         accessorKey: 'remain_quota',
         header: () => <div className={NUMERIC}>{t('Balance')}</div>,
+        meta: { label: t('Balance') },
         cell: ({ row }) => (
           <div className='flex justify-end'>
             <BalanceCell row={row.original} />
@@ -51,6 +52,7 @@ export function useUserConsumptionColumns(
         header: () => (
           <div className={NUMERIC}>{t('Consumption in range')}</div>
         ),
+        meta: { label: t('Consumption in range') },
         cell: ({ row }) => (
           <div className='flex justify-end'>
             <ConsumptionCell row={row.original} locale={locale} />
@@ -61,6 +63,7 @@ export function useUserConsumptionColumns(
       {
         accessorKey: 'consume_count',
         header: () => <div className={NUMERIC}>{t('Requests')}</div>,
+        meta: { label: t('Requests') },
         cell: ({ row }) => (
           <div className={NUMERIC}>
             {formatCompactNumber(row.original.consume_count, locale)}

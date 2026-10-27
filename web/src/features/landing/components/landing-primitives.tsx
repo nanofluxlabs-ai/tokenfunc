@@ -33,7 +33,7 @@ export function SectionHeading(props: {
           'text-foreground m-0 font-medium',
           size === 'display'
             ? 'text-[clamp(40px,6vw,72px)] leading-[1.1] tracking-[-0.025em]'
-            : 'text-[32px] leading-10 tracking-[-0.6px]'
+            : 'text-2xl leading-8 tracking-[-0.6px] sm:text-[32px] sm:leading-10'
         )}
       >
         {props.title}
@@ -93,11 +93,12 @@ export function PillTabs<T extends string>(props: {
     <Tabs
       value={props.value}
       onValueChange={(value) => props.onValueChange(value as T)}
-      className={props.className}
+      // 限住宽度，手机上按钮组才会在自身内横滑而不是把卡片撑宽
+      className={cn('max-w-full min-w-0', props.className)}
     >
       <TabsList
         aria-label={props['aria-label']}
-        className='border-border h-auto flex-wrap gap-1 rounded-full border bg-transparent p-1 group-data-horizontal/tabs:h-auto'
+        className='border-border h-auto max-w-full flex-nowrap gap-1 overflow-x-auto rounded-full border bg-transparent p-1 group-data-horizontal/tabs:h-auto sm:flex-wrap'
       >
         {props.items.map((item) => (
           <TabsTrigger

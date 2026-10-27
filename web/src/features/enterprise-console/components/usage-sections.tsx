@@ -14,6 +14,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { toIntlLocale } from '@/i18n/languages'
 
+import { CARD_ACTION_STACKED } from '../lib/card-layout'
 import {
   readUsagePalette,
   USAGE_OTHERS_COLOR,
@@ -66,7 +67,7 @@ export const UsageDailySection = forwardRef<
         <CardDescription>
           {t('Daily cost, tokens and requests')}
         </CardDescription>
-        <CardAction>
+        <CardAction className={CARD_ACTION_STACKED}>
           <UsageMetricTabs value={metric} onChange={setMetric} />
         </CardAction>
       </CardHeader>
@@ -77,15 +78,18 @@ export const UsageDailySection = forwardRef<
           metric={metric}
           loading={props.loading}
         />
-        <div className='max-h-96 overflow-y-auto'>
-          <StaticDataTable
-            columns={columns}
-            data={rows}
-            getRowKey={(row) => row.day}
-            empty={!props.loading && rows.length === 0}
-            emptyContent={t('No usage in this range')}
-          />
-        </div>
+        {/* 最多露出 7 天（表头 40px + 7 行 × 60px），更长的区间在表内滚动，表头固定；
+            表格不再套内层横滑容器，由这一层同时负责纵横滚动，sticky 表头才生效 */}
+        <StaticDataTable
+          className='max-h-[460px] overflow-auto'
+          tableProps={{ withContainer: false }}
+          headerRowClassName='[&>th]:bg-card [&>th]:sticky [&>th]:top-0 [&>th]:z-10'
+          columns={columns}
+          data={rows}
+          getRowKey={(row) => row.day}
+          empty={!props.loading && rows.length === 0}
+          emptyContent={t('No usage in this range')}
+        />
       </CardContent>
     </Card>
   )
@@ -201,7 +205,7 @@ export const UsageAttributionSection = forwardRef<
         <CardDescription>
           {t('Who spent it: team, member or key')}
         </CardDescription>
-        <CardAction>
+        <CardAction className={CARD_ACTION_STACKED}>
           <Tabs
             value={props.group}
             onValueChange={(value) =>

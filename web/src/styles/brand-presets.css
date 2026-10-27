@@ -155,8 +155,13 @@
     [data-slot='select-trigger'],
     [data-slot='tabs-list'],
     [data-slot='tabs-trigger']
-  ) {
+  ):not([data-slot='button-group'] *) {
   border-radius: 9999px;
+}
+
+/* 按钮组：交给 ButtonGroup 自带的拼接规则（两端 rounded-lg、接缝直角），把 --radius 放大让两端成胶囊。 */
+[data-theme-preset='tokenfunc'] [data-slot='button-group'] {
+  --radius: 9999px;
 }
 
 /* 焦点环：设计规范为 2px 实线 + 2px 偏移，不用柔和的半透明环。 */

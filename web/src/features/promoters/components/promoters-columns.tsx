@@ -92,6 +92,7 @@ export function usePromotersColumns(): ColumnDef<PromoterListItem>[] {
     {
       accessorKey: 'month_net_quota',
       header: () => <div className='text-right'>{t('Month consumption')}</div>,
+      meta: { label: t('Month consumption') },
       cell: ({ row }) => (
         <div className='text-right font-mono tabular-nums'>
           {formatQuota(row.original.month_net_quota)}

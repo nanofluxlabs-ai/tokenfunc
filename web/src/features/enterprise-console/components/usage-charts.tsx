@@ -1,4 +1,5 @@
 import { VChart } from '@visactor/react-vchart'
+import { useReducedMotion } from 'motion/react'
 import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 
@@ -62,6 +63,7 @@ function ThemedChart(props: {
 export function UsageDonutChart(props: UsageDonutChartProps) {
   const { t } = useTranslation()
   const { resolvedTheme } = useChartTheme()
+  const reduceMotion = useReducedMotion()
   const textColor =
     resolvedTheme === 'dark'
       ? 'rgba(255, 255, 255, 0.68)'
@@ -127,9 +129,19 @@ export function UsageDonutChart(props: UsageDonutChartProps) {
           ],
         },
       },
-      animationAppear: { duration: 400 },
+      // 入场：曲线 / 扇区 / 条形以 0.8 秒缓出生长；系统要求减少动态效果时关闭
+      animation: !reduceMotion,
+      animationAppear: { duration: 800, easing: 'cubicOut' },
     }
-  }, [props.colors, props.data, props.id, resolvedTheme, t, textColor])
+  }, [
+    props.colors,
+    props.data,
+    props.id,
+    reduceMotion,
+    resolvedTheme,
+    t,
+    textColor,
+  ])
 
   return (
     <ThemedChart
@@ -143,6 +155,7 @@ export function UsageDonutChart(props: UsageDonutChartProps) {
 /** 消耗排行横向条形图：前 10 项，按消耗从高到低自上而下 */
 export function UsageRankChart(props: UsageChartProps) {
   const { resolvedTheme } = useChartTheme()
+  const reduceMotion = useReducedMotion()
   // 手机上标签收窄，给条形留出宽度
   const isMobile = useMediaQuery('(max-width: 640px)')
   const labelLimit = isMobile ? 80 : 140
@@ -209,9 +222,11 @@ export function UsageRankChart(props: UsageChartProps) {
           ],
         },
       },
-      animationAppear: { duration: 400 },
+      // 入场：曲线 / 扇区 / 条形以 0.8 秒缓出生长；系统要求减少动态效果时关闭
+      animation: !reduceMotion,
+      animationAppear: { duration: 800, easing: 'cubicOut' },
     }
-  }, [props.id, textColor, values, labelLimit])
+  }, [props.id, reduceMotion, textColor, values, labelLimit])
 
   return (
     <ThemedChart

@@ -2,6 +2,7 @@ import { Link } from '@tanstack/react-router'
 import { KeyRound, ReceiptText, RefreshCw, Wallet } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
+import { AnimatedNumber } from '@/components/animated-number'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { toIntlLocale } from '@/i18n/languages'
@@ -79,9 +80,7 @@ export function PersonalHero(props: PersonalHeroProps) {
       <div className='flex items-start justify-between gap-3'>
         <p className='text-muted-foreground min-w-0 text-sm'>
           <span className='text-foreground font-medium'>
-            {name
-              ? t('{{greeting}}, {{name}}', { greeting, name })
-              : greeting}
+            {name ? t('{{greeting}}, {{name}}', { greeting, name }) : greeting}
           </span>
           <span aria-hidden='true'> · </span>
           {t('{{value}} requests today', {
@@ -108,7 +107,10 @@ export function PersonalHero(props: PersonalHeroProps) {
             {t('Available balance')}
           </div>
           <div className='mt-1 font-mono text-3xl font-semibold tracking-tight tabular-nums sm:text-4xl'>
-            {formatQuotaWithCurrency(balance)}
+            <AnimatedNumber
+              value={balance}
+              format={(value) => formatQuotaWithCurrency(value)}
+            />
           </div>
         </div>
         <div className='flex flex-wrap items-center gap-2 pb-1'>

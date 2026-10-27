@@ -13,9 +13,9 @@ import { Skeleton } from '@/components/ui/skeleton'
 import type { PersonalKeyRank } from '../../lib/personal-overview'
 
 const UsageRankChart = lazy(() =>
-  import('@/features/enterprise-console/components/usage-charts').then(
-    (m) => ({ default: m.UsageRankChart })
-  )
+  import('@/features/enterprise-console/components/usage-charts').then((m) => ({
+    default: m.UsageRankChart,
+  }))
 )
 
 type KeyRankingCardProps = {
@@ -45,7 +45,9 @@ export function KeyRankingCard(props: KeyRankingCardProps) {
     <Card className='h-full min-w-0'>
       <CardHeader>
         <CardTitle>{t('Spend by API key')}</CardTitle>
-        <CardDescription>{t('Top keys by spend in this range')}</CardDescription>
+        <CardDescription>
+          {t('Top keys by spend in this range')}
+        </CardDescription>
       </CardHeader>
       <CardContent>
         {props.loading ? (

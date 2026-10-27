@@ -1,3 +1,4 @@
+import { motion, useReducedMotion } from 'motion/react'
 import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 
@@ -44,6 +45,7 @@ function topModelOf(day: PersonalDayRow): string | null {
 /** 每日消耗汇总：最新日期在上，占比条为当日消耗占区间合计的比例；同时是趋势图的表格视图 */
 export function DailySummaryTable(props: DailySummaryTableProps) {
   const { t, i18n } = useTranslation()
+  const reduceMotion = useReducedMotion()
   const locale = toIntlLocale(i18n.resolvedLanguage || i18n.language)
   const total = props.breakdown.totals.quota
   const rows = useMemo(
@@ -94,9 +96,11 @@ export function DailySummaryTable(props: DailySummaryTableProps) {
         return (
           <div className='flex items-center gap-2'>
             <div className='bg-muted h-1.5 flex-1 overflow-hidden rounded-full'>
-              <div
+              <motion.div
                 className='bg-chart-1 h-full rounded-full'
-                style={{ width: `${percent}%` }}
+                initial={reduceMotion ? false : { width: 0 }}
+                animate={{ width: `${percent}%` }}
+                transition={{ duration: 0.7, ease: [0.33, 1, 0.68, 1] }}
               />
             </div>
             <span className='text-muted-foreground w-11 text-right text-xs tabular-nums'>

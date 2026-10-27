@@ -1,4 +1,5 @@
 import { VChart } from '@visactor/react-vchart'
+import { useReducedMotion } from 'motion/react'
 import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 
@@ -64,6 +65,7 @@ export function DailyTrendChart(props: DailyTrendChartProps) {
   const { t, i18n } = useTranslation()
   const locale = toIntlLocale(i18n.resolvedLanguage || i18n.language)
   const { resolvedTheme, themeReady } = useChartTheme()
+  const reduceMotion = useReducedMotion()
   const chartTextColor =
     resolvedTheme === 'dark'
       ? 'rgba(255, 255, 255, 0.68)'
@@ -204,12 +206,15 @@ export function DailyTrendChart(props: DailyTrendChartProps) {
         },
         mark: { visible: false },
       },
-      animationAppear: { duration: 400 },
+      // 入场：曲线 / 扇区 / 条形以 0.8 秒缓出生长；系统要求减少动态效果时关闭
+      animation: !reduceMotion,
+      animationAppear: { duration: 800, easing: 'cubicOut' },
     }
   }, [
     chartGridColor,
     chartTextColor,
     locale,
+    reduceMotion,
     props.data,
     props.id,
     props.series,

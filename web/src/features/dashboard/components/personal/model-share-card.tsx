@@ -17,9 +17,9 @@ import { useChartTheme } from '@/lib/use-chart-theme'
 import type { PersonalRangeBreakdown } from '../../lib/personal-overview'
 
 const UsageDonutChart = lazy(() =>
-  import('@/features/enterprise-console/components/usage-charts').then(
-    (m) => ({ default: m.UsageDonutChart })
-  )
+  import('@/features/enterprise-console/components/usage-charts').then((m) => ({
+    default: m.UsageDonutChart,
+  }))
 )
 
 type ModelShareCardProps = {
@@ -73,9 +73,12 @@ export function ModelShareCard(props: ModelShareCardProps) {
           </Suspense>
         )}
         {total > 0 && (
-          <ul className='flex flex-col gap-2 text-xs'>
+          <ul className='flex flex-col gap-0.5 text-xs'>
             {items.map((item) => (
-              <li key={item.key} className='flex items-center gap-2'>
+              <li
+                key={item.key}
+                className='hover:bg-muted/60 -mx-2 flex items-center gap-2 rounded-md px-2 py-1 transition-colors'
+              >
                 <span
                   className='size-2 shrink-0 rounded-full'
                   style={{ backgroundColor: item.color }}

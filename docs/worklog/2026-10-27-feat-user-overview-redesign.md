@@ -105,3 +105,35 @@
 - 新增 `lib/__tests__/usage-chart-palette.test.ts`，覆盖亮暗两种模式：具名切片互不相同且都不是灰色；「其他」是灰色，且不与任何具名切片同色。
 
 **验证**：`bun run typecheck` 通过；对涉及文件跑 oxlint 无问题；`bunx vitest run src/features/enterprise-console src/features/dashboard` 159 个用例全部通过。个人概览的环图使用同一套颜色，已截图确认；企业页面本身未截图（见「遗留」）。
+
+## 追加：图表动效与 hover 数据预览（2026-10-27，同一 PR）
+
+**反馈**：验收时发现打开页面很生硬；KPI 迷你图（今日消耗 / 今日请求等）悬停时没有交互，看不到数据。
+
+**改动**：
+- 新增共享组件 `components/animated-number.tsx`：数字从 0（或旧值）滚动到目标值，时长 0.8 秒。每帧用调用方传入的格式化函数输出，所以终态与原来的格式化结果完全一致。文本直接写 DOM，不触发重渲染。
+- 新增共享组件 `components/charts/interactive-sparkline.tsx`：
+  - 折线入场描线、面积淡入；柱状逐根长出。
+  - 指针悬停时吸附到最近的数据点，显示参考线、高亮点和「日期 · 数值」提示框；靠近两端时提示框改为左 / 右对齐。
+  - 可聚焦后用方向键切换数据点；放在整卡链接内时不可聚焦。
+- `StatCard`（上游文件）只做兼容扩展：新增可选的 `visualization`；`value` 放宽为 ReactNode。
+- 个人概览：
+  - 区块按 Hero → KPI → 图表行 → 汇总表的顺序错峰淡入上移，复用 `StaggerContainer` 和 `CARD_ITEM_VARIANTS`。
+  - Hero 余额和 KPI 数值滚动；KPI 迷你图改为可交互，卡片 hover 时轻微上浮。
+  - 迷你图在数据就绪后才挂载，入场描线作用在真实数据上。
+  - 热力图：去掉原生 title，改为单个浮层提示；悬停格子加描边，对应的日期与小时标签加粗；格子按列错峰淡入。
+  - 汇总表占比条从 0 生长，切换区间时在新旧值之间过渡。模型明细行加 hover 背景。
+- 企业概览：4 张 KPI 卡同样改用数字滚动和可交互迷你图，整卡链接行为不变，卡片 hover 上浮。
+- 图表库：`DailyTrendChart`、`UsageDonutChart`、`UsageRankChart` 的入场改为 800ms cubicOut；hover 提示框原本就有。
+- 系统开启「减少动态效果」时：上述动效全部关闭（motion 的 `useReducedMotion`、VChart `animation:false`、`motion-reduce:` 类），直接显示终态。
+- i18n：新增 2 个 key（`{{value}} requests`、`{{title}}, last 7 days`），删除热力图原生 title 的旧 key。
+
+**验证**：
+- `bun run typecheck` 通过；对涉及文件跑 `bunx oxlint -c .oxlintrc.json`，无 error。
+- `bunx vitest run src/components src/features/dashboard src/features/enterprise-console src/i18n`：60 个文件、288 个用例全部通过。新增：
+  - `animated-number.test.tsx`：减少动效时直接显示终值；改值后显示新值；允许动效时从 0 滚动并精确落到格式化终值。
+  - `interactive-sparkline.test.tsx`：折线和柱状悬停选点；离开后提示框隐藏；方向键切换；链接内不可聚焦；空数据和单点。
+- 用 Playwright（`.tmp/shot-motion.py`）截图检查：
+  - 入场约 350ms 的中间帧：数字在滚动，折线在描线，环图在展开，趋势图在生长。
+  - KPI 折线和柱状悬停提示、热力图悬停提示。
+  - `reduced_motion=reduce` 下首帧即终态。

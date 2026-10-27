@@ -1,12 +1,15 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { BarChart3 } from 'lucide-react'
+import type { Variants } from 'motion/react'
 import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { EmptyState } from '@/components/empty-state'
+import { StaggerContainer, StaggerItem } from '@/components/page-transition'
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
 import { useStatus } from '@/hooks/use-status'
 import { getSelf } from '@/lib/api'
+import { CARD_ITEM_VARIANTS } from '@/lib/motion'
 import { requireServerSuccess } from '@/lib/server-error-message'
 import { type AuthUser, useAuthStore } from '@/stores/auth-store'
 
@@ -30,6 +33,11 @@ import { UsageTrendCard } from './usage-trend-card'
 
 const PERSONAL_QUERY_ROOT = ['dashboard', 'personal'] as const
 const KEY_RANKING_LIMIT = 8
+// 区块依次淡入上移：Hero → KPI → 图表行 → 汇总表
+const SECTION_STAGGER_VARIANTS: Variants = {
+  initial: {},
+  animate: { transition: { staggerChildren: 0.08 } },
+}
 
 /** 普通用户概览：Hero + KPI + 区间图表；数据全部来自 quota_data 小时聚合，在前端按本地时区汇总 */
 export function PersonalOverview() {
@@ -114,30 +122,42 @@ export function PersonalOverview() {
   }
 
   return (
-    <div className='flex flex-col gap-4'>
-      <PersonalHero
-        user={user}
-        snapshot={snapshot}
-        now={anchor}
-        usageReady={dataExportEnabled && quotaQuery.isSuccess}
-        refreshing={refreshing}
-        onRefresh={handleRefresh}
-      />
+    <StaggerContainer
+      variants={SECTION_STAGGER_VARIANTS}
+      className='flex flex-col gap-4'
+    >
+      <StaggerItem variants={CARD_ITEM_VARIANTS}>
+        <PersonalHero
+          user={user}
+          snapshot={snapshot}
+          now={anchor}
+          usageReady={dataExportEnabled && quotaQuery.isSuccess}
+          refreshing={refreshing}
+          onRefresh={handleRefresh}
+        />
+      </StaggerItem>
 
       {!dataExportEnabled ? (
-        <EmptyState
-          bordered
-          icon={BarChart3}
-          title={t('Usage statistics are turned off')}
-          description={t(
-            'The administrator has disabled usage data export, so charts are unavailable.'
-          )}
-        />
+        <StaggerItem variants={CARD_ITEM_VARIANTS}>
+          <EmptyState
+            bordered
+            icon={BarChart3}
+            title={t('Usage statistics are turned off')}
+            description={t(
+              'The administrator has disabled usage data export, so charts are unavailable.'
+            )}
+          />
+        </StaggerItem>
       ) : (
         <>
-          <PersonalKpiCards snapshot={snapshot} loading={usageLoading} />
+          <StaggerItem variants={CARD_ITEM_VARIANTS}>
+            <PersonalKpiCards snapshot={snapshot} loading={usageLoading} />
+          </StaggerItem>
 
-          <div className='flex flex-wrap items-center justify-between gap-2'>
+          <StaggerItem
+            variants={CARD_ITEM_VARIANTS}
+            className='flex flex-wrap items-center justify-between gap-2'
+          >
             <h2 className='text-sm font-semibold'>{t('Usage analysis')}</h2>
             <ToggleGroup
               variant='outline'
@@ -152,24 +172,32 @@ export function PersonalOverview() {
               <ToggleGroupItem value='7'>{t('Last 7 days')}</ToggleGroupItem>
               <ToggleGroupItem value='30'>{t('Last 30 days')}</ToggleGroupItem>
             </ToggleGroup>
-          </div>
+          </StaggerItem>
 
-          <div className='grid gap-4 xl:grid-cols-[minmax(0,1fr)_22rem]'>
+          <StaggerItem
+            variants={CARD_ITEM_VARIANTS}
+            className='grid gap-4 xl:grid-cols-[minmax(0,1fr)_22rem]'
+          >
             <UsageTrendCard breakdown={breakdown} loading={usageLoading} />
             <ModelShareCard breakdown={breakdown} loading={usageLoading} />
-          </div>
+          </StaggerItem>
 
-          <div className='grid gap-4 xl:grid-cols-2'>
+          <StaggerItem
+            variants={CARD_ITEM_VARIANTS}
+            className='grid gap-4 xl:grid-cols-2'
+          >
             <HourlyHeatmapCard cells={heatmap} loading={usageLoading} />
             <KeyRankingCard
               keys={keyRanking}
               loading={dataExportEnabled && flowQuery.isLoading}
             />
-          </div>
+          </StaggerItem>
 
-          <DailySummaryTable breakdown={breakdown} loading={usageLoading} />
+          <StaggerItem variants={CARD_ITEM_VARIANTS}>
+            <DailySummaryTable breakdown={breakdown} loading={usageLoading} />
+          </StaggerItem>
         </>
       )}
-    </div>
+    </StaggerContainer>
   )
 }

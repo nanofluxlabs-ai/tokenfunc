@@ -9,9 +9,9 @@ import { cn } from '@/lib/utils'
 import { VCHART_OPTION } from '@/lib/vchart'
 
 import {
-  readUsagePalette,
   USAGE_DONUT_TOP,
-  USAGE_OTHERS_COLOR,
+  usageOthersColor,
+  usagePalette,
 } from '../lib/usage-chart-palette'
 import { sharePercent } from '../lib/usage-range'
 
@@ -81,7 +81,10 @@ export function UsageDonutChart(props: UsageDonutChartProps) {
       valueField: 'quota',
       categoryField: 'name',
       // 颜色与明细表的色点一一对应：前 N 项取品牌色，「其他」固定灰
-      color: props.colors ?? [...readUsagePalette(), USAGE_OTHERS_COLOR],
+      color: props.colors ?? [
+        ...usagePalette(resolvedTheme === 'dark'),
+        usageOthersColor(resolvedTheme === 'dark'),
+      ],
       outerRadius: 0.92,
       innerRadius: 0.68,
       padAngle: 0.6,
@@ -126,7 +129,7 @@ export function UsageDonutChart(props: UsageDonutChartProps) {
       },
       animationAppear: { duration: 400 },
     }
-  }, [props.colors, props.data, props.id, t, textColor])
+  }, [props.colors, props.data, props.id, resolvedTheme, t, textColor])
 
   return (
     <ThemedChart

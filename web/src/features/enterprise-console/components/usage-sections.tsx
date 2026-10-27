@@ -12,13 +12,11 @@ import {
 } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { useTheme } from '@/context/theme-provider'
 import { toIntlLocale } from '@/i18n/languages'
 
 import { CARD_ACTION_STACKED } from '../lib/card-layout'
-import {
-  readUsagePalette,
-  USAGE_OTHERS_COLOR,
-} from '../lib/usage-chart-palette'
+import { usageOthersColor, usagePalette } from '../lib/usage-chart-palette'
 import { buildUsageColumns } from '../lib/usage-columns'
 import type { UsageDayItem, UsageGroupBy, UsageSummaryItem } from '../types'
 import { type UsageMetric, UsageMetricTabs, UsageTrend } from './usage-trend'
@@ -108,7 +106,8 @@ export const UsageModelSection = forwardRef<
     [props.items]
   )
   // 与环形图同一份调色板，按行序（消耗倒序）对应切片
-  const palette = readUsagePalette()
+  const dark = useTheme().resolvedTheme === 'dark'
+  const palette = usagePalette(dark)
   const columns = buildUsageColumns<UsageSummaryItem>({
     t,
     locale,
@@ -117,7 +116,7 @@ export const UsageModelSection = forwardRef<
       <span className='flex items-center gap-2'>
         <span
           className='size-2 shrink-0 rounded-full'
-          style={{ backgroundColor: palette[index] ?? USAGE_OTHERS_COLOR }}
+          style={{ backgroundColor: palette[index] ?? usageOthersColor(dark) }}
           aria-hidden='true'
         />
         <span className='font-mono text-xs'>{row.key_name || '-'}</span>

@@ -89,5 +89,19 @@
 
 - Token 不拆分输入和输出。quota_data 只有总 token，要拆分得新增后端接口扫 logs，这次按决策不做。
 - 管理员关闭数据导出时图表区整体不可用。数据有最多 5 分钟延迟，Hero 上已注明。
-- 企业侧 `readUsagePalette` 的第 4、5 片取的是 `--chart-2` / `--chart-3`，在 tokenfunc 品牌下是近黑色和灰色，第 5 片和「其他」的灰几乎分不出来。这次没改，建议后续统一到 `categorical-palette.ts`。
+- 企业用量报表环图的「已改」部分见下方「追加：企业环图配色」。改完后还剩一处：企业页面没有准备 enterprise 测试数据，所以没有做截图核对。
 - StatCard 的 accent-2 / accent-3 在 tokenfunc 预设下映射为黑色和灰色（品牌中性色），迷你图是黑 / 灰线。沿用现状，没有单独改。
+
+## 追加：企业环图配色（2026-10-27，同一 PR）
+
+**问题**：企业用量报表的环形图（按模型 / 密钥 / 团队）和明细表色点，由 `readUsagePalette` 依次取 `--chart-1/4/5/2/3` 加一个写死的紫色。tokenfunc 品牌预设里 `--chart-2` / `--chart-3` 是中性色，导致：
+- 亮色模式：第 4 片是近黑 `#121212`，第 5 片是灰 `#878787`，后者和「其他」`#71717a` 的 OKLab 色差只有 7.3（正常视力可分辨的底线是 15），明细表里两个灰点分不清。
+- 暗色模式：第 4 片是纯白 `#ffffff`，最刺眼，视觉上压过第 1 名。
+- dataviz 校验器对亮暗两套都判了「明度越界」和「彩度过低」两项 FAIL。
+
+**改动**：
+- `usage-chart-palette.ts` 改为基于共享的 `categorical-palette.ts`：`usagePalette(dark)` / `usageOthersColor(dark)`，环图与明细表都按当前主题取色。
+- `USAGE_DONUT_TOP` 从 6 改成 5（等于色板槽位数），与个人概览一致。
+- 新增 `lib/__tests__/usage-chart-palette.test.ts`，覆盖亮暗两种模式：具名切片互不相同且都不是灰色；「其他」是灰色，且不与任何具名切片同色。
+
+**验证**：`bun run typecheck` 通过；对涉及文件跑 oxlint 无问题；`bunx vitest run src/features/enterprise-console src/features/dashboard` 159 个用例全部通过。个人概览的环图使用同一套颜色，已截图确认；企业页面本身未截图（见「遗留」）。

@@ -53,4 +53,32 @@ export const TOKENFUNC_AUDIT_TEMPLATES: Record<string, string> = {
     'Unbound account {{user_id}} from member {{member_id}}',
   'enterprise.member.role':
     'Changed role of member {{member_id}} from {{from}} to {{to}}',
+  'enterprise.member.create':
+    'Created member {{name}} (ID: {{member_id}}) in team {{team_id}}',
+  'enterprise.member.import':
+    'Imported {{count}} members ({{team_count}} new teams)',
+  'enterprise.member.update':
+    'Updated member {{name}} (ID: {{member_id}}): team {{team_id}}, status {{status}}',
+  'enterprise.member.delete': 'Deleted member {{name}} (ID: {{member_id}})',
+  'enterprise.token.create':
+    'Created enterprise API key {{name}} (ID: {{token_id}}) for team {{team_id}}, member {{member_id}}',
+  'enterprise.token.update':
+    'Updated enterprise API key {{token_id}} (team {{team_id}}, member {{member_id}})',
+  'enterprise.token.status':
+    'Changed status of enterprise API key {{name}} (ID: {{token_id}}) from {{from}} to {{to}}',
+  'enterprise.token.delete':
+    'Deleted enterprise API key {{name}} (ID: {{token_id}})',
+  'enterprise.token.batch_status':
+    'Batch set {{count}} enterprise API keys to status {{status}} ({{skipped}} skipped)',
+  'enterprise.token.batch_delete':
+    'Batch deleted {{count}} enterprise API keys',
+  'enterprise.token.quota_policy':
+    'Set periodic quota of enterprise API key {{token_id}} to {{reset_period}} {{period_quota}}',
+  'enterprise.token.batch_quota_policy':
+    'Batch set periodic quota of {{count}} enterprise API keys to {{reset_period}} {{period_quota}}',
+  'enterprise.token.reveal_key':
+    'Viewed the full key of enterprise API key {{name}} (ID: {{token_id}})',
+  'enterprise.bill.export': 'Exported bill {{bill_no}} ({{file}})',
+  'enterprise.usage.export': 'Exported usage ({{file}})',
+  'enterprise.finance_usage.export': 'Exported reconciliation usage ({{file}})',
 }

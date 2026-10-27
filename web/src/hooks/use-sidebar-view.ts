@@ -28,6 +28,7 @@ import {
   isEnterpriseAccount,
 } from '@/features/enterprise-console/lib/member-roles'
 import { usePromoterSelf } from '@/features/promoter-center/hooks/use-promoter-self'
+import { canSeeAuditMenu } from '@/features/usage-logs/audit/lib/tokenfunc-audit-access'
 import { ROLE } from '@/lib/roles'
 import { useAuthStore } from '@/stores/auth-store'
 
@@ -53,6 +54,9 @@ const ROOT_VIEW_KEY = '__root'
 /** 企业账户在「个人」组里不展示的入口：钱包与个人对账都归企业财务对账 */
 const PERSONAL_WALLET_URLS = new Set(['/wallet', '/reconciliation'])
 
+/** 审计日志入口：只给平台管理员与企业主账号 / 企业管理员（见 canSeeAuditMenu） */
+const AUDIT_LOGS_URL = '/usage-logs/audit'
+
 export function useSidebarView(): ResolvedSidebarView {
   const { t } = useTranslation()
   const pathname = useLocation({ select: (l) => l.pathname })
@@ -71,6 +75,7 @@ export function useSidebarView(): ResolvedSidebarView {
   // 绑定已有账号的成员仍是普通钱包，菜单与普通用户一致
   const enterpriseAccount = isEnterpriseAccount(enterprise?.actor)
   const isPromoter = Boolean(usePromoterSelf().data)
+  const canSeeAudit = canSeeAuditMenu(userRole, enterprise?.actor)
 
   const rootNavGroups = useMemo<NavGroup[]>(() => {
     const role = userRole ?? ROLE.GUEST
@@ -94,7 +99,8 @@ export function useSidebarView(): ResolvedSidebarView {
               enterpriseAccount &&
               group.id === 'personal' &&
               PERSONAL_WALLET_URLS.has(String(item.url ?? ''))
-            )
+            ) &&
+            (canSeeAudit || item.url !== AUDIT_LOGS_URL)
         )
         return items.length === group.items.length ? group : { ...group, items }
       })
@@ -105,6 +111,7 @@ export function useSidebarView(): ResolvedSidebarView {
     canSeeEnterpriseFinance,
     enterpriseAccount,
     isPromoter,
+    canSeeAudit,
   ])
 
   const view = resolveSidebarView(pathname)

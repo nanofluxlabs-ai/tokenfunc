@@ -27,7 +27,7 @@ import {
   LogsFilterInput,
   LogsFilterToolbar,
 } from '../../components/logs-filter-toolbar'
-import type { AuditFilters, AuditLog } from '../api'
+import type { AuditFilters, AuditLog, AuditScope } from '../api'
 
 function AuditFilterSelect(props: {
   label: string
@@ -54,7 +54,8 @@ export function AuditLogFilterBar(props: {
   table: Table<AuditLog>
   filters: AuditFilters
   onChange: (patch: Partial<AuditFilters>) => void
-  scope: 'all' | 'self'
+  scope: AuditScope
+  showUsername?: boolean
   accessOnly?: boolean
   tokenScope: string
   defaultTokenScope: string
@@ -169,7 +170,7 @@ export function AuditLogFilterBar(props: {
             </LogsFilterField>
           </>
         )}
-        {props.scope === 'all' && (
+        {(props.showUsername ?? props.scope === 'all') && (
           <LogsFilterField>
             <LogsFilterInput
               aria-label={t('Username')}

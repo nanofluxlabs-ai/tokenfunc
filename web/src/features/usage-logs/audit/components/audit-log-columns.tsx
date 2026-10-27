@@ -29,7 +29,8 @@ import { buildAuditDetails } from '../lib/audit-details'
 import { AuditLogDetailsDialog } from './audit-log-details-dialog'
 
 export function useAuditLogColumns(
-  accessOnly?: boolean
+  accessOnly?: boolean,
+  hideRequestRoute?: boolean
 ): ColumnDef<AuditLog>[] {
   const { t } = useTranslation()
   return useMemo(() => {
@@ -180,6 +181,13 @@ export function useAuditLogColumns(
         meta: { label: t('Details') },
       }
     )
+    if (hideRequestRoute) {
+      return columns.filter(
+        (column) =>
+          !('accessorKey' in column) ||
+          (column.accessorKey !== 'method' && column.accessorKey !== 'route')
+      )
+    }
     return columns
-  }, [accessOnly, t])
+  }, [accessOnly, hideRequestRoute, t])
 }

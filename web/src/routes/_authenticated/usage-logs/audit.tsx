@@ -18,8 +18,10 @@ For commercial licensing, please contact support@quantumnous.com
 */
 import { createFileRoute } from '@tanstack/react-router'
 
-import { AuditLogs } from '@/features/usage-logs/audit'
+import { redirectWithoutAuditAccess } from '@/features/usage-logs/audit/lib/tokenfunc-audit-access'
+import { TokenfuncAuditLogs } from '@/features/usage-logs/audit/tokenfunc-audit-page'
 
 export const Route = createFileRoute('/_authenticated/usage-logs/audit')({
-  component: AuditLogs,
+  beforeLoad: ({ context }) => redirectWithoutAuditAccess(context.queryClient),
+  component: TokenfuncAuditLogs,
 })

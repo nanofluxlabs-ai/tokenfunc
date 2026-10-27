@@ -27,15 +27,24 @@ import { Button } from '@/components/ui/button'
 import { requireServerSuccess } from '@/lib/server-error-message'
 import { useAuthStore } from '@/stores/auth-store'
 
-import { getAuditLogs, type AuditFilters, type AuditLog } from '../api'
+import {
+  getAuditLogs,
+  type AuditFilters,
+  type AuditLog,
+  type AuditScope,
+} from '../api'
 import { useAuditLogColumns } from './audit-log-columns'
 import { AuditLogFilterBar } from './audit-log-filter-bar'
 
 const EMPTY_LOGS: AuditLog[] = []
 
 export function AuditLogViewer(props: {
-  scope: 'all' | 'self'
+  scope: AuditScope
   accessOnly?: boolean
+  // Defaults to the cross-account view; TokenFunc also shows it for the enterprise view.
+  showUsername?: boolean
+  // TokenFunc: hide the request method and route columns from external viewers.
+  hideRequestRoute?: boolean
   currentTokenRef?: string
   // The token scope the viewer opens with and returns to on reset.
   defaultTokenScope?: 'all' | 'current'
@@ -68,14 +77,14 @@ export function AuditLogViewer(props: {
     retry: false,
   })
   const accessDenied =
-    props.scope === 'all' &&
+    props.scope !== 'self' &&
     isAxiosError(query.error) &&
     query.error.response?.status === 403
   const onAccessDenied = props.onAccessDenied
   useEffect(() => {
     if (accessDenied) void onAccessDenied?.()
   }, [accessDenied, onAccessDenied])
-  const columns = useAuditLogColumns(props.accessOnly)
+  const columns = useAuditLogColumns(props.accessOnly, props.hideRequestRoute)
   const { table } = useDataTable({
     columns,
     data:
@@ -131,6 +140,7 @@ export function AuditLogViewer(props: {
               filters={filters}
               onChange={update}
               scope={props.scope}
+              showUsername={props.showUsername}
               accessOnly={props.accessOnly}
               tokenScope={tokenScope}
               defaultTokenScope={defaultTokenScope}

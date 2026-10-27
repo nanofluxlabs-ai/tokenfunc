@@ -355,6 +355,9 @@ func GetAuditLogs(c *gin.Context) {
 		filter.Username = ""
 		filter.SelfView = true
 	}
+	if !applyTokenfuncAuditScope(c, &filter, &viewerRole) {
+		return
+	}
 	if !model.ValidAuditCategory(filter.Category) || !model.ValidTokenFingerprint(filter.TokenRef) || !model.ValidTokenFingerprint(filter.ExcludeTokenRef) {
 		common.ApiErrorMsg(c, "Invalid audit filters")
 		return

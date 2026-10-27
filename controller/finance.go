@@ -467,6 +467,7 @@ func ListEnterpriseFinanceUsageDetail(c *gin.Context) {
 }
 func ExportEnterpriseFinanceUsage(c *gin.Context) {
 	financeUsageExportWithArchive(c, currentEnterprise(c).UserId)
+	recordEnterpriseExportAudit(c, "enterprise.finance_usage.export", nil)
 }
 
 func GetSelfFinanceTopupSummary(c *gin.Context) {

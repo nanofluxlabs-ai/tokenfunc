@@ -57,6 +57,7 @@ make dev          # 自动生成 .env → 起 postgres/redis → 编译并后台
 | `make test-web` | 前端 vitest |
 | `make up-build` / `make up` / `make up-down` / `make up-logs` | 全栈 docker（从源码构建 / 用 `.env` 指定镜像 / 停 / 日志） |
 | `make reset-setup` | 清掉初始化向导状态，重新走 setup |
+| `make seed-demo` | 往当前 dev schema 灌示例数据（见「5. 数据与重置」），跑完 `make api` 重启 |
 | `make wt-init` | **worktree 里执行**：领 slot，生成本目录 `.env`（schema `dev_<名>` / `test_<名>`、Redis db、端口），建 schema，`bun install` |
 | `make wt-clean [NAME=<名>]` | 归还 worktree 环境：停 API、删 schema、清 Redis db、释放 slot；主 checkout 上用 `NAME=` 清已删掉的 |
 | `make wt-list` / `make wt-env` | 列出所有登记的 worktree 及端口 / schema（标出孤儿）/ 打印本 worktree 的参数 |
@@ -151,6 +152,20 @@ ExitWorktree remove              # 删目录和分支
 
 - 开发数据在 docker 卷 `tokenfunc_postgres-data` / `tokenfunc_redis-data`，`make down` 不会删除，`make reset` 才会。
 - 只想重走初始化向导：`make reset-setup && make api`。
+- 示例数据：`make seed-demo` 灌一套近 4 个自然月的演示数据，让概览、用量报表、账期账单、财务中心、推广人等页面有内容可看。内容包括：
+  - 4 个个人用户
+  - 推广人，带结算记录
+  - 授信企业 Acme（自然月账期，账单有已付 / 部分付款且逾期 / 未付三种状态）
+  - 预付企业 Globex（按月充值，有月结单）
+  - 授信企业 Initech（固定 30 天账期，有作废账单、对账差异、逾期账单）
+  - 已停用企业 Umbrella
+  - 试用线索、企业审计日志
+
+  用法与约定：
+  - 账号都以 `demo_` 开头，统一密码 `Demo@123456`，跑完会打印账号清单；成员登录账号是 `demo_<企业>_admin / _lead / _dev`。
+  - 可重复执行：每次先清掉上一次的示例数据（`demo_` 账号及其企业、`demo-` 渠道、示例模型的性能桶、`@demo.tokenfunc.local` 线索），再重灌；真实数据不动。
+  - 随机种子固定，历史日的数据每次都一样，只有今天的数据随当前时刻变化。
+  - 只允许写本机的 `dev` / `dev_*` schema。在 worktree 里执行会写入该 worktree 自己的 schema。
 - 导入导出：`make psql` 进入后用 `\copy`，或 `docker compose exec postgres pg_dump -U tokenfunc -n dev tokenfunc > .tmp/dev.sql`。
 - logs 归档回放：`DB_LOG_RETENTION_DAYS` 开启后 90 天外的原始 logs 只在 COS（`logs/YYYY-MM-DD[.pN].csv.gz`，清单在 `tf_log_archive_manifests` / 运维中心「日志归档」页）。要查历史明细用 `make logarchive-import ARGS='-day 2026-07-01'`（或 `-from/-to`、`-verify-only`、`-truncate`）导回独立回放表 `tf_logs_archive`（`LIKE logs`，与 logs 同库），再用 SQL 查；已出账账单的账期包（`bills/{bill_no}/statement.csv.gz` + `raw-logs.csv.gz`，账单详情页可下载）用 `-bill <账单号>` 导回原始日志；回放表不参与归档任务、不影响任何页面与统计。生产上用 `go run ./cmd/logarchive-import`，`SQL_DSN` / `LOG_SQL_DSN` / `LOG_ARCHIVE_S3_*` 与主服务同名。
 

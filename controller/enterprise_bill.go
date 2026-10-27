@@ -324,5 +324,6 @@ func GetEnterpriseBillSelf(c *gin.Context) {
 func ExportEnterpriseBillSelf(c *gin.Context) {
 	if bill, ok := currentEnterpriseBill(c); ok {
 		writeEnterpriseBillExport(c, bill)
+		recordEnterpriseExportAudit(c, "enterprise.bill.export", map[string]any{"bill_id": bill.Id, "bill_no": bill.BillNo})
 	}
 }

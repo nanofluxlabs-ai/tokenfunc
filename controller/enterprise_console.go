@@ -291,6 +291,7 @@ func CreateEnterpriseMember(c *gin.Context) {
 		enterpriseApiError(c, err)
 		return
 	}
+	recordEnterpriseConsoleAudit(c, "enterprise.member.create", map[string]any{"member_id": member.Id, "name": member.Name, "team_id": member.TeamId})
 	common.ApiSuccess(c, member)
 }
 
@@ -307,6 +308,9 @@ func ImportEnterpriseMembers(c *gin.Context) {
 	if err != nil {
 		common.ApiError(c, err)
 		return
+	}
+	if result.Created > 0 {
+		recordEnterpriseConsoleAudit(c, "enterprise.member.import", map[string]any{"count": result.Created, "team_count": len(result.CreatedTeams)})
 	}
 	common.ApiSuccess(c, result)
 }
@@ -337,6 +341,7 @@ func UpdateEnterpriseMember(c *gin.Context) {
 		enterpriseApiError(c, err)
 		return
 	}
+	recordEnterpriseConsoleAudit(c, "enterprise.member.update", map[string]any{"member_id": id, "name": member.Name, "team_id": member.TeamId, "status": member.Status})
 	common.ApiSuccess(c, nil)
 }
 
@@ -346,7 +351,8 @@ func DeleteEnterpriseMember(c *gin.Context) {
 		return
 	}
 	enterprise := currentEnterprise(c)
-	if _, err := model.GetEnterpriseMember(enterprise.Id, id, currentScope(c)); err != nil {
+	existing, err := model.GetEnterpriseMember(enterprise.Id, id, currentScope(c))
+	if err != nil {
 		enterpriseApiError(c, err)
 		return
 	}
@@ -354,6 +360,7 @@ func DeleteEnterpriseMember(c *gin.Context) {
 		enterpriseApiError(c, err)
 		return
 	}
+	recordEnterpriseConsoleAudit(c, "enterprise.member.delete", map[string]any{"member_id": id, "name": existing.Name})
 	common.ApiSuccess(c, nil)
 }
 

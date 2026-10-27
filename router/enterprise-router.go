@@ -72,6 +72,9 @@ func registerEnterpriseRoutes(apiRouter *gin.RouterGroup) {
 			financeRoute.GET("/finance/usage/export", controller.ExportEnterpriseFinanceUsage)
 		}
 
+		// 企业审计：主账号与企业管理员查看本企业成员在控制台的操作，与 /api/audit 共用 handler
+		consoleRoute.GET("/audit", middleware.DisableCache(), middleware.RequireEnterpriseRole(model.EnterpriseMemberRoleEnterpriseAdmin), controller.GetAuditLogs)
+
 		consoleRoute.GET("/teams", controller.ListEnterpriseTeams)
 		teamAdminRoute := consoleRoute.Group("", middleware.RequireEnterpriseRole(model.EnterpriseMemberRoleEnterpriseAdmin))
 		{

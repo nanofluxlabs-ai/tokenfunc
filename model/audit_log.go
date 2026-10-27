@@ -56,6 +56,7 @@ type AuditLogFilter struct {
 	StartTimestamp  int64
 	EndTimestamp    int64
 	Success         *bool
+	EnterpriseId    int // TokenFunc: enterprise console view, see applyEnterpriseAuditScope.
 }
 
 func AccessTokenFingerprint(token string) string {
@@ -176,6 +177,7 @@ func GetAuditLogs(filter AuditLogFilter, start, limit, viewerRole int) ([]*Audit
 	if filter.Success != nil {
 		query = query.Where("success = ?", *filter.Success)
 	}
+	query = applyEnterpriseAuditScope(query, filter.EnterpriseId)
 	var total int64
 	if err := query.Count(&total).Error; err != nil {
 		return nil, 0, err
@@ -198,6 +200,7 @@ func GetAuditLogs(filter AuditLogFilter, start, limit, viewerRole int) ([]*Audit
 			entry.Other.AdminInfo = nil
 			entry.Other.AuditInfo = nil
 		}
+		redactAuditForCustomer(entry, viewerRole)
 	}
 	return logs, total, nil
 }

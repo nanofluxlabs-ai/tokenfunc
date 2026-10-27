@@ -97,6 +97,7 @@ func GetEnterpriseUsageSummary(c *gin.Context) {
 
 func ExportEnterpriseUsageSelf(c *gin.Context) {
 	writeEnterpriseUsageExport(c, currentEnterprise(c).Id, currentScope(c))
+	recordEnterpriseExportAudit(c, "enterprise.usage.export", nil)
 }
 
 func AdminGetEnterpriseUsageSummary(c *gin.Context) {

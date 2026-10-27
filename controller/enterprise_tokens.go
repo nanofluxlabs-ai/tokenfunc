@@ -496,6 +496,7 @@ func GetEnterpriseTokenKey(c *gin.Context) {
 		enterpriseApiError(c, err)
 		return
 	}
+	recordEnterpriseConsoleAudit(c, "enterprise.token.reveal_key", map[string]any{"token_id": token.Id, "name": token.Name})
 	common.ApiSuccess(c, gin.H{"key": token.Key})
 }
 

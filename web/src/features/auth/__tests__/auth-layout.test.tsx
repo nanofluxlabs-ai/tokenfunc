@@ -39,8 +39,9 @@ describe('AuthLayout brand aside', () => {
     expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent(
       'One endpoint'
     )
-    expect(screen.getByText('Service SLA')).toBeInTheDocument()
-    expect(screen.getByText('99.95%')).toBeInTheDocument()
+    // 桌面品牌区与手机信任条各一份
+    expect(screen.getAllByText('Service SLA')).toHaveLength(2)
+    expect(screen.getAllByText('99.95%')).toHaveLength(2)
     expect(
       screen.queryByText('500+ account pool, stable supply')
     ).not.toBeInTheDocument()
@@ -61,10 +62,10 @@ describe('AuthLayout brand aside', () => {
     expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent(
       'Enterprise-grade'
     )
-    expect(screen.getByRole('list')).toBeInTheDocument()
+    expect(screen.getAllByRole('list')).toHaveLength(2)
     expect(
-      screen.getByText('500+ account pool, stable supply')
-    ).toBeInTheDocument()
+      screen.getAllByText('500+ account pool, stable supply')
+    ).toHaveLength(2)
     expect(screen.queryByText('Service SLA')).not.toBeInTheDocument()
   })
 
@@ -85,10 +86,24 @@ describe('AuthLayout brand aside', () => {
     expect(screen.getByRole('link', { name: /tokenfunc/ })).not.toHaveClass(
       'hidden'
     )
-    expect(screen.getByRole('main')).toHaveClass(
-      'items-start',
-      'lg:items-center'
+    // 手机表单卡垂直居中，桌面去掉卡片外观
+    expect(screen.getByRole('main')).toHaveClass('justify-center')
+    expect(
+      screen.getByRole('form', { name: 'login form' }).parentElement
+    ).toHaveClass('backdrop-blur-xl', 'lg:bg-transparent', 'lg:border-0')
+  })
+
+  it('shows the trust strip under the form only below lg', () => {
+    render(
+      <AuthLayout variant='sign-in'>
+        <form aria-label='login form' />
+      </AuthLayout>
     )
+
+    const stripStat = screen
+      .getAllByText('Service SLA')
+      .find((node) => node.closest('main'))
+    expect(stripStat?.closest('dl')).toHaveClass('lg:hidden')
   })
 
   it('defaults to the sign-in copy when no variant is given', () => {
@@ -97,6 +112,6 @@ describe('AuthLayout brand aside', () => {
         <div />
       </AuthLayout>
     )
-    expect(screen.getByText('Cache hit rate')).toBeInTheDocument()
+    expect(screen.getAllByText('Cache hit rate')).toHaveLength(2)
   })
 })

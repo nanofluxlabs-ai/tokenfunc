@@ -54,7 +54,7 @@ PKG ?= $(ROOT_PACKAGES)
 
 .DEFAULT_GOAL := help
 .PHONY: help env infra db-schemas api-build api api-stop web dev stop down reset logs psql redis-cli \
-	build-web test test-db test-web up up-build up-down up-logs reset-setup logarchive-import \
+	build-web test test-db test-web up up-build up-down up-logs reset-setup logarchive-import seed-demo \
 	upstream-fetch upstream-status upstream-diff upstream-merge wt-init wt-clean wt-list wt-env
 
 help: ## 列出所有目标
@@ -160,6 +160,9 @@ test-web: ## 前端 vitest
 
 logarchive-import: infra ## 把 COS 归档导回 dev 库的回放表 tf_logs_archive（ARGS='-day 2026-07-01'，COS 凭据取 .env）
 	@SQL_DSN='$(DEV_SQL_DSN)' GOWORK=off go run ./cmd/logarchive-import $(ARGS)
+
+seed-demo: infra ## 往当前 dev schema 灌示例数据（demo_ 账号，可重复执行，只重建示例数据；跑完重启 API）
+	@SQL_DSN='$(DEV_SQL_DSN)' REDIS_CONN_STRING='$(DEV_REDIS)' NODE_NAME=tokenfunc-seed SQL_SLOW_THRESHOLD_MS=0 GOWORK=off go run ./cmd/tokenfunc-seed-demo -yes $(ARGS)
 
 # ---------- worktree 并行开发（scripts/tokenfunc/worktree-env.sh） ----------
 # 每个 git worktree 领一个 slot：schema dev_<名> / test_<名>，redis db 2N / 2N+1，端口 3000+N / 5173+N，

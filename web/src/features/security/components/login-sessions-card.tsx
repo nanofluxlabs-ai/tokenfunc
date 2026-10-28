@@ -47,7 +47,7 @@ import {
   revokeLoginSession,
   revokeOtherLoginSessions,
 } from '@/features/profile/api'
-import { clearAuthenticatedClientState } from '@/lib/api'
+import { clearAuthentication } from '@/lib/api'
 import { handleServerError } from '@/lib/handle-server-error'
 import { createServerError } from '@/lib/server-error-message'
 import type { LoginSession } from '@/stores/auth-store'
@@ -89,7 +89,7 @@ export function LoginSessionsCard() {
       )
       setRevokeTarget(null)
       if (revokedCurrent) {
-        clearAuthenticatedClientState(queryClient)
+        clearAuthentication()
         void navigate({ to: '/sign-in', replace: true })
         return
       }

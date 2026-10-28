@@ -368,6 +368,66 @@ it.each([200, 401])(
   }
 )
 
+it('shows one session-expired notification when concurrent requests fail to refresh', async () => {
+  useAuthStore.getState().auth.setBundle({
+    access_token: 'expired-access',
+    token_type: 'Bearer',
+    access_expires_at: 1,
+    user: { id: 1, username: 'test-user', role: 1 },
+    session: {
+      sid: 'expired-session',
+      current: true,
+      login_method: 'password',
+      ip: '',
+      user_agent: '',
+      created_at: 1,
+      last_active_at: 1,
+      expires_at: 2_000_000_000,
+    },
+  })
+  vi.spyOn(XMLHttpRequest.prototype, 'send').mockImplementation(
+    function (this: XMLHttpRequest) {
+      Object.defineProperties(this, {
+        status: { value: 401, configurable: true },
+        statusText: { value: 'Refresh response', configurable: true },
+        responseText: {
+          value: JSON.stringify({ success: false }),
+          configurable: true,
+        },
+        readyState: { value: 4, configurable: true },
+      })
+      this.onloadend?.(new ProgressEvent('loadend'))
+    }
+  )
+  api.defaults.adapter = async (config) => {
+    throw new AxiosError('HTTP 401', 'ERR_BAD_REQUEST', config, undefined, {
+      data: { message: 'Unauthorized, invalid access token' },
+      status: 401,
+      statusText: 'Unauthorized',
+      headers: {},
+      config,
+    })
+  }
+  const notify = vi.spyOn(toast, 'error').mockReturnValue('error')
+  const client = createAppQueryClient()
+  await Promise.allSettled(
+    ['/api/user/self', '/api/token/'].map((url) =>
+      client.fetchQuery({
+        queryKey: [url],
+        queryFn: () => api.get(url),
+        retry: false,
+      })
+    )
+  )
+  // 同一 id 的提示在 sonner 中只显示一条，且不再追加服务端原始错误
+  expect(notify.mock.calls.length).toBeGreaterThan(0)
+  for (const [message, options] of notify.mock.calls) {
+    expect(message).toBe('Session expired!')
+    expect(options).toEqual({ id: 'session-expired' })
+  }
+  client.clear()
+})
+
 it('never refreshes or replays a failed single-use authorization request', async () => {
   useAuthStore.getState().auth.setBundle({
     access_token: 'access',

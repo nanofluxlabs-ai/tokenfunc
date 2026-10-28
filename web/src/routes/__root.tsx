@@ -23,6 +23,7 @@ import {
   Outlet,
   redirect,
   useNavigate,
+  useRouter,
 } from '@tanstack/react-router'
 import { TanStackRouterDevtools } from '@tanstack/react-router-devtools'
 import { useEffect } from 'react'
@@ -37,7 +38,6 @@ import { getSetupStatus } from '@/features/setup/api'
 import { useSystemConfig } from '@/hooks/use-system-config'
 import {
   bootstrapAuthentication,
-  clearAuthenticatedClientState,
   clearAuthentication,
 } from '@/lib/auth-session'
 import { subscribeAuthSessionEvents } from '@/lib/auth-session-sync'
@@ -46,6 +46,7 @@ import { useAuthStore } from '@/stores/auth-store'
 
 function RootComponent() {
   const navigate = useNavigate()
+  const router = useRouter()
   const queryClient = useQueryClient()
 
   // Load system configuration (logo, system name, etc.) from backend
@@ -63,11 +64,19 @@ function RootComponent() {
       useAuthStore.subscribe((state, previousState) => {
         const sid = state.auth.session?.sid
         const previousSID = previousState.auth.session?.sid
-        if (sid !== previousSID) {
+        if (sid === previousSID) return
+        if (sid) {
           queryClient.clear()
+          return
         }
+        // 登出时当前页仍挂载：立刻清缓存会让其查询以匿名身份重发并弹出一串 401，离开当前页后再清
+        void queryClient.cancelQueries()
+        const unsubscribe = router.subscribe('onResolved', () => {
+          unsubscribe()
+          queryClient.clear()
+        })
       }),
-    [queryClient]
+    [queryClient, router]
   )
 
   useEffect(
@@ -85,7 +94,7 @@ function RootComponent() {
         }
 
         if (currentSID && event.sid === currentSID) {
-          clearAuthenticatedClientState(queryClient, false)
+          clearAuthentication(false)
           void navigate({ to: '/sign-in', replace: true })
         }
       }),

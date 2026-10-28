@@ -16,7 +16,6 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import { useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from '@tanstack/react-router'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -24,7 +23,7 @@ import { toast } from 'sonner'
 
 import { ConfirmDialog } from '@/components/confirm-dialog'
 import { logout } from '@/features/auth/api'
-import { clearAuthenticatedClientState } from '@/lib/auth-session'
+import { clearAuthentication } from '@/lib/auth-session'
 import { handleServerError } from '@/lib/handle-server-error'
 
 interface SignOutDialogProps {
@@ -35,7 +34,6 @@ interface SignOutDialogProps {
 export function SignOutDialog({ open, onOpenChange }: SignOutDialogProps) {
   const { t } = useTranslation()
   const navigate = useNavigate()
-  const queryClient = useQueryClient()
   const [isSigningOut, setIsSigningOut] = useState(false)
 
   const handleSignOut = async () => {
@@ -47,7 +45,7 @@ export function SignOutDialog({ open, onOpenChange }: SignOutDialogProps) {
         return
       }
 
-      clearAuthenticatedClientState(queryClient)
+      clearAuthentication()
       toast.success(t('Signed out'))
       void navigate({ to: '/sign-in', replace: true })
     } catch (error: unknown) {

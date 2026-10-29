@@ -2,8 +2,8 @@
 
 - 日期：2026-10-29
 - 分支：worktree-feat-docs-revamp
-- PR：
-- 关键 commit：
+- PR：#71
+- 关键 commit：2ce03c314（SEO）、4eeb8e281（正文与示例参数）
 
 ## 背景
 

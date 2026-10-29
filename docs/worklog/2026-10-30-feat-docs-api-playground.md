@@ -2,8 +2,8 @@
 
 - 日期：2026-10-30
 - 分支：worktree-feat-docs-api-playground
-- PR：
-- 关键 commit：
+- PR：#73
+- 关键 commit：31c663377
 
 ## 背景
 

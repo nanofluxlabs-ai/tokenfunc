@@ -1,13 +1,13 @@
 先用下面的命令确认密钥和地址本身没问题，再去排查工具配置。能返回模型列表，说明密钥有效、网络可达，问题出在工具的配置上。
 
 :::tabs
-@tab macOS / Linux
+@tab cURL
 
 ```bash
 curl {{baseUrl}}/v1/models -H "Authorization: Bearer {{apiKey}}"
 ```
 
-@tab Windows
+@tab PowerShell
 
 ```powershell
 Invoke-RestMethod -Uri "{{baseUrl}}/v1/models" -Headers @{ Authorization = "Bearer {{apiKey}}" }

@@ -16,7 +16,6 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import { Link } from '@tanstack/react-router'
 import { PanelLeft } from 'lucide-react'
 import { useState, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -30,45 +29,11 @@ import {
   SheetTitle,
   SheetTrigger,
 } from '@/components/ui/sheet'
-import { cn } from '@/lib/utils'
 
 import type { DocHeading } from '../lib/doc-markdown'
-import { docsLangSearch } from '../lib/docs-links'
-import { DOCS_LANGS, getDocsEntry, type DocsLang } from '../registry'
+import { getDocsEntry, type DocsLang } from '../registry'
 import { DocsNavList } from './docs-nav-list'
 import { PrevNextLinks } from './prev-next-links'
-
-const LANG_LABELS: Record<DocsLang, string> = { zh: '中文', en: 'English' }
-
-function DocsLangSwitch(props: { slug: string; lang: DocsLang }) {
-  const { t } = useTranslation()
-  return (
-    <div
-      role='group'
-      aria-label={t('Documentation language')}
-      className='bg-muted/40 inline-flex rounded-md p-0.5'
-    >
-      {DOCS_LANGS.map((lang) => (
-        <Link
-          key={lang}
-          to='/docs/$slug'
-          params={{ slug: props.slug }}
-          search={docsLangSearch(lang)}
-          hrefLang={lang === 'zh' ? 'zh-CN' : 'en'}
-          aria-current={lang === props.lang ? 'true' : undefined}
-          className={cn(
-            'rounded px-2.5 py-1 text-xs transition-colors',
-            lang === props.lang
-              ? 'bg-background text-foreground font-medium shadow-sm'
-              : 'text-muted-foreground hover:text-foreground'
-          )}
-        >
-          {LANG_LABELS[lang]}
-        </Link>
-      ))}
-    </div>
-  )
-}
 
 function DocsToc(props: { headings: DocHeading[] }) {
   const { t } = useTranslation()
@@ -151,12 +116,9 @@ export function DocsLayout(props: {
             </div>
 
             <article className='w-full max-w-3xl'>
-              <div className='flex flex-wrap items-start justify-between gap-3'>
-                <h1 className='text-foreground text-3xl font-bold tracking-tight'>
-                  {title}
-                </h1>
-                <DocsLangSwitch slug={props.slug} lang={props.lang} />
-              </div>
+              <h1 className='text-foreground text-3xl font-bold tracking-tight'>
+                {title}
+              </h1>
               <p className='text-muted-foreground mt-2 text-base'>
                 {entry.description[props.lang]}
               </p>

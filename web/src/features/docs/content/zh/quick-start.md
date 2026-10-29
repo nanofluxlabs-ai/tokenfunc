@@ -18,7 +18,7 @@
 ![API 密钥页，「创建 API 密钥」按钮与创建后的复制弹窗](todo:quick-start/create-key.png)
 
 :::tip
-登录后，在本页顶部的「示例密钥」里选中一把密钥，文档里所有示例代码都会自动换成你的真实密钥，复制即可运行。
+登录后，文档里的示例代码会自动填入你名为 `default` 的密钥（没有则用最近创建的一把），复制即可运行；也可以在页面顶部的「示例密钥」里换一把。
 :::
 
 ### 发出第一个请求
@@ -26,7 +26,7 @@
 把下面的命令粘贴到终端运行。看到模型的回复，说明一切就绪。
 
 :::tabs
-@tab macOS / Linux
+@tab cURL
 
 ```bash
 curl {{baseUrl}}/v1/chat/completions \
@@ -38,7 +38,7 @@ curl {{baseUrl}}/v1/chat/completions \
   }'
 ```
 
-@tab Windows
+@tab PowerShell
 
 ```powershell
 $body = @{
@@ -86,5 +86,5 @@ console.log(resp.choices[0].message.content)
 ## 接下来
 
 - **用现成的工具**：Claude Code、Codex、Cursor、Cline、Trae 等，见 [选择接入方式](/docs/tools-overview)。
-- **自己写代码**：多轮对话、流式、看图、工具调用等写法，见 [调用示例](/docs/examples-chat)。
-- **查接口细节**：参数和返回格式，见 [API 参考](/docs/api-chat-completions)。
+- **自己写代码**：多轮对话、流式、看图、工具调用等写法，见 [Chat Completions](/docs/api-chat-completions#调用示例)。
+- **查接口细节**：参数和返回格式，见 [API 参考](/docs/api-authentication)。

@@ -17,8 +17,9 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 For commercial licensing, please contact support@quantumnous.com
 */
 import { useQuery } from '@tanstack/react-query'
-import { useParams, useSearch } from '@tanstack/react-router'
+import { useNavigate, useParams, useSearch } from '@tanstack/react-router'
 import { useEffect, useMemo } from 'react'
+import { useTranslation } from 'react-i18next'
 
 import { ErrorState } from '@/components/error-state'
 
@@ -28,11 +29,12 @@ import { DocsSampleBar } from './components/docs-sample-bar'
 import { useDocsVariables } from './hooks/use-docs-variables'
 import { parseDoc } from './lib/doc-markdown'
 import { loadDocSource } from './lib/doc-source'
+import { docsLangSearch } from './lib/docs-links'
 import {
   DOCS_DEFAULT_SLUG,
+  docsLangFromUiLanguage,
   getDocsEntry,
   resolveDocSlug,
-  resolveDocsLang,
   type DocsLang,
 } from './registry'
 
@@ -66,11 +68,10 @@ function DocsPageView(props: { slug: string; lang: DocsLang }) {
   useEffect(() => {
     const previous = document.title
     document.title = `${title} - ${siteName}`
-    document.documentElement.lang = props.lang === 'zh' ? 'zh-CN' : 'en'
     return () => {
       document.title = previous
     }
-  }, [title, siteName, props.lang])
+  }, [title, siteName])
 
   let body = <DocsSkeleton />
   if (parsed) body = <DocContent blocks={parsed.blocks} vars={vars} />
@@ -90,23 +91,38 @@ function DocsPageView(props: { slug: string; lang: DocsLang }) {
   )
 }
 
+/**
+ * 正文语言跟随站点导航里的界面语言；地址上的 ?lang 随之同步，
+ * 让分享出去的链接和搜索引擎看到的地址与正文语言一致。
+ */
+function useDocsLang(urlLang: DocsLang | undefined): DocsLang {
+  const { i18n } = useTranslation()
+  const navigate = useNavigate()
+  const lang = docsLangFromUiLanguage(i18n.resolvedLanguage || i18n.language)
+  const expected = docsLangSearch(lang).lang
+  useEffect(() => {
+    if (urlLang === expected) return
+    void navigate({
+      to: '.',
+      search: (previous: Record<string, unknown>) => ({
+        ...previous,
+        lang: expected,
+      }),
+      replace: true,
+    })
+  }, [urlLang, expected, navigate])
+  return lang
+}
+
 export function DocsLandingPage() {
   const search = useSearch({ from: '/docs/' })
-  return (
-    <DocsPageView
-      slug={DOCS_DEFAULT_SLUG}
-      lang={resolveDocsLang(search.lang)}
-    />
-  )
+  const lang = useDocsLang(search.lang)
+  return <DocsPageView slug={DOCS_DEFAULT_SLUG} lang={lang} />
 }
 
 export function DocsRoutePage() {
   const params = useParams({ from: '/docs/$slug' })
   const search = useSearch({ from: '/docs/$slug' })
-  return (
-    <DocsPageView
-      slug={resolveDocSlug(params.slug)}
-      lang={resolveDocsLang(search.lang)}
-    />
-  )
+  const lang = useDocsLang(search.lang)
+  return <DocsPageView slug={resolveDocSlug(params.slug)} lang={lang} />
 }

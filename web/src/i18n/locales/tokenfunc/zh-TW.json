@@ -1454,7 +1454,6 @@
     "{{greeting}}, {{name}}": "{{greeting}}，{{name}}",
     "{{value}} requests in 7 days": "近 7 天共 {{value}} 次請求",
     "{{value}} requests today": "今日已跑 {{value}} 次請求",
-    "Documentation language": "文件語言",
     "Key in samples": "範例金鑰",
     "Model in samples": "範例模型",
     "On this page": "本頁目錄",
@@ -1465,6 +1464,7 @@
     "Sample settings": "範例參數",
     "Sign in to fill the samples with your own key.": "登入後可把範例中的金鑰換成你自己的。",
     "Sign in to import with one click.": "登入後即可一鍵匯入。",
-    "The samples now contain your real key. Do not share screenshots of this page.": "範例中已填入你的真實金鑰，請勿截圖分享本頁。"
+    "The samples now contain your real key. Do not share screenshots of this page.": "範例中已填入你的真實金鑰，請勿截圖分享本頁。",
+    "Create an API key first to fill it into the samples.": "先建立一個 API 金鑰，範例裡就會自動填入。"
   }
 }

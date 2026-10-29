@@ -1454,7 +1454,6 @@
     "{{greeting}}, {{name}}": "{{greeting}}、{{name}} さん",
     "{{value}} requests in 7 days": "7 日間で {{value}} 件",
     "{{value}} requests today": "本日 {{value}} 件のリクエスト",
-    "Documentation language": "ドキュメントの言語",
     "Key in samples": "サンプルのキー",
     "Model in samples": "サンプルのモデル",
     "On this page": "このページの内容",
@@ -1465,6 +1464,7 @@
     "Sample settings": "サンプル設定",
     "Sign in to fill the samples with your own key.": "ログインするとサンプルに自分のキーを入れられます。",
     "Sign in to import with one click.": "ログインするとワンクリックでインポートできます。",
-    "The samples now contain your real key. Do not share screenshots of this page.": "サンプルに実際のキーが入っています。このページのスクリーンショットを共有しないでください。"
+    "The samples now contain your real key. Do not share screenshots of this page.": "サンプルに実際のキーが入っています。このページのスクリーンショットを共有しないでください。",
+    "Create an API key first to fill it into the samples.": "API キーを作成すると、サンプルに自動で入ります。"
   }
 }

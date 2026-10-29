@@ -18,7 +18,7 @@ For commercial licensing, please contact support@quantumnous.com
 */
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { Link } from '@tanstack/react-router'
-import { useId, useMemo } from 'react'
+import { useEffect, useId, useMemo, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { Combobox } from '@/components/ui/combobox'
@@ -40,6 +40,7 @@ import {
   useDocsFamilyModels,
   useDocsModelOptions,
 } from '../hooks/use-docs-variables'
+import { pickDefaultSampleKey } from '../lib/sample-keys'
 import type { ModelFamily } from '../registry'
 
 const NO_KEY = 'none'
@@ -48,7 +49,9 @@ function SampleKeySelect() {
   const { t } = useTranslation()
   const id = useId()
   const key = useDocsSampleStore((state) => state.key)
+  const keyChosenByUser = useDocsSampleStore((state) => state.keyChosenByUser)
   const setKey = useDocsSampleStore((state) => state.setKey)
+  const autoPicked = useRef(false)
   const keys = useQuery({
     queryKey: ['docs-sample-keys'],
     queryFn: async () =>
@@ -56,23 +59,51 @@ function SampleKeySelect() {
     staleTime: 60 * 1000,
   })
   const reveal = useMutation({
-    mutationFn: async (token: { id: number; name: string }) => {
+    mutationFn: async (token: {
+      id: number
+      name: string
+      chosenByUser: boolean
+    }) => {
       const res = requireServerSuccess(await fetchTokenKey(token.id))
       const raw = res.data?.key ?? ''
-      return { ...token, value: raw.startsWith('sk-') ? raw : `sk-${raw}` }
+      return {
+        key: {
+          id: token.id,
+          name: token.name,
+          value: raw.startsWith('sk-') ? raw : `sk-${raw}`,
+        },
+        chosenByUser: token.chosenByUser,
+      }
     },
-    onSuccess: (value) => setKey(value),
+    onSuccess: (result) => setKey(result.key, result.chosenByUser),
   })
 
-  const items = useMemo(() => {
-    const usable = (keys.data?.data?.items ?? []).filter(
-      (item) => item.status === API_KEY_STATUS.ENABLED
-    )
-    return [
+  const usable = useMemo(
+    () =>
+      (keys.data?.data?.items ?? []).filter(
+        (item) => item.status === API_KEY_STATUS.ENABLED
+      ),
+    [keys.data]
+  )
+
+  // 默认填入用户的 default 密钥（没有则取最新一把），用户手动选过后不再干预
+  const { mutate } = reveal
+  useEffect(() => {
+    if (autoPicked.current || keyChosenByUser || key || !keys.isSuccess) return
+    autoPicked.current = true
+    const picked = pickDefaultSampleKey(usable)
+    if (picked) {
+      mutate({ id: picked.id, name: picked.name, chosenByUser: false })
+    }
+  }, [keyChosenByUser, key, keys.isSuccess, usable, mutate])
+
+  const items = useMemo(
+    () => [
       { value: NO_KEY, label: t('Placeholder key') },
       ...usable.map((item) => ({ value: String(item.id), label: item.name })),
-    ]
-  }, [keys.data, t])
+    ],
+    [usable, t]
+  )
 
   return (
     <div className='min-w-0 space-y-1.5'>
@@ -85,11 +116,17 @@ function SampleKeySelect() {
         disabled={reveal.isPending}
         onValueChange={(value) => {
           if (value === null || value === NO_KEY) {
-            setKey(null)
+            setKey(null, true)
             return
           }
           const item = items.find((option) => option.value === value)
-          if (item) reveal.mutate({ id: Number(value), name: item.label })
+          if (item) {
+            reveal.mutate({
+              id: Number(value),
+              name: item.label,
+              chosenByUser: true,
+            })
+          }
         }}
       >
         <SelectTrigger id={id} className='h-8 w-full text-xs'>
@@ -103,6 +140,16 @@ function SampleKeySelect() {
           ))}
         </SelectContent>
       </Select>
+      {keys.isSuccess && usable.length === 0 && (
+        <p className='text-muted-foreground text-xs leading-5'>
+          <Link
+            to='/keys'
+            className='text-foreground underline underline-offset-4'
+          >
+            {t('Create an API key first to fill it into the samples.')}
+          </Link>
+        </p>
+      )}
     </div>
   )
 }

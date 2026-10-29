@@ -21,10 +21,10 @@ import { describe, expect, it } from 'vitest'
 import {
   DOCS_DEFAULT_SLUG,
   DOCS_PAGES,
+  docsLangFromUiLanguage,
   getDocsNav,
   getPagerNeighbors,
   resolveDocSlug,
-  resolveDocsLang,
 } from '../registry'
 
 describe('docs registry', () => {
@@ -38,21 +38,35 @@ describe('docs registry', () => {
     expect(getDocsNav().every((group) => group.pages.length > 0)).toBe(true)
   })
 
-  it('falls back to the default page and to Chinese for unknown input', () => {
+  it('orders the sidebar groups as getting started, API, enterprise, tools', () => {
+    expect(getDocsNav().map((group) => group.id)).toEqual([
+      'getting-started',
+      'api',
+      'enterprise',
+      'tools',
+    ])
+  })
+
+  it('falls back to the default page for unknown slugs', () => {
     expect(resolveDocSlug('missing')).toBe(DOCS_DEFAULT_SLUG)
     expect(resolveDocSlug(undefined)).toBe(DOCS_DEFAULT_SLUG)
-    expect(resolveDocsLang('en')).toBe('en')
-    expect(resolveDocsLang('fr')).toBe('zh')
-    expect(resolveDocsLang(undefined)).toBe('zh')
+  })
+
+  it('shows Chinese content for both Chinese interface languages and English for the rest', () => {
+    expect(docsLangFromUiLanguage('zh')).toBe('zh')
+    expect(docsLangFromUiLanguage('zh-TW')).toBe('zh')
+    for (const language of ['en', 'fr', 'ru', 'ja', 'vi', undefined]) {
+      expect(docsLangFromUiLanguage(language)).toBe('en')
+    }
   })
 
   it('pages through the sidebar order across groups', () => {
     const ordered = getDocsNav().flatMap((group) => group.pages)
     const lastGettingStarted =
-      ordered.findIndex((page) => page.group === 'tools') - 1
+      ordered.findIndex((page) => page.group === 'api') - 1
 
     const neighbors = getPagerNeighbors(ordered[lastGettingStarted].slug)
-    expect(neighbors.next?.group).toBe('tools')
+    expect(neighbors.next?.group).toBe('api')
     expect(getPagerNeighbors(ordered[0].slug).prev).toBeUndefined()
     expect(getPagerNeighbors(ordered.at(-1)?.slug ?? '').next).toBeUndefined()
   })

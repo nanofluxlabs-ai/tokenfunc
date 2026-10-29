@@ -1454,7 +1454,6 @@
     "{{greeting}}, {{name}}": "{{greeting}}, {{name}}",
     "{{value}} requests in 7 days": "{{value}} requests in 7 days",
     "{{value}} requests today": "{{value}} requests today",
-    "Documentation language": "Documentation language",
     "Key in samples": "Key in samples",
     "Model in samples": "Model in samples",
     "On this page": "On this page",
@@ -1465,6 +1464,7 @@
     "Sample settings": "Sample settings",
     "Sign in to fill the samples with your own key.": "Sign in to fill the samples with your own key.",
     "Sign in to import with one click.": "Sign in to import with one click.",
-    "The samples now contain your real key. Do not share screenshots of this page.": "The samples now contain your real key. Do not share screenshots of this page."
+    "The samples now contain your real key. Do not share screenshots of this page.": "The samples now contain your real key. Do not share screenshots of this page.",
+    "Create an API key first to fill it into the samples.": "Create an API key first to fill it into the samples."
   }
 }

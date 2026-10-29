@@ -40,12 +40,12 @@ The `model` field must match the model name on this site **exactly**, including 
 - Copy them from the [Model Square](/pricing).
 - Call [List models](/docs/api-models); it returns the models your key can use.
 
-Some models accept a suffix that controls reasoning effort, such as `-thinking` or `-high`. See [Reasoning models](/docs/examples-reasoning).
+Some models accept a suffix that controls reasoning effort, such as `-thinking` or `-high`. See [reasoning models in Chat Completions](/docs/api-chat-completions#reasoning-models).
 
 ## Billing
 
 Usage is charged to your balance as you go. Most text models bill per token, with separate input and output prices; some bill per call. Prices are on the [Model Square](/pricing).
 
 - Every request and its charge is listed under Usage Logs in the console.
-- Input served from the prompt cache is billed at the lower cache price, see [Prompt caching](/docs/examples-prompt-caching).
+- Input served from the prompt cache is billed at the lower cache price, see [prompt caching in Anthropic Messages](/docs/api-messages#prompt-caching).
 - Requests are rejected when the balance runs out and work again right after a top-up.

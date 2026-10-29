@@ -1,13 +1,13 @@
 First make sure the key and address work on their own, then look at the tool's settings. If the command below returns a model list, the key is valid and the site is reachable, and the problem is in the tool configuration.
 
 :::tabs
-@tab macOS / Linux
+@tab cURL
 
 ```bash
 curl {{baseUrl}}/v1/models -H "Authorization: Bearer {{apiKey}}"
 ```
 
-@tab Windows
+@tab PowerShell
 
 ```powershell
 Invoke-RestMethod -Uri "{{baseUrl}}/v1/models" -Headers @{ Authorization = "Bearer {{apiKey}}" }

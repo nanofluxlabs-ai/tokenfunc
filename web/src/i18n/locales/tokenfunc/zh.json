@@ -1454,7 +1454,6 @@
     "{{greeting}}, {{name}}": "{{greeting}}，{{name}}",
     "{{value}} requests in 7 days": "近 7 天共 {{value}} 次请求",
     "{{value}} requests today": "今日已跑 {{value}} 次请求",
-    "Documentation language": "文档语言",
     "Key in samples": "示例密钥",
     "Model in samples": "示例模型",
     "On this page": "本页目录",
@@ -1465,6 +1464,7 @@
     "Sample settings": "示例参数",
     "Sign in to fill the samples with your own key.": "登录后可把示例中的密钥换成你自己的。",
     "Sign in to import with one click.": "登录后即可一键导入。",
-    "The samples now contain your real key. Do not share screenshots of this page.": "示例中已填入你的真实密钥，请勿截图分享本页。"
+    "The samples now contain your real key. Do not share screenshots of this page.": "示例中已填入你的真实密钥，请勿截图分享本页。",
+    "Create an API key first to fill it into the samples.": "先创建一个 API 密钥，示例里就会自动填入。"
   }
 }

@@ -82,12 +82,21 @@ describe.each(DOCS_LANGS)('docs content (%s)', (lang) => {
         )
       ).toEqual([])
 
-      const docLinks = [...source.matchAll(/\]\(\/docs\/([\w-]+)/g)].map(
-        (match) => match[1]
-      )
-      expect(docLinks.filter((target) => !DOCS_SLUGS.includes(target))).toEqual(
-        []
-      )
+      const docLinks = [
+        ...source.matchAll(/\]\(\/docs\/([\w-]+)(?:#([^)\s]+))?\)/g),
+      ]
+      expect(
+        docLinks.filter((match) => !DOCS_SLUGS.includes(match[1]))
+      ).toEqual([])
+      // 跨页锚点必须指向目标页真实存在的小节标题
+      const brokenAnchors = docLinks
+        .filter((match) => match[2])
+        .filter((match) => {
+          const target = parseDoc(readPage(lang, match[1]), lang)
+          return !target.headings.some((heading) => heading.id === match[2])
+        })
+        .map((match) => match[0])
+      expect(brokenAnchors).toEqual([])
     }
   )
 })

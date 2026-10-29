@@ -1454,7 +1454,6 @@
     "{{greeting}}, {{name}}": "{{greeting}}, {{name}}",
     "{{value}} requests in 7 days": "{{value}} requêtes sur 7 jours",
     "{{value}} requests today": "{{value}} requêtes aujourd'hui",
-    "Documentation language": "Langue de la documentation",
     "Key in samples": "Clé des exemples",
     "Model in samples": "Modèle des exemples",
     "On this page": "Sur cette page",
@@ -1465,6 +1464,7 @@
     "Sample settings": "Paramètres des exemples",
     "Sign in to fill the samples with your own key.": "Connectez-vous pour utiliser votre propre clé dans les exemples.",
     "Sign in to import with one click.": "Connectez-vous pour importer en un clic.",
-    "The samples now contain your real key. Do not share screenshots of this page.": "Les exemples contiennent maintenant votre vraie clé. Ne partagez pas de captures de cette page."
+    "The samples now contain your real key. Do not share screenshots of this page.": "Les exemples contiennent maintenant votre vraie clé. Ne partagez pas de captures de cette page.",
+    "Create an API key first to fill it into the samples.": "Créez d'abord une clé API pour qu'elle soit insérée dans les exemples."
   }
 }

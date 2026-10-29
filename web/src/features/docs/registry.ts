@@ -27,12 +27,7 @@ export const DOCS_LANGS: DocsLang[] = ['zh', 'en']
 /** 不带 ?lang 时的正文语言；预渲染与 sitemap 的规范地址也以它为准 */
 export const DOCS_DEFAULT_LANG: DocsLang = 'zh'
 
-export type DocsGroupId =
-  | 'getting-started'
-  | 'tools'
-  | 'examples'
-  | 'api'
-  | 'enterprise'
+export type DocsGroupId = 'getting-started' | 'api' | 'enterprise' | 'tools'
 
 /** 示例模型的系列：页面里的 {{model}} 按系列从本站可用模型中挑一个 */
 export type ModelFamily = 'claude' | 'gpt' | 'deepseek' | 'gemini' | 'image'
@@ -56,10 +51,9 @@ export type DocsNavGroup = {
 
 export const DOCS_GROUPS: { id: DocsGroupId; title: Localized }[] = [
   { id: 'getting-started', title: { zh: '开始使用', en: 'Getting started' } },
-  { id: 'tools', title: { zh: '工具接入', en: 'Tool integration' } },
-  { id: 'examples', title: { zh: '调用示例', en: 'Examples' } },
   { id: 'api', title: { zh: 'API 参考', en: 'API reference' } },
   { id: 'enterprise', title: { zh: '企业客户', en: 'Enterprise' } },
+  { id: 'tools', title: { zh: '三方工具接入', en: 'Tool integration' } },
 ]
 
 export const DOCS_PAGES: DocsPageEntry[] = [
@@ -214,66 +208,6 @@ export const DOCS_PAGES: DocsPageEntry[] = [
     },
   },
   {
-    slug: 'examples-chat',
-    group: 'examples',
-    model: 'gpt',
-    title: { zh: '对话与流式输出', en: 'Chat and streaming' },
-    description: {
-      zh: '多轮对话、系统提示词、流式输出与用量统计。',
-      en: 'Multi-turn chat, system prompts, streaming and usage.',
-    },
-  },
-  {
-    slug: 'examples-reasoning',
-    group: 'examples',
-    model: 'deepseek',
-    title: { zh: '思考模型', en: 'Reasoning models' },
-    description: {
-      zh: '开启和控制 DeepSeek、Claude、GPT、Gemini 的思考，并读取思考内容。',
-      en: 'Enable and control reasoning for DeepSeek, Claude, GPT and Gemini, and read the reasoning output.',
-    },
-  },
-  {
-    slug: 'examples-vision',
-    group: 'examples',
-    model: 'gpt',
-    title: { zh: '图片理解', en: 'Vision' },
-    description: {
-      zh: '用图片链接或 Base64 让模型看图。',
-      en: 'Send images by URL or Base64 for the model to read.',
-    },
-  },
-  {
-    slug: 'examples-tools',
-    group: 'examples',
-    model: 'gpt',
-    title: { zh: '工具调用', en: 'Tool calling' },
-    description: {
-      zh: '定义函数、让模型发起调用、回传结果的完整循环。',
-      en: 'Define functions, let the model call them and send back the results.',
-    },
-  },
-  {
-    slug: 'examples-structured-output',
-    group: 'examples',
-    model: 'gpt',
-    title: { zh: '结构化输出', en: 'Structured output' },
-    description: {
-      zh: '用 JSON 模式或 JSON Schema 让模型按固定格式返回。',
-      en: 'Use JSON mode or JSON Schema to get output in a fixed shape.',
-    },
-  },
-  {
-    slug: 'examples-prompt-caching',
-    group: 'examples',
-    model: 'claude',
-    title: { zh: '提示词缓存', en: 'Prompt caching' },
-    description: {
-      zh: '复用长上下文，降低费用与首字延迟。',
-      en: 'Reuse long context to cut cost and time to first token.',
-    },
-  },
-  {
     slug: 'api-authentication',
     group: 'api',
     title: { zh: '鉴权', en: 'Authentication' },
@@ -297,8 +231,8 @@ export const DOCS_PAGES: DocsPageEntry[] = [
     model: 'gpt',
     title: { zh: 'Chat Completions', en: 'Chat Completions' },
     description: {
-      zh: 'OpenAI 兼容的对话接口，支持流式输出。',
-      en: 'OpenAI-compatible chat endpoint with streaming.',
+      zh: 'OpenAI 兼容的对话接口：流式输出、思考模型、看图、工具调用、结构化输出的参数与示例。',
+      en: 'The OpenAI-compatible chat endpoint: streaming, reasoning, vision, tool calling and structured output.',
     },
   },
   {
@@ -307,8 +241,8 @@ export const DOCS_PAGES: DocsPageEntry[] = [
     model: 'claude',
     title: { zh: 'Anthropic Messages', en: 'Anthropic Messages' },
     description: {
-      zh: 'Anthropic 原生格式的对话接口，Claude Code 等工具使用它。',
-      en: 'The Anthropic-native chat endpoint used by Claude Code and similar tools.',
+      zh: 'Anthropic 原生格式的对话接口：思考、看图、工具调用与提示词缓存。',
+      en: 'The Anthropic-native chat endpoint: thinking, vision, tool use and prompt caching.',
     },
   },
   {
@@ -359,8 +293,9 @@ export function resolveDocSlug(slug: string | undefined): string {
   return slug && DOCS_SLUGS.includes(slug) ? slug : DOCS_DEFAULT_SLUG
 }
 
-export function resolveDocsLang(value: unknown): DocsLang {
-  return value === 'en' ? 'en' : DOCS_DEFAULT_LANG
+/** 正文语言跟随站点界面语言：简繁中文看中文正文，其余语言看英文正文 */
+export function docsLangFromUiLanguage(language: string | undefined): DocsLang {
+  return language?.toLowerCase().startsWith('zh') ? 'zh' : 'en'
 }
 
 export function getDocsEntry(slug: string): DocsPageEntry {

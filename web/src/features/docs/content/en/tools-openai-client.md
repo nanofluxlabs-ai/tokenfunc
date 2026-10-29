@@ -82,7 +82,7 @@ export OPENAI_API_KEY="{{apiKey}}"
 ```
 :::
 
-The OpenAI components in LangChain, LlamaIndex and similar frameworks take the same `base_url` and `api_key`. More patterns are in [Examples](/docs/examples-chat).
+The OpenAI components in LangChain, LlamaIndex and similar frameworks take the same `base_url` and `api_key`. More patterns are in [Chat Completions](/docs/api-chat-completions#examples).
 
 ## Troubleshooting
 

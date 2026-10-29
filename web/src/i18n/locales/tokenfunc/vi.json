@@ -1454,7 +1454,6 @@
     "{{greeting}}, {{name}}": "{{greeting}}, {{name}}",
     "{{value}} requests in 7 days": "{{value}} yêu cầu trong 7 ngày",
     "{{value}} requests today": "Hôm nay {{value}} yêu cầu",
-    "Documentation language": "Ngôn ngữ tài liệu",
     "Key in samples": "Khóa trong ví dụ",
     "Model in samples": "Mô hình trong ví dụ",
     "On this page": "Trên trang này",
@@ -1465,6 +1464,7 @@
     "Sample settings": "Thiết lập ví dụ",
     "Sign in to fill the samples with your own key.": "Đăng nhập để dùng khóa của bạn trong các ví dụ.",
     "Sign in to import with one click.": "Đăng nhập để nhập bằng một cú nhấp.",
-    "The samples now contain your real key. Do not share screenshots of this page.": "Các ví dụ đang chứa khóa thật của bạn. Đừng chia sẻ ảnh chụp trang này."
+    "The samples now contain your real key. Do not share screenshots of this page.": "Các ví dụ đang chứa khóa thật của bạn. Đừng chia sẻ ảnh chụp trang này.",
+    "Create an API key first to fill it into the samples.": "Hãy tạo một khóa API trước để điền vào các ví dụ."
   }
 }

@@ -82,7 +82,7 @@ export OPENAI_API_KEY="{{apiKey}}"
 ```
 :::
 
-LangChain、LlamaIndex 等框架的 OpenAI 组件同样传入 `base_url` 和 `api_key` 即可。更多写法见 [调用示例](/docs/examples-chat)。
+LangChain、LlamaIndex 等框架的 OpenAI 组件同样传入 `base_url` 和 `api_key` 即可。更多写法见 [Chat Completions](/docs/api-chat-completions#调用示例)。
 
 ## 常见问题
 

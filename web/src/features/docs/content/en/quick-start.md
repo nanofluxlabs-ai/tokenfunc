@@ -18,7 +18,7 @@ Sign in, open [API Keys](/keys) and click "Create API Key". Create one key per t
 ![The API Keys page: the Create API Key button and the copy dialog shown after creation](todo:quick-start/create-key.png)
 
 :::tip
-Once signed in, pick a key under "Sample settings" at the top of any docs page. Every sample on the page then contains your real key and runs as copied.
+Once signed in, the samples are filled with your key named `default` (or your most recently created key), so they run as copied. Pick another key under "Sample settings" at the top of the page if you like.
 :::
 
 ### Send your first request
@@ -26,7 +26,7 @@ Once signed in, pick a key under "Sample settings" at the top of any docs page. 
 Paste the command below into a terminal. If the model answers, you are all set.
 
 :::tabs
-@tab macOS / Linux
+@tab cURL
 
 ```bash
 curl {{baseUrl}}/v1/chat/completions \
@@ -38,7 +38,7 @@ curl {{baseUrl}}/v1/chat/completions \
   }'
 ```
 
-@tab Windows
+@tab PowerShell
 
 ```powershell
 $body = @{
@@ -88,5 +88,5 @@ Any model from the [Model Square](/pricing) works in place of the one above. If 
 ## Next steps
 
 - **Use a ready-made tool**: Claude Code, Codex, Cursor, Cline, Trae and more, see [Choose a tool](/docs/tools-overview).
-- **Write your own code**: multi-turn chat, streaming, vision, tool calling, see [Examples](/docs/examples-chat).
-- **Look up the API**: parameters and response formats, see [API reference](/docs/api-chat-completions).
+- **Write your own code**: multi-turn chat, streaming, vision, tool calling, see [Chat Completions](/docs/api-chat-completions#examples).
+- **Look up the API**: parameters and response formats, see [API reference](/docs/api-authentication).

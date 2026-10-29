@@ -31,15 +31,20 @@
   - 交互组件：`:::cc-switch{app=...}`、`:::base-url`、`:::contact-sales`。
   - 代码块标题写法：```` ```json title="路径" ````。
   - 截图占位写法：`![说明](todo:文件名)`。
-- 共 29 页，按 5 组归类：开始使用 / 工具接入 / 调用示例 / API 参考 / 企业客户。
+- 共 23 页，按 4 组归类，顺序为：开始使用 / API 参考 / 企业客户 / 三方工具接入。侧栏分组可折叠，折叠状态记在本浏览器；当前页所在分组会自动展开。
   - 新增「基础概念」「常见问题与排错」「选择接入方式」三页。
   - 新增 Cursor、Cline、Trae、DeepSeek Harness 四篇工具教程。
-  - 新增 6 篇调用示例：对话与流式输出、思考模型、图片理解、工具调用、结构化输出、提示词缓存。
+  - 调用示例不单独成组，按单页加右侧目录并入对应接口页：
+    - Chat Completions：多轮对话、思考模型、图片理解、工具调用、结构化输出、缓存命中。
+    - Anthropic Messages：流式、thinking、图片、工具调用、提示词缓存。
+    - Responses：流式、多轮、思考强度。
+  - 所有代码示例的第一个标签都是 cURL；同名标签在整页联动。
   - 原有页面全部按 2026-10 的官方文档和网关代码重写。
+- 正文语言跟随站点导航的界面语言（简繁中文看中文正文，其余看英文），地址上的 `?lang` 随之同步；文档页内不再单独提供语言切换。
 
 ### 示例参数
 
-- 页面顶部有「示例参数」区。登录用户可以选择自己的密钥，明文按需从 `/api/token/:id/key` 获取，只保存在内存里。
+- 页面顶部有「示例参数」区。登录用户默认自动填入名为 `default` 的启用密钥，没有则用最近创建的一把；用户手动选择后不再自动切换。密钥明文按需从 `/api/token/:id/key` 获取，只保存在内存里。
 - 模型从本站真实可用的模型中按系列挑选：已登录用户取 `/api/user/models`，访客取 `/api/pricing`；用户也可以手动改。
 - 以上取值实时替换正文里的 `{{baseUrl}}`、`{{apiKey}}`、`{{model}}`、`{{model:<系列>}}`、`{{siteName}}`。
 - CC Switch 对话框新增 `defaultApp` 参数，文档页按教程预选 Claude 或 Codex。
@@ -75,7 +80,7 @@
   - 失败的 `metadata-editing`、`visual-billing-editor` 两个文件单独重跑全部通过（46/46），是全量并发下的耗时问题，与本次改动无关。
 - `go test ./router/ -count=1`：通过，新增 `web_docs_seo_test.go`。
 - `bunx tsc -b`、相关文件的 `oxlint`、`gofmt`、`go vet ./router/`：均无问题。
-- `bun run build`：58 页预渲染完成。
+- `bun run build`：46 页（23 页 × 2 种语言）预渲染完成。
 - `make api` 后用 curl 检查：
   - `/docs/tools-cursor` 返回中文标题、description、canonical 和 hreflang，正文里没有残留占位符。
   - `?lang=en` 返回英文页。
@@ -85,10 +90,13 @@
   - 登录后选中密钥：配置文件里填入了真实密钥。
   - 切换 Windows 标签时，整页同名标签一起切换。
   - 英文页正常；CC Switch 对话框会按教程预选 Codex。
+  - 第二轮：已登录时自动选中 `default` 密钥；代码标签默认是 cURL；在导航语言菜单切到 English 后，正文变为英文且地址变为 `?lang=en`，切回简体中文后 `?lang` 去掉；工具分组可以折叠；右侧目录的跨小节锚点能正常跳转。
 
 ## 遗留
 
 1. 18 张截图待补充。放到 `web/public/docs-assets/` 后，把正文里的 `todo:xxx.png` 改成 `/docs-assets/xxx.png`。测试会校验文件是否存在。
 2. DeepSeek Harness 用 Anthropic 协议时，地址不带 `/v1` 是推断，未实测；Trae 是否要求公网地址也未证实。正文已按官方文档的写法给出。
 3. CC Switch 对话框没有预填当前的示例模型，需要用户自己选。
-4. 二期做连接自检，三期做 Scalar API 参考与在线调试，并补齐 embeddings、rerank、音频等接口。
+4. 正文语言跟随界面语言，没有对爬虫做特殊处理（用户选择）。执行 JS 的爬虫，比如浏览器语言为英文的 Googlebot，可能会把中文地址渲染成英文；不执行 JS 的爬虫看到的仍是服务端注入的中文预渲染内容。
+5. 自动选中默认密钥时，每次整页加载会调用一次 `/api/token/:id/key`，计入该接口的关键操作限流。
+6. 二期做连接自检，三期做 Scalar API 参考与在线调试，并补齐 embeddings、rerank、音频等接口。

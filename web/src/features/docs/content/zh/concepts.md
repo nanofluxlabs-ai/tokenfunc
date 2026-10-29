@@ -40,12 +40,12 @@
 - 在 [模型广场](/pricing) 查看并复制。
 - 调用 [模型列表](/docs/api-models) 接口，返回的就是当前密钥可用的模型。
 
-部分模型支持在名字后面加后缀来控制思考强度，例如 `-thinking`、`-high`，详见 [思考模型](/docs/examples-reasoning)。
+部分模型支持在名字后面加后缀来控制思考强度，例如 `-thinking`、`-high`，详见 [Chat Completions 的思考模型](/docs/api-chat-completions#思考模型)。
 
 ## 计费
 
 按实际用量从余额中扣费，大多数文本模型按 Token 计费，输入和输出分别定价；部分模型按次计费。每个模型的价格见 [模型广场](/pricing)。
 
 - 用量和扣费明细在控制台的「使用日志」里逐条可查。
-- 命中提示词缓存的输入按更低的缓存价计费，见 [提示词缓存](/docs/examples-prompt-caching)。
+- 命中提示词缓存的输入按更低的缓存价计费，见 [Anthropic Messages 的提示词缓存](/docs/api-messages#提示词缓存)。
 - 余额不足时请求会被拒绝，充值后立即恢复。

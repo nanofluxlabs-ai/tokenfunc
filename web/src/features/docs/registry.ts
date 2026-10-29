@@ -265,6 +265,16 @@ export const DOCS_PAGES: DocsPageEntry[] = [
     },
   },
   {
+    slug: 'api-gemini',
+    group: 'api',
+    model: 'gemini',
+    title: { zh: 'Gemini 原生接口', en: 'Gemini native API' },
+    description: {
+      zh: 'Google Gemini 原生格式的接口，供使用 Google SDK 的应用直接接入。',
+      en: 'The Google Gemini native endpoint for apps built on the Google SDKs.',
+    },
+  },
+  {
     slug: 'api-images',
     group: 'api',
     model: 'image',

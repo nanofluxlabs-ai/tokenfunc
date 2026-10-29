@@ -6,6 +6,9 @@ Compatible with the OpenAI image endpoints, for generating images from text and 
 POST {{baseUrl}}/v1/images/generations
 ```
 
+:::api-playground{operation="image-generations"}
+:::
+
 :::tabs
 @tab cURL
 
@@ -89,6 +92,9 @@ Returned image URLs usually expire, so download them promptly.
 ```http
 POST {{baseUrl}}/v1/images/edits
 ```
+
+:::api-playground{operation="image-edits"}
+:::
 
 Upload the source image and the instruction as `multipart/form-data`:
 

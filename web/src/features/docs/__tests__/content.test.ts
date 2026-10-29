@@ -28,6 +28,7 @@ import {
   parseDoc,
   type DocBlock,
 } from '../lib/doc-markdown'
+import { isPlaygroundOperation } from '../lib/playground-spec'
 import { MODEL_FAMILIES } from '../lib/sample-models'
 import { DOCS_LANGS, DOCS_PAGES, DOCS_SLUGS } from '../registry'
 
@@ -88,6 +89,12 @@ describe.each(DOCS_LANGS)('docs content (%s)', (lang) => {
       expect(
         docLinks.filter((match) => !DOCS_SLUGS.includes(match[1]))
       ).toEqual([])
+      // 在线调试组件必须指向调试规范里存在的接口
+      const operations = [
+        ...source.matchAll(/:::api-playground\{operation="([^"]*)"\}/g),
+      ].map((match) => match[1])
+      expect(operations.filter((op) => !isPlaygroundOperation(op))).toEqual([])
+
       // 跨页锚点必须指向目标页真实存在的小节标题
       const brokenAnchors = docLinks
         .filter((match) => match[2])

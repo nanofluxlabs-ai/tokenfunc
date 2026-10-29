@@ -4,6 +4,9 @@ The chat endpoint compatible with the Anthropic Messages API, used by Claude Cod
 POST {{baseUrl}}/v1/messages
 ```
 
+:::api-playground{operation="messages"}
+:::
+
 ## Request
 
 :::tabs

@@ -4,6 +4,9 @@ The endpoint compatible with the OpenAI Responses API, OpenAI's newer unified in
 POST {{baseUrl}}/v1/responses
 ```
 
+:::api-playground{operation="responses"}
+:::
+
 ## Request
 
 :::tabs

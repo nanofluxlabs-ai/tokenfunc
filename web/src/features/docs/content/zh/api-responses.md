@@ -4,6 +4,9 @@
 POST {{baseUrl}}/v1/responses
 ```
 
+:::api-playground{operation="responses"}
+:::
+
 ## 请求示例
 
 :::tabs

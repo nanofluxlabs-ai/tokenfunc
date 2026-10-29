@@ -4,6 +4,9 @@ The chat endpoint compatible with OpenAI Chat Completions, and the most widely s
 POST {{baseUrl}}/v1/chat/completions
 ```
 
+:::api-playground{operation="chat-completions"}
+:::
+
 ## Request
 
 :::tabs

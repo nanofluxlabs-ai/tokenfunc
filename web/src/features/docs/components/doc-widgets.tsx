@@ -31,6 +31,7 @@ import { useAuthStore } from '@/stores/auth-store'
 import { useDocsSampleStore } from '@/stores/docs-sample-store'
 
 import { BaseUrlCard } from './base-url-card'
+import { ConnectionCheck } from './connection-check'
 
 function CCSwitchWidget(props: { app?: string }) {
   const { t } = useTranslation()
@@ -117,6 +118,8 @@ export function DocWidget(props: {
       )
     case 'contact-sales':
       return <ContactSalesWidget />
+    case 'self-check':
+      return <ConnectionCheck />
     default:
       return null
   }

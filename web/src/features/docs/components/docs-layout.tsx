@@ -16,7 +16,8 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import { PanelLeft } from 'lucide-react'
+import { Link } from '@tanstack/react-router'
+import { ArrowRight, PanelLeft } from 'lucide-react'
 import { useState, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 
@@ -31,9 +32,31 @@ import {
 } from '@/components/ui/sheet'
 
 import type { DocHeading } from '../lib/doc-markdown'
+import { docsLangSearch } from '../lib/docs-links'
+import { toolForGuide } from '../lib/self-check'
 import { getDocsEntry, type DocsLang } from '../registry'
 import { DocsNavList } from './docs-nav-list'
 import { PrevNextLinks } from './prev-next-links'
+
+/** 工具教程页顶部的连接自检入口，预选当前工具 */
+function SelfCheckEntry(props: { slug: string; lang: DocsLang }) {
+  const { t } = useTranslation()
+  const tool = toolForGuide(props.slug)
+  if (!tool) return null
+  return (
+    <Link
+      to='/docs/$slug'
+      params={{ slug: 'self-check' }}
+      search={{ ...docsLangSearch(props.lang), tool: tool.id }}
+      className='border-border/60 hover:bg-muted/30 text-muted-foreground mt-3 flex items-center justify-between gap-3 rounded-lg border px-3 py-2 text-xs transition-colors'
+    >
+      <span>
+        {t('Configured but still not connecting? Run the connection check.')}
+      </span>
+      <ArrowRight className='size-3.5 shrink-0' aria-hidden='true' />
+    </Link>
+  )
+}
 
 function DocsToc(props: { headings: DocHeading[] }) {
   const { t } = useTranslation()
@@ -124,6 +147,7 @@ export function DocsLayout(props: {
               </p>
 
               {props.toolbar && <div className='mt-6'>{props.toolbar}</div>}
+              <SelfCheckEntry slug={props.slug} lang={props.lang} />
 
               <div className='mt-8'>{props.children}</div>
 

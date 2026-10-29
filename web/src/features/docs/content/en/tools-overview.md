@@ -28,6 +28,8 @@ Where a cell has two values separated by "/", they match the two protocols: Open
 
 Claude Code, Codex, Cline, Cursor's agent mode and similar tools call tools constantly (reading files, running commands). The model must support tool calling, and longer context helps. Weaker models can loop or break the output format, so prefer each vendor's flagship models.
 
+If a tool will not connect after setup, the [connection check](/docs/self-check) checks the address, key, model and a real call in one go.
+
 ## Before you start
 
 Every guide needs:

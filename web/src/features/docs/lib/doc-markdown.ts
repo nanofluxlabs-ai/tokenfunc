@@ -37,7 +37,12 @@ export type DocHeading = { id: string; text: string; level: 2 | 3 }
 export type ParsedDoc = { blocks: DocBlock[]; headings: DocHeading[] }
 
 /** 正文可用的交互组件名（:::名称），由 components/doc-widgets.tsx 渲染，测试据此校验没有写错 */
-export const DOC_WIDGET_NAMES = ['cc-switch', 'base-url', 'contact-sales']
+export const DOC_WIDGET_NAMES = [
+  'cc-switch',
+  'base-url',
+  'contact-sales',
+  'self-check',
+]
 
 /** 截图占位：图片地址以 todo: 开头时渲染为虚线框，等运营补图后换成 /docs-assets/ 下的真实路径 */
 export const SCREENSHOT_PLACEHOLDER_PREFIX = 'todo:'

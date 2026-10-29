@@ -1,4 +1,4 @@
-First make sure the key and address work on their own, then look at the tool's settings. If the command below returns a model list, the key is valid and the site is reachable, and the problem is in the tool configuration.
+Try the [connection check](/docs/self-check) first: pick your tool, paste the address you entered and find the failing step in one click. Or make sure the key and address work on their own, then look at the tool's settings. If the command below returns a model list, the key is valid and the site is reachable, and the problem is in the tool configuration.
 
 :::tabs
 @tab cURL

@@ -2,8 +2,8 @@
 
 - 日期：2026-10-29
 - 分支：worktree-feat-docs-self-check
-- PR：
-- 关键 commit：
+- PR：#72
+- 关键 commit：4cf2ef88a
 
 ## 背景
 

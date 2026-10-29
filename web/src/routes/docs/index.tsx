@@ -19,7 +19,9 @@ For commercial licensing, please contact support@quantumnous.com
 import { createFileRoute } from '@tanstack/react-router'
 
 import { DocsLandingPage } from '@/features/docs'
+import { docsSearchSchema } from '@/features/docs/lib/docs-links'
 
 export const Route = createFileRoute('/docs/')({
+  validateSearch: docsSearchSchema,
   component: DocsLandingPage,
 })

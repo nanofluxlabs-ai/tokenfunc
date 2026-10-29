@@ -20,10 +20,11 @@ import { Link } from '@tanstack/react-router'
 import { ArrowLeft, ArrowRight } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
-import { getPagerNeighbors } from '../registry'
+import { docsLangSearch } from '../lib/docs-links'
+import { getPagerNeighbors, type DocsLang } from '../registry'
 
-/** Previous/next page navigation following the registry order. */
-export function PrevNextLinks(props: { slug: string }) {
+/** 上一页 / 下一页，顺序跟随侧栏 */
+export function PrevNextLinks(props: { slug: string; lang: DocsLang }) {
   const { t } = useTranslation()
   const { prev, next } = getPagerNeighbors(props.slug)
 
@@ -38,6 +39,7 @@ export function PrevNextLinks(props: { slug: string }) {
         <Link
           to='/docs/$slug'
           params={{ slug: prev.slug }}
+          search={docsLangSearch(props.lang)}
           className='group border-border/60 hover:border-border hover:bg-muted/30 rounded-lg border p-3 transition-colors'
         >
           <span className='text-muted-foreground flex items-center gap-1 text-xs'>
@@ -45,7 +47,7 @@ export function PrevNextLinks(props: { slug: string }) {
             {t('Previous')}
           </span>
           <span className='text-foreground mt-1 block text-sm font-medium'>
-            {t(prev.titleKey)}
+            {prev.title[props.lang]}
           </span>
         </Link>
       ) : (
@@ -55,6 +57,7 @@ export function PrevNextLinks(props: { slug: string }) {
         <Link
           to='/docs/$slug'
           params={{ slug: next.slug }}
+          search={docsLangSearch(props.lang)}
           className='group border-border/60 hover:border-border hover:bg-muted/30 rounded-lg border p-3 text-right transition-colors'
         >
           <span className='text-muted-foreground flex items-center justify-end gap-1 text-xs'>
@@ -62,7 +65,7 @@ export function PrevNextLinks(props: { slug: string }) {
             <ArrowRight className='size-3.5' />
           </span>
           <span className='text-foreground mt-1 block text-sm font-medium'>
-            {t(next.titleKey)}
+            {next.title[props.lang]}
           </span>
         </Link>
       ) : (

@@ -17,18 +17,18 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 For commercial licensing, please contact support@quantumnous.com
 */
 import { Link } from '@tanstack/react-router'
-import { useTranslation } from 'react-i18next'
 
 import { cn } from '@/lib/utils'
 
-import { getDocsNav } from '../registry'
+import { docsLangSearch } from '../lib/docs-links'
+import { getDocsNav, type DocsLang } from '../registry'
 
-/** Grouped docs navigation; marks the active page with aria-current. */
+/** 分组侧栏，标题跟随正文语言；当前页带 aria-current */
 export function DocsNavList(props: {
+  lang: DocsLang
   activeSlug?: string
   onNavigate?: () => void
 }) {
-  const { t } = useTranslation()
   const groups = getDocsNav()
 
   return (
@@ -36,7 +36,7 @@ export function DocsNavList(props: {
       {groups.map((group) => (
         <div key={group.id}>
           <div className='text-muted-foreground/70 mb-1.5 px-3 text-[11px] font-semibold tracking-wider uppercase'>
-            {t(group.titleKey)}
+            {group.title[props.lang]}
           </div>
           <ul className='space-y-0.5'>
             {group.pages.map((page) => {
@@ -46,6 +46,7 @@ export function DocsNavList(props: {
                   <Link
                     to='/docs/$slug'
                     params={{ slug: page.slug }}
+                    search={docsLangSearch(props.lang)}
                     onClick={props.onNavigate}
                     aria-current={isActive ? 'page' : undefined}
                     className={cn(
@@ -55,7 +56,7 @@ export function DocsNavList(props: {
                         : 'text-muted-foreground hover:bg-muted/50 hover:text-foreground'
                     )}
                   >
-                    {t(page.titleKey)}
+                    {page.title[props.lang]}
                   </Link>
                 </li>
               )

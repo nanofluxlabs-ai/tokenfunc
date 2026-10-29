@@ -86,4 +86,13 @@ describe('resolveDocsBaseUrl', () => {
     vi.stubGlobal('window', undefined)
     expect(resolveDocsBaseUrl(null)).toBe(DOCS_FALLBACK_BASE_URL)
   })
+
+  it('treats the factory default server address as not configured', () => {
+    expect(
+      resolveDocsBaseUrl(
+        { server_address: 'http://localhost:3000/' },
+        'https://api.acme.test'
+      )
+    ).toBe('https://api.acme.test')
+  })
 })

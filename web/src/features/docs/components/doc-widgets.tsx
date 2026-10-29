@@ -43,7 +43,9 @@ function CCSwitchWidget(props: { app?: string }) {
     'Opens CC Switch with this site, your key and the model filled in. Install CC Switch first.'
   )
   if (!signedIn) hint = t('Sign in to import with one click.')
-  else if (!key) hint = t('Pick a key under Sample settings above first.')
+  else if (!key) {
+    hint = t('Create an API key first to fill it into the samples.')
+  }
 
   return (
     <div className='docs-block border-primary/30 bg-primary/5 flex flex-col gap-3 rounded-lg border p-4 sm:flex-row sm:items-center sm:justify-between'>

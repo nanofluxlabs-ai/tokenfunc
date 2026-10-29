@@ -23,13 +23,6 @@ import { useTranslation } from 'react-i18next'
 
 import { Combobox } from '@/components/ui/combobox'
 import { Label } from '@/components/ui/label'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
 import { fetchTokenKey, getApiKeys } from '@/features/keys/api'
 import { API_KEY_STATUS } from '@/features/keys/constants'
 import { requireServerSuccess } from '@/lib/server-error-message'
@@ -43,113 +36,65 @@ import {
 import { pickDefaultSampleKey } from '../lib/sample-keys'
 import type { ModelFamily } from '../registry'
 
-const NO_KEY = 'none'
-
-function SampleKeySelect() {
+/**
+ * 示例密钥不让用户选择：自动取名为 default 的启用密钥，没有则取最近创建的一把。
+ * 明文只在这里向服务端取一次，并只留在内存里。
+ */
+function SampleKeyStatus() {
   const { t } = useTranslation()
-  const id = useId()
   const key = useDocsSampleStore((state) => state.key)
-  const keyChosenByUser = useDocsSampleStore((state) => state.keyChosenByUser)
   const setKey = useDocsSampleStore((state) => state.setKey)
-  const autoPicked = useRef(false)
+  const requested = useRef(false)
   const keys = useQuery({
     queryKey: ['docs-sample-keys'],
     queryFn: async () =>
       requireServerSuccess(await getApiKeys({ p: 1, size: 100 })),
     staleTime: 60 * 1000,
   })
-  const reveal = useMutation({
-    mutationFn: async (token: {
-      id: number
-      name: string
-      chosenByUser: boolean
-    }) => {
-      const res = requireServerSuccess(await fetchTokenKey(token.id))
-      const raw = res.data?.key ?? ''
-      return {
-        key: {
-          id: token.id,
-          name: token.name,
-          value: raw.startsWith('sk-') ? raw : `sk-${raw}`,
-        },
-        chosenByUser: token.chosenByUser,
-      }
-    },
-    onSuccess: (result) => setKey(result.key, result.chosenByUser),
-  })
-
-  const usable = useMemo(
+  const picked = useMemo(
     () =>
-      (keys.data?.data?.items ?? []).filter(
-        (item) => item.status === API_KEY_STATUS.ENABLED
+      pickDefaultSampleKey(
+        (keys.data?.data?.items ?? []).filter(
+          (item) => item.status === API_KEY_STATUS.ENABLED
+        )
       ),
     [keys.data]
   )
+  const reveal = useMutation({
+    mutationFn: async (token: { id: number; name: string }) => {
+      const res = requireServerSuccess(await fetchTokenKey(token.id))
+      const raw = res.data?.key ?? ''
+      return { ...token, value: raw.startsWith('sk-') ? raw : `sk-${raw}` }
+    },
+    onSuccess: (value) => setKey(value),
+  })
 
-  // 默认填入用户的 default 密钥（没有则取最新一把），用户手动选过后不再干预
   const { mutate } = reveal
   useEffect(() => {
-    if (autoPicked.current || keyChosenByUser || key || !keys.isSuccess) return
-    autoPicked.current = true
-    const picked = pickDefaultSampleKey(usable)
-    if (picked) {
-      mutate({ id: picked.id, name: picked.name, chosenByUser: false })
-    }
-  }, [keyChosenByUser, key, keys.isSuccess, usable, mutate])
+    if (requested.current || !picked || key?.id === picked.id) return
+    requested.current = true
+    mutate({ id: picked.id, name: picked.name })
+  }, [picked, key, mutate])
 
-  const items = useMemo(
-    () => [
-      { value: NO_KEY, label: t('Placeholder key') },
-      ...usable.map((item) => ({ value: String(item.id), label: item.name })),
-    ],
-    [usable, t]
-  )
+  if (keys.isSuccess && !picked) {
+    return (
+      <p className='text-muted-foreground self-center text-xs leading-5'>
+        <Link
+          to='/keys'
+          className='text-foreground underline underline-offset-4'
+        >
+          {t('Create an API key first to fill it into the samples.')}
+        </Link>
+      </p>
+    )
+  }
 
   return (
     <div className='min-w-0 space-y-1.5'>
-      <Label htmlFor={id} className='text-muted-foreground text-xs'>
-        {t('Key in samples')}
-      </Label>
-      <Select
-        items={items}
-        value={key ? String(key.id) : NO_KEY}
-        disabled={reveal.isPending}
-        onValueChange={(value) => {
-          if (value === null || value === NO_KEY) {
-            setKey(null, true)
-            return
-          }
-          const item = items.find((option) => option.value === value)
-          if (item) {
-            reveal.mutate({
-              id: Number(value),
-              name: item.label,
-              chosenByUser: true,
-            })
-          }
-        }}
-      >
-        <SelectTrigger id={id} className='h-8 w-full text-xs'>
-          <SelectValue />
-        </SelectTrigger>
-        <SelectContent alignItemWithTrigger={false}>
-          {items.map((item) => (
-            <SelectItem key={item.value} value={item.value}>
-              {item.label}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
-      {keys.isSuccess && usable.length === 0 && (
-        <p className='text-muted-foreground text-xs leading-5'>
-          <Link
-            to='/keys'
-            className='text-foreground underline underline-offset-4'
-          >
-            {t('Create an API key first to fill it into the samples.')}
-          </Link>
-        </p>
-      )}
+      <div className='text-muted-foreground text-xs'>{t('Key in samples')}</div>
+      <div className='bg-background flex h-8 items-center truncate rounded-md border px-2.5 font-mono text-xs'>
+        {key?.name ?? picked?.name ?? '…'}
+      </div>
     </div>
   )
 }
@@ -184,8 +129,7 @@ function SampleModelSelect(props: { family: ModelFamily }) {
 }
 
 /**
- * 文档顶部的「示例参数」：选中的密钥与模型实时替换全站示例代码。
- * 密钥明文只在用户主动选择后向服务端取一次，并只留在内存里。
+ * 文档顶部的「示例参数」：自动选定的密钥与用户可改的模型实时替换示例代码。
  */
 export function DocsSampleBar(props: { family?: ModelFamily }) {
   const { t } = useTranslation()
@@ -202,7 +146,7 @@ export function DocsSampleBar(props: { family?: ModelFamily }) {
       </div>
       <div className='grid gap-3 sm:grid-cols-2'>
         {signedIn ? (
-          <SampleKeySelect />
+          <SampleKeyStatus />
         ) : (
           <p className='text-muted-foreground self-center text-xs leading-5'>
             <Link

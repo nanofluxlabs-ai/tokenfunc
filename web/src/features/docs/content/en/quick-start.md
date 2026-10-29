@@ -18,7 +18,7 @@ Sign in, open [API Keys](/keys) and click "Create API Key". Create one key per t
 ![The API Keys page: the Create API Key button and the copy dialog shown after creation](todo:quick-start/create-key.png)
 
 :::tip
-Once signed in, the samples are filled with your key named `default` (or your most recently created key), so they run as copied. Pick another key under "Sample settings" at the top of the page if you like.
+Once signed in, the samples are filled with your key named `default` (or your most recently created key), so they run as copied.
 :::
 
 ### Send your first request

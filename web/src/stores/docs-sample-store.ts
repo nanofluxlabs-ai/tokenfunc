@@ -23,21 +23,18 @@ import type { ModelFamily } from '@/features/docs/registry'
 export type DocsSampleKey = { id: number; name: string; value: string }
 
 interface DocsSampleState {
-  /** 用户在文档里选中的密钥；明文只放内存，刷新即丢，绝不落盘 */
+  /** 文档示例使用的密钥（自动选定）；明文只放内存，刷新即丢，绝不落盘 */
   key: DocsSampleKey | null
-  /** 用户是否手动选过密钥；手动选过（含选占位）后不再自动选默认密钥 */
-  keyChosenByUser: boolean
   /** 用户在文档里手动改过的示例模型，按系列记忆，翻页后保留 */
   models: Partial<Record<ModelFamily, string>>
-  setKey: (key: DocsSampleKey | null, chosenByUser: boolean) => void
+  setKey: (key: DocsSampleKey | null) => void
   setModel: (family: ModelFamily, model: string) => void
 }
 
 export const useDocsSampleStore = create<DocsSampleState>()((set) => ({
   key: null,
-  keyChosenByUser: false,
   models: {},
-  setKey: (key, chosenByUser) => set({ key, keyChosenByUser: chosenByUser }),
+  setKey: (key) => set({ key }),
   setModel: (family, model) =>
     set((state) => ({ models: { ...state.models, [family]: model } })),
 }))

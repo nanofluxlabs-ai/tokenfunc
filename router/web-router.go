@@ -2,6 +2,7 @@ package router
 
 import (
 	"embed"
+	"io/fs"
 	"net/http"
 	"strings"
 
@@ -21,6 +22,12 @@ type WebAssets struct {
 func SetWebRouter(router *gin.Engine, assets WebAssets, pluginDispatcher gin.HandlerFunc) {
 	frontendFS := common.EmbedFolder(assets.BuildFS, "web/dist")
 	compress := gzip.Gzip(gzip.DefaultCompression)
+	// tokenfunc 二开：文档中心预渲染与 sitemap，见 web_docs_seo.go
+	var docs *docsSEO
+	if dist, err := fs.Sub(assets.BuildFS, "web/dist"); err == nil {
+		docs = newDocsSEO(dist)
+	}
+	registerDocsSEORoutes(router, docs)
 
 	router.NoRoute(
 		pluginDispatcher,
@@ -41,7 +48,11 @@ func SetWebRouter(router *gin.Engine, assets WebAssets, pluginDispatcher gin.Han
 				return
 			}
 			c.Header("Cache-Control", "no-cache")
-			c.Data(http.StatusOK, "text/html; charset=utf-8", BrandIndexPage(assets.IndexPage))
+			page := BrandIndexPage(assets.IndexPage)
+			if docsPage, ok := docs.render(c, page); ok {
+				page = docsPage
+			}
+			c.Data(http.StatusOK, "text/html; charset=utf-8", page)
 		},
 	)
 }

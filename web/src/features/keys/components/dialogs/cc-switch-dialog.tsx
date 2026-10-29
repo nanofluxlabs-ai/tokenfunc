@@ -53,7 +53,8 @@ const APP_CONFIGS = {
   },
 } as const
 
-type AppType = keyof typeof APP_CONFIGS
+export type CCSwitchApp = keyof typeof APP_CONFIGS
+type AppType = CCSwitchApp
 
 function getServerAddress(): string {
   try {
@@ -94,6 +95,8 @@ interface Props {
   open: boolean
   onOpenChange: (open: boolean) => void
   tokenKey: string
+  /** 打开时默认选中的应用，文档页按所在教程预选 */
+  defaultApp?: AppType
 }
 
 export function CCSwitchDialog(props: Props) {
@@ -119,11 +122,11 @@ export function CCSwitchDialog(props: Props) {
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setModels({})
 
-      setApp('claude')
+      setApp(props.defaultApp ?? 'claude')
 
-      setName(APP_CONFIGS.claude.defaultName)
+      setName(APP_CONFIGS[props.defaultApp ?? 'claude'].defaultName)
     }
-  }, [props.open])
+  }, [props.open, props.defaultApp])
 
   const currentConfig = APP_CONFIGS[app]
 

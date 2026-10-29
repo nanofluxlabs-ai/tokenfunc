@@ -19,12 +19,18 @@ For commercial licensing, please contact support@quantumnous.com
 import { createFileRoute, redirect } from '@tanstack/react-router'
 
 import { DocsRoutePage } from '@/features/docs'
+import { docsSearchSchema } from '@/features/docs/lib/docs-links'
 import { DOCS_DEFAULT_SLUG, DOCS_SLUGS } from '@/features/docs/registry'
 
 export const Route = createFileRoute('/docs/$slug')({
-  beforeLoad: ({ params }) => {
+  validateSearch: docsSearchSchema,
+  beforeLoad: ({ params, search }) => {
     if (!DOCS_SLUGS.includes(params.slug)) {
-      throw redirect({ to: '/docs/$slug', params: { slug: DOCS_DEFAULT_SLUG } })
+      throw redirect({
+        to: '/docs/$slug',
+        params: { slug: DOCS_DEFAULT_SLUG },
+        search,
+      })
     }
   },
   component: DocsRoutePage,

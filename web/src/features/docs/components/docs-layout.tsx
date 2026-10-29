@@ -17,7 +17,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 For commercial licensing, please contact support@quantumnous.com
 */
 import { PanelLeft } from 'lucide-react'
-import { Suspense, useState } from 'react'
+import { useState, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { PublicLayout } from '@/components/layout'
@@ -30,42 +30,58 @@ import {
   SheetTrigger,
 } from '@/components/ui/sheet'
 
-import { getDocsEntry } from '../registry'
+import type { DocHeading } from '../lib/doc-markdown'
+import { getDocsEntry, type DocsLang } from '../registry'
 import { DocsNavList } from './docs-nav-list'
 import { PrevNextLinks } from './prev-next-links'
 
-function DocsSkeleton() {
+function DocsToc(props: { headings: DocHeading[] }) {
+  const { t } = useTranslation()
+  if (props.headings.length < 2) return null
   return (
-    <div className='space-y-3' aria-hidden>
-      <div className='bg-muted/40 h-4 w-2/3 animate-pulse rounded' />
-      <div className='bg-muted/40 h-4 w-full animate-pulse rounded' />
-      <div className='bg-muted/40 h-4 w-5/6 animate-pulse rounded' />
-      <div className='bg-muted/30 h-24 w-full animate-pulse rounded-lg' />
-      <div className='bg-muted/40 h-4 w-1/2 animate-pulse rounded' />
-      <div className='bg-muted/40 h-4 w-3/4 animate-pulse rounded' />
-    </div>
+    <nav aria-label={t('On this page')} className='text-sm'>
+      <div className='text-muted-foreground/70 mb-2 text-[11px] font-semibold tracking-wider uppercase'>
+        {t('On this page')}
+      </div>
+      <ul className='space-y-1.5'>
+        {props.headings.map((heading) => (
+          <li key={heading.id} className={heading.level === 3 ? 'pl-3' : ''}>
+            <a
+              href={`#${heading.id}`}
+              className='text-muted-foreground hover:text-foreground block leading-5 transition-colors'
+            >
+              {heading.text}
+            </a>
+          </li>
+        ))}
+      </ul>
+    </nav>
   )
 }
 
-/**
- * Docs chrome: public header + sticky grouped sidebar (desktop) /
- * sheet navigation (mobile) + article with lazy page content.
- */
-export function DocsLayout(props: { slug: string; children: React.ReactNode }) {
+export function DocsLayout(props: {
+  slug: string
+  lang: DocsLang
+  headings: DocHeading[]
+  /** 标题下方的「示例参数」等工具条 */
+  toolbar?: ReactNode
+  children: ReactNode
+}) {
   const { t } = useTranslation()
   const entry = getDocsEntry(props.slug)
   const [navOpen, setNavOpen] = useState(false)
+  const title = entry.title[props.lang]
 
   return (
     <PublicLayout showMainContainer={false}>
       <div className='container px-4 pt-24 pb-16 md:px-6'>
-        <div className='grid gap-10 lg:grid-cols-[250px_minmax(0,1fr)]'>
+        <div className='grid gap-10 lg:grid-cols-[230px_minmax(0,1fr)] xl:grid-cols-[230px_minmax(0,1fr)_200px]'>
           <aside className='hidden lg:block'>
             <nav
               aria-label={t('Documentation pages')}
               className='sticky top-24 max-h-[calc(100svh-8rem)] overflow-y-auto pr-2 pb-8'
             >
-              <DocsNavList activeSlug={props.slug} />
+              <DocsNavList lang={props.lang} activeSlug={props.slug} />
             </nav>
           </aside>
 
@@ -84,13 +100,14 @@ export function DocsLayout(props: { slug: string; children: React.ReactNode }) {
                   }
                 >
                   <PanelLeft className='size-4 shrink-0' />
-                  <span className='truncate'>{t(entry.titleKey)}</span>
+                  <span className='truncate'>{title}</span>
                 </SheetTrigger>
                 <SheetContent side='left' className='overflow-y-auto pt-12'>
                   <SheetHeader>
                     <SheetTitle>{t('Docs pages')}</SheetTitle>
                   </SheetHeader>
                   <DocsNavList
+                    lang={props.lang}
                     activeSlug={props.slug}
                     onNavigate={() => setNavOpen(false)}
                   />
@@ -100,21 +117,25 @@ export function DocsLayout(props: { slug: string; children: React.ReactNode }) {
 
             <article className='w-full max-w-3xl'>
               <h1 className='text-foreground text-3xl font-bold tracking-tight'>
-                {t(entry.titleKey)}
+                {title}
               </h1>
               <p className='text-muted-foreground mt-2 text-base'>
-                {t(entry.descriptionKey)}
+                {entry.description[props.lang]}
               </p>
 
-              <div className='mt-8'>
-                <Suspense fallback={<DocsSkeleton />}>
-                  {props.children}
-                </Suspense>
-              </div>
+              {props.toolbar && <div className='mt-6'>{props.toolbar}</div>}
 
-              <PrevNextLinks slug={props.slug} />
+              <div className='mt-8'>{props.children}</div>
+
+              <PrevNextLinks slug={props.slug} lang={props.lang} />
             </article>
           </div>
+
+          <aside className='hidden xl:block'>
+            <div className='sticky top-24 max-h-[calc(100svh-8rem)] overflow-y-auto pb-8'>
+              <DocsToc headings={props.headings} />
+            </div>
+          </aside>
         </div>
       </div>
     </PublicLayout>

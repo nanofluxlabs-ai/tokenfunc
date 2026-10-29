@@ -20,8 +20,8 @@ import { useMemo } from 'react'
 
 import { useStatus } from '@/hooks/use-status'
 
-/** Environment variable name used in code samples for the API key. */
-export const DOCS_API_KEY_ENV = 'TOKENFUNC_API_KEY'
+/** 后端 ServerAddress 的出厂默认值，等同于未配置 */
+const DEFAULT_SERVER_ADDRESS = 'http://localhost:3000'
 
 /** Shown when neither status nor window.location provides an origin (SSR/tests). */
 export const DOCS_FALLBACK_BASE_URL = 'https://api.example.com'
@@ -45,7 +45,12 @@ export function resolveDocsBaseUrl(status: unknown, origin?: string): string {
     dataRecord?.serverAddress,
   ]
   for (const candidate of candidates) {
-    if (typeof candidate === 'string' && candidate.length > 0) {
+    // 后台没配置服务地址时接口返回出厂默认值，这时按当前访问地址展示（与 Go 侧 sitemap 一致）
+    if (
+      typeof candidate === 'string' &&
+      candidate.length > 0 &&
+      stripTrailingSlash(candidate) !== DEFAULT_SERVER_ADDRESS
+    ) {
       return stripTrailingSlash(candidate)
     }
   }

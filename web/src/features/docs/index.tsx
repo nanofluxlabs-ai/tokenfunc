@@ -16,55 +16,113 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import { useParams } from '@tanstack/react-router'
-import { lazy, type ComponentType } from 'react'
+import { useQuery } from '@tanstack/react-query'
+import { useNavigate, useParams, useSearch } from '@tanstack/react-router'
+import { useEffect, useMemo } from 'react'
+import { useTranslation } from 'react-i18next'
 
+import { ErrorState } from '@/components/error-state'
+
+import { DocContent } from './components/doc-content'
 import { DocsLayout } from './components/docs-layout'
-import { DOCS_DEFAULT_SLUG, resolveDocSlug } from './registry'
+import { DocsSampleBar } from './components/docs-sample-bar'
+import { useDocsVariables } from './hooks/use-docs-variables'
+import { parseDoc } from './lib/doc-markdown'
+import { loadDocSource } from './lib/doc-source'
+import { docsLangSearch } from './lib/docs-links'
+import {
+  DOCS_DEFAULT_SLUG,
+  docsLangFromUiLanguage,
+  getDocsEntry,
+  resolveDocSlug,
+  type DocsLang,
+} from './registry'
 
-/**
- * Lazy content page per slug. The registry (used by the sidebar and tests)
- * stays free of these imports so each content page lands in its own chunk.
- */
-const DOC_PAGE_COMPONENTS: Record<string, ComponentType> = {
-  'quick-start': lazy(() => import('./content/quick-start')),
-  'api-authentication': lazy(() => import('./content/api-authentication')),
-  'api-models': lazy(() => import('./content/api-models')),
-  'api-chat-completions': lazy(() => import('./content/api-chat-completions')),
-  'api-messages': lazy(() => import('./content/api-messages')),
-  'api-responses': lazy(() => import('./content/api-responses')),
-  'api-images': lazy(() => import('./content/api-images')),
-  'api-errors': lazy(() => import('./content/api-errors')),
-  'tools-claude-code': lazy(() => import('./content/tools-claude-code')),
-  'tools-codex': lazy(() => import('./content/tools-codex')),
-  'tools-openclaw': lazy(() => import('./content/tools-openclaw')),
-  'tools-pi': lazy(() => import('./content/tools-pi')),
-  'tools-workbuddy': lazy(() => import('./content/tools-workbuddy')),
-  'tools-hermes': lazy(() => import('./content/tools-hermes')),
-  'tools-openai-client': lazy(() => import('./content/tools-openai-client')),
-  'enterprise-integration': lazy(
-    () => import('./content/enterprise-integration')
-  ),
+function DocsSkeleton() {
+  return (
+    <div className='space-y-3' aria-hidden>
+      <div className='bg-muted/40 h-4 w-2/3 animate-pulse rounded' />
+      <div className='bg-muted/40 h-4 w-full animate-pulse rounded' />
+      <div className='bg-muted/40 h-4 w-5/6 animate-pulse rounded' />
+      <div className='bg-muted/30 h-24 w-full animate-pulse rounded-lg' />
+      <div className='bg-muted/40 h-4 w-1/2 animate-pulse rounded' />
+    </div>
+  )
 }
 
-function DocsPageView(props: { slug: string }) {
-  const Page =
-    DOC_PAGE_COMPONENTS[props.slug] ?? DOC_PAGE_COMPONENTS[DOCS_DEFAULT_SLUG]
+function DocsPageView(props: { slug: string; lang: DocsLang }) {
+  const entry = getDocsEntry(props.slug)
+  const vars = useDocsVariables(entry.model)
+  const source = useQuery({
+    queryKey: ['docs-source', props.lang, props.slug],
+    queryFn: () => loadDocSource(props.lang, props.slug),
+    staleTime: Infinity,
+  })
+  const parsed = useMemo(
+    () => (source.data ? parseDoc(source.data, props.lang) : null),
+    [source.data, props.lang]
+  )
+
+  const title = entry.title[props.lang]
+  const siteName = vars.siteName
+  useEffect(() => {
+    const previous = document.title
+    document.title = `${title} - ${siteName}`
+    return () => {
+      document.title = previous
+    }
+  }, [title, siteName])
+
+  let body = <DocsSkeleton />
+  if (parsed) body = <DocContent blocks={parsed.blocks} vars={vars} />
+  else if (source.isError) {
+    body = <ErrorState onRetry={() => source.refetch()} />
+  }
+
   return (
-    <DocsLayout slug={props.slug}>
-      <Page />
+    <DocsLayout
+      slug={entry.slug}
+      lang={props.lang}
+      headings={parsed?.headings ?? []}
+      toolbar={<DocsSampleBar family={entry.model} />}
+    >
+      {body}
     </DocsLayout>
   )
 }
 
-/** /docs — renders the default docs page (quick start). */
-export function DocsLandingPage() {
-  return <DocsPageView slug={DOCS_DEFAULT_SLUG} />
+/**
+ * 正文语言跟随站点导航里的界面语言；地址上的 ?lang 随之同步，
+ * 让分享出去的链接和搜索引擎看到的地址与正文语言一致。
+ */
+function useDocsLang(urlLang: DocsLang | undefined): DocsLang {
+  const { i18n } = useTranslation()
+  const navigate = useNavigate()
+  const lang = docsLangFromUiLanguage(i18n.resolvedLanguage || i18n.language)
+  const expected = docsLangSearch(lang).lang
+  useEffect(() => {
+    if (urlLang === expected) return
+    void navigate({
+      to: '.',
+      search: (previous: Record<string, unknown>) => ({
+        ...previous,
+        lang: expected,
+      }),
+      replace: true,
+    })
+  }, [urlLang, expected, navigate])
+  return lang
 }
 
-/** /docs/$slug — renders the registry page for the resolved slug. */
+export function DocsLandingPage() {
+  const search = useSearch({ from: '/docs/' })
+  const lang = useDocsLang(search.lang)
+  return <DocsPageView slug={DOCS_DEFAULT_SLUG} lang={lang} />
+}
+
 export function DocsRoutePage() {
   const params = useParams({ from: '/docs/$slug' })
-  const slug = resolveDocSlug(params.slug)
-  return <DocsPageView slug={slug} />
+  const search = useSearch({ from: '/docs/$slug' })
+  const lang = useDocsLang(search.lang)
+  return <DocsPageView slug={resolveDocSlug(params.slug)} lang={lang} />
 }

@@ -56,6 +56,8 @@ export default defineConfig(({ envMode }) => {
       entry: {
         index: './src/main.tsx',
       },
+      // tokenfunc 二开：文档正文以 Markdown 文件按需 ?raw 导入
+      assetsInclude: /\.md$/,
     },
     resolve: {
       alias: {

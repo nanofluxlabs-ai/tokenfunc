@@ -16,71 +16,53 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-/** @vitest-environment jsdom */
-import { cleanup, render, screen } from '@testing-library/react'
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { cleanup, fireEvent, render, screen } from '@testing-library/react'
+import type { ReactNode } from 'react'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+
+import { useDocsNavStore } from '@/stores/docs-nav-store'
 
 import { DocsNavList } from '../components/docs-nav-list'
-import { DOCS_SLUGS } from '../registry'
 
 vi.mock('@tanstack/react-router', () => ({
-  Link: (props: {
-    to: string
-    params?: Record<string, string>
-    children: React.ReactNode
-    'aria-current'?: 'page'
-    className?: string
-  }) => (
-    <a
-      href={props.to.replace('$slug', props.params?.slug ?? '')}
-      aria-current={props['aria-current']}
-      className={props.className}
-    >
+  Link: (props: { children: ReactNode; className?: string }) => (
+    <a href='#' className={props.className}>
       {props.children}
     </a>
   ),
 }))
 
+beforeEach(() => {
+  useDocsNavStore.setState({ collapsed: [] })
+})
+
 afterEach(cleanup)
 
 describe('DocsNavList', () => {
-  it('renders a link for every registered docs page with the right href', () => {
-    render(<DocsNavList activeSlug='api-models' />)
+  it('collapses and expands a group from its header', () => {
+    render(<DocsNavList lang='zh' activeSlug='quick-start' />)
+    const toolsHeader = screen.getByRole('button', { name: '三方工具接入' })
+    expect(toolsHeader).toHaveAttribute('aria-expanded', 'true')
+    expect(screen.getByText('Cursor')).toBeInTheDocument()
 
-    const hrefs = new Set(
-      screen.getAllByRole('link').map((link) => link.getAttribute('href'))
-    )
-    for (const slug of DOCS_SLUGS) {
-      expect(hrefs.has(`/docs/${slug}`), slug).toBe(true)
-    }
+    fireEvent.click(toolsHeader)
+
+    expect(toolsHeader).toHaveAttribute('aria-expanded', 'false')
+    expect(useDocsNavStore.getState().collapsed).toEqual(['tools'])
+
+    fireEvent.click(toolsHeader)
+    expect(toolsHeader).toHaveAttribute('aria-expanded', 'true')
   })
 
-  it('renders the four group headings', () => {
-    render(<DocsNavList />)
+  it('re-opens the group of the current page when it was collapsed', () => {
+    useDocsNavStore.setState({ collapsed: ['tools', 'api'] })
+    render(<DocsNavList lang='en' activeSlug='tools-cursor' />)
 
-    // 'Quick start' is both the group heading and its single page title.
-    expect(screen.getAllByText('Quick start')).toHaveLength(2)
-    expect(screen.getByText('Model access API')).toBeInTheDocument()
-    expect(screen.getByText('Third-party tool integration')).toBeInTheDocument()
-    expect(screen.getByText('Enterprise integration')).toBeInTheDocument()
-  })
-
-  it('marks exactly the active page with aria-current', () => {
-    render(<DocsNavList activeSlug='api-chat-completions' />)
-
-    const current = screen
-      .getAllByRole('link')
-      .filter((link) => link.getAttribute('aria-current') === 'page')
-    expect(current).toHaveLength(1)
-    expect(current[0]).toHaveAttribute('href', '/docs/api-chat-completions')
-  })
-
-  it('marks nothing active without an activeSlug', () => {
-    render(<DocsNavList />)
-
-    const current = screen
-      .getAllByRole('link')
-      .filter((link) => link.hasAttribute('aria-current'))
-    expect(current).toHaveLength(0)
+    expect(
+      screen.getByRole('button', { name: 'Tool integration' })
+    ).toHaveAttribute('aria-expanded', 'true')
+    expect(
+      screen.getByRole('button', { name: 'API reference' })
+    ).toHaveAttribute('aria-expanded', 'false')
   })
 })

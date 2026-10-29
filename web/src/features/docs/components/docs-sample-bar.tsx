@@ -16,67 +16,21 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import { useMutation, useQuery } from '@tanstack/react-query'
 import { Link } from '@tanstack/react-router'
-import { useEffect, useId, useMemo, useRef } from 'react'
+import { useId, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { Combobox } from '@/components/ui/combobox'
 import { Label } from '@/components/ui/label'
-import { fetchTokenKey, getApiKeys } from '@/features/keys/api'
-import { API_KEY_STATUS } from '@/features/keys/constants'
-import { requireServerSuccess } from '@/lib/server-error-message'
 import { useAuthStore } from '@/stores/auth-store'
 import { useDocsSampleStore } from '@/stores/docs-sample-store'
 
+import { useDocsSampleKey } from '../hooks/use-docs-sample-key'
 import {
   useDocsFamilyModels,
   useDocsModelOptions,
 } from '../hooks/use-docs-variables'
-import { pickDefaultSampleKey } from '../lib/sample-keys'
 import type { ModelFamily } from '../registry'
-
-/**
- * 示例里的密钥不提供选择：自动取名为 default 的启用密钥，没有则取最近创建的一把。
- * 明文只在这里向服务端取一次，并只留在内存里。返回是否确认用户没有可用密钥。
- */
-function useDocsSampleKey(enabled: boolean): { missing: boolean } {
-  const key = useDocsSampleStore((state) => state.key)
-  const setKey = useDocsSampleStore((state) => state.setKey)
-  const requested = useRef(false)
-  const keys = useQuery({
-    queryKey: ['docs-sample-keys'],
-    queryFn: async () =>
-      requireServerSuccess(await getApiKeys({ p: 1, size: 100 })),
-    enabled,
-    staleTime: 60 * 1000,
-  })
-  const picked = useMemo(
-    () =>
-      pickDefaultSampleKey(
-        (keys.data?.data?.items ?? []).filter(
-          (item) => item.status === API_KEY_STATUS.ENABLED
-        )
-      ),
-    [keys.data]
-  )
-  const { mutate } = useMutation({
-    mutationFn: async (token: { id: number; name: string }) => {
-      const res = requireServerSuccess(await fetchTokenKey(token.id))
-      const raw = res.data?.key ?? ''
-      return { ...token, value: raw.startsWith('sk-') ? raw : `sk-${raw}` }
-    },
-    onSuccess: (value) => setKey(value),
-  })
-
-  useEffect(() => {
-    if (requested.current || !picked || key?.id === picked.id) return
-    requested.current = true
-    mutate({ id: picked.id, name: picked.name })
-  }, [picked, key, mutate])
-
-  return { missing: enabled && keys.isSuccess && !picked }
-}
 
 function SampleModelSelect(props: { family: ModelFamily }) {
   const { t } = useTranslation()

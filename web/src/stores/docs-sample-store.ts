@@ -25,16 +25,21 @@ export type DocsSampleKey = { id: number; name: string; value: string }
 interface DocsSampleState {
   /** 文档示例使用的密钥（自动选定）；明文只放内存，刷新即丢，绝不落盘 */
   key: DocsSampleKey | null
+  /** 已发起取明文请求的密钥 id，多个组件同时使用时只取一次 */
+  requestedKeyId: number | null
   /** 用户在文档里手动改过的示例模型，按系列记忆，翻页后保留 */
   models: Partial<Record<ModelFamily, string>>
   setKey: (key: DocsSampleKey | null) => void
+  markKeyRequested: (id: number) => void
   setModel: (family: ModelFamily, model: string) => void
 }
 
 export const useDocsSampleStore = create<DocsSampleState>()((set) => ({
   key: null,
+  requestedKeyId: null,
   models: {},
   setKey: (key) => set({ key }),
+  markKeyRequested: (id) => set({ requestedKeyId: id }),
   setModel: (family, model) =>
     set((state) => ({ models: { ...state.models, [family]: model } })),
 }))

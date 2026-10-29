@@ -36,4 +36,4 @@ Every guide needs:
 2. A key: create one on [API Keys](/keys), ideally one per tool.
 3. A model name: copy it from the [Model Square](/pricing); it must match exactly.
 
-Once signed in, every guide is filled in with your `default` key (or your most recently created key) and a suitable model, ready to copy. You can change the model under "Sample settings" at the top of the page.
+Once signed in, every guide is filled in with your `default` key (or your most recently created key) and a suitable model, ready to copy. You can change the model under "Model in samples" at the top of the page.

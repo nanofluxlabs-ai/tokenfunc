@@ -1454,7 +1454,6 @@
     "{{greeting}}, {{name}}": "{{greeting}}, {{name}}",
     "{{value}} requests in 7 days": "{{value}} requêtes sur 7 jours",
     "{{value}} requests today": "{{value}} requêtes aujourd'hui",
-    "Key in samples": "Clé des exemples",
     "Model in samples": "Modèle des exemples",
     "On this page": "Sur cette page",
     "One-click import with CC Switch": "Import en un clic avec CC Switch",

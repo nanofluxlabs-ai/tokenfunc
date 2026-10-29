@@ -1454,7 +1454,6 @@
     "{{greeting}}, {{name}}": "{{greeting}}，{{name}}",
     "{{value}} requests in 7 days": "近 7 天共 {{value}} 次请求",
     "{{value}} requests today": "今日已跑 {{value}} 次请求",
-    "Key in samples": "示例密钥",
     "Model in samples": "示例模型",
     "On this page": "本页目录",
     "One-click import with CC Switch": "用 CC Switch 一键导入",

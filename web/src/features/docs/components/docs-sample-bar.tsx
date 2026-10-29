@@ -37,11 +37,10 @@ import { pickDefaultSampleKey } from '../lib/sample-keys'
 import type { ModelFamily } from '../registry'
 
 /**
- * 示例密钥不让用户选择：自动取名为 default 的启用密钥，没有则取最近创建的一把。
- * 明文只在这里向服务端取一次，并只留在内存里。
+ * 示例里的密钥不提供选择：自动取名为 default 的启用密钥，没有则取最近创建的一把。
+ * 明文只在这里向服务端取一次，并只留在内存里。返回是否确认用户没有可用密钥。
  */
-function SampleKeyStatus() {
-  const { t } = useTranslation()
+function useDocsSampleKey(enabled: boolean): { missing: boolean } {
   const key = useDocsSampleStore((state) => state.key)
   const setKey = useDocsSampleStore((state) => state.setKey)
   const requested = useRef(false)
@@ -49,6 +48,7 @@ function SampleKeyStatus() {
     queryKey: ['docs-sample-keys'],
     queryFn: async () =>
       requireServerSuccess(await getApiKeys({ p: 1, size: 100 })),
+    enabled,
     staleTime: 60 * 1000,
   })
   const picked = useMemo(
@@ -60,7 +60,7 @@ function SampleKeyStatus() {
       ),
     [keys.data]
   )
-  const reveal = useMutation({
+  const { mutate } = useMutation({
     mutationFn: async (token: { id: number; name: string }) => {
       const res = requireServerSuccess(await fetchTokenKey(token.id))
       const raw = res.data?.key ?? ''
@@ -69,34 +69,13 @@ function SampleKeyStatus() {
     onSuccess: (value) => setKey(value),
   })
 
-  const { mutate } = reveal
   useEffect(() => {
     if (requested.current || !picked || key?.id === picked.id) return
     requested.current = true
     mutate({ id: picked.id, name: picked.name })
   }, [picked, key, mutate])
 
-  if (keys.isSuccess && !picked) {
-    return (
-      <p className='text-muted-foreground self-center text-xs leading-5'>
-        <Link
-          to='/keys'
-          className='text-foreground underline underline-offset-4'
-        >
-          {t('Create an API key first to fill it into the samples.')}
-        </Link>
-      </p>
-    )
-  }
-
-  return (
-    <div className='min-w-0 space-y-1.5'>
-      <div className='text-muted-foreground text-xs'>{t('Key in samples')}</div>
-      <div className='bg-background flex h-8 items-center truncate rounded-md border px-2.5 font-mono text-xs'>
-        {key?.name ?? picked?.name ?? '…'}
-      </div>
-    </div>
-  )
+  return { missing: enabled && keys.isSuccess && !picked }
 }
 
 function SampleModelSelect(props: { family: ModelFamily }) {
@@ -129,42 +108,50 @@ function SampleModelSelect(props: { family: ModelFamily }) {
 }
 
 /**
- * 文档顶部的「示例参数」：自动选定的密钥与用户可改的模型实时替换示例代码。
+ * 文档顶部的「示例参数」：密钥自动填入不可选，模型可改，二者实时替换示例代码。
  */
 export function DocsSampleBar(props: { family?: ModelFamily }) {
   const { t } = useTranslation()
   const signedIn = useAuthStore((state) => Boolean(state.auth.user))
   const key = useDocsSampleStore((state) => state.key)
+  const { missing } = useDocsSampleKey(signedIn)
+
+  let hint = null
+  if (!signedIn) {
+    hint = (
+      <Link
+        to='/sign-in'
+        className='text-foreground underline underline-offset-4'
+      >
+        {t('Sign in to fill the samples with your own key.')}
+      </Link>
+    )
+  } else if (missing) {
+    hint = (
+      <Link to='/keys' className='text-foreground underline underline-offset-4'>
+        {t('Create an API key first to fill it into the samples.')}
+      </Link>
+    )
+  } else if (key) {
+    hint = t(
+      'The samples now contain your real key. Do not share screenshots of this page.'
+    )
+  }
+
+  if (!props.family && !hint) return null
 
   return (
     <section
       aria-label={t('Sample settings')}
-      className='border-border/60 bg-muted/20 rounded-lg border p-3'
+      className='border-border/60 bg-muted/20 space-y-2 rounded-lg border p-3'
     >
-      <div className='text-foreground mb-2 text-xs font-semibold'>
-        {t('Sample settings')}
-      </div>
-      <div className='grid gap-3 sm:grid-cols-2'>
-        {signedIn ? (
-          <SampleKeyStatus />
-        ) : (
-          <p className='text-muted-foreground self-center text-xs leading-5'>
-            <Link
-              to='/sign-in'
-              className='text-foreground underline underline-offset-4'
-            >
-              {t('Sign in to fill the samples with your own key.')}
-            </Link>
-          </p>
-        )}
-        {props.family && <SampleModelSelect family={props.family} />}
-      </div>
-      {key && (
-        <p className='text-muted-foreground mt-2 text-xs leading-5'>
-          {t(
-            'The samples now contain your real key. Do not share screenshots of this page.'
-          )}
-        </p>
+      {props.family && (
+        <div className='sm:max-w-xs'>
+          <SampleModelSelect family={props.family} />
+        </div>
+      )}
+      {hint && (
+        <p className='text-muted-foreground text-xs leading-5'>{hint}</p>
       )}
     </section>
   )

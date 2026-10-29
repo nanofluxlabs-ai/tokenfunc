@@ -1454,7 +1454,6 @@
     "{{greeting}}, {{name}}": "{{greeting}}, {{name}}",
     "{{value}} requests in 7 days": "{{value}} yêu cầu trong 7 ngày",
     "{{value}} requests today": "Hôm nay {{value}} yêu cầu",
-    "Key in samples": "Khóa trong ví dụ",
     "Model in samples": "Mô hình trong ví dụ",
     "On this page": "Trên trang này",
     "One-click import with CC Switch": "Nhập bằng một cú nhấp với CC Switch",

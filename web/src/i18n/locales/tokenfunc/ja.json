@@ -1454,7 +1454,6 @@
     "{{greeting}}, {{name}}": "{{greeting}}、{{name}} さん",
     "{{value}} requests in 7 days": "7 日間で {{value}} 件",
     "{{value}} requests today": "本日 {{value}} 件のリクエスト",
-    "Key in samples": "サンプルのキー",
     "Model in samples": "サンプルのモデル",
     "On this page": "このページの内容",
     "One-click import with CC Switch": "CC Switch でワンクリックインポート",

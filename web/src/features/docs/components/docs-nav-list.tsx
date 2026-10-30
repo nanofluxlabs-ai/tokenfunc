@@ -31,6 +31,7 @@ import { useDocsNavStore } from '@/stores/docs-nav-store'
 
 import { docsLangSearch } from '../lib/docs-links'
 import { getDocsEntry, getDocsNav, type DocsLang } from '../registry'
+import { MethodBadge } from './method-badge'
 
 /** 分组侧栏，分组可折叠；当前页带 aria-current，所在分组被折叠时自动展开 */
 export function DocsNavList(props: {
@@ -85,6 +86,9 @@ export function DocsNavList(props: {
                           : 'text-muted-foreground hover:bg-muted/50 hover:text-foreground'
                       )}
                     >
+                      {page.method && (
+                        <MethodBadge method={page.method} size='sm' />
+                      )}
                       {groupHasIcons && (
                         <span
                           data-slot='docs-nav-icon'

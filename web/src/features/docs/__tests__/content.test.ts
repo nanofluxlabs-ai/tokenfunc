@@ -70,6 +70,19 @@ describe.each(DOCS_LANGS)('docs content (%s)', (lang) => {
     expect(files).toEqual([...DOCS_SLUGS].sort())
   })
 
+  it('tags exactly the pages with an :::endpoint with the same HTTP method in the sidebar', () => {
+    const mismatches = DOCS_PAGES.flatMap((page) => {
+      const endpoint = readPage(lang, page.slug).match(
+        /:::endpoint\{method="([A-Z]+)"/
+      )
+      const expected = endpoint?.[1]
+      return page.method === expected
+        ? []
+        : [`${page.slug}: registry ${page.method} vs page ${expected}`]
+    })
+    expect(mismatches).toEqual([])
+  })
+
   it.each(DOCS_PAGES.map((page) => page.slug))(
     '%s parses with known variables, widgets and links',
     (slug) => {

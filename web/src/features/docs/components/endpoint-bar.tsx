@@ -22,7 +22,6 @@ import { lazy, Suspense, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { CopyButton } from '@/components/copy-button'
-import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import { useAuthStore } from '@/stores/auth-store'
@@ -38,13 +37,9 @@ import {
   isPlaygroundOperation,
   type PlaygroundOperation,
 } from '../lib/playground-spec'
+import { MethodBadge } from './method-badge'
 
 const ApiPlaygroundClient = lazy(() => import('./api-playground-client'))
-
-const METHOD_STYLES: Record<string, string> = {
-  GET: 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-400',
-  POST: 'bg-sky-500/15 text-sky-700 dark:text-sky-400',
-}
 
 /** 路径按 / 分段，斜杠淡化、{参数} 高亮，读起来更像 Mintlify 的地址栏 */
 function EndpointPath(props: { path: string }) {
@@ -112,14 +107,7 @@ export function EndpointBar(props: {
   return (
     <div className='docs-block'>
       <div className='bg-muted/20 flex items-center gap-2 rounded-xl border p-1.5 pl-2'>
-        <Badge
-          className={cn(
-            'h-6 rounded-md px-2 font-mono text-xs font-bold',
-            METHOD_STYLES[method] ?? 'bg-muted text-foreground'
-          )}
-        >
-          {method}
-        </Badge>
+        <MethodBadge method={method} />
         <code className='min-w-0 flex-1 truncate font-mono text-sm'>
           <span className='text-muted-foreground'>{baseUrl}</span>
           <EndpointPath path={props.path} />

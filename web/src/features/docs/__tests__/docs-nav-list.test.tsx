@@ -76,8 +76,19 @@ describe('DocsNavList', () => {
   it('lists Responses right after Chat Completions in the API group', () => {
     render(<DocsNavList lang='en' activeSlug='quick-start' />)
     const titles = screen.getAllByRole('link').map((link) => link.textContent)
-    const chat = titles.indexOf('Chat Completions')
-    expect(titles[chat + 1]).toBe('Responses')
+    const chat = titles.indexOf('POSTChat Completions')
+    expect(titles[chat + 1]).toBe('POSTResponses')
+  })
+
+  it('tags endpoint pages with their HTTP method and leaves guide pages untagged', () => {
+    render(<DocsNavList lang='en' activeSlug='quick-start' />)
+    const linkFor = (text: string) => screen.getByText(text).closest('a')
+    expect(linkFor('List models')).toHaveTextContent(/^GETList models$/)
+    expect(linkFor('Chat Completions')).toHaveTextContent(
+      /^POSTChat Completions$/
+    )
+    expect(linkFor('Authentication')).toHaveTextContent(/^Authentication$/)
+    expect(linkFor('Errors')).toHaveTextContent(/^Errors$/)
   })
 
   it('re-opens the group of the current page when it was collapsed', () => {

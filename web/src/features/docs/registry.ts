@@ -43,6 +43,8 @@ export type DocsPageEntry = {
   model?: ModelFamily
   /** 侧栏图标，取 @lobehub/icons 的图标名（单色版，跟随文字颜色） */
   icon?: string
+  /** API 接口页的请求方法，侧栏显示为标签；须与正文 :::endpoint 一致（内容测试校验） */
+  method?: 'GET' | 'POST'
 }
 
 export type DocsNavGroup = {
@@ -241,6 +243,7 @@ export const DOCS_PAGES: DocsPageEntry[] = [
   {
     slug: 'api-models',
     group: 'api',
+    method: 'GET',
     title: { zh: '模型列表', en: 'List models' },
     description: {
       zh: '查询当前密钥可以使用的模型。',
@@ -250,6 +253,7 @@ export const DOCS_PAGES: DocsPageEntry[] = [
   {
     slug: 'api-chat-completions',
     group: 'api',
+    method: 'POST',
     model: 'gpt',
     title: { zh: 'Chat Completions', en: 'Chat Completions' },
     description: {
@@ -260,6 +264,7 @@ export const DOCS_PAGES: DocsPageEntry[] = [
   {
     slug: 'api-responses',
     group: 'api',
+    method: 'POST',
     model: 'gpt',
     title: { zh: 'Responses', en: 'Responses' },
     description: {
@@ -270,6 +275,7 @@ export const DOCS_PAGES: DocsPageEntry[] = [
   {
     slug: 'api-messages',
     group: 'api',
+    method: 'POST',
     model: 'claude',
     title: { zh: 'Anthropic Messages', en: 'Anthropic Messages' },
     description: {
@@ -280,6 +286,7 @@ export const DOCS_PAGES: DocsPageEntry[] = [
   {
     slug: 'api-gemini',
     group: 'api',
+    method: 'POST',
     model: 'gemini',
     title: { zh: 'Gemini 原生接口', en: 'Gemini native API' },
     description: {
@@ -290,6 +297,7 @@ export const DOCS_PAGES: DocsPageEntry[] = [
   {
     slug: 'api-images',
     group: 'api',
+    method: 'POST',
     model: 'image',
     title: { zh: '图片生成', en: 'Image generation' },
     description: {
@@ -300,6 +308,7 @@ export const DOCS_PAGES: DocsPageEntry[] = [
   {
     slug: 'api-image-edits',
     group: 'api',
+    method: 'POST',
     model: 'image',
     title: { zh: '图片编辑', en: 'Image edits' },
     description: {

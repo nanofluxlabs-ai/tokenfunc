@@ -97,6 +97,28 @@
   - 文档模块 12 个文件、127 个用例全部通过；tsc 通过；lint 无 error。
   - 浏览器检查：Chat Completions 的正文紧接在标题下方；快速开始页的示例参数是一行。
 
+## 追加：侧栏图标、请求方法标签与菜单顺序
+
+黑鹰提了三点要求：三方工具菜单加图标；Responses 排到 Chat Completions 下面；其他菜单是否加图标由我评估。
+
+- 三方工具：
+  - 工具页的 `DocsPageEntry` 新增 `icon` 字段，取 `@lobehub/icons` 的图标名，通过项目已有的 `getLobeIcon` 按需加载。
+  - 统一用单色版。12 个图标里有一半没有彩色版，彩色和单色混用会显得杂乱；单色版跟随文字颜色，普通、悬停、选中三种状态都会随之变化。
+  - 「选择接入方式」没有对应品牌，用 lucide 的 `LayoutGrid`，整组的文字因此保持对齐。
+  - WorkBuddy 在图标库里没有自己的图标，暂时用腾讯标志代替。
+- 菜单顺序：API 组改为 鉴权 → 模型列表 → Chat Completions → Responses → Anthropic Messages → …，上一页/下一页随之变化。
+- 其他菜单：
+  - 开始使用、企业客户：按我的建议，不加通用图标。这类概念页配图标不能帮人更快找到内容，只会让侧栏变杂。
+  - API 参考：黑鹰同意给接口页加请求方法标签（GET/POST），鉴权、错误码这类非接口页不加。
+  - 标签抽成共用组件 `MethodBadge`，正文地址栏和侧栏共用同一套配色。
+  - 请求方法记在 registry 的 `method` 字段：侧栏在正文加载前就要渲染，所以不能从正文读取。
+  - 内容测试会检查每页 registry 里的 `method` 与正文 `:::endpoint` 的方法一致，没有 `:::endpoint` 的页面也不能写 `method`。
+- 验证：
+  - 测试：
+    - 新增 4 个用例：工具组整组都有图标位，其他组没有；Responses 紧跟在 Chat Completions 之后；接口页带请求方法标签，非接口页不带；registry 与正文的请求方法一致。
+    - 文档模块共 12 个文件、132 个用例，全部通过；tsc 通过，lint 无 error。
+  - 浏览器：12 个工具图标都渲染成功；API 组的标签和顺序显示正确，截图存在 `.tmp/api-layout-nav-methods.png`。
+
 ## 遗留
 
 - 右栏的请求示例里，长行（如 Authorization 头）超出面板宽度时需要横向滚动，这一点与 Mintlify 一致。

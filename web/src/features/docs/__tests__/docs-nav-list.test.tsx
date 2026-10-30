@@ -73,6 +73,16 @@ describe('DocsNavList', () => {
     ).toHaveLength(12)
   })
 
+  it('shows a decorative icon on every group header without changing its name', () => {
+    render(<DocsNavList lang='zh' activeSlug='quick-start' />)
+    for (const name of ['开始使用', 'API 参考', '企业客户', '三方工具接入']) {
+      const header = screen.getByRole('button', { name })
+      const icon = header.querySelector('[data-slot="docs-nav-group-icon"]')
+      expect(icon).not.toBeNull()
+      expect(icon).toHaveAttribute('aria-hidden', 'true')
+    }
+  })
+
   it('lists Responses right after Chat Completions in the API group', () => {
     render(<DocsNavList lang='en' activeSlug='quick-start' />)
     const titles = screen.getAllByRole('link').map((link) => link.textContent)

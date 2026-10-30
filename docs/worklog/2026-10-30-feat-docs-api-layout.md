@@ -123,6 +123,17 @@
     - 文档模块共 12 个文件、132 个用例，全部通过；tsc 通过，lint 无 error。
   - 浏览器：12 个工具图标都渲染成功；API 组的标签和顺序显示正确，截图存在 `.tmp/api-layout-nav-methods.png`。
 
+## 追加：分组标题加图标
+
+我原本建议分组标题不加图标，黑鹰决定加。
+
+- 4 个分组用 lucide 图标：开始使用 Rocket、API 参考 Code、企业客户 Building2、三方工具接入 Puzzle。
+- 图标对应表放在 `docs-nav-list.tsx` 里，没有放进 registry。registry 构建时还要用于预渲染，不能引入 React 组件。
+- 图标加了 `aria-hidden`，分组按钮的无障碍名称不变。
+- 验证：
+  - 新增 1 个用例：每个分组标题都带装饰图标，且按钮名称不变。文档模块 133 个用例全部通过；tsc、lint 无报错。
+  - 浏览器截图：`.tmp/api-layout-nav-groups.png`。
+
 ## 遗留
 
 - 右栏的请求示例里，长行（如 Authorization 头）超出面板宽度时需要横向滚动，这一点与 Mintlify 一致。

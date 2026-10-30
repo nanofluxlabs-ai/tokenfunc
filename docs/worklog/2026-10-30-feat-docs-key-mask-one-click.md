@@ -48,6 +48,7 @@
 - Codex：
   - 在 `config.toml` 中删除旧的顶层 `model` / `model_provider` 和旧的 `[model_providers.tokenfunc]` 小节，再把这两行写到文件最前面，在文件末尾追加新的提供方小节。多次运行结果一致。
   - 密钥按文档约定放在环境变量 `TOKENFUNC_API_KEY`：macOS / Linux 写进对应 shell 的启动文件（zsh / bash / fish / profile），并替换掉旧的同名行；Windows 保存为用户级环境变量。
+- 本地开发：`rsbuild.config.ts` 的开发代理加上 `/install`。黑鹰反馈访问 `localhost:5173/install/claude-code.sh` 返回 404，原因是开发服务器只代理 `/api`、`/v1`、`/mj`、`/pg`。生产环境由 Go 服务直接处理 `/install`，不受影响。代理时 Host 会被改成后端地址，所以脚本里填入的是 `http://127.0.0.1:3000`，脚本直接请求后端，结果正确。
 - 文档：在 Claude Code 和 Codex 两页（中英文）新增「方式一：一键配置脚本（推荐）」，内容包括 macOS / Linux 与 Windows 两个标签页的一行命令，以及查看脚本源码的链接。原来的 CC Switch 和手动配置顺延为方式二、方式三。
 
 ## 验证

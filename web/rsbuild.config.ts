@@ -17,7 +17,8 @@ export default defineConfig(({ envMode }) => {
 
   const isProd = envMode === 'production'
   const devProxy = Object.fromEntries(
-    (['/api', '/v1', '/mj', '/pg'] as const).map((key) => [
+    // tokenfunc 二开：/install 为文档里的一键配置脚本（Go 后端提供）
+    (['/api', '/v1', '/mj', '/pg', '/install'] as const).map((key) => [
       key,
       { target: serverUrl, changeOrigin: true },
     ])

@@ -1461,7 +1461,6 @@
     "Sample settings": "Paramètres des exemples",
     "Sign in to fill the samples with your own key.": "Connectez-vous pour utiliser votre propre clé dans les exemples.",
     "Sign in to import with one click.": "Connectez-vous pour importer en un clic.",
-    "The samples now contain your real key. Do not share screenshots of this page.": "Les exemples contiennent maintenant votre vraie clé. Ne partagez pas de captures de cette page.",
     "Create an API key first to fill it into the samples.": "Créez d'abord une clé API pour qu'elle soit insérée dans les exemples.",
     "Access denied. The key may not use this model or IP: {{message}}": "Accès refusé. La clé ne peut peut-être pas utiliser ce modèle ou cette IP : {{message}}",
     "Address format": "Format de l'adresse",

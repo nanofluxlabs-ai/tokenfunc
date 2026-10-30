@@ -26,10 +26,14 @@ import { ErrorState } from '@/components/error-state'
 import { DocContent } from './components/doc-content'
 import { DocsLayout } from './components/docs-layout'
 import { DocsSampleBar } from './components/docs-sample-bar'
-import { useDocsVariables } from './hooks/use-docs-variables'
+import {
+  DOCS_API_KEY_PLACEHOLDER,
+  useDocsVariables,
+} from './hooks/use-docs-variables'
 import { parseDoc } from './lib/doc-markdown'
 import { loadDocSource } from './lib/doc-source'
 import { docsLangSearch } from './lib/docs-links'
+import { maskApiKey } from './lib/sample-keys'
 import {
   DOCS_DEFAULT_SLUG,
   docsLangFromUiLanguage,
@@ -52,7 +56,15 @@ function DocsSkeleton() {
 
 function DocsPageView(props: { slug: string; lang: DocsLang }) {
   const entry = getDocsEntry(props.slug)
-  const vars = useDocsVariables(entry.model)
+  const copyVars = useDocsVariables(entry.model)
+  // 页面上显示打码后的密钥，复制按钮仍复制真实密钥
+  const vars = useMemo(
+    () =>
+      copyVars.apiKey === DOCS_API_KEY_PLACEHOLDER
+        ? copyVars
+        : { ...copyVars, apiKey: maskApiKey(copyVars.apiKey) },
+    [copyVars]
+  )
   const source = useQuery({
     queryKey: ['docs-source', props.lang, props.slug],
     queryFn: () => loadDocSource(props.lang, props.slug),
@@ -81,6 +93,7 @@ function DocsPageView(props: { slug: string; lang: DocsLang }) {
       <DocContent
         blocks={parsed.blocks}
         vars={vars}
+        copyVars={copyVars}
         sampleFamily={entry.model}
       />
     )
@@ -103,6 +116,7 @@ function DocsPageView(props: { slug: string; lang: DocsLang }) {
           <DocContent
             blocks={parsed.aside}
             vars={vars}
+            copyVars={copyVars}
             placement='aside'
             sampleFamily={entry.model}
           />

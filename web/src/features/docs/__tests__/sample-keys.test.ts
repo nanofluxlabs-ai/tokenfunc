@@ -18,7 +18,7 @@ For commercial licensing, please contact support@quantumnous.com
 */
 import { describe, expect, it } from 'vitest'
 
-import { pickDefaultSampleKey } from '../lib/sample-keys'
+import { maskApiKey, pickDefaultSampleKey } from '../lib/sample-keys'
 
 const key = (id: number, name: string, created_time: number) => ({
   id,
@@ -49,5 +49,19 @@ describe('pickDefaultSampleKey', () => {
 
   it('returns nothing when the user has no usable key', () => {
     expect(pickDefaultSampleKey([])).toBeUndefined()
+  })
+})
+
+describe('maskApiKey', () => {
+  it('keeps the sk- prefix and the first and last four characters', () => {
+    expect(maskApiKey('sk-ySh3hiAgYFyEQDC6124AxxA1b2')).toBe('sk-ySh3****A1b2')
+  })
+
+  it('masks keys without the sk- prefix the same way', () => {
+    expect(maskApiKey('abcd1234efgh5678')).toBe('abcd****5678')
+  })
+
+  it('hides short keys completely instead of revealing most of them', () => {
+    expect(maskApiKey('sk-12345678')).toBe('sk-****')
   })
 })

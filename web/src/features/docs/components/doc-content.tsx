@@ -47,7 +47,10 @@ import { DocWidget } from './doc-widgets'
 import { SampleModelSelect } from './docs-sample-bar'
 
 type DocRenderContext = {
+  /** 页面上显示用的变量（密钥已打码） */
   vars: Record<string, string>
+  /** 复制按钮用的变量（真实密钥），复制出去的示例可直接运行 */
+  copyVars: Record<string, string>
   /** 用户最近点过的标签名；同名标签（如 macOS / Windows）在整页联动 */
   preferredTab: string | null
   setPreferredTab: (label: string) => void
@@ -120,6 +123,7 @@ function DocHtml(props: { html: string }) {
 function DocCode(props: { code: string; lang: string; title?: string }) {
   const ctx = useRenderContext()
   const code = fillDocVariables(props.code, ctx.vars, 'text')
+  const copyValue = fillDocVariables(props.code, ctx.copyVars, 'text')
   const block = (
     <CodeBlock
       code={code}
@@ -128,7 +132,7 @@ function DocCode(props: { code: string; lang: string; title?: string }) {
       enableCollapse={false}
       className='docs-block my-0'
     >
-      <CodeBlockCopyButton />
+      <CodeBlockCopyButton value={copyValue} />
     </CodeBlock>
   )
   if (!props.title) return block
@@ -242,7 +246,9 @@ function DocExample(props: {
         </div>
       }
     >
-      <CodeBlockCopyButton />
+      <CodeBlockCopyButton
+        value={fillDocVariables(sample.code, ctx.copyVars, 'text')}
+      />
     </CodeBlock>
   )
 
@@ -380,6 +386,8 @@ function DocBlocks(props: { blocks: DocBlock[] }) {
 export function DocContent(props: {
   blocks: DocBlock[]
   vars: Record<string, string>
+  /** 复制按钮用的变量；不传时与 vars 相同 */
+  copyVars?: Record<string, string>
   placement?: 'main' | 'aside'
   sampleFamily?: ModelFamily
 }) {
@@ -388,12 +396,13 @@ export function DocContent(props: {
   const ctx = useMemo(
     () => ({
       vars: props.vars,
+      copyVars: props.copyVars ?? props.vars,
       preferredTab,
       setPreferredTab,
       placement,
       sampleFamily: props.sampleFamily,
     }),
-    [props.vars, preferredTab, placement, props.sampleFamily]
+    [props.vars, props.copyVars, preferredTab, placement, props.sampleFamily]
   )
   return (
     <RenderContext.Provider value={ctx}>

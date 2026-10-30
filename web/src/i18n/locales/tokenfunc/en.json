@@ -1461,7 +1461,6 @@
     "Sample settings": "Sample settings",
     "Sign in to fill the samples with your own key.": "Sign in to fill the samples with your own key.",
     "Sign in to import with one click.": "Sign in to import with one click.",
-    "The samples now contain your real key. Do not share screenshots of this page.": "The samples now contain your real key. Do not share screenshots of this page.",
     "Create an API key first to fill it into the samples.": "Create an API key first to fill it into the samples.",
     "Access denied. The key may not use this model or IP: {{message}}": "Access denied. The key may not use this model or IP: {{message}}",
     "Address format": "Address format",

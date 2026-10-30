@@ -1461,7 +1461,6 @@
     "Sample settings": "Параметры примеров",
     "Sign in to fill the samples with your own key.": "Войдите, чтобы подставить в примеры свой ключ.",
     "Sign in to import with one click.": "Войдите, чтобы импортировать в один клик.",
-    "The samples now contain your real key. Do not share screenshots of this page.": "Теперь в примерах ваш настоящий ключ. Не делитесь снимками этой страницы.",
     "Create an API key first to fill it into the samples.": "Сначала создайте API-ключ, чтобы он подставлялся в примеры.",
     "Access denied. The key may not use this model or IP: {{message}}": "Доступ запрещён. Возможно, ключу недоступна эта модель или IP: {{message}}",
     "Address format": "Формат адреса",

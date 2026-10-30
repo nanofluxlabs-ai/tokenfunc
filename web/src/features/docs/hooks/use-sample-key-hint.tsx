@@ -21,15 +21,13 @@ import type { ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { useAuthStore } from '@/stores/auth-store'
-import { useDocsSampleStore } from '@/stores/docs-sample-store'
 
 import { useDocsSampleKey } from './use-docs-sample-key'
 
-/** 示例里密钥的状态提示：未登录 / 没有密钥时引导，已填入真实密钥时提醒勿截图 */
+/** 示例里密钥的状态提示：未登录 / 没有密钥时引导；已填入密钥时不提示（页面上的密钥已打码） */
 export function useSampleKeyHint(): ReactNode {
   const { t } = useTranslation()
   const signedIn = useAuthStore((state) => Boolean(state.auth.user))
-  const key = useDocsSampleStore((state) => state.key)
   const { missing } = useDocsSampleKey(signedIn)
 
   if (!signedIn) {
@@ -47,11 +45,6 @@ export function useSampleKeyHint(): ReactNode {
       <Link to='/keys' className='text-foreground underline underline-offset-4'>
         {t('Create an API key first to fill it into the samples.')}
       </Link>
-    )
-  }
-  if (key) {
-    return t(
-      'The samples now contain your real key. Do not share screenshots of this page.'
     )
   }
   return null

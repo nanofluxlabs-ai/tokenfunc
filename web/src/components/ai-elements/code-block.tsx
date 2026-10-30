@@ -643,16 +643,22 @@ export const CodeBlockEditor = ({
   )
 }
 
-export type CodeBlockCopyButtonProps = ComponentProps<typeof Button> & {
+export type CodeBlockCopyButtonProps = Omit<
+  ComponentProps<typeof Button>,
+  'value'
+> & {
   onCopy?: () => void
   onError?: (error: Error) => void
   timeout?: number
+  /** 复制的内容；不传时复制代码块里显示的代码（例如显示打码、复制真实值） */
+  value?: string
 }
 
 export const CodeBlockCopyButton = ({
   onCopy,
   onError,
   timeout = 2000,
+  value,
   children,
   className,
   ...props
@@ -665,7 +671,7 @@ export const CodeBlockCopyButton = ({
   // contexts (HTTPS / localhost), so plain-HTTP origins need the execCommand
   // fallback to keep the copy button working.
   const handleCopy = async () => {
-    const success = await copyToClipboard(code)
+    const success = await copyToClipboard(value ?? code)
     if (!success) {
       onError?.(new Error('Copy failed'))
       return

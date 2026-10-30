@@ -34,6 +34,10 @@ vi.mock('../hooks/use-docs-variables', () => ({
   useDocsModelOptions: () => ['gpt-5'],
   useDocsFamilyModels: () => ({ gpt: 'gpt-5' }),
 }))
+const copyToClipboard = vi.fn(async (_text: string) => true)
+vi.mock('@/lib/copy-to-clipboard', () => ({
+  copyToClipboard: (text: string) => copyToClipboard(text),
+}))
 vi.mock('../hooks/use-docs-sample-key', () => ({
   useDocsSampleKey: () => ({ missing: false, loading: false }),
 }))
@@ -96,6 +100,29 @@ describe('DocContent API examples', () => {
       <DocContent blocks={parseDoc(API_EXAMPLES, 'zh').blocks} vars={vars} />
     )
     expect(screen.queryByText('Model in samples')).toBeNull()
+  })
+})
+
+describe('DocContent key masking', () => {
+  it('shows the masked key on the page but copies the real key', async () => {
+    const source = ['```bash', 'curl -H "Bearer {{apiKey}}"', '```'].join('\n')
+    const { container } = render(
+      <DocContent
+        blocks={parseDoc(source, 'zh').blocks}
+        vars={{ apiKey: 'sk-real****-key' }}
+        copyVars={{ apiKey: 'sk-real-secret-key' }}
+      />
+    )
+    expect(container.textContent).toContain('curl -H "Bearer sk-real****-key"')
+    expect(container.textContent).not.toContain('sk-real-secret-key')
+
+    fireEvent.click(screen.getByRole('button', { name: 'Copy code' }))
+
+    await vi.waitFor(() =>
+      expect(copyToClipboard).toHaveBeenCalledWith(
+        'curl -H "Bearer sk-real-secret-key"'
+      )
+    )
   })
 })
 

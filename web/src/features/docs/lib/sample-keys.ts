@@ -34,3 +34,14 @@ export function pickDefaultSampleKey<T extends SampleKeyCandidate>(
     undefined
   )
 }
+
+/**
+ * 页面上展示的密钥打码：保留前缀与首尾各 4 位，中间用 **** 代替，截图不会泄露完整密钥。
+ * 复制按钮仍复制真实密钥，示例粘贴即可运行。
+ */
+export function maskApiKey(key: string): string {
+  const prefix = key.startsWith('sk-') ? 'sk-' : ''
+  const body = key.slice(prefix.length)
+  if (body.length <= 8) return `${prefix}****`
+  return `${prefix}${body.slice(0, 4)}****${body.slice(-4)}`
+}

@@ -4,6 +4,9 @@ Returns the models the current key can call. The list is already filtered by the
 GET {{baseUrl}}/v1/models
 ```
 
+:::api-playground{operation="list-models"}
+:::
+
 ## Request
 
 :::tabs

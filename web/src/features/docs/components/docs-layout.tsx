@@ -36,6 +36,7 @@ import { docsLangSearch } from '../lib/docs-links'
 import { toolForGuide } from '../lib/self-check'
 import { getDocsEntry, type DocsLang } from '../registry'
 import { DocsNavList } from './docs-nav-list'
+import { DocsToc } from './docs-toc'
 import { PrevNextLinks } from './prev-next-links'
 
 /** 工具教程页顶部的连接自检入口，预选当前工具 */
@@ -58,30 +59,6 @@ function SelfCheckEntry(props: { slug: string; lang: DocsLang }) {
   )
 }
 
-function DocsToc(props: { headings: DocHeading[] }) {
-  const { t } = useTranslation()
-  if (props.headings.length < 2) return null
-  return (
-    <nav aria-label={t('On this page')} className='text-sm'>
-      <div className='text-muted-foreground/70 mb-2 text-[11px] font-semibold tracking-wider uppercase'>
-        {t('On this page')}
-      </div>
-      <ul className='space-y-1.5'>
-        {props.headings.map((heading) => (
-          <li key={heading.id} className={heading.level === 3 ? 'pl-3' : ''}>
-            <a
-              href={`#${heading.id}`}
-              className='text-muted-foreground hover:text-foreground block leading-5 transition-colors'
-            >
-              {heading.text}
-            </a>
-          </li>
-        ))}
-      </ul>
-    </nav>
-  )
-}
-
 export function DocsLayout(props: {
   slug: string
   lang: DocsLang
@@ -98,7 +75,7 @@ export function DocsLayout(props: {
   return (
     <PublicLayout showMainContainer={false}>
       <div className='container px-4 pt-24 pb-16 md:px-6'>
-        <div className='grid gap-10 lg:grid-cols-[230px_minmax(0,1fr)] xl:grid-cols-[230px_minmax(0,1fr)_200px]'>
+        <div className='grid gap-10 lg:grid-cols-[230px_minmax(0,1fr)]'>
           <aside className='hidden lg:block'>
             <nav
               aria-label={t('Documentation pages')}
@@ -138,7 +115,7 @@ export function DocsLayout(props: {
               </Sheet>
             </div>
 
-            <article className='w-full max-w-3xl'>
+            <article className='w-full max-w-4xl'>
               <h1 className='text-foreground text-3xl font-bold tracking-tight'>
                 {title}
               </h1>
@@ -154,13 +131,8 @@ export function DocsLayout(props: {
               <PrevNextLinks slug={props.slug} lang={props.lang} />
             </article>
           </div>
-
-          <aside className='hidden xl:block'>
-            <div className='sticky top-24 max-h-[calc(100svh-8rem)] overflow-y-auto pb-8'>
-              <DocsToc headings={props.headings} />
-            </div>
-          </aside>
         </div>
+        <DocsToc headings={props.headings} />
       </div>
     </PublicLayout>
   )

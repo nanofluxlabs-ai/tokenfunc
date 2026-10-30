@@ -4,6 +4,9 @@
 GET {{baseUrl}}/v1/models
 ```
 
+:::api-playground{operation="list-models"}
+:::
+
 ## 请求示例
 
 :::tabs

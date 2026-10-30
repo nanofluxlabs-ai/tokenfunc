@@ -42,6 +42,7 @@ export const DOC_WIDGET_NAMES = [
   'base-url',
   'contact-sales',
   'self-check',
+  'api-playground',
 ]
 
 /** 截图占位：图片地址以 todo: 开头时渲染为虚线框，等运营补图后换成 /docs-assets/ 下的真实路径 */

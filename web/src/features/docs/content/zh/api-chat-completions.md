@@ -4,6 +4,9 @@
 POST {{baseUrl}}/v1/chat/completions
 ```
 
+:::api-playground{operation="chat-completions"}
+:::
+
 ## 请求示例
 
 :::tabs

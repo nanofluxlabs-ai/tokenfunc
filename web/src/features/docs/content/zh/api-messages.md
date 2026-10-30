@@ -4,6 +4,9 @@
 POST {{baseUrl}}/v1/messages
 ```
 
+:::api-playground{operation="messages"}
+:::
+
 ## 请求示例
 
 :::tabs

@@ -6,6 +6,9 @@
 POST {{baseUrl}}/v1/images/generations
 ```
 
+:::api-playground{operation="image-generations"}
+:::
+
 :::tabs
 @tab cURL
 
@@ -88,6 +91,9 @@ else console.log(image.url)
 ```http
 POST {{baseUrl}}/v1/images/edits
 ```
+
+:::api-playground{operation="image-edits"}
+:::
 
 以 `multipart/form-data` 上传原图和修改要求：
 

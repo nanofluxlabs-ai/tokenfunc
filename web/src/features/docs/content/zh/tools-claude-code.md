@@ -4,7 +4,36 @@ Claude Code 是 Anthropic 官方的命令行编程助手，走 Anthropic 协议�
 - 地址：`{{baseUrl}}`（**不带** `/v1`，Claude Code 会自己拼接 `/v1/messages`）
 - 模型：Claude 系列，例如 `{{model}}`
 
-## 方式一：CC Switch 一键导入（推荐）
+## 方式一：一键配置脚本（推荐）
+
+在终端运行下面的命令，按提示粘贴密钥、选择默认模型即可。脚本会：
+
+- 用模型列表接口校验密钥（不扣费）
+- 没装 Claude Code 时，用官方方式自动安装
+- 把地址、密钥、模型合并进 `~/.claude/settings.json`：保留文件里已有的其他设置，原文件自动备份
+
+:::tabs
+@tab macOS / Linux
+
+```bash
+curl -fsSL {{baseUrl}}/install/claude-code.sh | bash
+```
+
+@tab Windows
+
+```powershell
+# 在 PowerShell 中运行（不是命令提示符 cmd）
+irm {{baseUrl}}/install/claude-code.ps1 | iex
+```
+:::
+
+:::tip
+密钥在运行时输入，不会留在命令历史里。想先看看脚本内容，可以直接打开：[macOS / Linux 版]({{baseUrl}}/install/claude-code.sh)、[Windows 版]({{baseUrl}}/install/claude-code.ps1)。
+:::
+
+配置完成后跳到下面的「启动并验证」一步。
+
+## 方式二：CC Switch 一键导入
 
 [CC Switch](https://github.com/farion1231/cc-switch) 是一个管理 Claude Code、Codex 配置的桌面小工具，装好后点下面的按钮，地址、密钥和模型会自动写进去，不用手动改任何文件。
 
@@ -15,7 +44,7 @@ Claude Code 是 Anthropic 官方的命令行编程助手，走 Anthropic 协议�
 
 导入后在 CC Switch 里启用这个配置，然后直接跳到下面的「验证」一步。
 
-## 方式二：手动配置
+## 方式三：手动配置
 
 :::steps
 ### 安装 Claude Code

@@ -4,7 +4,37 @@ Codex 是 OpenAI 官方的命令行编程助手，只支持 OpenAI **Responses**
 - 地址：`{{baseUrl}}/v1`（**带** `/v1`）
 - 模型：GPT 系列，例如 `{{model}}`
 
-## 方式一：CC Switch 一键导入（推荐）
+## 方式一：一键配置脚本（推荐）
+
+在终端运行下面的命令，按提示粘贴密钥、选择默认模型即可。脚本会：
+
+- 用模型列表接口校验密钥（不扣费）
+- 没装 Codex 时，用官方方式自动安装
+- 在 `~/.codex/config.toml` 写入本站的模型提供方：保留文件里已有的其他设置，原文件自动备份
+- 把密钥保存为环境变量 `TOKENFUNC_API_KEY`：macOS / Linux 写进 shell 启动文件，Windows 保存为用户环境变量
+
+:::tabs
+@tab macOS / Linux
+
+```bash
+curl -fsSL {{baseUrl}}/install/codex.sh | bash
+```
+
+@tab Windows
+
+```powershell
+# 在 PowerShell 中运行（不是命令提示符 cmd）
+irm {{baseUrl}}/install/codex.ps1 | iex
+```
+:::
+
+:::tip
+密钥在运行时输入，不会留在命令历史里。想先看看脚本内容，可以直接打开：[macOS / Linux 版]({{baseUrl}}/install/codex.sh)、[Windows 版]({{baseUrl}}/install/codex.ps1)。
+:::
+
+配置完成后**新开一个终端**（密钥环境变量在新终端才生效），然后跳到下面的「启动并验证」一步。
+
+## 方式二：CC Switch 一键导入
 
 装好 [CC Switch](https://github.com/farion1231/cc-switch) 后点下面的按钮，在弹窗里确认应用为 Codex、选好模型即可。
 
@@ -13,7 +43,7 @@ Codex 是 OpenAI 官方的命令行编程助手，只支持 OpenAI **Responses**
 
 导入后在 CC Switch 里启用这个配置，然后跳到下面的「验证」一步。
 
-## 方式二：手动配置
+## 方式三：手动配置
 
 :::steps
 ### 安装 Codex

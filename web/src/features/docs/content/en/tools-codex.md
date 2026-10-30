@@ -4,7 +4,37 @@ Codex is OpenAI's official command-line coding agent and only speaks the OpenAI 
 - Base URL: `{{baseUrl}}/v1` (**with** `/v1`)
 - Models: the GPT family, for example `{{model}}`
 
-## Option 1: one-click import with CC Switch (recommended)
+## Option 1: one-click setup script (recommended)
+
+Run the command below in a terminal, paste your key and pick a default model when asked. The script:
+
+- Checks the key against the model list endpoint (free of charge)
+- Installs Codex the official way if it is missing
+- Adds this site as a model provider in `~/.codex/config.toml`, keeping your other settings and backing up the original file
+- Saves the key as the `TOKENFUNC_API_KEY` environment variable: in your shell startup file on macOS / Linux, as a user environment variable on Windows
+
+:::tabs
+@tab macOS / Linux
+
+```bash
+curl -fsSL {{baseUrl}}/install/codex.sh | bash
+```
+
+@tab Windows
+
+```powershell
+# Run in PowerShell (not Command Prompt)
+irm {{baseUrl}}/install/codex.ps1 | iex
+```
+:::
+
+:::tip
+You type the key while the script runs, so it never ends up in your shell history. To read the script first, open it directly: [macOS / Linux]({{baseUrl}}/install/codex.sh), [Windows]({{baseUrl}}/install/codex.ps1).
+:::
+
+When it finishes, **open a new terminal** (the key variable only applies to new terminals), then jump to the "Start and verify" step below.
+
+## Option 2: one-click import with CC Switch
 
 With [CC Switch](https://github.com/farion1231/cc-switch) installed, click the button below, make sure Codex is selected in the dialog and pick a model.
 
@@ -13,7 +43,7 @@ With [CC Switch](https://github.com/farion1231/cc-switch) installed, click the b
 
 Enable the imported provider in CC Switch, then skip to the verify step below.
 
-## Option 2: manual setup
+## Option 3: manual setup
 
 :::steps
 ### Install Codex

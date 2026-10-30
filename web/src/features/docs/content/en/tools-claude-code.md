@@ -4,7 +4,36 @@ Claude Code is Anthropic's official command-line coding agent and speaks the Ant
 - Base URL: `{{baseUrl}}` (**without** `/v1`; Claude Code appends `/v1/messages` itself)
 - Models: the Claude family, for example `{{model}}`
 
-## Option 1: one-click import with CC Switch (recommended)
+## Option 1: one-click setup script (recommended)
+
+Run the command below in a terminal, paste your key and pick a default model when asked. The script:
+
+- Checks the key against the model list endpoint (free of charge)
+- Installs Claude Code the official way if it is missing
+- Merges the base URL, key and model into `~/.claude/settings.json`, keeping your other settings and backing up the original file
+
+:::tabs
+@tab macOS / Linux
+
+```bash
+curl -fsSL {{baseUrl}}/install/claude-code.sh | bash
+```
+
+@tab Windows
+
+```powershell
+# Run in PowerShell (not Command Prompt)
+irm {{baseUrl}}/install/claude-code.ps1 | iex
+```
+:::
+
+:::tip
+You type the key while the script runs, so it never ends up in your shell history. To read the script first, open it directly: [macOS / Linux]({{baseUrl}}/install/claude-code.sh), [Windows]({{baseUrl}}/install/claude-code.ps1).
+:::
+
+When it finishes, jump to the "Start and verify" step below.
+
+## Option 2: one-click import with CC Switch
 
 [CC Switch](https://github.com/farion1231/cc-switch) is a small desktop app that manages Claude Code and Codex settings. With it installed, the button below writes the address, key and model for you; no files to edit.
 
@@ -15,7 +44,7 @@ Claude Code is Anthropic's official command-line coding agent and speaks the Ant
 
 Enable the imported provider in CC Switch, then skip to the verify step below.
 
-## Option 2: manual setup
+## Option 3: manual setup
 
 :::steps
 ### Install Claude Code

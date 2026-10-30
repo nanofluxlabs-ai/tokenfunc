@@ -28,6 +28,8 @@ func SetWebRouter(router *gin.Engine, assets WebAssets, pluginDispatcher gin.Han
 		docs = newDocsSEO(dist)
 	}
 	registerDocsSEORoutes(router, docs)
+	// tokenfunc 二开：三方工具一键配置脚本，见 web_install_scripts.go
+	registerInstallScriptRoutes(router)
 
 	router.NoRoute(
 		pluginDispatcher,

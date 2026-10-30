@@ -1502,6 +1502,15 @@
     "Requests sent from the playground are real and billed by actual usage.": "線上除錯發出的是真實請求，按實際用量扣費。",
     "Sign in to try this endpoint online.": "登入後即可線上除錯這個介面。",
     "Try it online": "線上除錯",
-    "Examples": "範例"
+    "Examples": "範例",
+    "Required parameter": "必填",
+    "Allowed values": "可選值",
+    "Show properties": "展開屬性",
+    "Hide properties": "收合屬性",
+    "Show {{count}} accepted types": "展開 {{count}} 種可選類型",
+    "Hide types": "收合類型",
+    "Not forwarded by this site": "本站不轉發",
+    "Failed to load the parameter list.": "參數列表載入失敗。",
+    "Loading parameters…": "正在載入參數…"
   }
 }

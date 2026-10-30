@@ -1502,6 +1502,15 @@
     "Requests sent from the playground are real and billed by actual usage.": "オンラインデバッグのリクエストは実際に送信され、使用量に応じて課金されます。",
     "Sign in to try this endpoint online.": "ログインするとこのエンドポイントをオンラインで試せます。",
     "Try it online": "オンラインで試す",
-    "Examples": "サンプル"
+    "Examples": "サンプル",
+    "Required parameter": "必須",
+    "Allowed values": "指定可能な値",
+    "Show properties": "プロパティを表示",
+    "Hide properties": "プロパティを隠す",
+    "Show {{count}} accepted types": "受け付ける {{count}} 種類の型を表示",
+    "Hide types": "型を隠す",
+    "Not forwarded by this site": "このサイトでは転送しません",
+    "Failed to load the parameter list.": "パラメーター一覧を読み込めませんでした。",
+    "Loading parameters…": "パラメーターを読み込み中…"
   }
 }

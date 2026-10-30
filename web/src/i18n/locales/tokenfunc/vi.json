@@ -1502,6 +1502,15 @@
     "Requests sent from the playground are real and billed by actual usage.": "Yêu cầu gửi từ trình gỡ lỗi là thật và được tính phí theo lượng dùng.",
     "Sign in to try this endpoint online.": "Đăng nhập để thử endpoint này trực tuyến.",
     "Try it online": "Thử trực tuyến",
-    "Examples": "Ví dụ"
+    "Examples": "Ví dụ",
+    "Required parameter": "bắt buộc",
+    "Allowed values": "Giá trị cho phép",
+    "Show properties": "Hiện thuộc tính",
+    "Hide properties": "Ẩn thuộc tính",
+    "Show {{count}} accepted types": "Hiện {{count}} kiểu được chấp nhận",
+    "Hide types": "Ẩn các kiểu",
+    "Not forwarded by this site": "Trang này không chuyển tiếp",
+    "Failed to load the parameter list.": "Không tải được danh sách tham số.",
+    "Loading parameters…": "Đang tải tham số…"
   }
 }

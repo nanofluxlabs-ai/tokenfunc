@@ -1502,6 +1502,15 @@
     "Requests sent from the playground are real and billed by actual usage.": "在线调试发出的是真实请求，按实际用量扣费。",
     "Sign in to try this endpoint online.": "登录后即可在线调试这个接口。",
     "Try it online": "在线调试",
-    "Examples": "示例"
+    "Examples": "示例",
+    "Required parameter": "必填",
+    "Allowed values": "可选值",
+    "Show properties": "展开属性",
+    "Hide properties": "收起属性",
+    "Show {{count}} accepted types": "展开 {{count}} 种可选类型",
+    "Hide types": "收起类型",
+    "Not forwarded by this site": "本站不转发",
+    "Failed to load the parameter list.": "参数列表加载失败。",
+    "Loading parameters…": "正在加载参数…"
   }
 }

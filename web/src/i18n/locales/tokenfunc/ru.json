@@ -1502,6 +1502,15 @@
     "Requests sent from the playground are real and billed by actual usage.": "Запросы из песочницы настоящие и оплачиваются по фактическому использованию.",
     "Sign in to try this endpoint online.": "Войдите, чтобы опробовать этот эндпоинт онлайн.",
     "Try it online": "Попробовать онлайн",
-    "Examples": "Примеры"
+    "Examples": "Примеры",
+    "Required parameter": "обязательный",
+    "Allowed values": "Допустимые значения",
+    "Show properties": "Показать свойства",
+    "Hide properties": "Скрыть свойства",
+    "Show {{count}} accepted types": "Показать допустимые типы ({{count}})",
+    "Hide types": "Скрыть типы",
+    "Not forwarded by this site": "Не передаётся этим сайтом",
+    "Failed to load the parameter list.": "Не удалось загрузить список параметров.",
+    "Loading parameters…": "Загрузка параметров…"
   }
 }

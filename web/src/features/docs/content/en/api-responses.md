@@ -50,31 +50,10 @@ console.log(resp.output_text)
 
 ## Request parameters
 
-:::params
-| Parameter              | Type            | Required | Description                                                                                                                                                                                                                          |
-| ---------------------- | --------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `model`                | string          | Yes      | Model name; it must support Responses (see `supported_endpoint_types` in [List models](/docs/api-models))                                                                                                                            |
-| `input`                | string / array  | Yes      | The input, either text or an array of messages                                                                                                                                                                                       |
-| `instructions`         | string          | No       | System instructions                                                                                                                                                                                                                  |
-| `stream`               | boolean         | No       | Stream the reply                                                                                                                                                                                                                     |
-| `max_output_tokens`    | integer         | No       | Maximum tokens to generate, reasoning tokens included                                                                                                                                                                                |
-| `temperature`          | number          | No       | Randomness, 0 to 2; usually tune this or `top_p`, not both                                                                                                                                                                           |
-| `top_p`                | number          | No       | Nucleus sampling, 0 to 1                                                                                                                                                                                                             |
-| `tools`                | array           | No       | Tool definitions                                                                                                                                                                                                                     |
-| `tool_choice`          | string / object | No       | `auto` / `none` / `required`, or a specific tool                                                                                                                                                                                     |
-| `parallel_tool_calls`  | boolean         | No       | Whether several tools may be called at once                                                                                                                                                                                          |
-| `max_tool_calls`       | integer         | No       | Maximum total calls to built-in tools in this response                                                                                                                                                                               |
-| `reasoning`            | object          | No       | Reasoning settings, for example `{"effort": "medium"}`; values in [Reasoning effort](#reasoning-effort) below                                                                                                                        |
-| `reasoning.summary`    | string          | No       | Return a reasoning summary: `auto` / `concise` / `detailed`; OpenAI does not return the full reasoning                                                                                                                               |
-| `text`                 | object          | No       | Output settings: `format` for structured output (such as `{"type": "json_schema", ...}`), `verbosity` for length (`low` / `medium` / `high`)                                                                                         |
-| `include`              | array           | No       | Extra data to return, such as `reasoning.encrypted_content` (to pass reasoning back across turns without storage)                                                                                                                    |
-| `previous_response_id` | string          | No       | Continue from an earlier response. OpenAI models only; Claude / Gemini return an error. With several channels, send the same `prompt_cache_key`, otherwise send the history yourself as in [Multi-turn chat](#multi-turn-chat) below |
-| `store`                | boolean         | No       | Whether the upstream keeps this response; OpenAI defaults to `true`, and `previous_response_id` depends on it                                                                                                                        |
-| `prompt_cache_key`     | string          | No       | Cache grouping key; send the same value within a conversation to raise the cache hit rate and keep it on one channel                                                                                                                 |
-| `metadata`             | object          | No       | Your own key-value tags, returned with the response                                                                                                                                                                                  |
-:::
+The full official parameter list is below (use "Show properties" to see nested fields), taken from the [OpenAI API reference](https://platform.openai.com/docs/api-reference/responses/create). Parameters marked "Not forwarded by this site" are ignored if sent; "On this site" notes describe extra limits here.
 
-Only common parameters are listed. See the [OpenAI API reference](https://platform.openai.com/docs/api-reference/responses/create) for the rest; most are forwarded upstream as is. This site does not forward `service_tier`, `safety_identifier`, `background`, `access_programs` and `stream_options.include_obfuscation`; they are ignored if sent.
+:::schema{operation="responses-create" part="request"}
+:::
 
 :::response-example
 @tab 200
@@ -106,16 +85,7 @@ The SDKs expose `output_text`, which joins all text output for you.
 
 ## Response fields
 
-:::params
-| Field                                                   | Description                                                                                                             |
-| ------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
-| `status`                                                | Response status: `completed` finished, `incomplete` cut short (see `incomplete_details`), `failed` failed               |
-| `incomplete_details.reason`                             | Why it is incomplete, such as `max_output_tokens` hit the token limit or `content_filter` blocked by content moderation |
-| `output[].type`                                         | Output item type: `message` the answer, `reasoning` reasoning (summary), `function_call` wants a tool                   |
-| `output[].content[].text`                               | Answer text (in content items whose `type` is `output_text`)                                                            |
-| `usage.input_tokens` / `output_tokens` / `total_tokens` | Input / output / total tokens, the basis for billing                                                                    |
-| `usage.input_tokens_details.cached_tokens`              | Input tokens served from the cache                                                                                      |
-| `usage.output_tokens_details.reasoning_tokens`          | Tokens spent on reasoning, already counted in `output_tokens`                                                           |
+:::schema{operation="responses-create" part="response"}
 :::
 
 ## Streaming

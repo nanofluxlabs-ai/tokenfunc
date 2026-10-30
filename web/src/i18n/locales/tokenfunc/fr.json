@@ -1502,6 +1502,15 @@
     "Requests sent from the playground are real and billed by actual usage.": "Les requêtes envoyées depuis la console de test sont réelles et facturées selon l'usage.",
     "Sign in to try this endpoint online.": "Connectez-vous pour tester ce point d'accès en ligne.",
     "Try it online": "Tester en ligne",
-    "Examples": "Exemples"
+    "Examples": "Exemples",
+    "Required parameter": "obligatoire",
+    "Allowed values": "Valeurs autorisées",
+    "Show properties": "Afficher les propriétés",
+    "Hide properties": "Masquer les propriétés",
+    "Show {{count}} accepted types": "Afficher les {{count}} types acceptés",
+    "Hide types": "Masquer les types",
+    "Not forwarded by this site": "Non transmis par ce site",
+    "Failed to load the parameter list.": "Impossible de charger la liste des paramètres.",
+    "Loading parameters…": "Chargement des paramètres…"
   }
 }

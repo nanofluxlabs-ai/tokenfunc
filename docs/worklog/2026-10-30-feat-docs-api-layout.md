@@ -105,7 +105,11 @@
   - 工具页的 `DocsPageEntry` 新增 `icon` 字段，取 `@lobehub/icons` 的图标名，通过项目已有的 `getLobeIcon` 按需加载。
   - 统一用单色版。12 个图标里有一半没有彩色版，彩色和单色混用会显得杂乱；单色版跟随文字颜色，普通、悬停、选中三种状态都会随之变化。
   - 「选择接入方式」没有对应品牌，用 lucide 的 `LayoutGrid`，整组的文字因此保持对齐。
-  - WorkBuddy 在图标库里没有自己的图标，暂时用腾讯标志代替。
+  - WorkBuddy 在图标库里没有自己的图标。
+    - 先临时用腾讯标志顶上，之后从官网 https://www.workbuddy.cn 的 `logo.svg` 取了官方图标，做成单色组件 `assets/custom/icon-workbuddy.tsx`，在 `lib/lobe-icon.tsx` 的 `CUSTOM_ICONS` 中注册，与已有的 Sub2API、Wan 做法相同。
+    - 原图是绿色渐变圆底，上面一个白色猫头，猫头的脸部区域镂空、露出底色，眼睛是白色。
+    - 单色化时先尝试只保留猫头，但去掉圆底后猫头偏在右下，空白很多。最终改为用 mask：圆底用 currentColor，猫头和眼睛镂空，这样保留了原图的圆形徽章构图。在深色和浅色背景下都检查过。
+    - 副作用：`getLobeIconNames` 会列出所有自定义图标，所以后台的图标选择器里也能选到 WorkBuddy。
 - 菜单顺序：API 组改为 鉴权 → 模型列表 → Chat Completions → Responses → Anthropic Messages → …，上一页/下一页随之变化。
 - 其他菜单：
   - 开始使用、企业客户：按我的建议，不加通用图标。这类概念页配图标不能帮人更快找到内容，只会让侧栏变杂。

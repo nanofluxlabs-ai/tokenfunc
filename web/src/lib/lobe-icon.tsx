@@ -37,6 +37,7 @@ import {
 import sglangLogo from '@/assets/brand-icons/sglang.svg'
 import { IconSub2api } from '@/assets/custom/icon-sub2api'
 import { IconWan } from '@/assets/custom/icon-wan'
+import { IconWorkBuddy } from '@/assets/custom/icon-workbuddy'
 
 const CUSTOM_ICONS: Record<string, ComponentType<{ size?: number }>> = {
   SGLang: (props) => (
@@ -51,6 +52,7 @@ const CUSTOM_ICONS: Record<string, ComponentType<{ size?: number }>> = {
   ),
   Sub2API: IconSub2api,
   Wan: IconWan,
+  WorkBuddy: IconWorkBuddy,
 }
 
 const ICON_METADATA = new Map(toc.map((icon) => [icon.id, icon]))

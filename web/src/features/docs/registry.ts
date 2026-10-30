@@ -165,7 +165,7 @@ export const DOCS_PAGES: DocsPageEntry[] = [
   {
     slug: 'tools-workbuddy',
     group: 'tools',
-    icon: 'Tencent',
+    icon: 'WorkBuddy',
     model: 'deepseek',
     title: { zh: 'WorkBuddy', en: 'WorkBuddy' },
     description: {

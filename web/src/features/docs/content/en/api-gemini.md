@@ -1,15 +1,9 @@
 The endpoint compatible with the native Google Gemini API format. Apps already built on the official Google SDKs (`google-genai`, `@google/genai`) only need a new address and key. If you just need chat, you can also call Gemini models through [Chat Completions](/docs/api-chat-completions).
 
-```http
-POST {{baseUrl}}/v1beta/models/{model}:generateContent
-```
-
-:::api-playground{operation="gemini-generate"}
+:::endpoint{method="POST" path="/v1beta/models/{model}:generateContent" operation="gemini-generate"}
 :::
 
-## Request
-
-:::tabs
+:::request-example
 @tab cURL
 
 ```bash
@@ -70,6 +64,7 @@ Any of these works; the first is recommended:
 
 ## Request parameters
 
+:::params
 | Parameter           | Type   | Required | Description                                                                                                  |
 | ------------------- | ------ | -------- | ------------------------------------------------------------------------------------------------------------ |
 | `model` (path)      | string | Yes      | Model name in the URL, for example `{{model}}`                                                               |
@@ -77,10 +72,12 @@ Any of these works; the first is recommended:
 | `systemInstruction` | object | No       | System instruction, for example `{"parts": [{"text": "You are a translator"}]}`                              |
 | `generationConfig`  | object | No       | Generation settings: `temperature`, `maxOutputTokens`, `topP`, `responseMimeType`, `thinkingConfig` and more |
 | `tools`             | array  | No       | Tool definitions (`functionDeclarations`)                                                                    |
+:::
 
 Besides `text`, `parts` can hold images: `{"inline_data": {"mime_type": "image/jpeg", "data": "<Base64>"}}`.
 
-## Response
+:::response-example
+@tab 200
 
 ```json
 {
@@ -100,6 +97,7 @@ Besides `text`, `parts` can hold images: `{"inline_data": {"mime_type": "image/j
   }
 }
 ```
+:::
 
 ## Streaming
 

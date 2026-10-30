@@ -1502,6 +1502,7 @@
     "This site or the model provider returned an error ({{status}}). Try again later; if it keeps happening, send the request id to support: {{message}}": "This site or the model provider returned an error ({{status}}). Try again later; if it keeps happening, send the request id to support: {{message}}",
     "Requests sent from the playground are real and billed by actual usage.": "Requests sent from the playground are real and billed by actual usage.",
     "Sign in to try this endpoint online.": "Sign in to try this endpoint online.",
-    "Try it online": "Try it online"
+    "Try it online": "Try it online",
+    "Examples": "Examples"
   }
 }

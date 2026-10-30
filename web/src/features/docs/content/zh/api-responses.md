@@ -1,15 +1,9 @@
 与 OpenAI Responses API 兼容的接口，是 OpenAI 新一代的统一接口。Codex 等工具只支持这个接口。
 
-```http
-POST {{baseUrl}}/v1/responses
-```
-
-:::api-playground{operation="responses"}
+:::endpoint{method="POST" path="/v1/responses" operation="responses"}
 :::
 
-## 请求示例
-
-:::tabs
+:::request-example
 @tab cURL
 
 ```bash
@@ -56,6 +50,7 @@ console.log(resp.output_text)
 
 ## 请求参数
 
+:::params
 | 参数                   | 类型           | 必填 | 说明                                                                                           |
 | ---------------------- | -------------- | ---- | ---------------------------------------------------------------------------------------------- |
 | `model`                | string         | 是   | 模型名，需支持 Responses 接口（见 [模型列表](/docs/api-models) 的 `supported_endpoint_types`） |
@@ -67,8 +62,10 @@ console.log(resp.output_text)
 | `tools`                | array          | 否   | 工具定义                                                                                       |
 | `reasoning`            | object         | 否   | 思考设置，如 `{"effort": "medium"}`                                                            |
 | `previous_response_id` | string         | 否   | 接着上一次响应继续对话                                                                         |
+:::
 
-## 响应示例
+:::response-example
+@tab 200
 
 ```json
 {
@@ -91,6 +88,7 @@ console.log(resp.output_text)
   "usage": { "input_tokens": 25, "output_tokens": 22, "total_tokens": 47 }
 }
 ```
+:::
 
 SDK 提供的 `output_text` 会把所有文字输出拼接好，直接读取即可。
 

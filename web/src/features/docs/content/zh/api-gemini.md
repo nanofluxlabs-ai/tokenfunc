@@ -1,15 +1,9 @@
 与 Google Gemini API 原生格式兼容的接口。已经在用 Google 官方 SDK（`google-genai`、`@google/genai`）的应用，改一下地址和密钥就能接入本站。只需要通用对话能力时，也可以直接用 [Chat Completions](/docs/api-chat-completions) 调用 Gemini 模型。
 
-```http
-POST {{baseUrl}}/v1beta/models/{model}:generateContent
-```
-
-:::api-playground{operation="gemini-generate"}
+:::endpoint{method="POST" path="/v1beta/models/{model}:generateContent" operation="gemini-generate"}
 :::
 
-## 请求示例
-
-:::tabs
+:::request-example
 @tab cURL
 
 ```bash
@@ -70,6 +64,7 @@ console.log(resp.text)
 
 ## 请求参数
 
+:::params
 | 参数                | 类型   | 必填 | 说明                                                                                        |
 | ------------------- | ------ | ---- | ------------------------------------------------------------------------------------------- |
 | `model`（路径）     | string | 是   | 模型名，写在网址里，例如 `{{model}}`                                                        |
@@ -77,10 +72,12 @@ console.log(resp.text)
 | `systemInstruction` | object | 否   | 系统指令，如 `{"parts": [{"text": "你是一名翻译"}]}`                                        |
 | `generationConfig`  | object | 否   | 生成参数：`temperature`、`maxOutputTokens`、`topP`、`responseMimeType`、`thinkingConfig` 等 |
 | `tools`             | array  | 否   | 工具定义（`functionDeclarations`）                                                          |
+:::
 
 `parts` 里除了 `text`，也可以放图片：`{"inline_data": {"mime_type": "image/jpeg", "data": "<Base64>"}}`。
 
-## 响应示例
+:::response-example
+@tab 200
 
 ```json
 {
@@ -100,6 +97,7 @@ console.log(resp.text)
   }
 }
 ```
+:::
 
 ## 流式输出
 

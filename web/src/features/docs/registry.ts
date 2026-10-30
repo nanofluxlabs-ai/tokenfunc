@@ -280,8 +280,18 @@ export const DOCS_PAGES: DocsPageEntry[] = [
     model: 'image',
     title: { zh: '图片生成', en: 'Image generation' },
     description: {
-      zh: '文生图与图片编辑。',
-      en: 'Generate and edit images.',
+      zh: '根据文字描述生成图片。',
+      en: 'Generate images from a text prompt.',
+    },
+  },
+  {
+    slug: 'api-image-edits',
+    group: 'api',
+    model: 'image',
+    title: { zh: '图片编辑', en: 'Image edits' },
+    description: {
+      zh: '上传原图，用文字描述要修改的地方。',
+      en: 'Upload an image and describe what to change.',
     },
   },
   {

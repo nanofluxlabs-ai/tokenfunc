@@ -85,6 +85,11 @@ function DocsPageView(props: { slug: string; lang: DocsLang }) {
       lang={props.lang}
       headings={parsed?.headings ?? []}
       toolbar={<DocsSampleBar family={entry.model} />}
+      aside={
+        parsed?.aside.length ? (
+          <DocContent blocks={parsed.aside} vars={vars} placement='aside' />
+        ) : undefined
+      }
     >
       {body}
     </DocsLayout>

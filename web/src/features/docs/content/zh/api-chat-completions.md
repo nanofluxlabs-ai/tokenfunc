@@ -1,15 +1,9 @@
 与 OpenAI Chat Completions 接口兼容的对话接口，是最通用的调用方式。本站的所有文本模型（包括 Claude、Gemini、DeepSeek）都可以用这个格式调用，换个 `model` 即可，本站会自动转换。
 
-```http
-POST {{baseUrl}}/v1/chat/completions
-```
-
-:::api-playground{operation="chat-completions"}
+:::endpoint{method="POST" path="/v1/chat/completions" operation="chat-completions"}
 :::
 
-## 请求示例
-
-:::tabs
+:::request-example
 @tab cURL
 
 ```bash
@@ -64,6 +58,7 @@ console.log(resp.choices[0].message.content)
 
 ## 请求参数
 
+:::params
 | 参数                  | 类型            | 必填 | 说明                                                                                                     |
 | --------------------- | --------------- | ---- | -------------------------------------------------------------------------------------------------------- |
 | `model`               | string          | 是   | 模型名，见 [模型列表](/docs/api-models)                                                                  |
@@ -81,10 +76,12 @@ console.log(resp.choices[0].message.content)
 | `response_format`     | object          | 否   | 结构化输出，见下方 [结构化输出](#结构化输出)                                                             |
 | `reasoning_effort`    | string          | 否   | 思考强度：`none` / `minimal` / `low` / `medium` / `high` / `xhigh` / `max`，见下方 [思考模型](#思考模型) |
 | `user`                | string          | 否   | 你这边的终端用户标识，便于排查                                                                           |
+:::
 
 `content` 除了字符串，也可以是数组，用于混排文字和图片，见下方 [图片理解](#图片理解)。
 
-## 响应示例
+:::response-example
+@tab 200
 
 ```json
 {
@@ -110,7 +107,11 @@ console.log(resp.choices[0].message.content)
   }
 }
 ```
+:::
 
+## 响应字段
+
+:::params
 | 字段                                        | 说明                                                                              |
 | ------------------------------------------- | --------------------------------------------------------------------------------- |
 | `choices[].message.content`                 | 模型的回答                                                                        |
@@ -119,6 +120,7 @@ console.log(resp.choices[0].message.content)
 | `choices[].finish_reason`                   | 结束原因：`stop` 正常结束，`length` 达到长度上限被截断，`tool_calls` 需要调用工具 |
 | `usage.prompt_tokens` / `completion_tokens` | 输入 / 输出 Token 数，计费依据                                                    |
 | `usage.prompt_tokens_details.cached_tokens` | 输入中命中缓存的 Token 数                                                         |
+:::
 
 ## 流式输出
 

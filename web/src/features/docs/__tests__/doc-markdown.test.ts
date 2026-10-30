@@ -141,6 +141,99 @@ describe('parseDoc', () => {
     )
     expect(zh.kind === 'html' && zh.html).toContain('href="/docs/faq#401"')
   })
+
+  it('collects top-level request and response examples into the aside', () => {
+    const source = [
+      ':::request-example',
+      '@tab cURL',
+      '```bash',
+      'curl {{baseUrl}}',
+      '```',
+      '@tab Python',
+      '```python',
+      'print(1)',
+      '```',
+      ':::',
+      ':::response-example',
+      '@tab 200',
+      '```json',
+      '{}',
+      '```',
+      ':::',
+    ].join('\n')
+    const parsed = parseDoc(source, 'zh')
+    expect(parsed.aside).toEqual([
+      {
+        kind: 'example',
+        role: 'request',
+        samples: [
+          { label: 'cURL', code: 'curl {{baseUrl}}', lang: 'bash' },
+          { label: 'Python', code: 'print(1)', lang: 'python' },
+        ],
+      },
+      {
+        kind: 'example',
+        role: 'response',
+        samples: [{ label: '200', code: '{}', lang: 'json' }],
+      },
+    ])
+    // 示例同时留在正文原位，窄屏没有右侧栏时显示
+    expect(parsed.blocks).toEqual(parsed.aside)
+    expect(parseDoc('## 概述', 'zh').aside).toEqual([])
+  })
+
+  it('rejects an example tab that is not a single code block', () => {
+    expect(() =>
+      parseDoc(':::request-example\n@tab cURL\nplain text\n:::', 'zh')
+    ).toThrow(/exactly one code block/)
+  })
+
+  it('renders a :::params table as a field list with type and required tags', () => {
+    const source = [
+      ':::params',
+      '| 参数 | 类型 | 必填 | 说明 |',
+      '| --- | --- | --- | --- |',
+      '| `model` | string | 是 | 模型名，见 [模型列表](/docs/api-models) |',
+      '| `stream` | boolean | 否 | 是否流式 |',
+      ':::',
+    ].join('\n')
+    const [block] = parseDoc(source, 'zh').blocks
+    expect(block.kind).toBe('html')
+    if (block.kind !== 'html') return
+    const doc = new DOMParser().parseFromString(block.html, 'text/html')
+    const fields = [...doc.querySelectorAll('.docs-field')]
+    expect(
+      fields.map((el) => el.querySelector('.docs-field-name')?.textContent)
+    ).toEqual(['model', 'stream'])
+    expect(
+      fields.map((el) => el.querySelector('.docs-field-type')?.textContent)
+    ).toEqual(['string', 'boolean'])
+    // 只有必填参数带标签
+    expect(
+      fields.map(
+        (el) => el.querySelector('.docs-field-required')?.textContent ?? null
+      )
+    ).toEqual(['必填', null])
+    expect(
+      fields[0].querySelector('.docs-field-desc a')?.getAttribute('href')
+    ).toBe('/docs/api-models')
+  })
+
+  it('renders a two-column :::params table without type or required tags', () => {
+    const source = [
+      ':::params',
+      '| Field | Description |',
+      '| --- | --- |',
+      '| `data[].id` | Model name |',
+      ':::',
+    ].join('\n')
+    const [block] = parseDoc(source, 'en').blocks
+    expect(block.kind === 'html' && block.html).toContain('Model name')
+    expect(block.kind === 'html' && block.html).not.toContain('docs-field-type')
+    expect(block.kind === 'html' && block.html).not.toContain(
+      'docs-field-required'
+    )
+  })
 })
 
 describe('fillDocVariables', () => {
@@ -186,5 +279,25 @@ describe('renderDocHtml', () => {
     expect(html).toContain('<h4>B</h4>')
     expect(html).toContain('curl https://x.test')
     expect(html).toContain('<code>https://x.test</code>')
+  })
+
+  it('renders the endpoint line and every example sample for crawlers', () => {
+    const parsed = parseDoc(
+      [
+        ':::endpoint{method="POST" path="/v1/messages" operation="messages"}',
+        ':::',
+        ':::response-example',
+        '@tab 200',
+        '```json',
+        '{"ok": true}',
+        '```',
+        ':::',
+      ].join('\n'),
+      'en'
+    )
+    const html = renderDocHtml(parsed, { baseUrl: 'https://x.test' })
+    expect(html).toContain('POST https://x.test/v1/messages')
+    expect(html).toContain('<h4>200</h4>')
+    expect(html).toContain('{&quot;ok&quot;: true}')
   })
 })

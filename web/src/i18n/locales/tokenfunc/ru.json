@@ -1502,6 +1502,7 @@
     "This site or the model provider returned an error ({{status}}). Try again later; if it keeps happening, send the request id to support: {{message}}": "Сайт или поставщик модели вернул ошибку ({{status}}). Повторите позже; если ошибка не исчезает, отправьте request id в поддержку: {{message}}",
     "Requests sent from the playground are real and billed by actual usage.": "Запросы из песочницы настоящие и оплачиваются по фактическому использованию.",
     "Sign in to try this endpoint online.": "Войдите, чтобы опробовать этот эндпоинт онлайн.",
-    "Try it online": "Попробовать онлайн"
+    "Try it online": "Попробовать онлайн",
+    "Examples": "Примеры"
   }
 }

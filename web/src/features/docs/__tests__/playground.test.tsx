@@ -23,7 +23,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { useAuthStore } from '@/stores/auth-store'
 import { useDocsSampleStore } from '@/stores/docs-sample-store'
 
-import { ApiPlaygroundButton } from '../components/api-playground-button'
+import { EndpointBar } from '../components/endpoint-bar'
 import {
   PLAYGROUND_OPERATIONS,
   buildPlaygroundSpec,
@@ -89,9 +89,26 @@ describe('buildPlaygroundSpec', () => {
   })
 })
 
-describe('ApiPlaygroundButton', () => {
+describe('EndpointBar', () => {
+  it('shows the method and the full address with the path', () => {
+    render(
+      <EndpointBar method='POST' path='/v1/messages' operation='messages' />
+    )
+    expect(screen.getByText('POST')).toBeInTheDocument()
+    expect(screen.getByRole('code')).toHaveTextContent(
+      'https://api.example.com/v1/messages'
+    )
+  })
+
+  it('hides the playground button when the operation is unknown', () => {
+    render(<EndpointBar method='GET' path='/v1/other' operation='nope' />)
+    expect(screen.queryByRole('button', { name: 'Try it online' })).toBeNull()
+  })
+
   it('loads the playground only after the first click and passes the key and endpoint', async () => {
-    render(<ApiPlaygroundButton operation='messages' />)
+    render(
+      <EndpointBar method='POST' path='/v1/messages' operation='messages' />
+    )
     expect(clientProps).not.toHaveBeenCalled()
 
     fireEvent.click(screen.getByRole('button', { name: 'Try it online' }))
@@ -108,7 +125,13 @@ describe('ApiPlaygroundButton', () => {
   it('asks visitors to sign in and keeps the button disabled', () => {
     useAuthStore.setState((state) => ({ auth: { ...state.auth, user: null } }))
     useDocsSampleStore.setState({ key: null })
-    render(<ApiPlaygroundButton operation='chat-completions' />)
+    render(
+      <EndpointBar
+        method='POST'
+        path='/v1/chat/completions'
+        operation='chat-completions'
+      />
+    )
 
     expect(
       screen.getByText('Sign in to try this endpoint online.')

@@ -54,6 +54,32 @@ describe('DocsNavList', () => {
     expect(toolsHeader).toHaveAttribute('aria-expanded', 'true')
   })
 
+  it('gives every tool page an icon and leaves other groups without one', () => {
+    const { container } = render(
+      <DocsNavList lang='zh' activeSlug='quick-start' />
+    )
+    const linkFor = (text: string) => screen.getByText(text).closest('a')
+    // 工具组整组带图标位（包括没有品牌的「选择接入方式」），文字保持对齐
+    for (const title of ['选择接入方式', 'Claude Code', 'Cursor', 'Pi']) {
+      expect(
+        linkFor(title)?.querySelector('[data-slot="docs-nav-icon"]')
+      ).not.toBeNull()
+    }
+    expect(
+      linkFor('快速开始')?.querySelector('[data-slot="docs-nav-icon"]')
+    ).toBeNull()
+    expect(
+      container.querySelectorAll('[data-slot="docs-nav-icon"]')
+    ).toHaveLength(12)
+  })
+
+  it('lists Responses right after Chat Completions in the API group', () => {
+    render(<DocsNavList lang='en' activeSlug='quick-start' />)
+    const titles = screen.getAllByRole('link').map((link) => link.textContent)
+    const chat = titles.indexOf('Chat Completions')
+    expect(titles[chat + 1]).toBe('Responses')
+  })
+
   it('re-opens the group of the current page when it was collapsed', () => {
     useDocsNavStore.setState({ collapsed: ['tools', 'api'] })
     render(<DocsNavList lang='en' activeSlug='tools-cursor' />)

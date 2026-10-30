@@ -41,6 +41,8 @@ export type DocsPageEntry = {
   description: Localized
   /** 页面里 {{model}} 默认取的模型系列；不写则页面不出现模型选择 */
   model?: ModelFamily
+  /** 侧栏图标，取 @lobehub/icons 的图标名（单色版，跟随文字颜色） */
+  icon?: string
 }
 
 export type DocsNavGroup = {
@@ -106,6 +108,7 @@ export const DOCS_PAGES: DocsPageEntry[] = [
   {
     slug: 'tools-claude-code',
     group: 'tools',
+    icon: 'ClaudeCode',
     model: 'claude',
     title: { zh: 'Claude Code', en: 'Claude Code' },
     description: {
@@ -116,6 +119,7 @@ export const DOCS_PAGES: DocsPageEntry[] = [
   {
     slug: 'tools-codex',
     group: 'tools',
+    icon: 'Codex',
     model: 'gpt',
     title: { zh: 'Codex', en: 'Codex' },
     description: {
@@ -126,6 +130,7 @@ export const DOCS_PAGES: DocsPageEntry[] = [
   {
     slug: 'tools-cursor',
     group: 'tools',
+    icon: 'Cursor',
     model: 'gpt',
     title: { zh: 'Cursor', en: 'Cursor' },
     description: {
@@ -136,6 +141,7 @@ export const DOCS_PAGES: DocsPageEntry[] = [
   {
     slug: 'tools-cline',
     group: 'tools',
+    icon: 'Cline',
     model: 'claude',
     title: { zh: 'Cline', en: 'Cline' },
     description: {
@@ -146,6 +152,7 @@ export const DOCS_PAGES: DocsPageEntry[] = [
   {
     slug: 'tools-trae',
     group: 'tools',
+    icon: 'Trae',
     model: 'deepseek',
     title: { zh: 'Trae', en: 'Trae' },
     description: {
@@ -156,6 +163,7 @@ export const DOCS_PAGES: DocsPageEntry[] = [
   {
     slug: 'tools-workbuddy',
     group: 'tools',
+    icon: 'Tencent',
     model: 'deepseek',
     title: { zh: 'WorkBuddy', en: 'WorkBuddy' },
     description: {
@@ -166,6 +174,7 @@ export const DOCS_PAGES: DocsPageEntry[] = [
   {
     slug: 'tools-deepseek-harness',
     group: 'tools',
+    icon: 'DeepSeek',
     model: 'deepseek',
     title: { zh: 'DeepSeek Harness', en: 'DeepSeek Harness' },
     description: {
@@ -176,6 +185,7 @@ export const DOCS_PAGES: DocsPageEntry[] = [
   {
     slug: 'tools-hermes',
     group: 'tools',
+    icon: 'HermesAgent',
     model: 'claude',
     title: { zh: 'Hermes Agent', en: 'Hermes Agent' },
     description: {
@@ -186,6 +196,7 @@ export const DOCS_PAGES: DocsPageEntry[] = [
   {
     slug: 'tools-pi',
     group: 'tools',
+    icon: 'Pi',
     model: 'claude',
     title: { zh: 'Pi', en: 'Pi' },
     description: {
@@ -196,6 +207,7 @@ export const DOCS_PAGES: DocsPageEntry[] = [
   {
     slug: 'tools-openclaw',
     group: 'tools',
+    icon: 'OpenClaw',
     model: 'claude',
     title: { zh: 'OpenClaw', en: 'OpenClaw' },
     description: {
@@ -206,6 +218,7 @@ export const DOCS_PAGES: DocsPageEntry[] = [
   {
     slug: 'tools-openai-client',
     group: 'tools',
+    icon: 'OpenAI',
     model: 'gpt',
     title: {
       zh: '其他 OpenAI 兼容客户端',
@@ -245,16 +258,6 @@ export const DOCS_PAGES: DocsPageEntry[] = [
     },
   },
   {
-    slug: 'api-messages',
-    group: 'api',
-    model: 'claude',
-    title: { zh: 'Anthropic Messages', en: 'Anthropic Messages' },
-    description: {
-      zh: 'Anthropic 原生格式的对话接口：思考、看图、工具调用与提示词缓存。',
-      en: 'The Anthropic-native chat endpoint: thinking, vision, tool use and prompt caching.',
-    },
-  },
-  {
     slug: 'api-responses',
     group: 'api',
     model: 'gpt',
@@ -262,6 +265,16 @@ export const DOCS_PAGES: DocsPageEntry[] = [
     description: {
       zh: 'OpenAI Responses 接口，Codex 等工具使用它。',
       en: 'The OpenAI Responses endpoint used by Codex and similar tools.',
+    },
+  },
+  {
+    slug: 'api-messages',
+    group: 'api',
+    model: 'claude',
+    title: { zh: 'Anthropic Messages', en: 'Anthropic Messages' },
+    description: {
+      zh: 'Anthropic 原生格式的对话接口：思考、看图、工具调用与提示词缓存。',
+      en: 'The Anthropic-native chat endpoint: thinking, vision, tool use and prompt caching.',
     },
   },
   {

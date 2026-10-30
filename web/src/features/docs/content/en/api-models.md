@@ -62,20 +62,20 @@ for await (const model of client.models.list()) {
 ## Response fields
 
 :::params
-| Field                             | Description                                                                                                                     |
-| --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
-| `data[].id`                       | The model name to pass as `model`                                                                                               |
-| `data[].owned_by`                 | The vendor of the model                                                                                                         |
-| `data[].created`                  | When the record was created (Unix seconds), not the model's release date                                                        |
-| `data[].supported_endpoint_types` | Endpoint formats the model supports, such as `openai` (Chat Completions), `openai-response` (Responses), `anthropic` (Messages) |
+| Field                             | Description                                                                                                                                                                                                                                                |
+| --------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `data[].id`                       | The model name to pass as `model`                                                                                                                                                                                                                          |
+| `data[].owned_by`                 | The vendor of the model; models without a registered vendor show `custom`                                                                                                                                                                                  |
+| `data[].created`                  | When the record was created (Unix seconds), not the model's release date                                                                                                                                                                                   |
+| `data[].supported_endpoint_types` | Endpoint formats the model supports. Common values: `openai` (Chat Completions), `openai-response` (Responses), `anthropic` (Messages), `gemini` (Gemini native), `image-generation` (image generation), `embeddings` (embeddings), `openai-video` (video) |
 :::
 
 ## Other formats
 
 The same address answers in the format each SDK expects, based on the headers:
 
-| Request                                          | Response format                                                                            |
-| ------------------------------------------------ | ------------------------------------------------------------------------------------------ |
-| `Authorization: Bearer`                          | OpenAI format (above)                                                                      |
-| Both `x-api-key` and `anthropic-version` headers | Anthropic format: `{"data": [{"id", "display_name", "type": "model"}], "has_more": false}` |
-| `GET /v1beta/models`, or with `x-goog-api-key`   | Gemini format: `{"models": [{"name", "displayName"}]}`                                     |
+| Request                                                                      | Response format                                                                                                                 |
+| ---------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| `Authorization: Bearer`                                                      | OpenAI format (above)                                                                                                           |
+| Both `x-api-key` and `anthropic-version` headers                             | Anthropic format: `{"data": [{"id", "display_name", "type": "model", "created_at"}], "first_id", "last_id", "has_more": false}` |
+| `GET /v1beta/models`, or with an `x-goog-api-key` header / `?key=` parameter | Gemini format: `{"models": [{"name", "displayName"}], "nextPageToken": null}`                                                   |

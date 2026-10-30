@@ -33,13 +33,13 @@ curl {{baseUrl}}/v1/messages \
 
 When you create or edit a key you can set these limits; requests beyond them are rejected:
 
-| Limit          | When exceeded                         |
-| -------------- | ------------------------------------- |
-| Quota cap      | `401` once the key's quota is used up |
-| Allowed models | `403` for models the key may not use  |
-| IP allowlist   | `403` for requests from other IPs     |
-| Expiry         | `401` after expiry                    |
-| Group          | Only the group's models are available |
+| Limit          | When exceeded                                                                                                  |
+| -------------- | -------------------------------------------------------------------------------------------------------------- |
+| Quota cap      | `401` once the key's quota is used up                                                                          |
+| Allowed models | `403` for models the key may not use                                                                           |
+| IP allowlist   | `403` for requests from other IPs                                                                              |
+| Expiry         | `401` after expiry                                                                                             |
+| Group          | Only the group's models are available; `403` if the group is not available to your account or has been retired |
 
 ## Security advice
 

@@ -62,20 +62,20 @@ for await (const model of client.models.list()) {
 ## 响应字段
 
 :::params
-| 字段                              | 说明                                                                                                           |
-| --------------------------------- | -------------------------------------------------------------------------------------------------------------- |
-| `data[].id`                       | 模型名，调用时填到 `model` 参数                                                                                |
-| `data[].owned_by`                 | 模型所属厂商                                                                                                   |
-| `data[].created`                  | 记录创建时间（Unix 秒），不代表模型发布时间                                                                    |
-| `data[].supported_endpoint_types` | 该模型支持的接口格式，如 `openai`（Chat Completions）、`openai-response`（Responses）、`anthropic`（Messages） |
+| 字段                              | 说明                                                                                                                                                                                                                       |
+| --------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `data[].id`                       | 模型名，调用时填到 `model` 参数                                                                                                                                                                                            |
+| `data[].owned_by`                 | 模型所属厂商；本站未登记厂商的模型显示为 `custom`                                                                                                                                                                          |
+| `data[].created`                  | 记录创建时间（Unix 秒），不代表模型发布时间                                                                                                                                                                                |
+| `data[].supported_endpoint_types` | 该模型支持的接口格式，常见值：`openai`（Chat Completions）、`openai-response`（Responses）、`anthropic`（Messages）、`gemini`（Gemini 原生）、`image-generation`（图片生成）、`embeddings`（向量）、`openai-video`（视频） |
 :::
 
 ## 其他格式
 
 同一个地址会按请求头返回不同 SDK 需要的格式：
 
-| 请求方式                                     | 返回格式                                                                                 |
-| -------------------------------------------- | ---------------------------------------------------------------------------------------- |
-| `Authorization: Bearer`                      | OpenAI 格式（上面的示例）                                                                |
-| `x-api-key` + `anthropic-version` 两个请求头 | Anthropic 格式：`{"data": [{"id", "display_name", "type": "model"}], "has_more": false}` |
-| `GET /v1beta/models`，或带 `x-goog-api-key`  | Gemini 格式：`{"models": [{"name", "displayName"}]}`                                     |
+| 请求方式                                                          | 返回格式                                                                                                                      |
+| ----------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| `Authorization: Bearer`                                           | OpenAI 格式（上面的示例）                                                                                                     |
+| `x-api-key` + `anthropic-version` 两个请求头                      | Anthropic 格式：`{"data": [{"id", "display_name", "type": "model", "created_at"}], "first_id", "last_id", "has_more": false}` |
+| `GET /v1beta/models`，或带 `x-goog-api-key` 请求头 / `?key=` 参数 | Gemini 格式：`{"models": [{"name", "displayName"}], "nextPageToken": null}`                                                   |

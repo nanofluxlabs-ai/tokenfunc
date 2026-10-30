@@ -59,24 +59,35 @@ console.log(resp.choices[0].message.content)
 ## Request parameters
 
 :::params
-| Parameter             | Type            | Required | Description                                                                                                                         |
-| --------------------- | --------------- | -------- | ----------------------------------------------------------------------------------------------------------------------------------- |
-| `model`               | string          | Yes      | Model name, see [List models](/docs/api-models)                                                                                     |
-| `messages`            | array           | Yes      | The conversation; each message has a `role` (`system` / `user` / `assistant` / `tool`) and `content`                                |
-| `stream`              | boolean         | No       | Stream the reply as SSE when `true`. Default `false`                                                                                |
-| `stream_options`      | object          | No       | Streaming options. This site returns usage at the end by default; pass `{"include_usage": false}` to turn it off                    |
-| `max_tokens`          | integer         | No       | Maximum tokens to generate. Some newer models use `max_completion_tokens`                                                           |
-| `temperature`         | number          | No       | Randomness, 0 to 2. Low (such as 0.2) for code and extraction, higher (such as 1) for creative work                                 |
-| `top_p`               | number          | No       | Nucleus sampling, 0 to 1; usually tune this or `temperature`, not both                                                              |
-| `stop`                | string / array  | No       | Stop generating at these strings                                                                                                    |
-| `n`                   | integer         | No       | Number of candidate replies; billed on the total output                                                                             |
-| `tools`               | array           | No       | Tools the model may call, see [Tool calling](#tool-calling) below                                                                   |
-| `tool_choice`         | string / object | No       | `auto` / `none` / `required`, or a specific tool                                                                                    |
-| `parallel_tool_calls` | boolean         | No       | Whether several tools may be called at once                                                                                         |
-| `response_format`     | object          | No       | Structured output, see [Structured output](#structured-output) below                                                                |
-| `reasoning_effort`    | string          | No       | Reasoning effort: `none` / `minimal` / `low` / `medium` / `high` / `xhigh` / `max`, see [Reasoning models](#reasoning-models) below |
-| `user`                | string          | No       | Your end-user identifier, useful for troubleshooting                                                                                |
+| Parameter               | Type            | Required | Description                                                                                                                                         |
+| ----------------------- | --------------- | -------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `model`                 | string          | Yes      | Model name, see [List models](/docs/api-models)                                                                                                     |
+| `messages`              | array           | Yes      | The conversation; each message has a `role` (`system` / `developer` / `user` / `assistant` / `tool`) and `content`; `developer` works like `system` |
+| `stream`                | boolean         | No       | Stream the reply as SSE when `true`. Default `false`                                                                                                |
+| `stream_options`        | object          | No       | Streaming options. This site returns usage at the end by default; pass `{"include_usage": false}` to turn it off                                    |
+| `max_completion_tokens` | integer         | No       | Maximum tokens to generate, reasoning tokens included; the recommended field                                                                        |
+| `max_tokens`            | integer         | No       | Legacy form of `max_completion_tokens`; this site converts it per model automatically                                                               |
+| `temperature`           | number          | No       | Randomness, 0 to 2. Low (such as 0.2) for code and extraction, higher (such as 1) for creative work                                                 |
+| `top_p`                 | number          | No       | Nucleus sampling, 0 to 1; usually tune this or `temperature`, not both                                                                              |
+| `stop`                  | string / array  | No       | Stop generating at these strings                                                                                                                    |
+| `n`                     | integer         | No       | Number of candidate replies, billed on the total output; only OpenAI and OpenAI-compatible models, no effect on Claude / Gemini                     |
+| `frequency_penalty`     | number          | No       | Discourages repeated wording, -2 to 2; only OpenAI and OpenAI-compatible models, no effect on Claude / Gemini                                       |
+| `presence_penalty`      | number          | No       | Encourages new topics, -2 to 2; only OpenAI and OpenAI-compatible models, no effect on Claude / Gemini                                              |
+| `seed`                  | integer         | No       | Random seed; repeated requests try to return the same result, not guaranteed. Deprecated by OpenAI                                                  |
+| `logprobs`              | boolean         | No       | Return log probabilities of the output tokens; only OpenAI and OpenAI-compatible models, no effect on Claude / Gemini                               |
+| `top_logprobs`          | integer         | No       | How many candidate tokens to return per position, 0 to 20; requires `logprobs`                                                                      |
+| `tools`                 | array           | No       | Tools the model may call, see [Tool calling](#tool-calling) below                                                                                   |
+| `tool_choice`           | string / object | No       | `auto` / `none` / `required`, or a specific tool                                                                                                    |
+| `parallel_tool_calls`   | boolean         | No       | Whether several tools may be called at once                                                                                                         |
+| `response_format`       | object          | No       | Structured output, see [Structured output](#structured-output) below                                                                                |
+| `reasoning_effort`      | string          | No       | Reasoning effort: `none` / `minimal` / `low` / `medium` / `high` / `xhigh` / `max`, see [Reasoning models](#reasoning-models) below                 |
+| `reasoning`             | object          | No       | Object form of the reasoning settings, such as `{"effort": "medium", "exclude": false}`, see [Reasoning models](#reasoning-models) below            |
+| `web_search_options`    | object          | No       | Web search options, for GPT models with search and for Claude                                                                                       |
+| `prompt_cache_key`      | string          | No       | Cache grouping key; send the same value on requests that share a prefix to raise the cache hit rate                                                 |
+| `user`                  | string          | No       | End-user identifier. Deprecated by OpenAI; use `prompt_cache_key` for cache grouping                                                                |
 :::
+
+Only common parameters are listed. See the [OpenAI API reference](https://platform.openai.com/docs/api-reference/chat/create) for the rest; most are forwarded upstream as is. This site does not forward `service_tier`, `safety_identifier`, `moderation` and `stream_options.include_obfuscation`; they are ignored if sent.
 
 Besides a string, `content` can be an array that mixes text and images, see [Vision](#vision) below.
 
@@ -112,14 +123,17 @@ Besides a string, `content` can be an array that mixes text and images, see [Vis
 ## Response fields
 
 :::params
-| Field                                       | Description                                                                                       |
-| ------------------------------------------- | ------------------------------------------------------------------------------------------------- |
-| `choices[].message.content`                 | The model's answer                                                                                |
-| `choices[].message.reasoning_content`       | Reasoning text (only some reasoning models)                                                       |
-| `choices[].message.tool_calls`              | Tools the model wants to call                                                                     |
-| `choices[].finish_reason`                   | Why it stopped: `stop` finished normally, `length` hit the token limit, `tool_calls` wants a tool |
-| `usage.prompt_tokens` / `completion_tokens` | Input / output tokens, the basis for billing                                                      |
-| `usage.prompt_tokens_details.cached_tokens` | Input tokens served from the cache                                                                |
+| Field                                                        | Description                                                                                                                                       |
+| ------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `choices[].message.content`                                  | The model's answer                                                                                                                                |
+| `choices[].message.reasoning_content`                        | Reasoning text (only some reasoning models)                                                                                                       |
+| `choices[].message.tool_calls`                               | Tools the model wants to call                                                                                                                     |
+| `choices[].message.refusal`                                  | The model's explanation when it refuses (only some OpenAI models)                                                                                 |
+| `choices[].message.annotations`                              | Web pages cited during web search                                                                                                                 |
+| `choices[].finish_reason`                                    | Why it stopped: `stop` finished normally, `length` hit the token limit, `tool_calls` wants a tool, `content_filter` blocked by content moderation |
+| `usage.prompt_tokens` / `completion_tokens` / `total_tokens` | Input / output / total tokens, the basis for billing                                                                                              |
+| `usage.prompt_tokens_details.cached_tokens`                  | Input tokens served from the cache                                                                                                                |
+| `usage.completion_tokens_details.reasoning_tokens`           | Tokens spent on reasoning, already counted in `completion_tokens`                                                                                 |
 :::
 
 ## Streaming

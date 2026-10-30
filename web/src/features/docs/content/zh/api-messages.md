@@ -58,24 +58,40 @@ console.log(resp.content[0].text)
 
 鉴权可以用 `x-api-key`，也可以用 `Authorization: Bearer`，见 [鉴权](/docs/api-authentication)。
 
+## 请求头
+
+:::params
+| 请求头              | 必填 | 说明                                                                                              |
+| ------------------- | ---- | ------------------------------------------------------------------------------------------------- |
+| `x-api-key`         | 是   | 本站密钥，也可以改用 `Authorization: Bearer`                                                      |
+| `anthropic-version` | 否   | API 版本，不传时本站按 `2023-06-01` 转发。`2026-10-21` 起不再接受 `temperature`、`top_p`、`top_k` |
+| `anthropic-beta`    | 否   | 开启测试功能，原样透传给上游，多个值用逗号分隔                                                    |
+:::
+
 ## 请求参数
 
 :::params
-| 参数             | 类型           | 必填 | 说明                                                                          |
-| ---------------- | -------------- | ---- | ----------------------------------------------------------------------------- |
-| `model`          | string         | 是   | 模型名                                                                        |
-| `messages`       | array          | 是   | 对话消息，`role` 为 `user` 或 `assistant`，`content` 可以是字符串或内容块数组 |
-| `max_tokens`     | integer        | 是   | 最多生成的 Token 数                                                           |
-| `system`         | string / array | 否   | 系统提示词；写成内容块数组时可以加 `cache_control`                            |
-| `stream`         | boolean        | 否   | 是否流式返回                                                                  |
-| `temperature`    | number         | 否   | 随机性，0～1                                                                  |
-| `stop_sequences` | array          | 否   | 遇到这些字符串时停止                                                          |
-| `tools`          | array          | 否   | 工具定义（`name`、`description`、`input_schema`）                             |
-| `tool_choice`    | object         | 否   | 工具调用策略                                                                  |
-| `thinking`       | object         | 否   | 开启思考，如 `{"type": "enabled", "budget_tokens": 8000}`                     |
+| 参数             | 类型           | 必填 | 说明                                                                                                                                                                       |
+| ---------------- | -------------- | ---- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `model`          | string         | 是   | 模型名                                                                                                                                                                     |
+| `messages`       | array          | 是   | 对话消息，`role` 为 `user` 或 `assistant`，`content` 可以是字符串或内容块数组                                                                                              |
+| `max_tokens`     | integer        | 是   | 最多生成的 Token 数                                                                                                                                                        |
+| `system`         | string / array | 否   | 系统提示词；写成内容块数组时可以加 `cache_control`                                                                                                                         |
+| `stream`         | boolean        | 否   | 是否流式返回                                                                                                                                                               |
+| `stop_sequences` | array          | 否   | 遇到这些字符串时停止                                                                                                                                                       |
+| `tools`          | array          | 否   | 工具定义（`name`、`description`、`input_schema`）                                                                                                                          |
+| `tool_choice`    | object         | 否   | 工具调用策略：`auto` 模型自己决定（默认），`any` 必须调用某个工具，`tool` 调用 `name` 指定的工具，`none` 不调用。加 `"disable_parallel_tool_use": true` 一次最多调一个工具 |
+| `thinking`       | object         | 否   | 思考设置，推荐 `{"type": "adaptive"}`，由模型决定想多深，见下方 [思考](#思考)                                                                                              |
+| `output_config`  | object         | 否   | 输出设置：`effort` 控制投入程度（`low` / `medium` / `high` / `xhigh` / `max`）；`format` 传 `{"type": "json_schema", "schema": {...}}` 让回答符合指定的 JSON Schema        |
+| `cache_control`  | object         | 否   | 写在顶层时自动缓存到最后一个可缓存的内容块，见 [提示词缓存](#提示词缓存)                                                                                                   |
+| `metadata`       | object         | 否   | 请求元数据，`user_id` 填终端用户的匿名标识，不要放姓名、邮箱、手机号                                                                                                       |
 :::
 
-内容块类型包括 `text`、`image`、`tool_use`、`tool_result`，在内容块上添加 `cache_control` 可以使用提示词缓存。
+内容块类型包括 `text`、`image`、`document`（PDF 等文档）、`tool_use`、`tool_result`；开启思考后，工具调用的多轮对话要把返回的 `thinking` 块原样带回。在内容块上添加 `cache_control` 可以使用提示词缓存。
+
+不要传 `temperature`、`top_p`、`top_k`：Claude 4.7 及之后的模型传非默认值会返回 400，`anthropic-version: 2026-10-21` 起任何模型带这三个参数都会返回 400。
+
+表里只列常用参数，更多参数见 [Anthropic 官方文档](https://platform.claude.com/docs/en/api/messages)，大部分会原样转发给上游；`service_tier`、`inference_geo`、`speed`、`diagnostics` 本站不转发，传了会被忽略。
 
 :::response-example
 @tab 200
@@ -88,11 +104,17 @@ console.log(resp.content[0].text)
   "model": "{{model}}",
   "content": [{ "type": "text", "text": "你好！有什么可以帮你的吗？" }],
   "stop_reason": "end_turn",
+  "stop_sequence": null,
   "usage": {
     "input_tokens": 18,
     "output_tokens": 12,
     "cache_creation_input_tokens": 0,
-    "cache_read_input_tokens": 0
+    "cache_read_input_tokens": 0,
+    "cache_creation": {
+      "ephemeral_5m_input_tokens": 0,
+      "ephemeral_1h_input_tokens": 0
+    },
+    "service_tier": "standard"
   }
 }
 ```
@@ -101,12 +123,32 @@ console.log(resp.content[0].text)
 ## 响应字段
 
 :::params
-| 字段          | 说明                                                                |
-| ------------- | ------------------------------------------------------------------- |
-| `content[]`   | 回答内容块，常见 `text`、`thinking`（思考）、`tool_use`（工具调用） |
-| `stop_reason` | `end_turn` 正常结束，`max_tokens` 达到上限，`tool_use` 需要调用工具 |
-| `usage`       | 输入、输出、缓存写入、缓存读取的 Token 数                           |
+| 字段                                                            | 说明                                                                                                               |
+| --------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
+| `content[]`                                                     | 回答内容块，常见 `text`、`thinking`（思考）、`tool_use`（工具调用）                                                |
+| `stop_reason`                                                   | 结束原因，取值见下表                                                                                               |
+| `stop_sequence`                                                 | 命中的停止序列，只有 `stop_reason` 为 `stop_sequence` 时才有值，否则为 `null`                                      |
+| `stop_details`                                                  | 结束的补充说明，目前只在 `refusal` 时返回，含 `category`（如 `cyber`、`bio`）和 `explanation`                      |
+| `usage.input_tokens`                                            | 未命中缓存的普通输入 Token 数                                                                                      |
+| `usage.output_tokens`                                           | 输出 Token 数，含思考，计费依据                                                                                    |
+| `usage.cache_creation_input_tokens` / `cache_read_input_tokens` | 写入缓存 / 命中缓存的 Token 数                                                                                     |
+| `usage.cache_creation`                                          | 缓存写入按时长拆分：`ephemeral_5m_input_tokens`（5 分钟）、`ephemeral_1h_input_tokens`（1 小时），两种写入价格不同 |
+| `usage.output_tokens_details.thinking_tokens`                   | 输出中用于思考的 Token 数，已包含在 `output_tokens` 里                                                             |
+| `usage.server_tool_use`                                         | 服务端工具调用次数：`web_search_requests`、`web_fetch_requests`                                                    |
+| `usage.service_tier`                                            | 实际使用的服务等级：`standard`、`priority` 或 `batch`                                                              |
 :::
+
+`stop_reason` 的取值：
+
+| 取值                            | 含义                                                                                      |
+| ------------------------------- | ----------------------------------------------------------------------------------------- |
+| `end_turn`                      | 正常结束                                                                                  |
+| `max_tokens`                    | 达到 `max_tokens` 或模型上限，回答被截断                                                  |
+| `stop_sequence`                 | 遇到了 `stop_sequences` 里的字符串                                                        |
+| `tool_use`                      | 需要调用工具                                                                              |
+| `pause_turn`                    | 长时间运行的一轮被暂停。把这次返回的内容原样作为 `assistant` 消息再请求一次，模型会接着做 |
+| `refusal`                       | 模型拒绝回答，原因见 `stop_details`                                                       |
+| `model_context_window_exceeded` | 超出了模型的上下文窗口                                                                    |
 
 ## 流式输出
 
@@ -158,7 +200,7 @@ await stream.finalMessage()
 
 ### 思考
 
-传 `thinking` 参数开启思考，`budget_tokens` 是思考可用的最大 Token 数，要小于 `max_tokens`。返回的 `content` 里先是 `thinking` 块，再是 `text` 块。
+传 `"thinking": {"type": "adaptive"}` 开启思考，由模型根据问题决定想多深；想得多还是少用 `output_config.effort` 调，取值 `low` / `medium` / `high` / `xhigh` / `max`，不传按模型默认。返回的 `content` 里先是 `thinking` 块，再是 `text` 块。Claude 5 及之后的模型默认不返回思考原文，要看到需加 `"display": "summarized"`。
 
 :::tabs
 @tab cURL
@@ -171,7 +213,8 @@ curl {{baseUrl}}/v1/messages \
   -d '{
     "model": "{{model}}",
     "max_tokens": 16000,
-    "thinking": {"type": "enabled", "budget_tokens": 8000},
+    "thinking": {"type": "adaptive", "display": "summarized"},
+    "output_config": {"effort": "high"},
     "messages": [{"role": "user", "content": "证明根号 2 是无理数"}]
   }'
 ```
@@ -182,7 +225,8 @@ curl {{baseUrl}}/v1/messages \
 resp = client.messages.create(
     model="{{model}}",
     max_tokens=16000,
-    thinking={"type": "enabled", "budget_tokens": 8000},
+    thinking={"type": "adaptive", "display": "summarized"},
+    output_config={"effort": "high"},
     messages=[{"role": "user", "content": "证明根号 2 是无理数"}],
 )
 for block in resp.content:
@@ -192,6 +236,8 @@ for block in resp.content:
         print("最终回答：", block.text)
 ```
 :::
+
+旧写法 `{"type": "enabled", "budget_tokens": 8000}` 只适用于 Claude 4.6 及更早的模型（4.6 上已弃用），Claude 4.7 及之后的模型会返回 400；反过来，Claude 4.5 及更早的模型不支持 `adaptive`，只能用旧写法，`budget_tokens` 至少 1024 且要小于 `max_tokens`。
 
 只能填模型名的工具，也可以在模型名后加 `-thinking` 开启思考。
 
@@ -304,6 +350,8 @@ print(final.content[0].text)
 
 很多请求的开头是一样的：同一份系统提示词、同一份长文档、同一组工具定义。在希望缓存到的那一块内容上加 `"cache_control": {"type": "ephemeral"}`，从开头到这一块的全部内容都会被缓存，下次命中时按更低的缓存价计费，首字也更快。
 
+不想自己挑位置时，把 `"cache_control": {"type": "ephemeral"}` 写在请求顶层，会自动缓存到最后一个可缓存的内容块，多轮对话里随消息增长自动后移。
+
 :::tabs
 @tab cURL
 
@@ -348,9 +396,10 @@ print(resp.usage)
 | `cache_creation_input_tokens` | 本次写入缓存的 Token，按缓存写入价计费（比普通输入略贵） |
 | `cache_read_input_tokens`     | 本次命中缓存的 Token，按缓存读取价计费（远低于普通输入） |
 | `input_tokens`                | 未缓存部分的普通输入                                     |
+| `cache_creation`              | 缓存写入按 5 分钟 / 1 小时拆分的 Token 数                |
 
 - 缓存按前缀匹配，从第一个字开始必须完全一样才能命中。把固定内容放在最前面，时间戳、用户名等变化的内容放到最后的用户消息里。
-- 前缀太短不会被缓存，一般要 1024 个 Token 以上，不同模型的门槛不同。
+- 前缀太短不会被缓存，门槛随模型在 512～4096 个 Token 之间，不够时不报错，只是不缓存。
 - 默认缓存约 5 分钟，每次命中会重新计时；需要更久时写 `"cache_control": {"type": "ephemeral", "ttl": "1h"}`，写入价更高。
 - 各模型的缓存读写价格见 [模型广场](/pricing)，每次请求的缓存读写 Token 数可在控制台「使用日志」中查看。
 

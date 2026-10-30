@@ -2,7 +2,7 @@ When a request fails, the API returns the matching HTTP status code and a JSON e
 
 ## Error format
 
-Most errors use the OpenAI format:
+Most errors use the OpenAI format. Errors raised as the request comes in, before any model is called (such as an invalid key), look like this, and `code` may be empty:
 
 ```json
 {
@@ -13,6 +13,21 @@ Most errors use the OpenAI format:
   }
 }
 ```
+
+Errors raised once the request reaches the model also carry a `param` field, and `code` holds a specific error code:
+
+```json
+{
+  "error": {
+    "message": "Insufficient user quota, remaining quota: ... (request id: 2026102912000012345)",
+    "type": "new_api_error",
+    "param": "",
+    "code": "insufficient_user_quota"
+  }
+}
+```
+
+Errors returned by the model provider usually keep the provider's `type`, `param` and `code`.
 
 On `/v1/messages`, errors that happen once the request reaches the model use the Anthropic format:
 
@@ -40,6 +55,18 @@ The `request id` at the end of `message` identifies the request; include it when
 | Other  | An error from the model provider, passed through with its status and message                                             | Depends on the message        |
 
 How to fix each one: [FAQ and troubleshooting](/docs/faq).
+
+## Common error codes
+
+In code, check `code` to tell errors apart; the `message` wording may change:
+
+| `code`                           | Status | Meaning                                                                             |
+| -------------------------------- | ------ | ----------------------------------------------------------------------------------- |
+| `model_not_found`                | `503`  | No available channel for the model in the current group, or a misspelled model name |
+| `insufficient_user_quota`        | `403`  | Not enough account balance (or enterprise credit or subscription quota)             |
+| `pre_consume_token_quota_failed` | `403`  | The key's remaining quota cannot cover this request's pre-charge                    |
+| `access_denied`                  | `403`  | The request IP is not on the key's allowlist                                        |
+| `invalid_request`                | `400`  | Invalid request parameters, such as an image count out of range                     |
 
 ## Errors during streaming
 

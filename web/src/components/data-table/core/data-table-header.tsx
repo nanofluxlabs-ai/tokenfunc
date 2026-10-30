@@ -265,12 +265,14 @@ function renderHeaderContent<TData>(header: Header<TData, unknown>) {
   const { header: headerDef, meta } = header.column.columnDef
   // A string header means the user wrote e.g. `header: t('Name')` — auto-render
   // with DataTableColumnHeader so sorting works without boilerplate.
-  // A function (including TanStack's default accessor-key fallback) is passed
-  // through as-is. meta.label is kept as a fallback for legacy columns.
+  // A custom header function is passed through as-is. meta.label only replaces
+  // TanStack's default accessor-key fallback, for legacy columns without a header.
   if (typeof headerDef === 'string') {
     return <DataTableColumnHeader column={header.column} title={headerDef} />
   }
-  if (meta?.label) {
+  const usesDefaultHeader =
+    headerDef === header.getContext().table._getDefaultColumnDef().header
+  if (meta?.label && usesDefaultHeader) {
     return <DataTableColumnHeader column={header.column} title={meta.label} />
   }
   return flexRender(headerDef, header.getContext())

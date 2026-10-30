@@ -2,8 +2,8 @@
 
 - 日期：2026-10-31
 - 分支：worktree-feat-docs-schema-params
-- PR：
-- 关键 commit：ea196f582（Responses 样板）
+- PR：#75
+- 关键 commit：ea196f582（Responses 样板）、46bde85c6（铺开到其余页面）
 
 ## 背景
 

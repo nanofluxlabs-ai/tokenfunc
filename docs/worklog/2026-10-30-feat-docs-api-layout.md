@@ -2,8 +2,8 @@
 
 - 日期：2026-10-30
 - 分支：worktree-feat-docs-api-layout
-- PR：
-- 关键 commit：
+- PR：#74
+- 关键 commit：c7dce2b87
 
 ## 背景
 

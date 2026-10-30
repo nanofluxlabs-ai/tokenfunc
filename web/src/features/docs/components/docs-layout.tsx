@@ -18,7 +18,7 @@ For commercial licensing, please contact support@quantumnous.com
 */
 import { Link } from '@tanstack/react-router'
 import { ArrowRight, PanelLeft } from 'lucide-react'
-import { useState, type ReactNode } from 'react'
+import { useRef, useState, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { PublicLayout } from '@/components/layout'
@@ -73,6 +73,8 @@ export function DocsLayout(props: {
   const { t } = useTranslation()
   const entry = getDocsEntry(props.slug)
   const [navOpen, setNavOpen] = useState(false)
+  // 通过手机目录切页时置位，抽屉关闭完成后回到顶部
+  const scrollTopOnClose = useRef(false)
   const title = entry.title[props.lang]
 
   return (
@@ -95,9 +97,21 @@ export function DocsLayout(props: {
           </aside>
 
           <div className='min-w-0'>
-            {/* 手机目录入口吸在顶部头部下方，读长文时随时可切页 */}
-            <div className='bg-background/95 sticky top-16 z-30 -mx-4 mb-5 border-b px-4 py-2 backdrop-blur md:-mx-6 md:px-6 lg:hidden'>
-              <Sheet open={navOpen} onOpenChange={setNavOpen}>
+            {/* 手机目录入口吸在顶部头部下方，读长文时随时可切页。
+                吸顶时从视口顶端（top-0）开始铺底色，补上浮动顶栏与入口之间的缝，避免正文从缝里露出；
+                -mt-16 / pt-16 抵消多出来的高度，未吸顶时位置不变 */}
+            <div className='bg-background/95 sticky top-0 z-30 -mx-4 -mt-16 mb-5 border-b px-4 pt-[4.5rem] pb-2 backdrop-blur md:-mx-6 md:px-6 lg:hidden'>
+              <Sheet
+                open={navOpen}
+                onOpenChange={setNavOpen}
+                onOpenChangeComplete={(open) => {
+                  // iOS 在抽屉锁定滚动期间会忽略路由的「回到顶部」，
+                  // 等抽屉完全关闭、滚动解锁后再回到新页面顶部
+                  if (open || !scrollTopOnClose.current) return
+                  scrollTopOnClose.current = false
+                  window.scrollTo({ top: 0 })
+                }}
+              >
                 <SheetTrigger
                   render={
                     <Button
@@ -118,7 +132,10 @@ export function DocsLayout(props: {
                   <DocsNavList
                     lang={props.lang}
                     activeSlug={props.slug}
-                    onNavigate={() => setNavOpen(false)}
+                    onNavigate={() => {
+                      scrollTopOnClose.current = true
+                      setNavOpen(false)
+                    }}
                   />
                 </SheetContent>
               </Sheet>

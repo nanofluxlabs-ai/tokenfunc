@@ -41,6 +41,14 @@
   scroll-margin-top: 6rem;
 }
 
+/* 窄屏（< lg）顶部还叠着吸顶的「文档目录」入口，锚点跳转要多让出它的高度 */
+@media (max-width: 1023.98px) {
+  .docs-prose h2,
+  .docs-prose h3 {
+    scroll-margin-top: 7.5rem;
+  }
+}
+
 .docs-prose h4 {
   color: var(--foreground);
   font-size: 0.875rem;

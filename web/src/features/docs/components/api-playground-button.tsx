@@ -17,7 +17,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 For commercial licensing, please contact support@quantumnous.com
 */
 import { Link } from '@tanstack/react-router'
-import { ChevronUp, Loader2, Play } from 'lucide-react'
+import { Loader2, Play } from 'lucide-react'
 import { lazy, Suspense, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
@@ -36,8 +36,8 @@ import type { PlaygroundOperation } from '../lib/playground-spec'
 const ApiPlaygroundClient = lazy(() => import('./api-playground-client'))
 
 /**
- * API 页上的「在线调试」：点击后在按钮下方原地展开 Scalar 调试面板（首次展开才加载），
- * 预选当前接口、填好默认密钥与本站地址。调试发出的是真实请求，按实际用量扣费。
+ * API 页上的「在线调试」：点击后才加载 Scalar 调试面板，并预选当前接口、填好默认密钥与本站地址。
+ * 调试发出的是真实请求，按实际用量扣费。
  */
 export function ApiPlaygroundButton(props: { operation: PlaygroundOperation }) {
   const { t } = useTranslation()
@@ -47,7 +47,7 @@ export function ApiPlaygroundButton(props: { operation: PlaygroundOperation }) {
   const baseUrl = useDocsBaseUrl()
   const models = useDocsFamilyModels()
   const vars = useDocsVariables()
-  const [open, setOpen] = useState(false)
+  const [openCount, setOpenCount] = useState(0)
 
   let hint = t(
     'Requests sent from the playground are real and billed by actual usage.'
@@ -57,60 +57,48 @@ export function ApiPlaygroundButton(props: { operation: PlaygroundOperation }) {
     hint = t('Create an API key first to fill it into the samples.')
   }
 
-  const panelId = `docs-playground-${props.operation}`
+  const loading = openCount > 0
   return (
-    <div className='docs-block border-border/60 overflow-hidden rounded-lg border'>
-      <div className='flex flex-col gap-3 p-3 sm:flex-row sm:items-center sm:justify-between'>
-        <p className='text-muted-foreground text-xs leading-5'>
-          {!signedIn || keyState.missing ? (
-            <Link
-              to={signedIn ? '/keys' : '/sign-in'}
-              className='text-foreground underline underline-offset-4'
-            >
-              {hint}
-            </Link>
-          ) : (
-            hint
-          )}
-        </p>
-        <Button
-          size='sm'
-          variant={open ? 'outline' : 'default'}
-          className='shrink-0'
-          disabled={!key}
-          aria-expanded={open}
-          aria-controls={panelId}
-          onClick={() => setOpen((value) => !value)}
-        >
-          {open ? (
-            <ChevronUp className='size-4' aria-hidden='true' />
-          ) : (
-            <Play className='size-4' aria-hidden='true' />
-          )}
-          {open ? t('Collapse') : t('Try it online')}
-        </Button>
-      </div>
-      {key && open && (
-        <div id={panelId} className='border-border/60 h-[640px] border-t'>
-          <Suspense
-            fallback={
-              <div className='flex h-full items-center justify-center'>
-                <Loader2
-                  className='text-muted-foreground size-5 animate-spin'
-                  aria-label={t('Loading')}
-                />
-              </div>
-            }
+    <div className='docs-block border-border/60 flex flex-col gap-3 rounded-lg border p-3 sm:flex-row sm:items-center sm:justify-between'>
+      <p className='text-muted-foreground text-xs leading-5'>
+        {!signedIn || keyState.missing ? (
+          <Link
+            to={signedIn ? '/keys' : '/sign-in'}
+            className='text-foreground underline underline-offset-4'
           >
-            <ApiPlaygroundClient
-              baseUrl={baseUrl}
-              siteName={vars.siteName}
-              apiKey={key.value}
-              models={models}
-              operation={props.operation}
+            {hint}
+          </Link>
+        ) : (
+          hint
+        )}
+      </p>
+      <Button
+        size='sm'
+        className='shrink-0'
+        disabled={!key}
+        onClick={() => setOpenCount((count) => count + 1)}
+      >
+        <Play className='size-4' aria-hidden='true' />
+        {t('Try it online')}
+      </Button>
+      {key && loading && (
+        <Suspense
+          fallback={
+            <Loader2
+              className='text-muted-foreground size-4 animate-spin'
+              aria-label={t('Loading')}
             />
-          </Suspense>
-        </div>
+          }
+        >
+          <ApiPlaygroundClient
+            baseUrl={baseUrl}
+            siteName={vars.siteName}
+            apiKey={key.value}
+            models={models}
+            operation={props.operation}
+            openCount={openCount}
+          />
+        </Suspense>
       )}
     </div>
   )

@@ -202,8 +202,3 @@
 .docs-callout-body .docs-prose {
   line-height: 1.5rem;
 }
-
-/* 内嵌的 Scalar 调试面板沿用弹窗布局，隐藏其固定在视口右上角的关闭按钮 */
-.docs-playground-panel .app-exit-button {
-  display: none;
-}

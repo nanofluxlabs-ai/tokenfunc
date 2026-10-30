@@ -3,7 +3,7 @@
 - 日期：2026-10-30
 - 分支：worktree-feat-docs-api-playground
 - PR：#73
-- 关键 commit：31c663377（弹窗版）；追加提交改为页内嵌入 + 目录悬停展开
+- 关键 commit：31c663377；追加：右侧目录悬停展开、调试面板界面本地化
 
 ## 背景
 
@@ -62,86 +62,54 @@
   - Chat Completions 页点「在线调试」：面板为暗色主题，Bearer 已填入 default 密钥，请求体预填 `gpt-5`。点 Send 后网关返回 `do_request_failed`，原因是示例数据的渠道没有真实上游，说明请求确实到达了网关。
   - Gemini 页：路径参数 model 预填 `gemini-3-pro`，用 `x-goog-api-key` 鉴权。网关返回 `model_price_error`（示例数据里的该模型未定价），同样说明请求到达了网关。
 
-## 遗留
-
-- 调试面板的界面是英文，由 Scalar 内置，跟随站点语言需要额外接入它的本地化包。
-- 首次打开调试面板要下载约 0.87 MB（gzip）。如果后续调试使用频繁，可以考虑在鼠标悬停按钮时预加载。
-- embeddings、rerank、音频接口的文档页没有做，需要时另开一期。
-
-## 追加：在线调试改为页内嵌入，右侧目录改为悬停展开
+## 追加：右侧目录改为悬停展开，调试面板跟随站点语言
 
 黑鹰反馈两点：
-- 调试面板应该嵌在文档页里，不要弹窗。
 - 右侧目录占了一列，正文被挤窄，表格频繁换行。
+- 调试面板希望嵌入页面、不要弹窗。
 
-**选型**：黑鹰要求先找高星开源项目，以下是对比结果：
-- Stoplight Elements 的 `TryIt`：是 React 内嵌组件，但会带进 react-query v3、react-router-dom v6、jotai 1.x，以及 mosaic 的全局 CSS。
-- RapiDoc 的 `rapi-doc-mini`：
-  - 会把接口文档重复渲染一遍。
-  - Shadow DOM 难统一样式。
-  - 不支持 SSE 流式。
-- swagger-ui-react：界面老旧、体积大。
-- fumadocs-openapi：需要 fumadocs 整套框架。
-- 结论：继续用 Scalar。`@scalar/api-client` 的 exports 公开了以下入口，可以自己挂载，不必走它的弹窗：
-  - `features/operation`
-  - `v2/workspace-events`
-  - `features/localization`
-
-**在线调试**
-- `api-playground-client.tsx` 改为参照 Scalar 弹窗的实现（`create-api-client-modal`）自行挂载：
-  - 页面内所有调试块共用一个 workspace store 和 event bus，事件处理只初始化一次。
-  - 每个调试块用 Vue `createApp` 渲染 `Operation`（layout 为 modal），挂到 React 持有的 div 上，React 卸载时调用 `app.unmount()`。
-- 选用 modal 布局的原因：地址栏不可编辑，鉴权区默认展开，适合文档场景。
-  - 副作用：它会渲染一个 fixed 定位的关闭按钮，在 `tokenfunc-docs.css` 中限定作用域隐藏。
-- 「在线调试」按钮改为展开/收起开关：
-  - `aria-expanded` 和 `aria-controls` 跟随展开状态。
-  - 面板在按钮下方原地展开，高 640px，第一次展开才加载。
-  - 同一页的多个调试块可以分别展开。
-- 界面语言跟随站点：用 `toIntlLocale` 转换后传给 Scalar。
-  - Scalar 内置 zh-CN、zh-TW、fr、ru 的翻译；ja、vi 回落到英文。
-  - 三期遗留的「面板只有英文」问题由此解决。
-- 配色：`light-mode` / `dark-mode` 类加在面板自己的容器上，不再用全局 `querySelectorAll`。
-- 依赖：
-  - 移除 `@scalar/api-client-react`。
-  - 改为直接依赖以下包，均锁定为原来已安装的版本（vue、`@codemirror/state` 仍各只有一份）：
-    - `@scalar/api-client` 3.23.5
-    - `@scalar/workspace-store` 0.69.2
-    - `@scalar/components` 0.33.0
-    - `@scalar/use-toasts` 0.10.6
-    - `vue` 3.5.44
+**调试面板：试过内嵌，最终撤回**
+- 选型：先对比了几个开源项目，都不合适，最后用 Scalar 公开导出的 `Operation` 组件自己挂载，做出了页内展开版本（提交 599c8aed2）。
+  - Stoplight Elements 的 `TryIt`：会带进 react-query v3、react-router 6，以及 mosaic 的全局 CSS。
+  - RapiDoc 的 mini 版：会重复渲染接口文档，并且不支持流式。
+  - swagger-ui：界面陈旧、体积大。
+  - fumadocs：需要引入它的整套框架。
+- 黑鹰看过实际效果后认为嵌在正文里很生硬，并给了 Polymarket（Mintlify）作为参考。
+  - 实测它的「Try it」同样是弹窗。
+  - 它好看的原因在于页面结构：右栏固定放请求和响应示例；地址栏和 Try it 在同一行；参数逐行列出（类型、必填用小标签标出）；弹窗与站点视觉统一。
+- 结论（黑鹰选定方案 A）：
+  - 本 PR 改回 Scalar 弹窗，内嵌代码全部撤回，依赖恢复到 `@scalar/api-client-react`。
+  - Mintlify 式的布局改造新开一期做。
+- 保留的改进：弹窗传入 `localization.locale`，值为 `toIntlLocale` 转换后的站点语言。Scalar 内置 zh-CN、zh-TW、fr、ru 翻译，ja、vi 回落到英文。三期遗留的「面板只有英文」问题由此解决。
 
 **右侧目录**
 - 新增 `components/docs-toc.tsx`：
-  - 固定在视口右侧，默认只显示一列细横线（h2 较长，h3 较短，当前章节加深加长），不占栅格列。
-  - 鼠标悬停或键盘聚焦时，在原位浮出完整目录；点击标题跳到对应锚点（标题已有 `scroll-margin-top`）。
-  - 收起时是一组横线，不是单个触发元素，`ui/hover-card`（Base UI PreviewCard）承载不了，所以改用 CSS `group-hover` / `group-focus-within` 控制显隐。
-- 新增 `hooks/use-active-heading.ts`：监听滚动，取最后一个越过顶部阅读线的标题作为当前章节，并标记 `aria-current="location"`。
-- `docs-layout.tsx`：栅格去掉第三列，正文 `max-w-3xl` 放宽到 `max-w-4xl`（768px → 896px）。
+  - 固定在视口右侧，默认只显示一列细横线（h2 较长、h3 较短，当前章节颜色加深、长度加长），不占栅格列。
+  - 鼠标悬停或键盘聚焦时，在原位浮出完整目录；点击标题跳到对应锚点（标题已设置 `scroll-margin-top`）。
+  - 收起状态是一组横线，不是单个触发元素，`ui/hover-card`（Base UI PreviewCard）承载不了，所以改用 CSS 的 `group-hover` / `group-focus-within` 控制显隐。
+- 新增 `hooks/use-active-heading.ts`：监听滚动，把最后一个越过顶部阅读线的标题作为当前章节，并加上 `aria-current="location"`。
+- `docs-layout.tsx`：栅格去掉第三列；正文宽度从 `max-w-3xl` 放宽到 `max-w-4xl`（768px → 896px）。
 
 **验证**
 - 测试：
-  - `bunx vitest run src/features/docs`：12 个文件、117 个用例全部通过。
-    - 新增 `docs-toc.test.tsx`，覆盖：
-      - 少于 2 个标题时不渲染。
-      - 链接指向锚点。
-      - 当前章节随滚动变化。
-    - `playground.test.tsx` 新增：点击后原地展开，`aria-expanded` 同步，再点一次收起。
-  - 全量 `bunx vitest run`（在 web/ 下）：321 个文件、3013 个用例全部通过。
-  - `bunx tsc -b` 通过。改动文件的 oxlint 无报错，只有 `prefer-query-selector` 警告：`getElementById` 是有意保留的，因为标题 id 可能以数字开头，用 querySelector 会出错。
-- 构建：
-  - `bun run build` 预渲染 50 页。
-  - Scalar 只出现在异步包中，首屏 index.js 和 index.css 里搜不到 scalar-app。
-  - 首次展开需要下载：JS 约 0.83MB、CSS 27KB（gzip 后），与弹窗版相当。
-- 浏览器（:3001 生产构建，demo_carol，视口宽 1920）：
-  - Chat Completions：面板原地展开，Bearer 已填好，点发送后网关返回 `do_request_failed`（示例渠道没有真实上游），说明请求到达了网关。
-  - 图片生成页：两个调试块可以分别展开，界面为中文，关闭按钮已隐藏。
-  - 切换亮色、暗色时，面板配色跟着变；面板保持展开约 55 秒，期间没有重新挂载。
-  - Gemini 页：自动选中 googleKey，`x-goog-api-key` 已填，路径参数 model 为 `gemini-3-pro`。
-  - 右侧目录：
-    - 默认只显示横线。
-    - 悬停时浮出卡片；点「Streaming」后跳转到该节，标题没有被顶栏遮住，高亮跟着变化。
-  - 截图：`.tmp/docs-playground-inline-light.jpg`。
+  - `bunx vitest run src/features/docs`：12 个文件、116 个用例全部通过。
+    - 新增 `docs-toc.test.tsx`，覆盖三种情况：少于 2 个标题时不渲染；链接指向锚点；当前章节随滚动变化。
+  - 全量 `bunx vitest run`（在 web/ 下运行，内嵌版时）：321 个文件、3013 个用例全部通过。
+  - `bunx tsc -b` 通过。
+  - lint 只有 `prefer-query-selector` 警告。`getElementById` 是有意保留的：标题 id 可能以数字开头，用 querySelector 会出错。
+- 构建：`bun run build` 预渲染了 50 页。
+- 浏览器（:3001 生产构建，demo_carol 账号）：
+  - 右侧目录：默认只显示横线，悬停时浮出卡片。点击「Streaming」后跳到该节，标题没有被顶栏遮住，高亮随之切换。
+  - 切到中文后点「在线调试」：弹窗界面为中文（「发送」「身份验证」等），密钥已预填。
+- 截图：
+  - `.tmp/docs-playground-inline-light.jpg`：撤回前的内嵌版。
+  - `.tmp/polymarket-try-it-modal.jpg`：参考对象。
 
-**遗留**
-- 测试过程中有一次，两个面板都变成了收起状态。当时我刚通过 localStorage 手动切换了界面语言，之后无法复现。
-- 内嵌依赖 Scalar 的子路径导出和 `Operation` 的 props。升级 Scalar 时需要回归测试这个面板。
+## 遗留
+- 调试面板首次打开约需下载 0.87 MB（gzip）。如果以后使用频繁，可以在鼠标悬停按钮时预加载。
+- embeddings、rerank、音频接口的文档页还没做。
+- 下一期（已与黑鹰确认）：API 页改成 Mintlify 式布局。
+  - 右栏固定放请求/响应示例：请求示例可切换语言，响应示例按状态码分 tab。
+  - 地址栏与 Try it 合并成一行。
+  - 参数改为逐行列出，取代表格。
+  - Scalar 弹窗改用站点的配色变量。

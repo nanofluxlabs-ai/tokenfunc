@@ -90,7 +90,7 @@ describe('buildPlaygroundSpec', () => {
 })
 
 describe('ApiPlaygroundButton', () => {
-  it('loads the playground inline only after the first click and passes the key and endpoint', async () => {
+  it('loads the playground only after the first click and passes the key and endpoint', async () => {
     render(<ApiPlaygroundButton operation='messages' />)
     expect(clientProps).not.toHaveBeenCalled()
 
@@ -101,32 +101,8 @@ describe('ApiPlaygroundButton', () => {
       baseUrl: 'https://api.example.com',
       apiKey: 'sk-real',
       operation: 'messages',
+      openCount: 1,
     })
-  })
-
-  it('toggles the inline panel and keeps aria-expanded in sync', async () => {
-    render(<ApiPlaygroundButton operation='chat-completions' />)
-    const toggle = screen.getByRole('button', { name: 'Try it online' })
-    expect(toggle).toHaveAttribute('aria-expanded', 'false')
-    expect(
-      document.getElementById('docs-playground-chat-completions')
-    ).toBeNull()
-
-    fireEvent.click(toggle)
-    const collapse = screen.getByRole('button', { name: 'Collapse' })
-    expect(collapse).toHaveAttribute('aria-expanded', 'true')
-    expect(
-      document.getElementById('docs-playground-chat-completions')
-    ).not.toBeNull()
-    await vi.waitFor(() => expect(clientProps).toHaveBeenCalled())
-
-    fireEvent.click(collapse)
-    expect(
-      screen.getByRole('button', { name: 'Try it online' })
-    ).toHaveAttribute('aria-expanded', 'false')
-    expect(
-      document.getElementById('docs-playground-chat-completions')
-    ).toBeNull()
   })
 
   it('asks visitors to sign in and keeps the button disabled', () => {

@@ -73,9 +73,18 @@ function DocsPageView(props: { slug: string; lang: DocsLang }) {
     }
   }, [title, siteName])
 
+  // API 页（有请求示例）把模型选择放在请求示例上方，顶部不再放示例参数卡片
+  const isApiPage = Boolean(parsed?.aside.length)
   let body = <DocsSkeleton />
-  if (parsed) body = <DocContent blocks={parsed.blocks} vars={vars} />
-  else if (source.isError) {
+  if (parsed) {
+    body = (
+      <DocContent
+        blocks={parsed.blocks}
+        vars={vars}
+        sampleFamily={entry.model}
+      />
+    )
+  } else if (source.isError) {
     body = <ErrorState onRetry={() => source.refetch()} />
   }
 
@@ -84,7 +93,21 @@ function DocsPageView(props: { slug: string; lang: DocsLang }) {
       slug={entry.slug}
       lang={props.lang}
       headings={parsed?.headings ?? []}
-      toolbar={<DocsSampleBar family={entry.model} />}
+      toolbar={
+        parsed && !isApiPage ? (
+          <DocsSampleBar family={entry.model} />
+        ) : undefined
+      }
+      aside={
+        parsed && isApiPage ? (
+          <DocContent
+            blocks={parsed.aside}
+            vars={vars}
+            placement='aside'
+            sampleFamily={entry.model}
+          />
+        ) : undefined
+      }
     >
       {body}
     </DocsLayout>

@@ -31,10 +31,23 @@ export type DocBlock =
   | { kind: 'steps'; steps: { title: string; blocks: DocBlock[] }[] }
   | { kind: 'callout'; tone: CalloutTone; blocks: DocBlock[] }
   | { kind: 'widget'; name: string; attrs: Record<string, string> }
+  | {
+      kind: 'example'
+      role: ExampleRole
+      samples: { label: string; code: string; lang: string }[]
+    }
+
+/** API 页的请求示例 / 响应示例：宽屏时放在右侧固定栏，窄屏时留在正文原位 */
+export type ExampleRole = 'request' | 'response'
 
 export type DocHeading = { id: string; text: string; level: 2 | 3 }
 
-export type ParsedDoc = { blocks: DocBlock[]; headings: DocHeading[] }
+export type ParsedDoc = {
+  blocks: DocBlock[]
+  headings: DocHeading[]
+  /** 顶层的请求 / 响应示例，非空时页面使用带右侧示例栏的 API 布局 */
+  aside: Extract<DocBlock, { kind: 'example' }>[]
+}
 
 /** 正文可用的交互组件名（:::名称），由 components/doc-widgets.tsx 渲染，测试据此校验没有写错 */
 export const DOC_WIDGET_NAMES = [
@@ -42,7 +55,7 @@ export const DOC_WIDGET_NAMES = [
   'base-url',
   'contact-sales',
   'self-check',
-  'api-playground',
+  'endpoint',
 ]
 
 /** 截图占位：图片地址以 todo: 开头时渲染为虚线框，等运营补图后换成 /docs-assets/ 下的真实路径 */
@@ -54,6 +67,13 @@ const DIRECTIVE_CLOSE = /^:::\s*$/
 const FENCE = /^\s*(`{3,}|~{3,})/
 const TAB_MARKER = /^@tab\s+(.+?)\s*$/
 const STEP_MARKER = /^###\s+(.+?)\s*$/
+const EXAMPLE_DIRECTIVES: Record<string, ExampleRole> = {
+  'request-example': 'request',
+  'response-example': 'response',
+}
+const FIELD_TYPE_HEADER = /^(类型|type)$/i
+const FIELD_REQUIRED_HEADER = /^(必填|required)$/i
+const FIELD_REQUIRED_VALUE = /^(是|yes)$/i
 const VARIABLE = /\{\{\s*([\w:.-]+)\s*\}\}/g
 const ENCODED_VARIABLE = /%7B%7B([\w:.-]+)%7D%7D/gi
 
@@ -233,6 +253,7 @@ function parseCodeInfo(info: string | undefined): {
 type ParseContext = {
   marked: Marked
   headings: DocHeading[]
+  lang: DocsLang
 }
 
 function createMarked(lang: DocsLang, headings: DocHeading[]): Marked {
@@ -301,6 +322,40 @@ function createMarked(lang: DocsLang, headings: DocHeading[]): Marked {
   return marked
 }
 
+/**
+ * :::params 里的参数表渲染成逐行的字段列表（参数名、类型、必填标签、说明），
+ * 表头按「类型 / 必填」识别对应列，最后一列是说明；输出纯 HTML，浏览器与预渲染共用。
+ */
+function renderFieldList(lines: string[], ctx: ParseContext): string {
+  const table = ctx.marked
+    .lexer(lines.join('\n'))
+    .find((token): token is Tokens.Table => token.type === 'table')
+  if (!table) throw new Error(':::params must contain a table')
+  const headers = table.header.map((cell) => cell.text.trim())
+  const typeCol = headers.findIndex((text) => FIELD_TYPE_HEADER.test(text))
+  const requiredCol = headers.findIndex((text) =>
+    FIELD_REQUIRED_HEADER.test(text)
+  )
+  const descCol = headers.length - 1
+  const requiredLabel = ctx.lang === 'zh' ? '必填' : 'required'
+  const items = table.rows.map((row) => {
+    const inline = (col: number) =>
+      col >= 0 && row[col] ? ctx.marked.parseInline(row[col].text) : ''
+    const type = inline(typeCol)
+    const required =
+      requiredCol >= 0 &&
+      FIELD_REQUIRED_VALUE.test(row[requiredCol].text.trim())
+    const meta = [
+      type ? `<span class="docs-field-type">${type}</span>` : '',
+      required
+        ? `<span class="docs-field-required">${requiredLabel}</span>`
+        : '',
+    ].join('')
+    return `<li class="docs-field"><div class="docs-field-head"><span class="docs-field-name">${inline(0)}</span>${meta}</div><div class="docs-field-desc">${inline(descCol)}</div></li>`
+  })
+  return `<ul class="docs-fields">${items.join('')}</ul>\n`
+}
+
 function parseMarkdown(lines: string[], ctx: ParseContext): DocBlock[] {
   const blocks: DocBlock[] = []
   const tokens = ctx.marked.lexer(lines.join('\n'))
@@ -353,6 +408,27 @@ function parseBlocks(lines: string[], ctx: ParseContext): DocBlock[] {
       blocks.push({ kind: 'steps', steps })
       continue
     }
+    const role = EXAMPLE_DIRECTIVES[segment.name]
+    if (role) {
+      const samples = splitByMarker(segment.body, TAB_MARKER, segment.name).map(
+        (part) => {
+          const inner = parseBlocks(part.lines, ctx)
+          const code = inner.length === 1 ? inner[0] : undefined
+          if (code?.kind !== 'code') {
+            throw new Error(
+              `Each @tab in :::${segment.name} must hold exactly one code block`
+            )
+          }
+          return { label: part.label, code: code.code, lang: code.lang }
+        }
+      )
+      blocks.push({ kind: 'example', role, samples })
+      continue
+    }
+    if (segment.name === 'params') {
+      blocks.push({ kind: 'html', html: renderFieldList(segment.body, ctx) })
+      continue
+    }
     if ((CALLOUT_TONES as string[]).includes(segment.name)) {
       blocks.push({
         kind: 'callout',
@@ -372,9 +448,17 @@ function parseBlocks(lines: string[], ctx: ParseContext): DocBlock[] {
 /** 解析文档正文；结果与变量取值无关，可按 (语言, 正文) 缓存 */
 export function parseDoc(source: string, lang: DocsLang): ParsedDoc {
   const headings: DocHeading[] = []
-  const ctx: ParseContext = { marked: createMarked(lang, headings), headings }
+  const ctx: ParseContext = {
+    marked: createMarked(lang, headings),
+    headings,
+    lang,
+  }
   const blocks = parseBlocks(source.replaceAll('\r\n', '\n').split('\n'), ctx)
-  return { blocks, headings }
+  const aside = blocks.filter(
+    (block): block is Extract<DocBlock, { kind: 'example' }> =>
+      block.kind === 'example'
+  )
+  return { blocks, headings, aside }
 }
 
 /** 列出正文用到的全部 {{变量}}，供测试校验没有拼错的变量名 */
@@ -432,11 +516,26 @@ function renderBlocksHtml(
             .join('')}</ol>`
         case 'callout':
           return `<aside class="docs-callout docs-callout-${block.tone}">${renderBlocksHtml(block.blocks, vars)}</aside>`
-        case 'widget':
+        case 'example':
+          return block.samples
+            .map((sample) => {
+              const code = escapeHtml(
+                fillDocVariables(sample.code, vars, 'text')
+              )
+              return `<section class="docs-tab"><h4>${escapeHtml(sample.label)}</h4><div class="docs-code"><pre><code class="language-${escapeHtml(sample.lang)}">${code}</code></pre></div></section>`
+            })
+            .join('')
+        case 'widget': {
           // 交互组件在静态页里省略，只保留接口地址这类对读者有用的文字
-          return block.name === 'base-url'
-            ? `<div class="docs-code"><pre><code>${escapeHtml(vars.baseUrl ?? '')}</code></pre></div>`
+          let text = ''
+          if (block.name === 'base-url') text = vars.baseUrl ?? ''
+          if (block.name === 'endpoint') {
+            text = `${block.attrs.method ?? ''} ${vars.baseUrl ?? ''}${block.attrs.path ?? ''}`
+          }
+          return text
+            ? `<div class="docs-code"><pre><code>${escapeHtml(text)}</code></pre></div>`
             : ''
+        }
       }
       return ''
     })

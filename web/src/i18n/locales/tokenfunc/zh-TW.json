@@ -1502,6 +1502,7 @@
     "This site or the model provider returned an error ({{status}}). Try again later; if it keeps happening, send the request id to support: {{message}}": "本站或模型服務商回傳了錯誤（{{status}}），請稍後重試；持續出現時請把 request id 發給客服：{{message}}",
     "Requests sent from the playground are real and billed by actual usage.": "線上除錯發出的是真實請求，按實際用量扣費。",
     "Sign in to try this endpoint online.": "登入後即可線上除錯這個介面。",
-    "Try it online": "線上除錯"
+    "Try it online": "線上除錯",
+    "Examples": "範例"
   }
 }

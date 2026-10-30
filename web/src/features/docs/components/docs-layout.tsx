@@ -30,6 +30,7 @@ import {
   SheetTitle,
   SheetTrigger,
 } from '@/components/ui/sheet'
+import { cn } from '@/lib/utils'
 
 import type { DocHeading } from '../lib/doc-markdown'
 import { docsLangSearch } from '../lib/docs-links'
@@ -65,6 +66,8 @@ export function DocsLayout(props: {
   headings: DocHeading[]
   /** 标题下方的「示例参数」等工具条 */
   toolbar?: ReactNode
+  /** API 页右侧的请求 / 响应示例栏；宽屏（xl）显示，窄屏时示例留在正文原位 */
+  aside?: ReactNode
   children: ReactNode
 }) {
   const { t } = useTranslation()
@@ -75,7 +78,13 @@ export function DocsLayout(props: {
   return (
     <PublicLayout showMainContainer={false}>
       <div className='container px-4 pt-24 pb-16 md:px-6'>
-        <div className='grid gap-10 lg:grid-cols-[230px_minmax(0,1fr)]'>
+        <div
+          className={cn(
+            'grid gap-10 lg:grid-cols-[230px_minmax(0,1fr)]',
+            props.aside &&
+              'xl:grid-cols-[230px_minmax(0,1fr)_22rem] 2xl:grid-cols-[230px_minmax(0,1fr)_26rem]'
+          )}
+        >
           <aside className='hidden lg:block'>
             <nav
               aria-label={t('Documentation pages')}
@@ -131,6 +140,14 @@ export function DocsLayout(props: {
               <PrevNextLinks slug={props.slug} lang={props.lang} />
             </article>
           </div>
+
+          {props.aside && (
+            <aside aria-label={t('Examples')} className='hidden xl:block'>
+              <div className='sticky top-24 max-h-[calc(100svh-7rem)] space-y-4 overflow-y-auto pb-8'>
+                {props.aside}
+              </div>
+            </aside>
+          )}
         </div>
         <DocsToc headings={props.headings} />
       </div>

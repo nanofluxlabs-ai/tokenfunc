@@ -1,15 +1,9 @@
 与 Anthropic Messages API 兼容的对话接口。Claude Code 等基于 Anthropic SDK 的工具使用它。调用 Claude 时，思考、提示词缓存等能力在这个接口上最完整。
 
-```http
-POST {{baseUrl}}/v1/messages
-```
-
-:::api-playground{operation="messages"}
+:::endpoint{method="POST" path="/v1/messages" operation="messages"}
 :::
 
-## 请求示例
-
-:::tabs
+:::request-example
 @tab cURL
 
 ```bash
@@ -66,6 +60,7 @@ console.log(resp.content[0].text)
 
 ## 请求参数
 
+:::params
 | 参数             | 类型           | 必填 | 说明                                                                          |
 | ---------------- | -------------- | ---- | ----------------------------------------------------------------------------- |
 | `model`          | string         | 是   | 模型名                                                                        |
@@ -78,10 +73,12 @@ console.log(resp.content[0].text)
 | `tools`          | array          | 否   | 工具定义（`name`、`description`、`input_schema`）                             |
 | `tool_choice`    | object         | 否   | 工具调用策略                                                                  |
 | `thinking`       | object         | 否   | 开启思考，如 `{"type": "enabled", "budget_tokens": 8000}`                     |
+:::
 
 内容块类型包括 `text`、`image`、`tool_use`、`tool_result`，在内容块上添加 `cache_control` 可以使用提示词缓存。
 
-## 响应示例
+:::response-example
+@tab 200
 
 ```json
 {
@@ -99,12 +96,17 @@ console.log(resp.content[0].text)
   }
 }
 ```
+:::
 
+## 响应字段
+
+:::params
 | 字段          | 说明                                                                |
 | ------------- | ------------------------------------------------------------------- |
 | `content[]`   | 回答内容块，常见 `text`、`thinking`（思考）、`tool_use`（工具调用） |
 | `stop_reason` | `end_turn` 正常结束，`max_tokens` 达到上限，`tool_use` 需要调用工具 |
 | `usage`       | 输入、输出、缓存写入、缓存读取的 Token 数                           |
+:::
 
 ## 流式输出
 

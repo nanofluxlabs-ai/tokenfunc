@@ -41,6 +41,10 @@ export type DocsPageEntry = {
   description: Localized
   /** 页面里 {{model}} 默认取的模型系列；不写则页面不出现模型选择 */
   model?: ModelFamily
+  /** 侧栏图标，取 @lobehub/icons 的图标名（单色版，跟随文字颜色） */
+  icon?: string
+  /** API 接口页的请求方法，侧栏显示为标签；须与正文 :::endpoint 一致（内容测试校验） */
+  method?: 'GET' | 'POST'
 }
 
 export type DocsNavGroup = {
@@ -106,6 +110,7 @@ export const DOCS_PAGES: DocsPageEntry[] = [
   {
     slug: 'tools-claude-code',
     group: 'tools',
+    icon: 'ClaudeCode',
     model: 'claude',
     title: { zh: 'Claude Code', en: 'Claude Code' },
     description: {
@@ -116,6 +121,7 @@ export const DOCS_PAGES: DocsPageEntry[] = [
   {
     slug: 'tools-codex',
     group: 'tools',
+    icon: 'Codex',
     model: 'gpt',
     title: { zh: 'Codex', en: 'Codex' },
     description: {
@@ -126,6 +132,7 @@ export const DOCS_PAGES: DocsPageEntry[] = [
   {
     slug: 'tools-cursor',
     group: 'tools',
+    icon: 'Cursor',
     model: 'gpt',
     title: { zh: 'Cursor', en: 'Cursor' },
     description: {
@@ -136,6 +143,7 @@ export const DOCS_PAGES: DocsPageEntry[] = [
   {
     slug: 'tools-cline',
     group: 'tools',
+    icon: 'Cline',
     model: 'claude',
     title: { zh: 'Cline', en: 'Cline' },
     description: {
@@ -146,6 +154,7 @@ export const DOCS_PAGES: DocsPageEntry[] = [
   {
     slug: 'tools-trae',
     group: 'tools',
+    icon: 'Trae',
     model: 'deepseek',
     title: { zh: 'Trae', en: 'Trae' },
     description: {
@@ -156,6 +165,7 @@ export const DOCS_PAGES: DocsPageEntry[] = [
   {
     slug: 'tools-workbuddy',
     group: 'tools',
+    icon: 'WorkBuddy',
     model: 'deepseek',
     title: { zh: 'WorkBuddy', en: 'WorkBuddy' },
     description: {
@@ -166,6 +176,7 @@ export const DOCS_PAGES: DocsPageEntry[] = [
   {
     slug: 'tools-deepseek-harness',
     group: 'tools',
+    icon: 'DeepSeek',
     model: 'deepseek',
     title: { zh: 'DeepSeek Harness', en: 'DeepSeek Harness' },
     description: {
@@ -176,6 +187,7 @@ export const DOCS_PAGES: DocsPageEntry[] = [
   {
     slug: 'tools-hermes',
     group: 'tools',
+    icon: 'HermesAgent',
     model: 'claude',
     title: { zh: 'Hermes Agent', en: 'Hermes Agent' },
     description: {
@@ -186,6 +198,7 @@ export const DOCS_PAGES: DocsPageEntry[] = [
   {
     slug: 'tools-pi',
     group: 'tools',
+    icon: 'Pi',
     model: 'claude',
     title: { zh: 'Pi', en: 'Pi' },
     description: {
@@ -196,6 +209,7 @@ export const DOCS_PAGES: DocsPageEntry[] = [
   {
     slug: 'tools-openclaw',
     group: 'tools',
+    icon: 'OpenClaw',
     model: 'claude',
     title: { zh: 'OpenClaw', en: 'OpenClaw' },
     description: {
@@ -206,6 +220,7 @@ export const DOCS_PAGES: DocsPageEntry[] = [
   {
     slug: 'tools-openai-client',
     group: 'tools',
+    icon: 'OpenAI',
     model: 'gpt',
     title: {
       zh: '其他 OpenAI 兼容客户端',
@@ -228,6 +243,7 @@ export const DOCS_PAGES: DocsPageEntry[] = [
   {
     slug: 'api-models',
     group: 'api',
+    method: 'GET',
     title: { zh: '模型列表', en: 'List models' },
     description: {
       zh: '查询当前密钥可以使用的模型。',
@@ -237,6 +253,7 @@ export const DOCS_PAGES: DocsPageEntry[] = [
   {
     slug: 'api-chat-completions',
     group: 'api',
+    method: 'POST',
     model: 'gpt',
     title: { zh: 'Chat Completions', en: 'Chat Completions' },
     description: {
@@ -245,18 +262,9 @@ export const DOCS_PAGES: DocsPageEntry[] = [
     },
   },
   {
-    slug: 'api-messages',
-    group: 'api',
-    model: 'claude',
-    title: { zh: 'Anthropic Messages', en: 'Anthropic Messages' },
-    description: {
-      zh: 'Anthropic 原生格式的对话接口：思考、看图、工具调用与提示词缓存。',
-      en: 'The Anthropic-native chat endpoint: thinking, vision, tool use and prompt caching.',
-    },
-  },
-  {
     slug: 'api-responses',
     group: 'api',
+    method: 'POST',
     model: 'gpt',
     title: { zh: 'Responses', en: 'Responses' },
     description: {
@@ -265,8 +273,20 @@ export const DOCS_PAGES: DocsPageEntry[] = [
     },
   },
   {
+    slug: 'api-messages',
+    group: 'api',
+    method: 'POST',
+    model: 'claude',
+    title: { zh: 'Anthropic Messages', en: 'Anthropic Messages' },
+    description: {
+      zh: 'Anthropic 原生格式的对话接口：思考、看图、工具调用与提示词缓存。',
+      en: 'The Anthropic-native chat endpoint: thinking, vision, tool use and prompt caching.',
+    },
+  },
+  {
     slug: 'api-gemini',
     group: 'api',
+    method: 'POST',
     model: 'gemini',
     title: { zh: 'Gemini 原生接口', en: 'Gemini native API' },
     description: {
@@ -277,11 +297,23 @@ export const DOCS_PAGES: DocsPageEntry[] = [
   {
     slug: 'api-images',
     group: 'api',
+    method: 'POST',
     model: 'image',
     title: { zh: '图片生成', en: 'Image generation' },
     description: {
-      zh: '文生图与图片编辑。',
-      en: 'Generate and edit images.',
+      zh: '根据文字描述生成图片。',
+      en: 'Generate images from a text prompt.',
+    },
+  },
+  {
+    slug: 'api-image-edits',
+    group: 'api',
+    method: 'POST',
+    model: 'image',
+    title: { zh: '图片编辑', en: 'Image edits' },
+    description: {
+      zh: '上传原图，用文字描述要修改的地方。',
+      en: 'Upload an image and describe what to change.',
     },
   },
   {

@@ -28,7 +28,10 @@ import {
   parseDoc,
   type DocBlock,
 } from '../lib/doc-markdown'
-import { isPlaygroundOperation } from '../lib/playground-spec'
+import {
+  isPlaygroundOperation,
+  PLAYGROUND_OPERATIONS,
+} from '../lib/playground-spec'
 import { MODEL_FAMILIES } from '../lib/sample-models'
 import { DOCS_LANGS, DOCS_PAGES, DOCS_SLUGS } from '../registry'
 
@@ -67,6 +70,19 @@ describe.each(DOCS_LANGS)('docs content (%s)', (lang) => {
     expect(files).toEqual([...DOCS_SLUGS].sort())
   })
 
+  it('tags exactly the pages with an :::endpoint with the same HTTP method in the sidebar', () => {
+    const mismatches = DOCS_PAGES.flatMap((page) => {
+      const endpoint = readPage(lang, page.slug).match(
+        /:::endpoint\{method="([A-Z]+)"/
+      )
+      const expected = endpoint?.[1]
+      return page.method === expected
+        ? []
+        : [`${page.slug}: registry ${page.method} vs page ${expected}`]
+    })
+    expect(mismatches).toEqual([])
+  })
+
   it.each(DOCS_PAGES.map((page) => page.slug))(
     '%s parses with known variables, widgets and links',
     (slug) => {
@@ -89,11 +105,25 @@ describe.each(DOCS_LANGS)('docs content (%s)', (lang) => {
       expect(
         docLinks.filter((match) => !DOCS_SLUGS.includes(match[1]))
       ).toEqual([])
-      // 在线调试组件必须指向调试规范里存在的接口
-      const operations = [
-        ...source.matchAll(/:::api-playground\{operation="([^"]*)"\}/g),
-      ].map((match) => match[1])
-      expect(operations.filter((op) => !isPlaygroundOperation(op))).toEqual([])
+      // 接口地址栏必须指向调试规范里存在的接口，且方法与地址一致，避免地址栏与调试弹窗对不上
+      const endpoints = [
+        ...source.matchAll(
+          /:::endpoint\{method="([A-Z]+)" path="([^"]+)" operation="([^"]*)"\}/g
+        ),
+      ]
+      expect(
+        endpoints
+          .filter((match) => {
+            const op = match[3]
+            if (!isPlaygroundOperation(op)) return true
+            const target = PLAYGROUND_OPERATIONS[op]
+            return (
+              target.path !== match[2] ||
+              target.method !== match[1].toLowerCase()
+            )
+          })
+          .map((match) => match[0])
+      ).toEqual([])
 
       // 跨页锚点必须指向目标页真实存在的小节标题
       const brokenAnchors = docLinks

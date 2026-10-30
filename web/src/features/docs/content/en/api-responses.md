@@ -1,15 +1,9 @@
 The endpoint compatible with the OpenAI Responses API, OpenAI's newer unified interface. Codex and some other tools only support this endpoint.
 
-```http
-POST {{baseUrl}}/v1/responses
-```
-
-:::api-playground{operation="responses"}
+:::endpoint{method="POST" path="/v1/responses" operation="responses"}
 :::
 
-## Request
-
-:::tabs
+:::request-example
 @tab cURL
 
 ```bash
@@ -56,6 +50,7 @@ console.log(resp.output_text)
 
 ## Request parameters
 
+:::params
 | Parameter              | Type           | Required | Description                                                                                               |
 | ---------------------- | -------------- | -------- | --------------------------------------------------------------------------------------------------------- |
 | `model`                | string         | Yes      | Model name; it must support Responses (see `supported_endpoint_types` in [List models](/docs/api-models)) |
@@ -67,8 +62,10 @@ console.log(resp.output_text)
 | `tools`                | array          | No       | Tool definitions                                                                                          |
 | `reasoning`            | object         | No       | Reasoning settings, for example `{"effort": "medium"}`                                                    |
 | `previous_response_id` | string         | No       | Continue from an earlier response                                                                         |
+:::
 
-## Response
+:::response-example
+@tab 200
 
 ```json
 {
@@ -91,6 +88,7 @@ console.log(resp.output_text)
   "usage": { "input_tokens": 25, "output_tokens": 22, "total_tokens": 47 }
 }
 ```
+:::
 
 The SDKs expose `output_text`, which joins all text output for you.
 

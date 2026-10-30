@@ -1502,6 +1502,7 @@
     "This site or the model provider returned an error ({{status}}). Try again later; if it keeps happening, send the request id to support: {{message}}": "本サイトまたはモデル提供元がエラーを返しました（{{status}}）。後でもう一度お試しください。続く場合は request id をサポートに送ってください：{{message}}",
     "Requests sent from the playground are real and billed by actual usage.": "オンラインデバッグのリクエストは実際に送信され、使用量に応じて課金されます。",
     "Sign in to try this endpoint online.": "ログインするとこのエンドポイントをオンラインで試せます。",
-    "Try it online": "オンラインで試す"
+    "Try it online": "オンラインで試す",
+    "Examples": "サンプル"
   }
 }

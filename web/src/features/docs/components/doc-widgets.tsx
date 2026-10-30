@@ -30,10 +30,9 @@ import { useStatus } from '@/hooks/use-status'
 import { useAuthStore } from '@/stores/auth-store'
 import { useDocsSampleStore } from '@/stores/docs-sample-store'
 
-import { isPlaygroundOperation } from '../lib/playground-spec'
-import { ApiPlaygroundButton } from './api-playground-button'
 import { BaseUrlCard } from './base-url-card'
 import { ConnectionCheck } from './connection-check'
+import { EndpointBar } from './endpoint-bar'
 
 function CCSwitchWidget(props: { app?: string }) {
   const { t } = useTranslation()
@@ -122,9 +121,13 @@ export function DocWidget(props: {
       return <ContactSalesWidget />
     case 'self-check':
       return <ConnectionCheck />
-    case 'api-playground':
-      return isPlaygroundOperation(props.attrs.operation) ? (
-        <ApiPlaygroundButton operation={props.attrs.operation} />
+    case 'endpoint':
+      return props.attrs.method && props.attrs.path ? (
+        <EndpointBar
+          method={props.attrs.method}
+          path={props.attrs.path}
+          operation={props.attrs.operation}
+        />
       ) : null
     default:
       return null

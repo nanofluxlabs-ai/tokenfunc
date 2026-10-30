@@ -17,7 +17,15 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 For commercial licensing, please contact support@quantumnous.com
 */
 import { Link } from '@tanstack/react-router'
-import { ChevronRight } from 'lucide-react'
+import {
+  Building2,
+  ChevronRight,
+  Code,
+  LayoutGrid,
+  Puzzle,
+  Rocket,
+  type LucideIcon,
+} from 'lucide-react'
 import { useEffect } from 'react'
 
 import {
@@ -25,11 +33,37 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from '@/components/ui/collapsible'
+import { getLobeIcon } from '@/lib/lobe-icon'
 import { cn } from '@/lib/utils'
 import { useDocsNavStore } from '@/stores/docs-nav-store'
 
 import { docsLangSearch } from '../lib/docs-links'
-import { getDocsEntry, getDocsNav, type DocsLang } from '../registry'
+import {
+  getDocsEntry,
+  getDocsNav,
+  type DocsGroupId,
+  type DocsLang,
+} from '../registry'
+import { MethodBadge } from './method-badge'
+
+// 分组图标放在组件里而不是 registry：registry 要给构建期预渲染用，不能引入 React 组件
+const GROUP_ICONS: Record<DocsGroupId, LucideIcon> = {
+  'getting-started': Rocket,
+  api: Code,
+  enterprise: Building2,
+  tools: Puzzle,
+}
+
+function GroupIcon(props: { id: DocsGroupId }) {
+  const Icon = GROUP_ICONS[props.id]
+  return (
+    <Icon
+      data-slot='docs-nav-group-icon'
+      className='size-3.5 shrink-0'
+      aria-hidden='true'
+    />
+  )
+}
 
 /** 分组侧栏，分组可折叠；当前页带 aria-current，所在分组被折叠时自动展开 */
 export function DocsNavList(props: {
@@ -57,7 +91,10 @@ export function DocsNavList(props: {
           onOpenChange={(open) => setGroupOpen(group.id, open)}
         >
           <CollapsibleTrigger className='group/docs-nav text-muted-foreground/70 hover:text-foreground flex w-full items-center justify-between rounded-md px-3 py-1.5 text-[11px] font-semibold tracking-wider uppercase transition-colors'>
-            {group.title[props.lang]}
+            <span className='flex items-center gap-2'>
+              <GroupIcon id={group.id} />
+              {group.title[props.lang]}
+            </span>
             <ChevronRight
               className='size-3.5 transition-transform group-data-[panel-open]/docs-nav:rotate-90'
               aria-hidden='true'
@@ -66,6 +103,8 @@ export function DocsNavList(props: {
           <CollapsibleContent>
             <ul className='mt-1 space-y-0.5'>
               {group.pages.map((page) => {
+                // 组内有页面带图标时，整组都留出图标位，保持文字对齐
+                const groupHasIcons = group.pages.some((item) => item.icon)
                 const isActive = page.slug === props.activeSlug
                 return (
                   <li key={page.slug}>
@@ -76,13 +115,29 @@ export function DocsNavList(props: {
                       onClick={props.onNavigate}
                       aria-current={isActive ? 'page' : undefined}
                       className={cn(
-                        'block rounded-md px-3 py-2.5 text-sm transition-colors lg:py-1.5',
+                        'flex items-center gap-2.5 rounded-md px-3 py-2.5 text-sm transition-colors lg:py-1.5',
                         isActive
                           ? 'bg-muted text-foreground font-medium'
                           : 'text-muted-foreground hover:bg-muted/50 hover:text-foreground'
                       )}
                     >
-                      {page.title[props.lang]}
+                      {page.method && (
+                        <MethodBadge method={page.method} size='sm' />
+                      )}
+                      {groupHasIcons && (
+                        <span
+                          data-slot='docs-nav-icon'
+                          aria-hidden='true'
+                          className='flex size-4 shrink-0 items-center justify-center'
+                        >
+                          {page.icon ? (
+                            getLobeIcon(page.icon, 16)
+                          ) : (
+                            <LayoutGrid className='size-4' />
+                          )}
+                        </span>
+                      )}
+                      <span className='min-w-0'>{page.title[props.lang]}</span>
                     </Link>
                   </li>
                 )

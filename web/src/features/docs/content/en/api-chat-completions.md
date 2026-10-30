@@ -1,15 +1,9 @@
 The chat endpoint compatible with OpenAI Chat Completions, and the most widely supported way to call models. Every text model on this site, Claude, Gemini and DeepSeek included, works in this format; just change `model` and this site converts automatically.
 
-```http
-POST {{baseUrl}}/v1/chat/completions
-```
-
-:::api-playground{operation="chat-completions"}
+:::endpoint{method="POST" path="/v1/chat/completions" operation="chat-completions"}
 :::
 
-## Request
-
-:::tabs
+:::request-example
 @tab cURL
 
 ```bash
@@ -64,6 +58,7 @@ console.log(resp.choices[0].message.content)
 
 ## Request parameters
 
+:::params
 | Parameter             | Type            | Required | Description                                                                                                                         |
 | --------------------- | --------------- | -------- | ----------------------------------------------------------------------------------------------------------------------------------- |
 | `model`               | string          | Yes      | Model name, see [List models](/docs/api-models)                                                                                     |
@@ -81,10 +76,12 @@ console.log(resp.choices[0].message.content)
 | `response_format`     | object          | No       | Structured output, see [Structured output](#structured-output) below                                                                |
 | `reasoning_effort`    | string          | No       | Reasoning effort: `none` / `minimal` / `low` / `medium` / `high` / `xhigh` / `max`, see [Reasoning models](#reasoning-models) below |
 | `user`                | string          | No       | Your end-user identifier, useful for troubleshooting                                                                                |
+:::
 
 Besides a string, `content` can be an array that mixes text and images, see [Vision](#vision) below.
 
-## Response
+:::response-example
+@tab 200
 
 ```json
 {
@@ -110,7 +107,11 @@ Besides a string, `content` can be an array that mixes text and images, see [Vis
   }
 }
 ```
+:::
 
+## Response fields
+
+:::params
 | Field                                       | Description                                                                                       |
 | ------------------------------------------- | ------------------------------------------------------------------------------------------------- |
 | `choices[].message.content`                 | The model's answer                                                                                |
@@ -119,6 +120,7 @@ Besides a string, `content` can be an array that mixes text and images, see [Vis
 | `choices[].finish_reason`                   | Why it stopped: `stop` finished normally, `length` hit the token limit, `tool_calls` wants a tool |
 | `usage.prompt_tokens` / `completion_tokens` | Input / output tokens, the basis for billing                                                      |
 | `usage.prompt_tokens_details.cached_tokens` | Input tokens served from the cache                                                                |
+:::
 
 ## Streaming
 

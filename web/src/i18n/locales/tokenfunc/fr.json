@@ -1502,6 +1502,7 @@
     "This site or the model provider returned an error ({{status}}). Try again later; if it keeps happening, send the request id to support: {{message}}": "Ce site ou le fournisseur du modèle a renvoyé une erreur ({{status}}). Réessayez plus tard ; si cela persiste, envoyez le request id au support : {{message}}",
     "Requests sent from the playground are real and billed by actual usage.": "Les requêtes envoyées depuis la console de test sont réelles et facturées selon l'usage.",
     "Sign in to try this endpoint online.": "Connectez-vous pour tester ce point d'accès en ligne.",
-    "Try it online": "Tester en ligne"
+    "Try it online": "Tester en ligne",
+    "Examples": "Exemples"
   }
 }

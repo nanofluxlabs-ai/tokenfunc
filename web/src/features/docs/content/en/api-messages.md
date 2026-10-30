@@ -1,15 +1,9 @@
 The chat endpoint compatible with the Anthropic Messages API, used by Claude Code and other tools built on the Anthropic SDK. For Claude, reasoning and prompt caching are most complete here.
 
-```http
-POST {{baseUrl}}/v1/messages
-```
-
-:::api-playground{operation="messages"}
+:::endpoint{method="POST" path="/v1/messages" operation="messages"}
 :::
 
-## Request
-
-:::tabs
+:::request-example
 @tab cURL
 
 ```bash
@@ -66,6 +60,7 @@ Authenticate with `x-api-key` or `Authorization: Bearer`, see [Authentication](/
 
 ## Request parameters
 
+:::params
 | Parameter        | Type           | Required | Description                                                                                            |
 | ---------------- | -------------- | -------- | ------------------------------------------------------------------------------------------------------ |
 | `model`          | string         | Yes      | Model name                                                                                             |
@@ -78,10 +73,12 @@ Authenticate with `x-api-key` or `Authorization: Bearer`, see [Authentication](/
 | `tools`          | array          | No       | Tool definitions (`name`, `description`, `input_schema`)                                               |
 | `tool_choice`    | object         | No       | Tool use policy                                                                                        |
 | `thinking`       | object         | No       | Turn on thinking, for example `{"type": "enabled", "budget_tokens": 8000}`                             |
+:::
 
 Content block types include `text`, `image`, `tool_use` and `tool_result`; add `cache_control` to a block to use prompt caching.
 
-## Response
+:::response-example
+@tab 200
 
 ```json
 {
@@ -99,12 +96,17 @@ Content block types include `text`, `image`, `tool_use` and `tool_result`; add `
   }
 }
 ```
+:::
 
+## Response fields
+
+:::params
 | Field         | Description                                                              |
 | ------------- | ------------------------------------------------------------------------ |
 | `content[]`   | Answer blocks, usually `text`, `thinking` and `tool_use`                 |
 | `stop_reason` | `end_turn` finished, `max_tokens` hit the limit, `tool_use` wants a tool |
 | `usage`       | Input, output, cache write and cache read tokens                         |
+:::
 
 ## Streaming
 

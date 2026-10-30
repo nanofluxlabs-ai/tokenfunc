@@ -1,15 +1,9 @@
 返回当前密钥可以调用的模型。列表已按密钥的分组、模型限制过滤，比 [模型广场](/pricing) 更能反映「这把密钥实际能用什么」。
 
-```http
-GET {{baseUrl}}/v1/models
-```
-
-:::api-playground{operation="list-models"}
+:::endpoint{method="GET" path="/v1/models" operation="list-models"}
 :::
 
-## 请求示例
-
-:::tabs
+:::request-example
 @tab cURL
 
 ```bash
@@ -38,7 +32,8 @@ for await (const model of client.models.list()) {
 ```
 :::
 
-## 响应示例
+:::response-example
+@tab 200
 
 ```json
 {
@@ -62,13 +57,18 @@ for await (const model of client.models.list()) {
   ]
 }
 ```
+:::
 
+## 响应字段
+
+:::params
 | 字段                              | 说明                                                                                                           |
 | --------------------------------- | -------------------------------------------------------------------------------------------------------------- |
 | `data[].id`                       | 模型名，调用时填到 `model` 参数                                                                                |
 | `data[].owned_by`                 | 模型所属厂商                                                                                                   |
 | `data[].created`                  | 记录创建时间（Unix 秒），不代表模型发布时间                                                                    |
 | `data[].supported_endpoint_types` | 该模型支持的接口格式，如 `openai`（Chat Completions）、`openai-response`（Responses）、`anthropic`（Messages） |
+:::
 
 ## 其他格式
 

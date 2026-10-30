@@ -26,6 +26,7 @@ import {
   useState,
   type MouseEvent,
 } from 'react'
+import { useTranslation } from 'react-i18next'
 
 import {
   CodeBlock,
@@ -34,18 +35,26 @@ import {
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { cn } from '@/lib/utils'
 
+import { useSampleKeyHint } from '../hooks/use-sample-key-hint'
 import {
   fillDocVariables,
   type CalloutTone,
   type DocBlock,
+  type ExampleRole,
 } from '../lib/doc-markdown'
+import type { ModelFamily } from '../registry'
 import { DocWidget } from './doc-widgets'
+import { SampleModelSelect } from './docs-sample-bar'
 
 type DocRenderContext = {
   vars: Record<string, string>
   /** 用户最近点过的标签名；同名标签（如 macOS / Windows）在整页联动 */
   preferredTab: string | null
   setPreferredTab: (label: string) => void
+  /** main：正文；aside：API 页右侧示例栏。正文里的示例只在没有右侧栏的窄屏显示 */
+  placement: 'main' | 'aside'
+  /** 页面的示例模型系列；有值时请求示例上方显示模型选择 */
+  sampleFamily?: ModelFamily
 }
 
 const RenderContext = createContext<DocRenderContext | null>(null)
@@ -173,6 +182,86 @@ function DocTabs(props: { tabs: { label: string; blocks: DocBlock[] }[] }) {
   )
 }
 
+/** 右侧示例栏里代码的最大显示行数，超出部分在面板内滚动 */
+const ASIDE_MAX_LINES = 26
+
+/** 请求示例（按语言切换）/ 响应示例（按状态码切换），参考 Mintlify 的右侧代码面板 */
+function DocExample(props: {
+  role: ExampleRole
+  samples: { label: string; code: string; lang: string }[]
+}) {
+  const { t } = useTranslation()
+  const ctx = useRenderContext()
+  const labels = props.samples.map((sample) => sample.label)
+  const [local, setLocal] = useState(labels[0])
+  // 请求示例的语言与正文其它代码标签联动；响应示例的状态码各自独立
+  const active =
+    props.role === 'request' &&
+    ctx.preferredTab &&
+    labels.includes(ctx.preferredTab)
+      ? ctx.preferredTab
+      : local
+  const sample =
+    props.samples.find((item) => item.label === active) ?? props.samples[0]
+  const inAside = ctx.placement === 'aside'
+  const keyHint = useSampleKeyHint()
+  const isRequest = props.role === 'request'
+
+  const block = (
+    <CodeBlock
+      code={fillDocVariables(sample.code, ctx.vars, 'text')}
+      language={sample.lang}
+      showToolbar
+      enableCollapse={false}
+      maxExpandedLines={inAside ? ASIDE_MAX_LINES : undefined}
+      className='my-0'
+      title={
+        <div className='flex items-center gap-2 font-sans tracking-normal normal-case'>
+          <span className='text-foreground text-xs font-semibold'>
+            {props.role === 'request' ? t('Request') : t('Response')}
+          </span>
+          <Tabs
+            value={sample.label}
+            onValueChange={(value) => {
+              setLocal(String(value))
+              if (props.role === 'request') ctx.setPreferredTab(String(value))
+            }}
+          >
+            <TabsList className='h-7 bg-transparent p-0'>
+              {props.samples.map((item) => (
+                <TabsTrigger
+                  key={item.label}
+                  value={item.label}
+                  className='h-6 px-2 font-mono text-[11px]'
+                >
+                  {item.label}
+                </TabsTrigger>
+              ))}
+            </TabsList>
+          </Tabs>
+        </div>
+      }
+    >
+      <CodeBlockCopyButton />
+    </CodeBlock>
+  )
+
+  // 请求示例上方放示例模型选择、下方放密钥提示，替代页面顶部的示例参数卡片
+  return (
+    <div className={cn('docs-block space-y-2', !inAside && 'xl:hidden')}>
+      {isRequest && ctx.sampleFamily && (
+        <SampleModelSelect family={ctx.sampleFamily} />
+      )}
+      {block}
+      {isRequest && keyHint && (
+        <p className='text-muted-foreground px-1 text-xs leading-5'>
+          {keyHint}
+        </p>
+      )}
+    </div>
+  )
+}
+
 function DocSteps(props: { steps: { title: string; blocks: DocBlock[] }[] }) {
   const ctx = useRenderContext()
   return (
@@ -261,6 +350,14 @@ function DocBlocks(props: { blocks: DocBlock[] }) {
                 blocks={block.blocks}
               />
             )
+          case 'example':
+            return (
+              <DocExample
+                key={keyOf(block)}
+                role={block.role}
+                samples={block.samples}
+              />
+            )
           case 'widget':
             return (
               <DocWidget
@@ -276,15 +373,27 @@ function DocBlocks(props: { blocks: DocBlock[] }) {
   )
 }
 
-/** 渲染解析后的文档正文，{{变量}} 在这里按当前取值替换 */
+/**
+ * 渲染解析后的文档正文，{{变量}} 在这里按当前取值替换。
+ * placement 为 aside 时渲染 API 页右侧示例栏（只含请求 / 响应示例）。
+ */
 export function DocContent(props: {
   blocks: DocBlock[]
   vars: Record<string, string>
+  placement?: 'main' | 'aside'
+  sampleFamily?: ModelFamily
 }) {
   const [preferredTab, setPreferredTab] = useState<string | null>(null)
+  const placement = props.placement ?? 'main'
   const ctx = useMemo(
-    () => ({ vars: props.vars, preferredTab, setPreferredTab }),
-    [props.vars, preferredTab]
+    () => ({
+      vars: props.vars,
+      preferredTab,
+      setPreferredTab,
+      placement,
+      sampleFamily: props.sampleFamily,
+    }),
+    [props.vars, preferredTab, placement, props.sampleFamily]
   )
   return (
     <RenderContext.Provider value={ctx}>

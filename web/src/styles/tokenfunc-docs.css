@@ -202,3 +202,93 @@
 .docs-callout-body .docs-prose {
   line-height: 1.5rem;
 }
+
+/* API 页参数列表（:::params）：逐行列出参数名、类型、必填标签与说明，取代宽表格 */
+.docs-prose ul.docs-fields {
+  border-top: 1px solid var(--border);
+  list-style: none;
+  padding-left: 0;
+}
+
+.docs-prose .docs-field {
+  border-bottom: 1px solid var(--border);
+  margin-top: 0;
+  padding: 0.875rem 0;
+}
+
+.docs-prose .docs-field-head {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.docs-prose .docs-field-name {
+  color: var(--primary);
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.docs-prose .docs-field-name code,
+.docs-prose .docs-field-type code {
+  background: transparent;
+  color: inherit;
+  font-size: inherit;
+  padding: 0;
+}
+
+.docs-prose .docs-field-type,
+.docs-prose .docs-field-required {
+  border-radius: 0.375rem;
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: 0.75rem;
+  line-height: 1.25rem;
+  padding: 0 0.375rem;
+}
+
+.docs-prose .docs-field-type {
+  background: var(--muted);
+  color: var(--muted-foreground);
+}
+
+.docs-prose .docs-field-required {
+  background: color-mix(in oklab, var(--destructive) 12%, transparent);
+  color: var(--destructive);
+}
+
+.docs-prose .docs-field-desc {
+  color: var(--muted-foreground);
+  font-size: 0.875rem;
+  line-height: 1.5rem;
+  margin-top: 0.375rem;
+}
+
+/* Scalar 调试弹窗沿用站点配色，避免像外来组件 */
+.scalar-app.light-mode,
+.scalar-app.dark-mode {
+  --scalar-background-1: var(--background);
+  --scalar-background-2: var(--card);
+  --scalar-background-3: var(--muted);
+  --scalar-background-accent: color-mix(
+    in oklab,
+    var(--primary) 12%,
+    transparent
+  );
+  --scalar-color-1: var(--foreground);
+  --scalar-color-2: var(--muted-foreground);
+  --scalar-color-3: color-mix(
+    in oklab,
+    var(--muted-foreground) 75%,
+    transparent
+  );
+  --scalar-color-accent: var(--primary);
+  --scalar-border-color: var(--border);
+  --scalar-button-1: var(--primary);
+  --scalar-button-1-color: var(--primary-foreground);
+  --scalar-button-1-hover: color-mix(in oklab, var(--primary) 85%, black);
+  --scalar-font-code: var(--font-mono, ui-monospace, monospace);
+  --scalar-radius: calc(var(--radius) - 2px);
+  --scalar-radius-lg: var(--radius);
+  --scalar-radius-xl: calc(var(--radius) + 4px);
+}

@@ -138,6 +138,7 @@ describe('Lobe icons', () => {
         'SGLang',
         'Sub2API',
         'Wan',
+        'WorkBuddy',
       ])
     )
   })

@@ -1502,6 +1502,7 @@
     "This site or the model provider returned an error ({{status}}). Try again later; if it keeps happening, send the request id to support: {{message}}": "Trang này hoặc nhà cung cấp mô hình trả về lỗi ({{status}}). Hãy thử lại sau; nếu vẫn lỗi, gửi request id cho bộ phận hỗ trợ: {{message}}",
     "Requests sent from the playground are real and billed by actual usage.": "Yêu cầu gửi từ trình gỡ lỗi là thật và được tính phí theo lượng dùng.",
     "Sign in to try this endpoint online.": "Đăng nhập để thử endpoint này trực tuyến.",
-    "Try it online": "Thử trực tuyến"
+    "Try it online": "Thử trực tuyến",
+    "Examples": "Ví dụ"
   }
 }

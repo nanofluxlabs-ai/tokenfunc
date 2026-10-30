@@ -60,7 +60,7 @@ import {
 import { copyToClipboard } from '@/lib/copy-to-clipboard'
 import { cn } from '@/lib/utils'
 
-type CodeBlockProps = HTMLAttributes<HTMLDivElement> & {
+type CodeBlockProps = Omit<HTMLAttributes<HTMLDivElement>, 'title'> & {
   code: string
   collapsedLines?: number
   defaultCollapsed?: boolean

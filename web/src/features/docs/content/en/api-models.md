@@ -1,15 +1,9 @@
 Returns the models the current key can call. The list is already filtered by the key's group and model limits, so it reflects what this key can actually use better than the [Model Square](/pricing).
 
-```http
-GET {{baseUrl}}/v1/models
-```
-
-:::api-playground{operation="list-models"}
+:::endpoint{method="GET" path="/v1/models" operation="list-models"}
 :::
 
-## Request
-
-:::tabs
+:::request-example
 @tab cURL
 
 ```bash
@@ -38,7 +32,8 @@ for await (const model of client.models.list()) {
 ```
 :::
 
-## Response
+:::response-example
+@tab 200
 
 ```json
 {
@@ -62,13 +57,18 @@ for await (const model of client.models.list()) {
   ]
 }
 ```
+:::
 
+## Response fields
+
+:::params
 | Field                             | Description                                                                                                                     |
 | --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
 | `data[].id`                       | The model name to pass as `model`                                                                                               |
 | `data[].owned_by`                 | The vendor of the model                                                                                                         |
 | `data[].created`                  | When the record was created (Unix seconds), not the model's release date                                                        |
 | `data[].supported_endpoint_types` | Endpoint formats the model supports, such as `openai` (Chat Completions), `openai-response` (Responses), `anthropic` (Messages) |
+:::
 
 ## Other formats
 

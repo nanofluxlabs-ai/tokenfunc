@@ -35,13 +35,16 @@ import {
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { cn } from '@/lib/utils'
 
+import { useSampleKeyHint } from '../hooks/use-sample-key-hint'
 import {
   fillDocVariables,
   type CalloutTone,
   type DocBlock,
   type ExampleRole,
 } from '../lib/doc-markdown'
+import type { ModelFamily } from '../registry'
 import { DocWidget } from './doc-widgets'
+import { SampleModelSelect } from './docs-sample-bar'
 
 type DocRenderContext = {
   vars: Record<string, string>
@@ -50,6 +53,8 @@ type DocRenderContext = {
   setPreferredTab: (label: string) => void
   /** main：正文；aside：API 页右侧示例栏。正文里的示例只在没有右侧栏的窄屏显示 */
   placement: 'main' | 'aside'
+  /** 页面的示例模型系列；有值时请求示例上方显示模型选择 */
+  sampleFamily?: ModelFamily
 }
 
 const RenderContext = createContext<DocRenderContext | null>(null)
@@ -199,15 +204,17 @@ function DocExample(props: {
   const sample =
     props.samples.find((item) => item.label === active) ?? props.samples[0]
   const inAside = ctx.placement === 'aside'
+  const keyHint = useSampleKeyHint()
+  const isRequest = props.role === 'request'
 
-  return (
+  const block = (
     <CodeBlock
       code={fillDocVariables(sample.code, ctx.vars, 'text')}
       language={sample.lang}
       showToolbar
       enableCollapse={false}
       maxExpandedLines={inAside ? ASIDE_MAX_LINES : undefined}
-      className={cn('docs-block my-0', !inAside && 'xl:hidden')}
+      className='my-0'
       title={
         <div className='flex items-center gap-2 font-sans tracking-normal normal-case'>
           <span className='text-foreground text-xs font-semibold'>
@@ -237,6 +244,21 @@ function DocExample(props: {
     >
       <CodeBlockCopyButton />
     </CodeBlock>
+  )
+
+  // 请求示例上方放示例模型选择、下方放密钥提示，替代页面顶部的示例参数卡片
+  return (
+    <div className={cn('docs-block space-y-2', !inAside && 'xl:hidden')}>
+      {isRequest && ctx.sampleFamily && (
+        <SampleModelSelect family={ctx.sampleFamily} />
+      )}
+      {block}
+      {isRequest && keyHint && (
+        <p className='text-muted-foreground px-1 text-xs leading-5'>
+          {keyHint}
+        </p>
+      )}
+    </div>
   )
 }
 
@@ -359,12 +381,19 @@ export function DocContent(props: {
   blocks: DocBlock[]
   vars: Record<string, string>
   placement?: 'main' | 'aside'
+  sampleFamily?: ModelFamily
 }) {
   const [preferredTab, setPreferredTab] = useState<string | null>(null)
   const placement = props.placement ?? 'main'
   const ctx = useMemo(
-    () => ({ vars: props.vars, preferredTab, setPreferredTab, placement }),
-    [props.vars, preferredTab, placement]
+    () => ({
+      vars: props.vars,
+      preferredTab,
+      setPreferredTab,
+      placement,
+      sampleFamily: props.sampleFamily,
+    }),
+    [props.vars, preferredTab, placement, props.sampleFamily]
   )
   return (
     <RenderContext.Provider value={ctx}>

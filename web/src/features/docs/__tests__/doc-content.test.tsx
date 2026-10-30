@@ -17,6 +17,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 For commercial licensing, please contact support@quantumnous.com
 */
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
+import type { ReactNode } from 'react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { DocContent } from '../components/doc-content'
@@ -27,6 +28,14 @@ const navigate = vi.fn()
 vi.mock('@tanstack/react-router', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@tanstack/react-router')>()),
   useNavigate: () => navigate,
+  Link: (props: { children: ReactNode }) => <a href='#'>{props.children}</a>,
+}))
+vi.mock('../hooks/use-docs-variables', () => ({
+  useDocsModelOptions: () => ['gpt-5'],
+  useDocsFamilyModels: () => ({ gpt: 'gpt-5' }),
+}))
+vi.mock('../hooks/use-docs-sample-key', () => ({
+  useDocsSampleKey: () => ({ missing: false, loading: false }),
 }))
 
 afterEach(() => {
@@ -41,6 +50,54 @@ function renderDoc(source: string) {
     <DocContent blocks={parseDoc(source, 'zh').blocks} vars={vars} />
   )
 }
+
+const API_EXAMPLES = [
+  ':::request-example',
+  '@tab cURL',
+  '```bash',
+  'curl {{baseUrl}}/v1/chat/completions',
+  '```',
+  ':::',
+  ':::response-example',
+  '@tab 200',
+  '```json',
+  '{"id": "chatcmpl-1"}',
+  '```',
+  ':::',
+].join('\n')
+
+describe('DocContent API examples', () => {
+  it('puts the sample model picker above the request example and the key hint below it', () => {
+    render(
+      <DocContent
+        blocks={parseDoc(API_EXAMPLES, 'zh').blocks}
+        vars={vars}
+        sampleFamily='gpt'
+      />
+    )
+    // 只有请求示例带模型选择，响应示例不带
+    const pickers = screen.getAllByText('Model in samples')
+    expect(pickers).toHaveLength(1)
+    const code = screen.getByText(/curl https:\/\/api\.example\.com/)
+    const hint = screen.getByText(
+      'Sign in to fill the samples with your own key.'
+    )
+    expect(
+      pickers[0].compareDocumentPosition(code) &
+        Node.DOCUMENT_POSITION_FOLLOWING
+    ).toBeTruthy()
+    expect(
+      code.compareDocumentPosition(hint) & Node.DOCUMENT_POSITION_FOLLOWING
+    ).toBeTruthy()
+  })
+
+  it('shows no model picker when the page has no sample model family', () => {
+    render(
+      <DocContent blocks={parseDoc(API_EXAMPLES, 'zh').blocks} vars={vars} />
+    )
+    expect(screen.queryByText('Model in samples')).toBeNull()
+  })
+})
 
 describe('DocContent', () => {
   it('fills the selected key and base URL into code samples', () => {

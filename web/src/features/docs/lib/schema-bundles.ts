@@ -25,19 +25,28 @@ export type SchemaBundle = {
   overlay: SchemaOverlay
 }
 
-export const SCHEMA_LOADERS: Record<string, () => Promise<SchemaBundle>> = {
-  'responses-create': async () => {
-    const [schema, zh, overlay] = await Promise.all([
-      import('../schemas/responses-create.json'),
-      import('../schemas/responses-create.zh.json'),
-      import('../schemas/responses-create.overlay.json'),
-    ])
-    return {
-      schema: schema.default as ApiSchema,
-      zh: zh.default as SchemaTranslations,
-      overlay: overlay.default as SchemaOverlay,
-    }
-  },
-}
+/** 与 scripts/tokenfunc-docs-schema.ts 的 OPERATIONS 一一对应，测试会校验两边一致 */
+export const SCHEMA_OPERATIONS = [
+  'chat-completions-create',
+  'responses-create',
+  'images-generate',
+  'images-edit',
+  'messages-create',
+  'gemini-generate-content',
+]
 
-export const SCHEMA_OPERATIONS = Object.keys(SCHEMA_LOADERS)
+export async function loadSchemaBundle(id: string): Promise<SchemaBundle> {
+  if (!SCHEMA_OPERATIONS.includes(id)) {
+    throw new Error(`Unknown schema operation ${id}`)
+  }
+  const [schema, zh, overlay] = await Promise.all([
+    import(`../schemas/${id}.json`),
+    import(`../schemas/${id}.zh.json`),
+    import(`../schemas/${id}.overlay.json`),
+  ])
+  return {
+    schema: schema.default as ApiSchema,
+    zh: zh.default as SchemaTranslations,
+    overlay: overlay.default as SchemaOverlay,
+  }
+}

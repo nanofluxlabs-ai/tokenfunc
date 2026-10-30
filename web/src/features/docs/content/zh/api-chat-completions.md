@@ -58,36 +58,8 @@ console.log(resp.choices[0].message.content)
 
 ## 请求参数
 
-:::params
-| 参数                    | 类型            | 必填 | 说明                                                                                                                       |
-| ----------------------- | --------------- | ---- | -------------------------------------------------------------------------------------------------------------------------- |
-| `model`                 | string          | 是   | 模型名，见 [模型列表](/docs/api-models)                                                                                    |
-| `messages`              | array           | 是   | 对话消息，每条包含 `role`（`system` / `developer` / `user` / `assistant` / `tool`）和 `content`，`developer` 等同 `system` |
-| `stream`                | boolean         | 否   | 为 `true` 时以 SSE 流式返回，默认 `false`                                                                                  |
-| `stream_options`        | object          | 否   | 流式选项。本站默认在结尾返回用量，传 `{"include_usage": false}` 可关闭                                                     |
-| `max_completion_tokens` | integer         | 否   | 最多生成的 Token 数（含思考 Token），推荐用这个                                                                            |
-| `max_tokens`            | integer         | 否   | 兼容旧写法，作用同 `max_completion_tokens`，本站会按模型自动转换                                                           |
-| `temperature`           | number          | 否   | 随机性，0～2。写代码、做提取用低值（如 0.2），创作用高值（如 1）                                                           |
-| `top_p`                 | number          | 否   | 核采样，0～1，一般与 `temperature` 二选一调整                                                                              |
-| `stop`                  | string / array  | 否   | 遇到这些字符串时停止生成                                                                                                   |
-| `n`                     | integer         | 否   | 生成几个候选回复，按总输出计费；只对 OpenAI 原生及兼容模型生效，Claude / Gemini 无效                                       |
-| `frequency_penalty`     | number          | 否   | 降低重复用词，-2～2；只对 OpenAI 原生及兼容模型生效，Claude / Gemini 无效                                                  |
-| `presence_penalty`      | number          | 否   | 鼓励谈论新话题，-2～2；只对 OpenAI 原生及兼容模型生效，Claude / Gemini 无效                                                |
-| `seed`                  | integer         | 否   | 随机种子，尽量让相同请求返回相同结果但不保证；官方已标记废弃                                                               |
-| `logprobs`              | boolean         | 否   | 是否返回输出 Token 的对数概率；只对 OpenAI 原生及兼容模型生效，Claude / Gemini 无效                                        |
-| `top_logprobs`          | integer         | 否   | 每个位置返回几个候选 Token 的概率，0～20，需同时开启 `logprobs`                                                            |
-| `tools`                 | array           | 否   | 可供模型调用的工具，见下方 [工具调用](#工具调用)                                                                           |
-| `tool_choice`           | string / object | 否   | `auto` / `none` / `required` 或指定工具                                                                                    |
-| `parallel_tool_calls`   | boolean         | 否   | 是否允许一次调用多个工具                                                                                                   |
-| `response_format`       | object          | 否   | 结构化输出，见下方 [结构化输出](#结构化输出)                                                                               |
-| `reasoning_effort`      | string          | 否   | 思考强度：`none` / `minimal` / `low` / `medium` / `high` / `xhigh` / `max`，见下方 [思考模型](#思考模型)                   |
-| `reasoning`             | object          | 否   | 思考设置的对象写法，如 `{"effort": "medium", "exclude": false}`，见下方 [思考模型](#思考模型)                              |
-| `web_search_options`    | object          | 否   | 联网搜索选项，支持搜索的 GPT 模型和 Claude 可用                                                                            |
-| `prompt_cache_key`      | string          | 否   | 缓存分组键，前缀相同的请求带同一个值，能提高缓存命中率                                                                     |
-| `user`                  | string          | 否   | 终端用户标识。官方已废弃，缓存分组请改用 `prompt_cache_key`                                                                |
+:::schema{operation="chat-completions-create" part="request"}
 :::
-
-表里只列常用参数，更多参数见 [OpenAI 官方文档](https://platform.openai.com/docs/api-reference/chat/create)，大部分会原样转发给上游；`service_tier`、`safety_identifier`、`moderation`、`stream_options.include_obfuscation` 本站不转发，传了会被忽略。
 
 `content` 除了字符串，也可以是数组，用于混排文字和图片，见下方 [图片理解](#图片理解)。
 
@@ -122,18 +94,7 @@ console.log(resp.choices[0].message.content)
 
 ## 响应字段
 
-:::params
-| 字段                                                         | 说明                                                                                                               |
-| ------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------ |
-| `choices[].message.content`                                  | 模型的回答                                                                                                         |
-| `choices[].message.reasoning_content`                        | 思考内容（仅部分思考模型返回）                                                                                     |
-| `choices[].message.tool_calls`                               | 模型要调用的工具                                                                                                   |
-| `choices[].message.refusal`                                  | 模型拒绝回答时的说明（仅部分 OpenAI 模型返回）                                                                     |
-| `choices[].message.annotations`                              | 联网搜索时引用的网页链接                                                                                           |
-| `choices[].finish_reason`                                    | 结束原因：`stop` 正常结束，`length` 达到长度上限被截断，`tool_calls` 需要调用工具，`content_filter` 被内容审核拦截 |
-| `usage.prompt_tokens` / `completion_tokens` / `total_tokens` | 输入 / 输出 / 合计 Token 数，计费依据                                                                              |
-| `usage.prompt_tokens_details.cached_tokens`                  | 输入中命中缓存的 Token 数                                                                                          |
-| `usage.completion_tokens_details.reasoning_tokens`           | 思考消耗的 Token 数，已计入 `completion_tokens`                                                                    |
+:::schema{operation="chat-completions-create" part="response"}
 :::
 
 ## 流式输出

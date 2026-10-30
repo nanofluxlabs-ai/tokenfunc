@@ -1511,6 +1511,8 @@
     "Hide types": "Masquer les types",
     "Not forwarded by this site": "Non transmis par ce site",
     "Failed to load the parameter list.": "Impossible de charger la liste des paramètres.",
-    "Loading parameters…": "Chargement des paramètres…"
+    "Loading parameters…": "Chargement des paramètres…",
+    "The full official parameter list, with descriptions from the {{name}} API reference. Use \"Show properties\" to see nested fields. Parameters marked \"Not forwarded by this site\" are ignored if sent; notes starting with \"On this site\" describe extra limits here.": "Liste complète des paramètres officiels, avec les descriptions de la référence API {{name}}. Utilisez « Afficher les propriétés » pour voir les champs imbriqués. Les paramètres marqués « Non transmis par ce site » sont ignorés ; les notes « Sur ce site » décrivent les limites propres à ce site.",
+    "Official reference": "Référence officielle"
   }
 }

@@ -50,8 +50,6 @@ console.log(resp.output_text)
 
 ## Request parameters
 
-The full official parameter list is below (use "Show properties" to see nested fields), taken from the [OpenAI API reference](https://platform.openai.com/docs/api-reference/responses/create). Parameters marked "Not forwarded by this site" are ignored if sent; "On this site" notes describe extra limits here.
-
 :::schema{operation="responses-create" part="request"}
 :::
 

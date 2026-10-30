@@ -1511,6 +1511,8 @@
     "Hide types": "Скрыть типы",
     "Not forwarded by this site": "Не передаётся этим сайтом",
     "Failed to load the parameter list.": "Не удалось загрузить список параметров.",
-    "Loading parameters…": "Загрузка параметров…"
+    "Loading parameters…": "Загрузка параметров…",
+    "The full official parameter list, with descriptions from the {{name}} API reference. Use \"Show properties\" to see nested fields. Parameters marked \"Not forwarded by this site\" are ignored if sent; notes starting with \"On this site\" describe extra limits here.": "Полный официальный список параметров с описаниями из справочника API {{name}}. Нажмите «Показать свойства», чтобы увидеть вложенные поля. Параметры с пометкой «Не передаётся этим сайтом» игнорируются; примечания «На этом сайте» описывают дополнительные ограничения.",
+    "Official reference": "Официальная документация"
   }
 }

@@ -55,7 +55,12 @@ const inputNode: SchemaNode = {
 }
 
 const fixture: ApiSchema = {
-  source: { name: 'Test', version: '1', url: 'https://example.com' },
+  source: {
+    name: 'Test',
+    version: '1',
+    url: 'https://example.com',
+    origin: 'https://example.com',
+  },
   request: {
     kind: 'object',
     fields: [{ name: 'input', required: false, node: inputNode }],
@@ -117,8 +122,13 @@ describe.each(schemaIds)('schema data (%s)', (id) => {
     expect(Object.keys(zh).filter((key) => !used.has(key))).toEqual([])
   })
 
-  it('keeps inline code unchanged in translations', () => {
-    const codeSpans = (text: string) => (text.match(/`[^`]+`/g) ?? []).sort()
+  it('keeps code unchanged in translations', () => {
+    // 先取出 ``` 多行代码块，剩下的正文再取行内代码，避免两种反引号错位配对
+    const codeSpans = (text: string) => {
+      const blocks = text.match(/```[\s\S]*?```/g) ?? []
+      const prose = text.replaceAll(/```[\s\S]*?```/g, '')
+      return [...blocks, ...(prose.match(/`[^`\n]+`/g) ?? [])].sort()
+    }
     const changed = [...used]
       .filter(
         ([key, text]) =>

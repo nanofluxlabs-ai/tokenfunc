@@ -1511,6 +1511,8 @@
     "Hide types": "收起类型",
     "Not forwarded by this site": "本站不转发",
     "Failed to load the parameter list.": "参数列表加载失败。",
-    "Loading parameters…": "正在加载参数…"
+    "Loading parameters…": "正在加载参数…",
+    "The full official parameter list, with descriptions from the {{name}} API reference. Use \"Show properties\" to see nested fields. Parameters marked \"Not forwarded by this site\" are ignored if sent; notes starting with \"On this site\" describe extra limits here.": "下面是官方完整参数，说明译自 {{name}} 官方文档，点「展开属性」查看嵌套字段。标有「本站不转发」的参数传了会被忽略，以「本站说明」开头的是本站的额外限制。",
+    "Official reference": "官方文档"
   }
 }

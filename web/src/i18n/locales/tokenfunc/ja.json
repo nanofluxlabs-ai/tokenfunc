@@ -1511,6 +1511,8 @@
     "Hide types": "型を隠す",
     "Not forwarded by this site": "このサイトでは転送しません",
     "Failed to load the parameter list.": "パラメーター一覧を読み込めませんでした。",
-    "Loading parameters…": "パラメーターを読み込み中…"
+    "Loading parameters…": "パラメーターを読み込み中…",
+    "The full official parameter list, with descriptions from the {{name}} API reference. Use \"Show properties\" to see nested fields. Parameters marked \"Not forwarded by this site\" are ignored if sent; notes starting with \"On this site\" describe extra limits here.": "公式の全パラメーター一覧です。説明は {{name}} の API リファレンスによります。「プロパティを表示」でネストしたフィールドを確認できます。「このサイトでは転送しません」と付いたパラメーターは送っても無視され、「このサイトでは」で始まる注記はこのサイト固有の制限です。",
+    "Official reference": "公式リファレンス"
   }
 }

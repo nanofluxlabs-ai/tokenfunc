@@ -51,7 +51,8 @@ export type SchemaField = {
 
 /** 一个接口的字段树：请求体、响应体，以及二者共用的具名类型（展开时才解析，避免循环引用） */
 export type ApiSchema = {
-  source: { name: string; version: string; url: string }
+  /** origin 用于补全官方说明里的相对链接 */
+  source: { name: string; version: string; url: string; origin: string }
   request: SchemaNode
   response: SchemaNode
   defs: Record<string, SchemaNode>

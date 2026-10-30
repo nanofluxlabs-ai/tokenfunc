@@ -37,7 +37,11 @@ import {
   type SchemaNode,
   type SchemaOverlayEntry,
 } from '../lib/api-schema'
-import { SCHEMA_LOADERS, type SchemaBundle } from '../lib/schema-bundles'
+import {
+  loadSchemaBundle,
+  SCHEMA_OPERATIONS,
+  type SchemaBundle,
+} from '../lib/schema-bundles'
 import { docsLangFromUiLanguage, type DocsLang } from '../registry'
 
 type SchemaPart = 'request' | 'response'
@@ -48,38 +52,44 @@ type RenderContext = {
   part: SchemaPart
 }
 
-// 官方说明里的站内链接是相对官方站点的，补全成绝对地址并在新窗口打开
-const OFFICIAL_ORIGIN = 'https://platform.openai.com'
-const descriptionMarked = new Marked({ gfm: true })
-descriptionMarked.use({
-  renderer: {
-    link(token: Tokens.Link) {
-      const inner = this.parser.parseInline(token.tokens)
-      const href = token.href.startsWith('/')
-        ? `${OFFICIAL_ORIGIN}${token.href}`
-        : token.href
-      return `<a href="${href}" target="_blank" rel="noopener noreferrer">${inner}</a>`
+// 官方说明里的站内链接是相对官方站点的，按来源补全成绝对地址并在新窗口打开
+const descriptionMarkeds = new Map<string, Marked>()
+
+function descriptionMarked(origin: string): Marked {
+  const cached = descriptionMarkeds.get(origin)
+  if (cached) return cached
+  const marked = new Marked({ gfm: true })
+  marked.use({
+    renderer: {
+      link(token: Tokens.Link) {
+        const inner = this.parser.parseInline(token.tokens)
+        const href = token.href.startsWith('/')
+          ? `${origin}${token.href}`
+          : token.href
+        return `<a href="${href}" target="_blank" rel="noopener noreferrer">${inner}</a>`
+      },
+      html(token: Tokens.HTML | Tokens.Tag) {
+        return token.text.replaceAll('<', '&lt;').replaceAll('>', '&gt;')
+      },
     },
-    html(token: Tokens.HTML | Tokens.Tag) {
-      return token.text.replaceAll('<', '&lt;').replaceAll('>', '&gt;')
-    },
-  },
-})
+  })
+  descriptionMarkeds.set(origin, marked)
+  return marked
+}
 
 function Description(props: { text: string; ctx: RenderContext }) {
   const translated =
     props.ctx.lang === 'zh'
       ? (props.ctx.bundle.zh[descriptionKey(props.text)] ?? props.text)
       : props.text
+  const origin = props.ctx.bundle.schema.source.origin
   const html = useMemo(
     () =>
       DOMPurify.sanitize(
-        descriptionMarked.parse(translated, { async: false }),
-        {
-          ADD_ATTR: ['target'],
-        }
+        descriptionMarked(origin).parse(translated, { async: false }),
+        { ADD_ATTR: ['target'] }
       ),
-    [translated]
+    [translated, origin]
   )
   return (
     <div
@@ -263,15 +273,16 @@ function FieldList(props: {
 export function SchemaFields(props: { operation?: string; part?: string }) {
   const { t, i18n } = useTranslation()
   const lang = docsLangFromUiLanguage(i18n.resolvedLanguage || i18n.language)
-  const loader = props.operation ? SCHEMA_LOADERS[props.operation] : undefined
+  const operation = props.operation ?? ''
+  const known = SCHEMA_OPERATIONS.includes(operation)
   const part: SchemaPart = props.part === 'response' ? 'response' : 'request'
   const query = useQuery({
-    queryKey: ['docs-schema', props.operation],
-    queryFn: () => (loader ? loader() : Promise.reject(new Error('unknown'))),
-    enabled: Boolean(loader),
+    queryKey: ['docs-schema', operation],
+    queryFn: () => loadSchemaBundle(operation),
+    enabled: known,
     staleTime: Infinity,
   })
-  if (!loader) return null
+  if (!known) return null
   if (query.isError) {
     return (
       <p className='docs-field-desc'>
@@ -284,8 +295,20 @@ export function SchemaFields(props: { operation?: string; part?: string }) {
   }
   const root = resolveNode(query.data.schema, query.data.schema[part])
   if (root?.kind !== 'object') return null
+  const source = query.data.schema.source
   return (
     <div className='docs-prose docs-schema'>
+      {part === 'request' && (
+        <p>
+          {t(
+            'The full official parameter list, with descriptions from the {{name}} API reference. Use "Show properties" to see nested fields. Parameters marked "Not forwarded by this site" are ignored if sent; notes starting with "On this site" describe extra limits here.',
+            { name: source.name }
+          )}{' '}
+          <a href={source.url} target='_blank' rel='noopener noreferrer'>
+            {t('Official reference')}
+          </a>
+        </p>
+      )}
       <FieldList
         fields={root.fields}
         ctx={{ bundle: query.data, lang, part }}

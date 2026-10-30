@@ -50,8 +50,6 @@ console.log(resp.output_text)
 
 ## 请求参数
 
-下面是官方完整参数（点「展开属性」查看嵌套字段），说明译自 [OpenAI 官方文档](https://platform.openai.com/docs/api-reference/responses/create)。标有「本站不转发」的参数传了会被忽略，带「本站说明」的是本站的额外限制。
-
 :::schema{operation="responses-create" part="request"}
 :::
 

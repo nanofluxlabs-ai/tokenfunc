@@ -70,28 +70,12 @@ Authenticate with `x-api-key` or `Authorization: Bearer`, see [Authentication](/
 
 ## Request parameters
 
-:::params
-| Parameter        | Type           | Required | Description                                                                                                                                                                                                             |
-| ---------------- | -------------- | -------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `model`          | string         | Yes      | Model name                                                                                                                                                                                                              |
-| `messages`       | array          | Yes      | The conversation; `role` is `user` or `assistant`, `content` is a string or an array of content blocks                                                                                                                  |
-| `max_tokens`     | integer        | Yes      | Maximum tokens to generate                                                                                                                                                                                              |
-| `system`         | string / array | No       | System prompt; as an array of blocks it can carry `cache_control`                                                                                                                                                       |
-| `stream`         | boolean        | No       | Stream the reply                                                                                                                                                                                                        |
-| `stop_sequences` | array          | No       | Stop at these strings                                                                                                                                                                                                   |
-| `tools`          | array          | No       | Tool definitions (`name`, `description`, `input_schema`)                                                                                                                                                                |
-| `tool_choice`    | object         | No       | Tool use policy: `auto` lets the model decide (default), `any` must call some tool, `tool` calls the tool named in `name`, `none` calls no tool. Add `"disable_parallel_tool_use": true` to allow at most one tool call |
-| `thinking`       | object         | No       | Thinking settings. `{"type": "adaptive"}` is recommended and lets the model decide how deeply to think, see [Thinking](#thinking) below                                                                                 |
-| `output_config`  | object         | No       | Output settings: `effort` sets how much work goes in (`low` / `medium` / `high` / `xhigh` / `max`); `format` takes `{"type": "json_schema", "schema": {...}}` to make the answer match a JSON Schema                    |
-| `cache_control`  | object         | No       | At the top level it caches up to the last cacheable block automatically, see [Prompt caching](#prompt-caching)                                                                                                          |
-| `metadata`       | object         | No       | Request metadata; put an anonymous end-user ID in `user_id`, never a name, email or phone number                                                                                                                        |
+:::schema{operation="messages-create" part="request"}
 :::
 
 Content block types include `text`, `image`, `document` (PDFs and other documents), `tool_use` and `tool_result`. With thinking on, send the returned `thinking` blocks back unchanged in multi-turn tool use. Add `cache_control` to a block to use prompt caching.
 
 Do not send `temperature`, `top_p` or `top_k`: Claude 4.7 and later models return 400 for non-default values, and from `anthropic-version: 2026-10-21` on, any model returns 400 when a request includes any of the three.
-
-Only common parameters are listed. See the [Anthropic API reference](https://platform.claude.com/docs/en/api/messages) for the rest; most are forwarded upstream as is. This site does not forward `service_tier`, `inference_geo`, `speed` and `diagnostics`; they are ignored if sent.
 
 :::response-example
 @tab 200
@@ -122,20 +106,7 @@ Only common parameters are listed. See the [Anthropic API reference](https://pla
 
 ## Response fields
 
-:::params
-| Field                                                           | Description                                                                                                                          |
-| --------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
-| `content[]`                                                     | Answer blocks, usually `text`, `thinking` and `tool_use`                                                                             |
-| `stop_reason`                                                   | Why the answer ended, see the table below                                                                                            |
-| `stop_sequence`                                                 | The stop sequence that was hit; set only when `stop_reason` is `stop_sequence`, otherwise `null`                                     |
-| `stop_details`                                                  | Extra detail on why it stopped, currently only for `refusal`, with `category` (such as `cyber` or `bio`) and `explanation`           |
-| `usage.input_tokens`                                            | Regular input tokens that did not hit the cache                                                                                      |
-| `usage.output_tokens`                                           | Output tokens, thinking included; this is what is billed                                                                             |
-| `usage.cache_creation_input_tokens` / `cache_read_input_tokens` | Tokens written to / served from the cache                                                                                            |
-| `usage.cache_creation`                                          | Cache writes split by lifetime: `ephemeral_5m_input_tokens` (5 minutes) and `ephemeral_1h_input_tokens` (1 hour), priced differently |
-| `usage.output_tokens_details.thinking_tokens`                   | Output tokens spent on thinking, already included in `output_tokens`                                                                 |
-| `usage.server_tool_use`                                         | Server tool calls: `web_search_requests` and `web_fetch_requests`                                                                    |
-| `usage.service_tier`                                            | The service tier used: `standard`, `priority` or `batch`                                                                             |
+:::schema{operation="messages-create" part="response"}
 :::
 
 Values of `stop_reason`:

@@ -334,7 +334,12 @@ func TestEnterpriseConsoleOverview(t *testing.T) {
 	require.Len(t, daily, 30, "30 days with zero fill")
 	last := daily[29].(map[string]any)
 	assert.Equal(t, today, last["day"])
-	assert.Equal(t, float64(200), last["quota"])
+	// 每月 1 号 monthStart 与 today 是同一天，两条用量落在同一个日桶
+	todayQuota := float64(200)
+	if monthStart == today {
+		todayQuota += 1500
+	}
+	assert.Equal(t, todayQuota, last["quota"])
 	todos := section(data, "todos")
 	assert.Equal(t, float64(2), todos["unpaid_bills"])
 	assert.Equal(t, float64(1), todos["overdue_bills"])

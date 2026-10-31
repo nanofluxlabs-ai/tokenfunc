@@ -1,0 +1,15 @@
+{
+  "request": {
+    "service_tier": { "status": "not-forwarded" },
+    "inference_geo": { "status": "not-forwarded" },
+    "speed": { "status": "not-forwarded" },
+    "diagnostics": { "status": "not-forwarded" },
+    "max_tokens": {
+      "note": {
+        "zh": "本站说明：传 0 会被替换成默认值，暂不支持用 0 预热缓存。",
+        "en": "On this site: 0 is replaced with the default value, so cache pre-warming with 0 is not supported yet."
+      }
+    }
+  },
+  "response": {}
+}

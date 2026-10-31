@@ -1,0 +1,14 @@
+{
+  "request": {
+    "serviceTier": { "status": "not-forwarded" },
+    "store": { "status": "not-forwarded" },
+    "labels": { "status": "not-forwarded" },
+    "model": {
+      "note": {
+        "zh": "本站说明：模型已写在请求路径里，请求体里可以不传。",
+        "en": "On this site: the model is already in the request path, so it can be left out of the body."
+      }
+    }
+  },
+  "response": {}
+}

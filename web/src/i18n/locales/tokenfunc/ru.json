@@ -1502,6 +1502,17 @@
     "Requests sent from the playground are real and billed by actual usage.": "Запросы из песочницы настоящие и оплачиваются по фактическому использованию.",
     "Sign in to try this endpoint online.": "Войдите, чтобы опробовать этот эндпоинт онлайн.",
     "Try it online": "Попробовать онлайн",
-    "Examples": "Примеры"
+    "Examples": "Примеры",
+    "Required parameter": "обязательный",
+    "Allowed values": "Допустимые значения",
+    "Show properties": "Показать свойства",
+    "Hide properties": "Скрыть свойства",
+    "Show {{count}} accepted types": "Показать допустимые типы ({{count}})",
+    "Hide types": "Скрыть типы",
+    "Not forwarded by this site": "Не передаётся этим сайтом",
+    "Failed to load the parameter list.": "Не удалось загрузить список параметров.",
+    "Loading parameters…": "Загрузка параметров…",
+    "The full official parameter list, with descriptions from the {{name}} API reference. Use \"Show properties\" to see nested fields. Parameters marked \"Not forwarded by this site\" are ignored if sent; notes starting with \"On this site\" describe extra limits here.": "Полный официальный список параметров с описаниями из справочника API {{name}}. Нажмите «Показать свойства», чтобы увидеть вложенные поля. Параметры с пометкой «Не передаётся этим сайтом» игнорируются; примечания «На этом сайте» описывают дополнительные ограничения.",
+    "Official reference": "Официальная документация"
   }
 }

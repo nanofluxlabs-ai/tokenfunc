@@ -1502,6 +1502,17 @@
     "Requests sent from the playground are real and billed by actual usage.": "Yêu cầu gửi từ trình gỡ lỗi là thật và được tính phí theo lượng dùng.",
     "Sign in to try this endpoint online.": "Đăng nhập để thử endpoint này trực tuyến.",
     "Try it online": "Thử trực tuyến",
-    "Examples": "Ví dụ"
+    "Examples": "Ví dụ",
+    "Required parameter": "bắt buộc",
+    "Allowed values": "Giá trị cho phép",
+    "Show properties": "Hiện thuộc tính",
+    "Hide properties": "Ẩn thuộc tính",
+    "Show {{count}} accepted types": "Hiện {{count}} kiểu được chấp nhận",
+    "Hide types": "Ẩn các kiểu",
+    "Not forwarded by this site": "Trang này không chuyển tiếp",
+    "Failed to load the parameter list.": "Không tải được danh sách tham số.",
+    "Loading parameters…": "Đang tải tham số…",
+    "The full official parameter list, with descriptions from the {{name}} API reference. Use \"Show properties\" to see nested fields. Parameters marked \"Not forwarded by this site\" are ignored if sent; notes starting with \"On this site\" describe extra limits here.": "Danh sách tham số chính thức đầy đủ, mô tả lấy từ tài liệu API của {{name}}. Bấm « Hiện thuộc tính » để xem các trường lồng nhau. Tham số có nhãn « Trang này không chuyển tiếp » sẽ bị bỏ qua; ghi chú bắt đầu bằng « Trên trang này » mô tả giới hạn riêng của trang.",
+    "Official reference": "Tài liệu chính thức"
   }
 }

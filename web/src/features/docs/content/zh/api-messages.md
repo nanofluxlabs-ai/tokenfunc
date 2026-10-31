@@ -70,28 +70,12 @@ console.log(resp.content[0].text)
 
 ## 请求参数
 
-:::params
-| 参数             | 类型           | 必填 | 说明                                                                                                                                                                       |
-| ---------------- | -------------- | ---- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `model`          | string         | 是   | 模型名                                                                                                                                                                     |
-| `messages`       | array          | 是   | 对话消息，`role` 为 `user` 或 `assistant`，`content` 可以是字符串或内容块数组                                                                                              |
-| `max_tokens`     | integer        | 是   | 最多生成的 Token 数                                                                                                                                                        |
-| `system`         | string / array | 否   | 系统提示词；写成内容块数组时可以加 `cache_control`                                                                                                                         |
-| `stream`         | boolean        | 否   | 是否流式返回                                                                                                                                                               |
-| `stop_sequences` | array          | 否   | 遇到这些字符串时停止                                                                                                                                                       |
-| `tools`          | array          | 否   | 工具定义（`name`、`description`、`input_schema`）                                                                                                                          |
-| `tool_choice`    | object         | 否   | 工具调用策略：`auto` 模型自己决定（默认），`any` 必须调用某个工具，`tool` 调用 `name` 指定的工具，`none` 不调用。加 `"disable_parallel_tool_use": true` 一次最多调一个工具 |
-| `thinking`       | object         | 否   | 思考设置，推荐 `{"type": "adaptive"}`，由模型决定想多深，见下方 [思考](#思考)                                                                                              |
-| `output_config`  | object         | 否   | 输出设置：`effort` 控制投入程度（`low` / `medium` / `high` / `xhigh` / `max`）；`format` 传 `{"type": "json_schema", "schema": {...}}` 让回答符合指定的 JSON Schema        |
-| `cache_control`  | object         | 否   | 写在顶层时自动缓存到最后一个可缓存的内容块，见 [提示词缓存](#提示词缓存)                                                                                                   |
-| `metadata`       | object         | 否   | 请求元数据，`user_id` 填终端用户的匿名标识，不要放姓名、邮箱、手机号                                                                                                       |
+:::schema{operation="messages-create" part="request"}
 :::
 
 内容块类型包括 `text`、`image`、`document`（PDF 等文档）、`tool_use`、`tool_result`；开启思考后，工具调用的多轮对话要把返回的 `thinking` 块原样带回。在内容块上添加 `cache_control` 可以使用提示词缓存。
 
 不要传 `temperature`、`top_p`、`top_k`：Claude 4.7 及之后的模型传非默认值会返回 400，`anthropic-version: 2026-10-21` 起任何模型带这三个参数都会返回 400。
-
-表里只列常用参数，更多参数见 [Anthropic 官方文档](https://platform.claude.com/docs/en/api/messages)，大部分会原样转发给上游；`service_tier`、`inference_geo`、`speed`、`diagnostics` 本站不转发，传了会被忽略。
 
 :::response-example
 @tab 200
@@ -122,20 +106,7 @@ console.log(resp.content[0].text)
 
 ## 响应字段
 
-:::params
-| 字段                                                            | 说明                                                                                                               |
-| --------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
-| `content[]`                                                     | 回答内容块，常见 `text`、`thinking`（思考）、`tool_use`（工具调用）                                                |
-| `stop_reason`                                                   | 结束原因，取值见下表                                                                                               |
-| `stop_sequence`                                                 | 命中的停止序列，只有 `stop_reason` 为 `stop_sequence` 时才有值，否则为 `null`                                      |
-| `stop_details`                                                  | 结束的补充说明，目前只在 `refusal` 时返回，含 `category`（如 `cyber`、`bio`）和 `explanation`                      |
-| `usage.input_tokens`                                            | 未命中缓存的普通输入 Token 数                                                                                      |
-| `usage.output_tokens`                                           | 输出 Token 数，含思考，计费依据                                                                                    |
-| `usage.cache_creation_input_tokens` / `cache_read_input_tokens` | 写入缓存 / 命中缓存的 Token 数                                                                                     |
-| `usage.cache_creation`                                          | 缓存写入按时长拆分：`ephemeral_5m_input_tokens`（5 分钟）、`ephemeral_1h_input_tokens`（1 小时），两种写入价格不同 |
-| `usage.output_tokens_details.thinking_tokens`                   | 输出中用于思考的 Token 数，已包含在 `output_tokens` 里                                                             |
-| `usage.server_tool_use`                                         | 服务端工具调用次数：`web_search_requests`、`web_fetch_requests`                                                    |
-| `usage.service_tier`                                            | 实际使用的服务等级：`standard`、`priority` 或 `batch`                                                              |
+:::schema{operation="messages-create" part="response"}
 :::
 
 `stop_reason` 的取值：

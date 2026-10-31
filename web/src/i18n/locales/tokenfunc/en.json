@@ -1502,6 +1502,17 @@
     "Requests sent from the playground are real and billed by actual usage.": "Requests sent from the playground are real and billed by actual usage.",
     "Sign in to try this endpoint online.": "Sign in to try this endpoint online.",
     "Try it online": "Try it online",
-    "Examples": "Examples"
+    "Examples": "Examples",
+    "Required parameter": "required",
+    "Allowed values": "Allowed values",
+    "Show properties": "Show properties",
+    "Hide properties": "Hide properties",
+    "Show {{count}} accepted types": "Show {{count}} accepted types",
+    "Hide types": "Hide types",
+    "Not forwarded by this site": "Not forwarded by this site",
+    "Failed to load the parameter list.": "Failed to load the parameter list.",
+    "Loading parameters…": "Loading parameters…",
+    "The full official parameter list, with descriptions from the {{name}} API reference. Use \"Show properties\" to see nested fields. Parameters marked \"Not forwarded by this site\" are ignored if sent; notes starting with \"On this site\" describe extra limits here.": "The full official parameter list, with descriptions from the {{name}} API reference. Use \"Show properties\" to see nested fields. Parameters marked \"Not forwarded by this site\" are ignored if sent; notes starting with \"On this site\" describe extra limits here.",
+    "Official reference": "Official reference"
   }
 }

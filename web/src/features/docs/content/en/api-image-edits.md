@@ -47,26 +47,8 @@ const resp = await client.images.edit({
 
 ## Request parameters
 
-:::params
-| Parameter            | Type    | Required | Description                                                                                                                                                  |
-| -------------------- | ------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `model`              | string  | Yes      | Image model name                                                                                                                                             |
-| `image`              | file    | Yes      | The source image, `png`, `webp` or `jpg`, under 50MB each. For several images use the field name `image[]`, up to 16                                         |
-| `prompt`             | string  | Yes      | What to change                                                                                                                                               |
-| `mask`               | file    | No       | Mask whose fully transparent areas mark what to change. Must be a PNG under 4MB with the same size as the image; with several images it applies to the first |
-| `input_fidelity`     | string  | No       | How closely to keep the source's style and details such as faces: `low` (default) or `high`. Leave it out for `gpt-image-2`                                  |
-| `n`                  | integer | No       | Number of images, default 1, billed per image. OpenAI models allow up to 10                                                                                  |
-| `size`               | string  | No       | Size, default `auto`; same rules as [Image generation](/docs/api-images)                                                                                     |
-| `quality`            | string  | No       | Quality, default `auto`; same values as image generation                                                                                                     |
-| `background`         | string  | No       | Background: `auto` (default), `transparent` or `opaque`. A transparent background needs `png` or `webp` output                                               |
-| `output_format`      | string  | No       | Output format: `png` (default), `jpeg` or `webp`                                                                                                             |
-| `output_compression` | integer | No       | Compression quality 0–100, default 100; only applies to `jpeg` and `webp`                                                                                    |
-| `stream`             | boolean | No       | `true` streams the result over SSE, with `image_edit.partial_image` and `image_edit.completed` events                                                        |
-| `partial_images`     | integer | No       | How many in-progress preview images to stream first, 0–3, default 0                                                                                          |
-| `response_format`    | string  | No       | Deprecated. GPT image models always return `b64_json`; only some other models support `url`                                                                  |
+:::schema{operation="images-edit" part="request"}
 :::
-
-Only common parameters are listed. See the [OpenAI API reference](https://platform.openai.com/docs/api-reference/images/createEdit) for the rest; most are forwarded upstream as is. This site does not forward `markup` and `safety_identifier`; they are ignored if sent.
 
 :::response-example
 @tab 200

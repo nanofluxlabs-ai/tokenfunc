@@ -1,0 +1,7 @@
+{
+  "request": {
+    "markup": { "status": "not-forwarded" },
+    "safety_identifier": { "status": "not-forwarded" }
+  },
+  "response": {}
+}

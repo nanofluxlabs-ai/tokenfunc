@@ -33,6 +33,7 @@ import { useDocsSampleStore } from '@/stores/docs-sample-store'
 import { BaseUrlCard } from './base-url-card'
 import { ConnectionCheck } from './connection-check'
 import { EndpointBar } from './endpoint-bar'
+import { SchemaFields } from './schema-fields'
 
 function CCSwitchWidget(props: { app?: string }) {
   const { t } = useTranslation()
@@ -129,6 +130,15 @@ export function DocWidget(props: {
           operation={props.attrs.operation}
         />
       ) : null
+    case 'schema':
+      return (
+        <div className='docs-block'>
+          <SchemaFields
+            operation={props.attrs.operation}
+            part={props.attrs.part}
+          />
+        </div>
+      )
     default:
       return null
   }

@@ -1,0 +1,57 @@
+{
+  "request": {
+    "service_tier": { "status": "not-forwarded" },
+    "safety_identifier": { "status": "not-forwarded" },
+    "moderation": { "status": "not-forwarded" },
+    "stream_options.include_obfuscation": { "status": "not-forwarded" },
+    "max_tokens": {
+      "note": {
+        "zh": "本站说明：兼容旧写法，本站会按模型自动转换成 max_completion_tokens。",
+        "en": "On this site: kept for compatibility; this site converts it to max_completion_tokens per model."
+      }
+    },
+    "stream_options": {
+      "note": {
+        "zh": "本站说明：本站默认在流式结尾返回用量，传 {\"include_usage\": false} 可关闭。",
+        "en": "On this site: usage is returned at the end of a stream by default; send {\"include_usage\": false} to turn it off."
+      }
+    },
+    "n": {
+      "note": {
+        "zh": "本站说明：只对 OpenAI 原生及兼容模型生效，Claude / Gemini 无效。",
+        "en": "On this site: only OpenAI-native and compatible models honor it; Claude and Gemini ignore it."
+      }
+    },
+    "frequency_penalty": {
+      "note": {
+        "zh": "本站说明：只对 OpenAI 原生及兼容模型生效，Claude / Gemini 无效。",
+        "en": "On this site: only OpenAI-native and compatible models honor it; Claude and Gemini ignore it."
+      }
+    },
+    "presence_penalty": {
+      "note": {
+        "zh": "本站说明：只对 OpenAI 原生及兼容模型生效，Claude / Gemini 无效。",
+        "en": "On this site: only OpenAI-native and compatible models honor it; Claude and Gemini ignore it."
+      }
+    },
+    "logprobs": {
+      "note": {
+        "zh": "本站说明：只对部分 OpenAI 原生模型生效，不支持的模型会被忽略。",
+        "en": "On this site: only some OpenAI-native models support it; it is dropped for other models."
+      }
+    },
+    "response_format": {
+      "note": {
+        "zh": "本站说明：用本接口调用 Claude 时不生效，Claude 请用工具调用约束输出结构。",
+        "en": "On this site: not applied when calling Claude through this endpoint; use tool calling to shape Claude's output."
+      }
+    },
+    "prompt_cache_key": {
+      "note": {
+        "zh": "本站说明：同一会话带同一个值，请求会尽量落到同一渠道，缓存命中率更高。",
+        "en": "On this site: send the same value within a conversation so requests stay on the same channel and hit the cache more often."
+      }
+    }
+  },
+  "response": {}
+}

@@ -1,0 +1,40 @@
+{
+  "request": {
+    "access_programs": { "status": "not-forwarded" },
+    "background": { "status": "not-forwarded" },
+    "service_tier": { "status": "not-forwarded" },
+    "safety_identifier": { "status": "not-forwarded" },
+    "stream_options.include_obfuscation": { "status": "not-forwarded" },
+    "previous_response_id": {
+      "note": {
+        "zh": "本站说明：仅 OpenAI 原生模型可用，走 Claude / Gemini 会报错；同一模型有多个渠道时要带同一个 prompt_cache_key，否则可能找不到上一次的响应，推荐手动拼接历史。",
+        "en": "On this site: only OpenAI-native models support it; Claude and Gemini return an error. When a model has several channels, send the same prompt_cache_key or the previous response may not be found. Prefer resending the history yourself."
+      }
+    },
+    "conversation": {
+      "note": {
+        "zh": "本站说明：仅 OpenAI 原生模型可用，走 Claude / Gemini 会报错。",
+        "en": "On this site: only OpenAI-native models support it; Claude and Gemini return an error."
+      }
+    },
+    "prompt": {
+      "note": {
+        "zh": "本站说明：仅 OpenAI 原生模型可用，走 Claude / Gemini 会报错。",
+        "en": "On this site: only OpenAI-native models support it; Claude and Gemini return an error."
+      }
+    },
+    "context_management": {
+      "note": {
+        "zh": "本站说明：仅 OpenAI 原生模型可用，走 Claude / Gemini 会报错。",
+        "en": "On this site: only OpenAI-native models support it; Claude and Gemini return an error."
+      }
+    },
+    "prompt_cache_key": {
+      "note": {
+        "zh": "本站说明：同一会话带同一个值，请求会尽量落到同一渠道，缓存命中率更高。",
+        "en": "On this site: send the same value within a conversation so requests stay on the same channel and hit the cache more often."
+      }
+    }
+  },
+  "response": {}
+}

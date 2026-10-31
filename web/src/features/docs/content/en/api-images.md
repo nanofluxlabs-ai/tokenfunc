@@ -63,24 +63,8 @@ else console.log(image.url)
 
 ## Request parameters
 
-:::params
-| Parameter            | Type    | Required | Description                                                                                                                                                                                                 |
-| -------------------- | ------- | -------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `model`              | string  | Yes      | Image model name                                                                                                                                                                                            |
-| `prompt`             | string  | Yes      | What to draw; more detail gives better results                                                                                                                                                              |
-| `n`                  | integer | No       | Number of images, default 1, billed per image. OpenAI models allow up to 10                                                                                                                                 |
-| `size`               | string  | No       | Size, default `auto`. All GPT image models support `1024x1024`, `1536x1024` and `1024x1536`; `gpt-image-2` and newer also accept any `WIDTHxHEIGHT` where both sides are multiples of 16, up to `3840x2160` |
-| `quality`            | string  | No       | Quality: `auto` (default), `low`, `medium`, `high`; some newer models also support `xhigh` and `max`                                                                                                        |
-| `background`         | string  | No       | Background: `auto` (default), `transparent` or `opaque`. A transparent background needs `png` or `webp` output                                                                                              |
-| `output_format`      | string  | No       | Output format: `png` (default), `jpeg` or `webp`                                                                                                                                                            |
-| `output_compression` | integer | No       | Compression quality 0–100, default 100; only applies to `jpeg` and `webp`                                                                                                                                   |
-| `moderation`         | string  | No       | Moderation level: `auto` (default), or the less strict `low`                                                                                                                                                |
-| `stream`             | boolean | No       | `true` streams the result over SSE, default `false`; see "Streaming" below                                                                                                                                  |
-| `partial_images`     | integer | No       | How many in-progress preview images to stream first, 0–3, default 0                                                                                                                                         |
-| `response_format`    | string  | No       | Deprecated. GPT image models always return `b64_json`; only some other models support `url`                                                                                                                 |
+:::schema{operation="images-generate" part="request"}
 :::
-
-Only common parameters are listed. See the [OpenAI API reference](https://platform.openai.com/docs/api-reference/images/create) for the rest; most are forwarded upstream as is. This site does not forward `safety_identifier`; they are ignored if sent.
 
 :::response-example
 @tab 200
@@ -105,15 +89,7 @@ Only common parameters are listed. See the [OpenAI API reference](https://platfo
 
 ## Response fields
 
-:::params
-| Field                                                   | Description                                                                                   |
-| ------------------------------------------------------- | --------------------------------------------------------------------------------------------- |
-| `data[].b64_json`                                       | The image as Base64; GPT image models always return this                                      |
-| `data[].url`                                            | Image URL, returned only by some other models; it usually expires, so download it promptly    |
-| `data[].revised_prompt`                                 | The prompt as rewritten by the model, returned only by some models                            |
-| `background` / `output_format` / `size` / `quality`     | The background, format, size and quality actually used (returned by GPT image models)         |
-| `usage.input_tokens` / `output_tokens` / `total_tokens` | Input / output / total tokens; models billed per token are billed on these                    |
-| `usage.input_tokens_details`                            | How the input tokens split between text and reference images (`text_tokens` / `image_tokens`) |
+:::schema{operation="images-generate" part="response"}
 :::
 
 ## Streaming

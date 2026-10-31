@@ -7,13 +7,17 @@ import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { getCurrencyLabel } from '@/lib/currency'
 
 import { BillsPanel } from './components/bills/bills-panel'
-import { DayRangeControls } from './components/day-range-controls'
 import { ModelConsumptionPanel } from './components/model-consumption/model-consumption-panel'
 import { OrdersPanel } from './components/orders/orders-panel'
 import { OverviewPanel } from './components/overview/overview-panel'
+import { PeriodFilter } from './components/period-filter'
 import { UserConsumptionPanel } from './components/user-consumption/user-consumption-panel'
 import { useFinanceDateRange } from './hooks/use-finance-date-range'
-import { monthToDateRange } from './lib/date-presets'
+import {
+  FINANCE_DATE_PRESETS,
+  monthToDateRange,
+  presetRange,
+} from './lib/date-presets'
 import {
   FINANCE_DEFAULT_SECTION,
   FINANCE_SECTION_IDS,
@@ -66,11 +70,10 @@ export function FinanceCenter() {
     <SectionPageLayout stackActionsOnMobile>
       <SectionPageLayout.Title>{t('Finance Center')}</SectionPageLayout.Title>
       <SectionPageLayout.Actions>
-        <DayRangeControls
-          draft={sharedRange.draft}
-          onDraftChange={sharedRange.setDraft}
-          onApply={sharedRange.apply}
-          onReset={sharedRange.reset}
+        <PeriodFilter
+          range={sharedRange}
+          presets={FINANCE_DATE_PRESETS}
+          onPreset={(preset) => sharedRange.applyRange(presetRange(preset))}
           disabled={!usesSharedRange}
         />
       </SectionPageLayout.Actions>

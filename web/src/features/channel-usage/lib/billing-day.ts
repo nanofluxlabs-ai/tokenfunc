@@ -1,38 +1,17 @@
-import type { DayRange } from '@/features/finance/lib/date-presets'
+import {
+  billingCalendarDay,
+  billingMonthFirstDay,
+  type DayRange,
+} from '@/features/finance/lib/date-presets'
 
 // 区间口径与后端一致：计费时区（Asia/Shanghai，UTC+8，无夏令时）自然日闭区间，
-// 接口参数 start_date / end_date（YYYY-MM-DD）。默认「今天」按计费时区取日历日，
-// 避免海外浏览器本地时区与后端口径差一天。
-
-const BILLING_OFFSET_MS = 8 * 3600 * 1000
-
-function pad(value: number): string {
-  return String(value).padStart(2, '0')
-}
-
-/** 把一个 UTC 日历日（year/month/day 取自平移后的 UTC 分量）格式化为 YYYY-MM-DD */
-function formatUtcDay(date: Date): string {
-  return `${date.getUTCFullYear()}-${pad(date.getUTCMonth() + 1)}-${pad(date.getUTCDate())}`
-}
-
-/** 计费时区的日历日（偏移 offsetDays 天），返回 YYYY-MM-DD */
-export function billingCalendarDay(offsetDays = 0, now = Date.now()): string {
-  const shifted = new Date(now + BILLING_OFFSET_MS)
-  shifted.setUTCDate(shifted.getUTCDate() + offsetDays)
-  return formatUtcDay(shifted)
-}
-
-/** 计费时区当月 1 日，返回 YYYY-MM-DD */
-export function billingMonthFirstDay(now = Date.now()): string {
-  const shifted = new Date(now + BILLING_OFFSET_MS)
-  shifted.setUTCDate(1)
-  return formatUtcDay(shifted)
-}
-
-/** 零点时间戳（秒）→ 计费时区的 YYYY-MM-DD，与浏览器时区无关 */
-export function formatBillingDate(ts: number): string {
-  return formatUtcDay(new Date(ts * 1000 + BILLING_OFFSET_MS))
-}
+// 接口参数 start_date / end_date（YYYY-MM-DD）。计费时区的日期换算与财务中心共用
+// features/finance/lib/date-presets，这里只保留渠道用量自己的快捷档。
+export {
+  billingCalendarDay,
+  billingMonthFirstDay,
+  formatBillingDate,
+} from '@/features/finance/lib/date-presets'
 
 export type BillingDatePresetId =
   | 'today'

@@ -15,8 +15,13 @@ import { requireServerSuccess } from '@/lib/server-error-message'
 import { listModelConsumptions } from '../../api'
 import { FINANCE_QUERY_KEY, MODEL_GROUP_PAGE_SIZE } from '../../constants'
 import { useFinanceDateRange } from '../../hooks/use-finance-date-range'
-import { todayRange } from '../../lib/date-presets'
+import {
+  FINANCE_DATE_PRESETS,
+  presetRange,
+  todayRange,
+} from '../../lib/date-presets'
 import { buildModelConsumptionTree } from '../../lib/model-consumption-tree'
+import { DatePresetButtons } from '../date-preset-buttons'
 import { DayRangeControls } from '../day-range-controls'
 import {
   formatModelCost,
@@ -179,6 +184,10 @@ export function ModelConsumptionPanel() {
           onChange={(group) => setDraft({ ...draft, group })}
           onSubmit={apply}
           placeholder={t('Group')}
+        />
+        <DatePresetButtons
+          presets={FINANCE_DATE_PRESETS}
+          onSelect={(preset) => range.applyRange(presetRange(preset))}
         />
         <DayRangeControls
           draft={range.draft}

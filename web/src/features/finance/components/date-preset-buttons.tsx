@@ -6,6 +6,7 @@ import type { DatePresetId } from '../lib/date-presets'
 
 const PRESET_LABEL_KEYS: Record<DatePresetId, string> = {
   today: 'Today',
+  week: 'This week',
   month: 'Current month',
   lastMonth: 'Last month',
   last30: 'Last 30 days',
@@ -17,7 +18,7 @@ type DatePresetButtonsProps = {
   disabled?: boolean
 }
 
-/** 日期快捷区间按钮组；用户消耗详情页与个人财务对账共用 */
+/** 日期快捷区间按钮组（计费时区）；财务中心各 tab、用户消耗详情、对账、推广中心共用 */
 export function DatePresetButtons(props: DatePresetButtonsProps) {
   const { t } = useTranslation()
   return (

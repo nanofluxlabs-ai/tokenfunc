@@ -13,7 +13,12 @@ import { requireServerSuccess } from '@/lib/server-error-message'
 import { listUserConsumptions } from '../../api'
 import { FINANCE_PAGE_SIZE, FINANCE_QUERY_KEY } from '../../constants'
 import { useFinanceDateRange } from '../../hooks/use-finance-date-range'
-import { todayRange } from '../../lib/date-presets'
+import {
+  FINANCE_DATE_PRESETS,
+  presetRange,
+  todayRange,
+} from '../../lib/date-presets'
+import { DatePresetButtons } from '../date-preset-buttons'
 import { DayRangeControls } from '../day-range-controls'
 import { useUserConsumptionColumns } from './user-consumption-columns'
 
@@ -133,6 +138,10 @@ export function UserConsumptionPanel() {
             className='pl-8'
           />
         </div>
+        <DatePresetButtons
+          presets={FINANCE_DATE_PRESETS}
+          onSelect={(preset) => range.applyRange(presetRange(preset))}
+        />
         <DayRangeControls
           draft={range.draft}
           onDraftChange={range.setDraft}

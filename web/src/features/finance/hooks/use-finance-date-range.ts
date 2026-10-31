@@ -50,6 +50,11 @@ export function useFinanceDateRange(params: UseFinanceDateRangeParams) {
     applied,
     draft,
     setDraft,
+    /** 快捷档：直接生效，不用再点「查询」 */
+    applyRange: (range: DayRange) => {
+      setDraft(range)
+      write(range)
+    },
     /** 草稿不完整时不写入 */
     apply: () => {
       if (draft.start && draft.end && draft.start <= draft.end) write(draft)

@@ -15,7 +15,7 @@ const PRESET_LABEL_KEYS: Record<BillingDatePresetId, string> = {
   month: 'Current month',
 }
 
-/** 快捷区间按钮组；区间按计费时区计算（财务中心的 DatePresetButtons 按浏览器本地时区，口径不同） */
+/** 快捷区间按钮组；区间按计费时区计算（与财务中心的 DatePresetButtons 同一口径） */
 export function BillingDatePresets(props: {
   onSelect: (preset: BillingDatePresetId) => void
   disabled?: boolean

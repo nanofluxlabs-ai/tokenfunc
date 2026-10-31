@@ -32,7 +32,7 @@ export function isFinanceSectionId(value: string): value is FinanceSectionId {
   return (FINANCE_SECTION_IDS as readonly string[]).includes(value)
 }
 
-/** 经营看板与订单中心共用页头的日期范围；其余 tab 各自带筛选 */
+/** 页头日期范围对除企业账单（按账期，不按日期）外的所有 tab 生效 */
 export function sectionUsesSharedRange(section: FinanceSectionId): boolean {
-  return section === 'overview' || section === 'orders'
+  return section !== 'enterprise-bills'
 }

@@ -7,6 +7,7 @@ import { useTranslation } from 'react-i18next'
 
 import { DataTablePage, useDataTable } from '@/components/data-table'
 import { Alert, AlertDescription } from '@/components/ui/alert'
+import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { toIntlLocale } from '@/i18n/languages'
 import { formatCompactNumber } from '@/lib/format'
@@ -14,15 +15,8 @@ import { requireServerSuccess } from '@/lib/server-error-message'
 
 import { listModelConsumptions } from '../../api'
 import { FINANCE_QUERY_KEY, MODEL_GROUP_PAGE_SIZE } from '../../constants'
-import { useFinanceDateRange } from '../../hooks/use-finance-date-range'
-import {
-  FINANCE_DATE_PRESETS,
-  presetRange,
-  todayRange,
-} from '../../lib/date-presets'
+import type { DayRange } from '../../lib/date-presets'
 import { buildModelConsumptionTree } from '../../lib/model-consumption-tree'
-import { DatePresetButtons } from '../date-preset-buttons'
-import { DayRangeControls } from '../day-range-controls'
 import {
   formatModelCost,
   useModelConsumptionColumns,
@@ -53,18 +47,12 @@ function FilterInput(props: {
   )
 }
 
-export function ModelConsumptionPanel() {
+/** 日期区间来自财务中心页头（各 tab 共用），本面板只管模型 / 用户 / 分组筛选 */
+export function ModelConsumptionPanel(props: { range: DayRange }) {
   const { t, i18n } = useTranslation()
   const locale = toIntlLocale(i18n.resolvedLanguage || i18n.language)
   const search = route.useSearch()
   const navigate = route.useNavigate()
-  const range = useFinanceDateRange({
-    search,
-    navigate,
-    startKey: 'mcStart',
-    endKey: 'mcEnd',
-    fallback: todayRange(),
-  })
   const applied: Filters = {
     model: search.mcModel ?? '',
     user: search.mcUser ?? '',
@@ -80,15 +68,15 @@ export function ModelConsumptionPanel() {
     queryKey: [
       FINANCE_QUERY_KEY,
       'model-consumptions',
-      range.applied.start,
-      range.applied.end,
+      props.range.start,
+      props.range.end,
       applied,
     ],
     queryFn: async () =>
       requireServerSuccess(
         await listModelConsumptions({
-          start_date: range.applied.start,
-          end_date: range.applied.end,
+          start_date: props.range.start,
+          end_date: props.range.end,
           model_name: applied.model || undefined,
           username: applied.user || undefined,
           group: applied.group || undefined,
@@ -132,21 +120,12 @@ export function ModelConsumptionPanel() {
   })
 
   const apply = () => {
-    if (
-      !range.draft.start ||
-      !range.draft.end ||
-      range.draft.start > range.draft.end
-    ) {
-      return
-    }
     void navigate({
       search: (previous) => ({
         ...previous,
         mcModel: draft.model.trim() || undefined,
         mcUser: draft.user.trim() || undefined,
         mcGroup: draft.group.trim() || undefined,
-        mcStart: range.draft.start,
-        mcEnd: range.draft.end,
       }),
     })
   }
@@ -158,8 +137,6 @@ export function ModelConsumptionPanel() {
         mcModel: undefined,
         mcUser: undefined,
         mcGroup: undefined,
-        mcStart: undefined,
-        mcEnd: undefined,
       }),
     })
   }
@@ -185,18 +162,12 @@ export function ModelConsumptionPanel() {
           onSubmit={apply}
           placeholder={t('Group')}
         />
-        <DatePresetButtons
-          presets={FINANCE_DATE_PRESETS}
-          onSelect={(preset) => range.applyRange(presetRange(preset))}
-        />
-        <DayRangeControls
-          draft={range.draft}
-          onDraftChange={range.setDraft}
-          onApply={apply}
-          onReset={reset}
-          applyLabel={t('Query model consumption')}
-          resetLabel={t('Reset model consumption filters')}
-        />
+        <Button size='sm' onClick={apply}>
+          {t('Query model consumption')}
+        </Button>
+        <Button size='sm' variant='outline' onClick={reset}>
+          {t('Reset model consumption filters')}
+        </Button>
       </div>
       <Alert className='bg-muted/40'>
         <AlertDescription className='flex flex-col gap-1'>

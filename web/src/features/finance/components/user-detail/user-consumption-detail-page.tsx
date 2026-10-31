@@ -68,7 +68,7 @@ export function UserConsumptionDetailPage() {
     void navigate({
       to: '/finance/$section',
       params: { section: 'user-consumption' },
-      search: { ucStart: range.applied.start, ucEnd: range.applied.end },
+      search: { start: range.applied.start, end: range.applied.end },
     })
   }
 

@@ -6,36 +6,23 @@ import { useTranslation } from 'react-i18next'
 
 import { DataTablePage, useDataTable } from '@/components/data-table'
 import { Alert, AlertDescription } from '@/components/ui/alert'
+import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { useTableUrlState } from '@/hooks/use-table-url-state'
 import { requireServerSuccess } from '@/lib/server-error-message'
 
 import { listUserConsumptions } from '../../api'
 import { FINANCE_PAGE_SIZE, FINANCE_QUERY_KEY } from '../../constants'
-import { useFinanceDateRange } from '../../hooks/use-finance-date-range'
-import {
-  FINANCE_DATE_PRESETS,
-  presetRange,
-  todayRange,
-} from '../../lib/date-presets'
-import { DatePresetButtons } from '../date-preset-buttons'
-import { DayRangeControls } from '../day-range-controls'
+import type { DayRange } from '../../lib/date-presets'
 import { useUserConsumptionColumns } from './user-consumption-columns'
 
 const route = getRouteApi('/_authenticated/finance/$section')
 
-export function UserConsumptionPanel() {
+/** 日期区间来自财务中心页头（各 tab 共用），本面板只管关键词筛选 */
+export function UserConsumptionPanel(props: { range: DayRange }) {
   const { t } = useTranslation()
   const search = route.useSearch()
   const navigate = route.useNavigate()
-  const range = useFinanceDateRange({
-    search,
-    navigate,
-    startKey: 'ucStart',
-    endKey: 'ucEnd',
-    fallback: todayRange(),
-    resetKeys: ['ucPage'],
-  })
   const keyword = search.ucQ ?? ''
   const [draftKeyword, setDraftKeyword] = useState(keyword)
   useEffect(() => {
@@ -54,14 +41,14 @@ export function UserConsumptionPanel() {
       },
       globalFilter: { enabled: false },
     })
-  const columns = useUserConsumptionColumns(range.applied)
+  const columns = useUserConsumptionColumns(props.range)
 
   const { data, isLoading, isFetching } = useQuery({
     queryKey: [
       FINANCE_QUERY_KEY,
       'user-consumptions',
-      range.applied.start,
-      range.applied.end,
+      props.range.start,
+      props.range.end,
       keyword,
       pagination.pageIndex,
       pagination.pageSize,
@@ -69,8 +56,8 @@ export function UserConsumptionPanel() {
     queryFn: async () =>
       requireServerSuccess(
         await listUserConsumptions({
-          start_date: range.applied.start,
-          end_date: range.applied.end,
+          start_date: props.range.start,
+          end_date: props.range.end,
           keyword: keyword || undefined,
           p: pagination.pageIndex + 1,
           page_size: pagination.pageSize,
@@ -92,21 +79,11 @@ export function UserConsumptionPanel() {
     ensurePageInRange,
   })
 
-  // 关键词与日期一起生效：点「查询」时同时写入 URL
   const apply = () => {
-    if (
-      !range.draft.start ||
-      !range.draft.end ||
-      range.draft.start > range.draft.end
-    ) {
-      return
-    }
     void navigate({
       search: (previous) => ({
         ...previous,
         ucQ: draftKeyword.trim() || undefined,
-        ucStart: range.draft.start,
-        ucEnd: range.draft.end,
         ucPage: undefined,
       }),
     })
@@ -117,8 +94,6 @@ export function UserConsumptionPanel() {
       search: (previous) => ({
         ...previous,
         ucQ: undefined,
-        ucStart: undefined,
-        ucEnd: undefined,
         ucPage: undefined,
       }),
     })
@@ -138,18 +113,12 @@ export function UserConsumptionPanel() {
             className='pl-8'
           />
         </div>
-        <DatePresetButtons
-          presets={FINANCE_DATE_PRESETS}
-          onSelect={(preset) => range.applyRange(presetRange(preset))}
-        />
-        <DayRangeControls
-          draft={range.draft}
-          onDraftChange={range.setDraft}
-          onApply={apply}
-          onReset={reset}
-          applyLabel={t('Query user consumption')}
-          resetLabel={t('Reset user consumption filters')}
-        />
+        <Button size='sm' onClick={apply}>
+          {t('Query user consumption')}
+        </Button>
+        <Button size='sm' variant='outline' onClick={reset}>
+          {t('Reset user consumption filters')}
+        </Button>
       </div>
       <Alert className='bg-muted/40'>
         <AlertDescription>

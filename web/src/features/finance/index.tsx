@@ -43,7 +43,7 @@ export function FinanceCenter() {
     startKey: 'start',
     endKey: 'end',
     fallback: monthToDateRange(),
-    resetKeys: ['page'],
+    resetKeys: ['page', 'ucPage'],
   })
   const usesSharedRange = sectionUsesSharedRange(section)
 
@@ -56,10 +56,10 @@ export function FinanceCenter() {
       panel = <OrdersPanel range={sharedRange.applied} />
       break
     case 'user-consumption':
-      panel = <UserConsumptionPanel />
+      panel = <UserConsumptionPanel range={sharedRange.applied} />
       break
     case 'model-consumption':
-      panel = <ModelConsumptionPanel />
+      panel = <ModelConsumptionPanel range={sharedRange.applied} />
       break
     case 'enterprise-bills':
       panel = <BillsPanel />
@@ -69,14 +69,15 @@ export function FinanceCenter() {
   return (
     <SectionPageLayout stackActionsOnMobile>
       <SectionPageLayout.Title>{t('Finance Center')}</SectionPageLayout.Title>
-      <SectionPageLayout.Actions>
-        <PeriodFilter
-          range={sharedRange}
-          presets={FINANCE_DATE_PRESETS}
-          onPreset={(preset) => sharedRange.applyRange(presetRange(preset))}
-          disabled={!usesSharedRange}
-        />
-      </SectionPageLayout.Actions>
+      {usesSharedRange && (
+        <SectionPageLayout.Actions>
+          <PeriodFilter
+            range={sharedRange}
+            presets={FINANCE_DATE_PRESETS}
+            onPreset={(preset) => sharedRange.applyRange(presetRange(preset))}
+          />
+        </SectionPageLayout.Actions>
+      )}
       <SectionPageLayout.Content>
         <div className='flex flex-col gap-4'>
           <p className='text-muted-foreground -mt-1 text-sm'>

@@ -14,7 +14,7 @@ export const pageParam = z.number().int().positive().optional().catch(undefined)
 
 /**
  * /finance/$section 的 search：各 tab 的键用前缀区分，切换 tab 不互相清理。
- * start / end 为经营看板与订单中心共用的日期范围；uc* 用户消耗；mc* 模型消费。
+ * start / end 为页头日期范围，经营看板、订单中心、用户消耗、模型消费共用；uc* 用户消耗；mc* 模型消费。
  */
 export const financeSectionSearchSchema = z.object({
   start: dateParam,
@@ -31,14 +31,10 @@ export const financeSectionSearchSchema = z.object({
   ucPage: pageParam,
   ucPageSize: pageParam,
   ucQ: textParam,
-  ucStart: dateParam,
-  ucEnd: dateParam,
   // 模型消费
   mcModel: textParam,
   mcUser: textParam,
   mcGroup: textParam,
-  mcStart: dateParam,
-  mcEnd: dateParam,
 })
 
 export type FinanceSectionSearch = z.infer<typeof financeSectionSearchSchema>

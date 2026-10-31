@@ -1,4 +1,4 @@
-Compatible with the OpenAI image generation endpoint: describe a picture in text and get an image back. Image models are listed on the [Model Square](/pricing), for example `{{model}}`. To change an existing image, see [Image edits](/docs/api-image-edits).
+Compatible with the OpenAI image generation endpoint. Image models are listed on the [Model Square](/pricing), for example `{{model}}`. To change an existing image, see [Image edits](/docs/api-image-edits).
 
 :::endpoint{method="POST" path="/v1/images/generations" operation="image-generations"}
 :::

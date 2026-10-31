@@ -1,4 +1,4 @@
-Set up a tool but it will not connect? Pick the tool, paste the address you entered in it and click "Run check". Each step tells you where it fails and how to fix it.
+Pick the tool, paste the address you entered in it and click "Run check". Each step tells you where it fails and how to fix it.
 
 :::self-check
 :::

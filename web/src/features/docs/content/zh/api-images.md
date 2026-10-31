@@ -1,4 +1,4 @@
-与 OpenAI 图片生成接口兼容，根据文字描述生成图片。可用的图片模型见 [模型广场](/pricing)，例如 `{{model}}`。要修改已有图片，见 [图片编辑](/docs/api-image-edits)。
+与 OpenAI 图片生成接口兼容。可用的图片模型见 [模型广场](/pricing)，例如 `{{model}}`。要修改已有图片，见 [图片编辑](/docs/api-image-edits)。
 
 :::endpoint{method="POST" path="/v1/images/generations" operation="image-generations"}
 :::

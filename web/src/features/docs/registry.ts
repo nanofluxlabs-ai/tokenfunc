@@ -76,8 +76,8 @@ export const DOCS_PAGES: DocsPageEntry[] = [
     group: 'getting-started',
     title: { zh: '连接自检', en: 'Connection check' },
     description: {
-      zh: '工具里配置后连不上？选好工具，一键检查地址、密钥、模型权限和实际调用。',
-      en: 'Tool not connecting? Pick the tool and check the address, key, model access and a real call in one go.',
+      zh: '工具里配置后连不上？一键检查地址、密钥、模型权限和实际调用。',
+      en: 'Tool not connecting? Check the address, key, model access and a real call in one go.',
     },
   },
   {

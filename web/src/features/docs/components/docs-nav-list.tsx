@@ -18,12 +18,15 @@ For commercial licensing, please contact support@quantumnous.com
 */
 import { Link } from '@tanstack/react-router'
 import {
+  BookOpen,
   Building2,
   ChevronRight,
   Code,
+  KeyRound,
   LayoutGrid,
   Puzzle,
   Rocket,
+  TriangleAlert,
   type LucideIcon,
 } from 'lucide-react'
 import { useEffect } from 'react'
@@ -52,6 +55,12 @@ const GROUP_ICONS: Record<DocsGroupId, LucideIcon> = {
   api: Code,
   enterprise: Building2,
   tools: Puzzle,
+}
+
+// API 组里不是接口的说明页（鉴权、错误码）在请求方法那一列放图标，标题与接口页对齐
+const GUIDE_ICONS: Record<string, LucideIcon> = {
+  'api-authentication': KeyRound,
+  'api-errors': TriangleAlert,
 }
 
 function GroupIcon(props: { id: DocsGroupId }) {
@@ -103,8 +112,10 @@ export function DocsNavList(props: {
           <CollapsibleContent>
             <ul className='mt-1 space-y-0.5'>
               {group.pages.map((page) => {
-                // 组内有页面带图标时，整组都留出图标位，保持文字对齐
+                // 组内有页面带图标 / 请求方法时，整组都留出同宽的位置，保持文字对齐
                 const groupHasIcons = group.pages.some((item) => item.icon)
+                const groupHasMethods = group.pages.some((item) => item.method)
+                const GuideIcon = GUIDE_ICONS[page.slug] ?? BookOpen
                 const isActive = page.slug === props.activeSlug
                 return (
                   <li key={page.slug}>
@@ -123,6 +134,15 @@ export function DocsNavList(props: {
                     >
                       {page.method && (
                         <MethodBadge method={page.method} size='sm' />
+                      )}
+                      {!page.method && groupHasMethods && (
+                        <span
+                          data-slot='docs-nav-method-icon'
+                          aria-hidden='true'
+                          className='flex h-4 w-9 shrink-0 items-center justify-center'
+                        >
+                          <GuideIcon className='size-3.5' />
+                        </span>
                       )}
                       {groupHasIcons && (
                         <span

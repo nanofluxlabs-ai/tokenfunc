@@ -42,7 +42,7 @@ The `request id` at the end of `message` identifies the request; include it when
 
 ## Status codes
 
-| Status | Usual cause                                                                                                              | Retry?                        |
+| Status | Meaning                                                                                                                  | Retry?                        |
 | ------ | ------------------------------------------------------------------------------------------------------------------------ | ----------------------------- |
 | `400`  | Malformed request: invalid JSON, a missing required field, a bad value                                                   | No, fix the request           |
 | `401`  | Invalid key: missing, unknown, expired, or the key's own quota is used up                                                | No, check the key             |

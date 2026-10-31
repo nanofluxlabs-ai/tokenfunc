@@ -3,16 +3,28 @@
 :::steps
 ### Get the base URL
 
-Every request goes to the address below. Some tools want it with `/v1`, some without; each tool guide says which.
+Every request goes to the address below:
 
 :::base-url
 :::
 
+Tools differ in how they want this address, and this is the most common reason an integration fails:
+
+| Protocol the tool uses                  | What to enter           | Example                           |
+| --------------------------------------- | ----------------------- | --------------------------------- |
+| OpenAI-compatible (most tools and SDKs) | Base URL + `/v1`        | `{{baseUrl}}/v1`                  |
+| Anthropic (Claude Code and similar)     | Base URL only, no `/v1` | `{{baseUrl}}`                     |
+| Tools that ask for the full endpoint    | Base URL + full path    | `{{baseUrl}}/v1/chat/completions` |
+
+Tools append their own path to whatever you enter, so one `/v1` too many or too few fails with 404. Each tool guide says which form to use.
+
 ### Create a key
 
-Sign in, open [API Keys](/keys) and click "Create API Key". Create one key per tool so you can revoke one without touching the others.
+Sign in, open [API Keys](/keys) and click "Create API Key". Keys start with `sk-`, and anyone holding one can spend your balance, so treat it like a password.
 
-- The full key is shown only once after creation. Copy it right away.
+- Create one key per tool or project, so a leak only costs you that one key.
+- The full key is shown only once after creation. Copy it right away, and never commit it to a repository or show it in screenshots or group chats.
+- The **group** you pick decides which models the key can use and at what rate; filter by group on the [Model Square](/pricing) to compare models and prices.
 - You can limit a key by quota, models, IP allowlist and expiry. Leave them empty for no limit.
 
 ![The API Keys page: the Create API Key button and the copy dialog shown after creation](todo:quick-start/create-key.png)
@@ -82,11 +94,11 @@ console.log(resp.choices[0].message.content)
 ```
 :::
 
-Any model from the [Model Square](/pricing) works in place of the one above. If you get an error, look it up in [FAQ and troubleshooting](/docs/faq).
+Any model from the [Model Square](/pricing) works in place of the one above, but the name must match this site's model name **exactly**, including case and hyphens; the [List models](/docs/api-models) endpoint returns the models this key can use. If you get an error, look it up in [FAQ and troubleshooting](/docs/faq).
 :::
 
 ## Next steps
 
-- **Use a ready-made tool**: Claude Code, Codex, Cursor, Cline, Trae and more, see [Choose a tool](/docs/tools-overview).
+- **Use a ready-made tool**: Claude Code, Codex, Cursor, Cline, Trae and more, see [Tool integration overview](/docs/tools-overview).
 - **Write your own code**: multi-turn chat, streaming, vision, tool calling, see [Chat Completions](/docs/api-chat-completions#examples).
 - **Look up the API**: parameters and response formats, see [API reference](/docs/api-authentication).

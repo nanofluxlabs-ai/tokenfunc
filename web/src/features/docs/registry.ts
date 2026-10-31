@@ -81,15 +81,6 @@ export const DOCS_PAGES: DocsPageEntry[] = [
     },
   },
   {
-    slug: 'concepts',
-    group: 'getting-started',
-    title: { zh: '基础概念', en: 'Core concepts' },
-    description: {
-      zh: '接口地址、密钥、分组、模型名与计费，接入前需要知道的五件事。',
-      en: 'Base URL, keys, groups, model names and billing: five things to know first.',
-    },
-  },
-  {
     slug: 'faq',
     group: 'getting-started',
     title: { zh: '常见问题与排错', en: 'FAQ and troubleshooting' },
@@ -101,7 +92,7 @@ export const DOCS_PAGES: DocsPageEntry[] = [
   {
     slug: 'tools-overview',
     group: 'tools',
-    title: { zh: '选择接入方式', en: 'Choose a tool' },
+    title: { zh: '概览', en: 'Overview' },
     description: {
       zh: '各工具使用的协议、接口地址写法与推荐模型一览。',
       en: 'Protocol, base URL format and recommended models for each tool.',

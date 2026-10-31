@@ -59,8 +59,8 @@ describe('DocsNavList', () => {
       <DocsNavList lang='zh' activeSlug='quick-start' />
     )
     const linkFor = (text: string) => screen.getByText(text).closest('a')
-    // 工具组整组带图标位（包括没有品牌的「选择接入方式」），文字保持对齐
-    for (const title of ['选择接入方式', 'Claude Code', 'Cursor', 'Pi']) {
+    // 工具组整组带图标位（包括没有品牌的「概览」），文字保持对齐
+    for (const title of ['概览', 'Claude Code', 'Cursor', 'Pi']) {
       expect(
         linkFor(title)?.querySelector('[data-slot="docs-nav-icon"]')
       ).not.toBeNull()
@@ -99,6 +99,23 @@ describe('DocsNavList', () => {
     )
     expect(linkFor('Authentication')).toHaveTextContent(/^Authentication$/)
     expect(linkFor('Errors')).toHaveTextContent(/^Errors$/)
+  })
+
+  it('gives API guide pages an icon in the method column so titles line up', () => {
+    render(<DocsNavList lang='en' activeSlug='quick-start' />)
+    const linkFor = (text: string) => screen.getByText(text).closest('a')
+    for (const title of ['Authentication', 'Errors']) {
+      const icon = linkFor(title)?.querySelector(
+        '[data-slot="docs-nav-method-icon"]'
+      )
+      expect(icon).not.toBeNull()
+      expect(icon).toHaveAttribute('aria-hidden', 'true')
+    }
+    expect(
+      linkFor('Quick start')?.querySelector(
+        '[data-slot="docs-nav-method-icon"]'
+      )
+    ).toBeNull()
   })
 
   it('re-opens the group of the current page when it was collapsed', () => {

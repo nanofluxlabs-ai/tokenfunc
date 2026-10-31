@@ -21,7 +21,7 @@ Invoke-RestMethod -Uri "{{baseUrl}}/v1/models" -Headers @{ Authorization = "Bear
 | `401` invalid token                            | Key copied incompletely or with spaces; key deleted, expired or out of its own quota | Check the key's status and remaining quota on [API Keys](/keys) and copy it again |
 | `403` token has no access to the model         | The key limits its models, or its group does not include the model                   | Allow the model in the key settings, or use a key from another group              |
 | `403` insufficient user quota                  | Account balance is too low                                                           | Top up under Wallet; requests work again right away                               |
-| `404` Not Found                                | One `/v1` too many or too few in the base URL                                        | Check the address against the tool guide, see [Core concepts](/docs/concepts)     |
+| `404` Not Found                                | One `/v1` too many or too few in the base URL                                        | Check the address against the tool guide, see [Quick start](/docs/quick-start)    |
 | `503` no available channel / `model_not_found` | Wrong model name, or the model is temporarily unavailable                            | Copy the name from the [Model Square](/pricing); try another model                |
 | `429`                                          | Too many requests                                                                    | Lower concurrency and retry later                                                 |
 | `413`                                          | Request body too large (usually a big image or file)                                 | Compress the image or send an image URL instead                                   |
@@ -33,15 +33,17 @@ More status codes and retry advice are on [Errors](/docs/api-errors).
 
 ### Does the base URL include /v1 or not?
 
-It depends on the protocol the tool uses: OpenAI-compatible tools want `/v1`, Anthropic-protocol tools such as Claude Code do not. Every tool guide says which; when in doubt, see the table on [Choose a tool](/docs/tools-overview).
+It depends on the protocol the tool uses: OpenAI-compatible tools want `/v1`, Anthropic-protocol tools such as Claude Code do not. Every tool guide says which; when in doubt, see the table on [Tool integration overview](/docs/tools-overview).
 
 ### The model is on the Model Square, so why does the call say I have no access?
 
 The Model Square lists every model on the site. Which models a key can use depends on its group and on any model limits set on the key. [List models](/docs/api-models) returns what your key can actually use.
 
-### Where do I see usage and charges?
+### How am I billed, and where do I see usage and charges?
 
-Usage Logs in the console lists every request with its model, token counts and cost.
+Charges come out of your balance by actual usage: most text models bill per token with separate input and output prices, and some bill per request. Each model's price is on the [Model Square](/pricing). Cached input is billed at a lower cache price; see [prompt caching in Anthropic Messages](/docs/api-messages#prompt-caching).
+
+Usage Logs in the console lists every request with its model, token counts and cost. Requests are rejected when the balance runs out and work again right after a top-up.
 
 ### My balance is fine, why does it say the quota is insufficient?
 

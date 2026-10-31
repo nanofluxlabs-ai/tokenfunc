@@ -479,7 +479,7 @@
     "Name must be at most 64 characters": "名稱最多 64 個字元",
     "Net amount (USD)": "淨入帳 (USD)",
     "Net charged": "實際扣費",
-    "Net consumption (consumption minus refunds) in the selected range is grouped by group → model → channel. Group and model shares use the overall total as the denominator, so each level sums to 100%; channel shares use the model total. Groups are expanded by default, sorted by cost, and the default range is today.": "按「分組 → 模型 → 渠道」三層彙總所選日期範圍內的淨消費（消費 − 退款）。分組列與模型列的占比均以全局總消費為分母，因此分組列占比之和、模型列占比之和都是 100%；渠道列占比以所屬模型的消費為分母。預設展開分組、按消費由高到低排序，預設顯示當天。",
+    "Net consumption (consumption minus refunds) in the selected range is grouped by group → model → channel. Group and model shares use the overall total as the denominator, so each level sums to 100%; channel shares use the model total. Groups are expanded by default and sorted by cost.": "按「分組 → 模型 → 渠道」三層彙總所選日期範圍內的淨消費（消費 − 退款）。分組列與模型列的占比均以全局總消費為分母，因此分組列占比之和、模型列占比之和都是 100%；渠道列占比以所屬模型的消費為分母。預設展開分組、按消費由高到低排序。",
     "New": "新申请",
     "New paying users": "新增付費使用者",
     "New registrations": "新增註冊",

@@ -479,7 +479,7 @@
     "Name must be at most 64 characters": "Le nom ne doit pas dépasser 64 caractères",
     "Net amount (USD)": "Montant net (USD)",
     "Net charged": "Net facturé",
-    "Net consumption (consumption minus refunds) in the selected range is grouped by group → model → channel. Group and model shares use the overall total as the denominator, so each level sums to 100%; channel shares use the model total. Groups are expanded by default, sorted by cost, and the default range is today.": "La consommation nette (consommation moins remboursements) sur la plage sélectionnée est regroupée par groupe → modèle → canal. Les parts des groupes et des modèles utilisent le total global comme dénominateur, chaque niveau totalisant donc 100 % ; les parts des canaux utilisent le total du modèle. Les groupes sont dépliés par défaut, triés par coût, et la plage par défaut est aujourd'hui.",
+    "Net consumption (consumption minus refunds) in the selected range is grouped by group → model → channel. Group and model shares use the overall total as the denominator, so each level sums to 100%; channel shares use the model total. Groups are expanded by default and sorted by cost.": "La consommation nette (consommation moins remboursements) sur la plage sélectionnée est regroupée par groupe → modèle → canal. Les parts des groupes et des modèles utilisent le total global comme dénominateur, chaque niveau totalisant donc 100 % ; les parts des canaux utilisent le total du modèle. Les groupes sont dépliés par défaut et triés par coût.",
     "New": "Nouveau",
     "New paying users": "Nouveaux utilisateurs payants",
     "New registrations": "Nouvelles inscriptions",

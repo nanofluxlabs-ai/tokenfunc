@@ -479,7 +479,7 @@
     "Name must be at most 64 characters": "名前は64文字以内で入力してください",
     "Net amount (USD)": "純入金額（USD）",
     "Net charged": "実際の請求額",
-    "Net consumption (consumption minus refunds) in the selected range is grouped by group → model → channel. Group and model shares use the overall total as the denominator, so each level sums to 100%; channel shares use the model total. Groups are expanded by default, sorted by cost, and the default range is today.": "選択した範囲の純消費（消費 − 返金）を「グループ → モデル → チャネル」の順に集計します。グループ行とモデル行の割合は全体合計を分母とするため、各階層の合計は 100% になります。チャネル行の割合は所属モデルの合計を分母とします。既定ではグループを展開し、費用の降順に並べ、範囲は本日です。",
+    "Net consumption (consumption minus refunds) in the selected range is grouped by group → model → channel. Group and model shares use the overall total as the denominator, so each level sums to 100%; channel shares use the model total. Groups are expanded by default and sorted by cost.": "選択した範囲の純消費（消費 − 返金）を「グループ → モデル → チャネル」の順に集計します。グループ行とモデル行の割合は全体合計を分母とするため、各階層の合計は 100% になります。チャネル行の割合は所属モデルの合計を分母とします。既定ではグループを展開し、費用の降順に並べます。",
     "New": "新規",
     "New paying users": "新規有料ユーザー",
     "New registrations": "新規登録",

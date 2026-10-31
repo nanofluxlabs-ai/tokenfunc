@@ -178,7 +178,7 @@ export function ModelConsumptionPanel(props: { range: DayRange }) {
           </p>
           <p>
             {t(
-              'Net consumption (consumption minus refunds) in the selected range is grouped by group → model → channel. Group and model shares use the overall total as the denominator, so each level sums to 100%; channel shares use the model total. Groups are expanded by default, sorted by cost, and the default range is today.'
+              'Net consumption (consumption minus refunds) in the selected range is grouped by group → model → channel. Group and model shares use the overall total as the denominator, so each level sums to 100%; channel shares use the model total. Groups are expanded by default and sorted by cost.'
             )}
           </p>
           <p className='flex flex-wrap gap-x-4 gap-y-1'>

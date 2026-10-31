@@ -479,7 +479,7 @@
     "Name must be at most 64 characters": "Tên tối đa 64 ký tự",
     "Net amount (USD)": "Số tiền ròng (USD)",
     "Net charged": "Số tiền thực thu",
-    "Net consumption (consumption minus refunds) in the selected range is grouped by group → model → channel. Group and model shares use the overall total as the denominator, so each level sums to 100%; channel shares use the model total. Groups are expanded by default, sorted by cost, and the default range is today.": "Tiêu thụ ròng (tiêu thụ trừ hoàn tiền) trong khoảng đã chọn được tổng hợp theo nhóm → mô hình → kênh. Tỷ trọng của nhóm và mô hình dùng tổng toàn bộ làm mẫu số, nên mỗi cấp cộng lại bằng 100%; tỷ trọng của kênh dùng tổng của mô hình. Nhóm được mở rộng mặc định, sắp xếp theo chi phí và khoảng mặc định là hôm nay.",
+    "Net consumption (consumption minus refunds) in the selected range is grouped by group → model → channel. Group and model shares use the overall total as the denominator, so each level sums to 100%; channel shares use the model total. Groups are expanded by default and sorted by cost.": "Tiêu thụ ròng (tiêu thụ trừ hoàn tiền) trong khoảng đã chọn được tổng hợp theo nhóm → mô hình → kênh. Tỷ trọng của nhóm và mô hình dùng tổng toàn bộ làm mẫu số, nên mỗi cấp cộng lại bằng 100%; tỷ trọng của kênh dùng tổng của mô hình. Nhóm được mở rộng mặc định và sắp xếp theo chi phí.",
     "New": "Mới",
     "New paying users": "Người dùng trả phí mới",
     "New registrations": "Đăng ký mới",

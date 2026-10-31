@@ -479,7 +479,7 @@
     "Name must be at most 64 characters": "Название — не более 64 символов",
     "Net amount (USD)": "Сумма нетто (USD)",
     "Net charged": "Списано нетто",
-    "Net consumption (consumption minus refunds) in the selected range is grouped by group → model → channel. Group and model shares use the overall total as the denominator, so each level sums to 100%; channel shares use the model total. Groups are expanded by default, sorted by cost, and the default range is today.": "Чистый расход (расход минус возвраты) за выбранный диапазон сгруппирован по группе → модели → каналу. Доли групп и моделей считаются от общего итога, поэтому каждый уровень в сумме даёт 100 %; доли каналов считаются от итога по модели. Группы по умолчанию развёрнуты и отсортированы по стоимости, диапазон по умолчанию — сегодня.",
+    "Net consumption (consumption minus refunds) in the selected range is grouped by group → model → channel. Group and model shares use the overall total as the denominator, so each level sums to 100%; channel shares use the model total. Groups are expanded by default and sorted by cost.": "Чистый расход (расход минус возвраты) за выбранный диапазон сгруппирован по группе → модели → каналу. Доли групп и моделей считаются от общего итога, поэтому каждый уровень в сумме даёт 100 %; доли каналов считаются от итога по модели. Группы по умолчанию развёрнуты и отсортированы по стоимости.",
     "New": "Новые",
     "New paying users": "Новые платящие пользователи",
     "New registrations": "Новые регистрации",

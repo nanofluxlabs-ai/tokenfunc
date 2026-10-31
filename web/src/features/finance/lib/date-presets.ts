@@ -112,6 +112,39 @@ export function presetRange(preset: DatePresetId, now = new Date()): DayRange {
   }
 }
 
+// 多个快捷档区间相同时（如 1 号的「今天」与「本月」）优先高亮周期长的
+const PRESET_MATCH_PRIORITY: DatePresetId[] = [
+  'lastMonth',
+  'last30',
+  'month',
+  'week',
+  'today',
+]
+
+/**
+ * 当前区间对应的快捷档（用于高亮）；preferred 为用户刚点的档，区间仍吻合时优先用它。
+ * 自定义区间都不吻合时返回 null。
+ */
+export function matchDatePreset(
+  range: DayRange,
+  presets: DatePresetId[],
+  preferred?: DatePresetId | null,
+  now = new Date()
+): DatePresetId | null {
+  const matches = (preset: DatePresetId) => {
+    const candidate = presetRange(preset, now)
+    return candidate.start === range.start && candidate.end === range.end
+  }
+  if (preferred && presets.includes(preferred) && matches(preferred)) {
+    return preferred
+  }
+  return (
+    PRESET_MATCH_PRIORITY.find(
+      (preset) => presets.includes(preset) && matches(preset)
+    ) ?? null
+  )
+}
+
 /** YYYY-MM-DD（计费时区）→ 当天零点的秒级时间戳 */
 function billingDayStartUnix(day: string, offsetDays = 0): number {
   const [year, month, date] = day.split('-').map(Number)

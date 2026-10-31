@@ -87,6 +87,7 @@ export function UserConsumptionDetailPage() {
           <DatePresetButtons
             presets={['today', 'month', 'lastMonth', 'last30']}
             onSelect={applyPreset}
+            range={range.applied}
           />
           <DayRangeControls
             draft={range.draft}

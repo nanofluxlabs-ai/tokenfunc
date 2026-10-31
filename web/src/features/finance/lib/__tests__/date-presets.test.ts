@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import {
   dayRangeToTimestamps,
+  matchDatePreset,
   monthToDateRange,
   normalizeDayRange,
   parseDay,
@@ -71,6 +72,31 @@ describe('date presets', () => {
       start: '2026-03-30',
       end: '2026-04-01',
     })
+  })
+
+  it('matches the applied range to a preset for highlighting', () => {
+    const presets = ['today', 'week', 'month', 'lastMonth'] as const
+    const list = [...presets]
+    expect(
+      matchDatePreset(presetRange('lastMonth', THURSDAY), list, null, THURSDAY)
+    ).toBe('lastMonth')
+    // 自定义区间不高亮
+    expect(
+      matchDatePreset(
+        { start: '2026-01-03', end: '2026-01-09' },
+        list,
+        null,
+        THURSDAY
+      )
+    ).toBeNull()
+    // 计费时区 2026-04-01：今天 = 本月，默认高亮周期长的「本月」，用户点了「今天」则高亮「今天」
+    const firstDay = presetRange('today', LATE_UTC)
+    expect(matchDatePreset(firstDay, list, null, LATE_UTC)).toBe('month')
+    expect(matchDatePreset(firstDay, list, 'today', LATE_UTC)).toBe('today')
+    // 刚点的档与区间不吻合（之后改成了自定义区间）时不沿用
+    expect(
+      matchDatePreset(presetRange('week', LATE_UTC), list, 'today', LATE_UTC)
+    ).toBe('week')
   })
 
   it('converts a day range to inclusive second timestamps at billing-zone day boundaries', () => {

@@ -26,6 +26,7 @@ export function PeriodFilter(props: PeriodFilterProps) {
         <DatePresetButtons
           presets={props.presets}
           onSelect={props.onPreset}
+          range={props.range.applied}
           disabled={props.disabled}
         />
         <DayRangeControls

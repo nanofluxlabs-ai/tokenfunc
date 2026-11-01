@@ -2,8 +2,8 @@
 
 - 日期：2026-11-01
 - 分支：fix-bill-payment-precision
-- PR：（待建）
-- 关键 commit：（待填）
+- PR：未建（本地合并）
+- 关键 commit：7021492a9
 
 ## 背景
 

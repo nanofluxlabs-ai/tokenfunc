@@ -14,6 +14,7 @@ import { requireServerSuccess } from '@/lib/server-error-message'
 import { listUserConsumptions } from '../../api'
 import { FINANCE_PAGE_SIZE, FINANCE_QUERY_KEY } from '../../constants'
 import type { DayRange } from '../../lib/date-presets'
+import { GroupFilterSelect } from '../group-filter-select'
 import { useUserConsumptionColumns } from './user-consumption-columns'
 
 const route = getRouteApi('/_authenticated/finance/$section')
@@ -24,10 +25,15 @@ export function UserConsumptionPanel(props: { range: DayRange }) {
   const search = route.useSearch()
   const navigate = route.useNavigate()
   const keyword = search.ucQ ?? ''
+  const group = search.ucGroup ?? ''
   const [draftKeyword, setDraftKeyword] = useState(keyword)
+  const [draftGroup, setDraftGroup] = useState(group)
   useEffect(() => {
     setDraftKeyword(keyword)
   }, [keyword])
+  useEffect(() => {
+    setDraftGroup(group)
+  }, [group])
 
   const { pagination, onPaginationChange, ensurePageInRange } =
     useTableUrlState({
@@ -50,6 +56,7 @@ export function UserConsumptionPanel(props: { range: DayRange }) {
       props.range.start,
       props.range.end,
       keyword,
+      group,
       pagination.pageIndex,
       pagination.pageSize,
     ],
@@ -59,6 +66,7 @@ export function UserConsumptionPanel(props: { range: DayRange }) {
           start_date: props.range.start,
           end_date: props.range.end,
           keyword: keyword || undefined,
+          group: group || undefined,
           p: pagination.pageIndex + 1,
           page_size: pagination.pageSize,
         })
@@ -84,16 +92,19 @@ export function UserConsumptionPanel(props: { range: DayRange }) {
       search: (previous) => ({
         ...previous,
         ucQ: draftKeyword.trim() || undefined,
+        ucGroup: draftGroup || undefined,
         ucPage: undefined,
       }),
     })
   }
   const reset = () => {
     setDraftKeyword('')
+    setDraftGroup('')
     void navigate({
       search: (previous) => ({
         ...previous,
         ucQ: undefined,
+        ucGroup: undefined,
         ucPage: undefined,
       }),
     })
@@ -113,6 +124,7 @@ export function UserConsumptionPanel(props: { range: DayRange }) {
             className='pl-8'
           />
         </div>
+        <GroupFilterSelect value={draftGroup} onChange={setDraftGroup} />
         <Button size='sm' onClick={apply}>
           {t('Query user consumption')}
         </Button>

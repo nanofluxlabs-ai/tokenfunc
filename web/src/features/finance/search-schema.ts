@@ -31,6 +31,7 @@ export const financeSectionSearchSchema = z.object({
   ucPage: pageParam,
   ucPageSize: pageParam,
   ucQ: textParam,
+  ucGroup: textParam,
   // 模型消费
   mcModel: textParam,
   mcUser: textParam,

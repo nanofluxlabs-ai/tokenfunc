@@ -19,6 +19,8 @@ type FinanceUserConsumptionFilter struct {
 	Range   FinanceRange
 	Keyword string
 	UserId  int
+	// Group 用户本人的分组（users.group），只看该分组下用户的消耗
+	Group string
 }
 
 // FinanceCreditPeriodView 授信企业当前账期（用户消耗列表的余额列）
@@ -104,12 +106,14 @@ func ListFinanceUserConsumptions(filter FinanceUserConsumptionFilter, startIdx i
 		if err != nil {
 			return nil, 0, err
 		}
-		if filter.UserId > 0 && !slices.Contains(matched, filter.UserId) {
-			matched = []int{}
-		} else if filter.UserId > 0 {
-			matched = []int{filter.UserId}
+		scopeIds = intersectFinanceUserScope(scopeIds, matched)
+	}
+	if filter.Group != "" {
+		matched, err := financeUserIdsByGroup(filter.Group)
+		if err != nil {
+			return nil, 0, err
 		}
-		scopeIds = matched
+		scopeIds = intersectFinanceUserScope(scopeIds, matched)
 	}
 	byUser, err := ReadLogUsageByUser(scopeIds, r)
 	if err != nil {
@@ -158,6 +162,29 @@ func ListFinanceUserConsumptions(filter FinanceUserConsumptionFilter, startIdx i
 		return nil, 0, err
 	}
 	return items, total, nil
+}
+
+// intersectFinanceUserScope 收窄用户范围：scope 为 nil 表示不限用户，直接取 matched；否则取交集（可能为空切片 = 无用户）
+func intersectFinanceUserScope(scope []int, matched []int) []int {
+	if scope == nil {
+		return matched
+	}
+	kept := make([]int, 0, len(scope))
+	for _, id := range scope {
+		if slices.Contains(matched, id) {
+			kept = append(kept, id)
+		}
+	}
+	return kept
+}
+
+// financeUserIdsByGroup 分组下的用户 id（含软删用户，历史消耗仍归属）
+func financeUserIdsByGroup(group string) ([]int, error) {
+	ids := make([]int, 0)
+	if err := DB.Unscoped().Model(&User{}).Where(commonGroupCol+" = ?", group).Pluck("id", &ids).Error; err != nil {
+		return nil, err
+	}
+	return ids, nil
 }
 
 // financeUserIdsByKeyword 关键词命中的用户 id（含软删用户，历史消耗仍归属）：用户名模糊匹配，纯数字同时匹配 id

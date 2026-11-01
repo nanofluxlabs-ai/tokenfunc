@@ -159,7 +159,7 @@ func AdminListFinanceUserConsumptions(c *gin.Context) {
 		return
 	}
 	pageInfo := common.GetPageQuery(c)
-	filter := model.FinanceUserConsumptionFilter{Range: r, Keyword: c.Query("keyword")}
+	filter := model.FinanceUserConsumptionFilter{Range: r, Keyword: c.Query("keyword"), Group: c.Query("group")}
 	if userId, err := strconv.Atoi(c.Query("user_id")); err == nil && userId > 0 {
 		filter.UserId = userId
 	}

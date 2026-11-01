@@ -17,6 +17,7 @@ import { listModelConsumptions } from '../../api'
 import { FINANCE_QUERY_KEY, MODEL_GROUP_PAGE_SIZE } from '../../constants'
 import type { DayRange } from '../../lib/date-presets'
 import { buildModelConsumptionTree } from '../../lib/model-consumption-tree'
+import { GroupFilterSelect } from '../group-filter-select'
 import {
   formatModelCost,
   useModelConsumptionColumns,
@@ -156,11 +157,9 @@ export function ModelConsumptionPanel(props: { range: DayRange }) {
           onSubmit={apply}
           placeholder={t('Username')}
         />
-        <FilterInput
+        <GroupFilterSelect
           value={draft.group}
           onChange={(group) => setDraft({ ...draft, group })}
-          onSubmit={apply}
-          placeholder={t('Group')}
         />
         <Button size='sm' onClick={apply}>
           {t('Query model consumption')}

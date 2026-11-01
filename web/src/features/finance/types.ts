@@ -136,6 +136,8 @@ export interface ListUserConsumptionsParams {
   start_date: string
   end_date: string
   keyword?: string
+  /** 用户本人的分组 */
+  group?: string
   user_id?: number
   p: number
   page_size: number

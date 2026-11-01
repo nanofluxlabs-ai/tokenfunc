@@ -350,6 +350,22 @@ func TestFinanceUserConsumptions(t *testing.T) {
 	require.Len(t, byKeyword, 1)
 	assert.Equal(t, u2.Id, byKeyword[0].UserId)
 
+	// 按用户本人分组筛选，可与关键词叠加（取交集）
+	require.NoError(t, DB.Model(&User{}).Where("id = ?", u2.Id).Update("group", "vip").Error)
+	byGroup, groupTotal, err := ListFinanceUserConsumptions(FinanceUserConsumptionFilter{Range: r, Group: "vip"}, 0, 10)
+	require.NoError(t, err)
+	assert.Equal(t, int64(1), groupTotal)
+	require.Len(t, byGroup, 1)
+	assert.Equal(t, u2.Id, byGroup[0].UserId)
+	assert.Equal(t, "vip", byGroup[0].Group)
+	groupAndKeyword, _, err := ListFinanceUserConsumptions(FinanceUserConsumptionFilter{Range: r, Group: "vip", Keyword: "u1"}, 0, 10)
+	require.NoError(t, err)
+	assert.Empty(t, groupAndKeyword)
+	emptyGroup, _, err := ListFinanceUserConsumptions(FinanceUserConsumptionFilter{Range: r, Group: "svip"}, 0, 10)
+	require.NoError(t, err)
+	assert.Empty(t, emptyGroup)
+	require.NoError(t, DB.Model(&User{}).Where("id = ?", u2.Id).Update("group", "default").Error)
+
 	require.NoError(t, DB.Create(&Channel{Id: 7, Name: "主渠道", Key: "k"}).Error)
 	insertFinanceLog(t, Log{UserId: u1.Id, Username: "u1", Group: "default", ModelName: "gpt-4o", ChannelId: 7, Quota: 100, PromptTokens: 5, CompletionTokens: 5})
 	modelItems, modelSummary, err := ListFinanceModelConsumptions(FinanceModelConsumptionFilter{Range: r, ModelName: "GPT"})

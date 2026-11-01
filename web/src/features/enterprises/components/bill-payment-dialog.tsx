@@ -18,6 +18,7 @@ import {
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
+import { formatBillUsd } from '@/features/enterprise-console/lib/bill-utils'
 import type { Bill } from '@/features/enterprise-console/types'
 import { handleServerError } from '@/lib/handle-server-error'
 
@@ -33,10 +34,12 @@ type BillPaymentDialogProps = {
 export function BillPaymentDialog(props: BillPaymentDialogProps) {
   const { t } = useTranslation()
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const outstanding = props.bill
+  const rawOutstanding = props.bill
     ? Number.parseFloat(props.bill.total_usd) -
       Number.parseFloat(props.bill.paid_usd)
     : 0
+  // 后端金额是 6 位小数的 decimal；先折回 6 位再展示/比较，避免浮点减法噪声把「刚好足额」判成超额
+  const outstanding = Number(rawOutstanding.toFixed(6))
   const schema = useMemo(
     () =>
       z.object({
@@ -64,7 +67,7 @@ export function BillPaymentDialog(props: BillPaymentDialogProps) {
   useEffect(() => {
     if (props.bill) {
       form.reset({
-        amount_usd: Number(outstanding.toFixed(2)),
+        amount_usd: outstanding,
         reference: '',
         remark: '',
       })
@@ -97,7 +100,7 @@ export function BillPaymentDialog(props: BillPaymentDialogProps) {
       title={t('Register payment')}
       description={
         props.bill
-          ? `${props.bill.bill_no} · ${t('Outstanding')}: ${props.bill.currency} ${outstanding.toFixed(2)}`
+          ? `${props.bill.bill_no} · ${t('Outstanding')}: ${props.bill.currency} ${formatBillUsd(outstanding)}`
           : undefined
       }
       contentClassName='sm:max-w-md'
@@ -123,7 +126,7 @@ export function BillPaymentDialog(props: BillPaymentDialogProps) {
                   <Input
                     type='number'
                     min={0}
-                    step='0.01'
+                    step='any'
                     value={field.value}
                     onChange={(event) =>
                       field.onChange(Number.parseFloat(event.target.value) || 0)

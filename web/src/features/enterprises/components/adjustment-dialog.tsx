@@ -23,6 +23,7 @@ import {
   SecureVerificationDialog,
   useSecureVerification,
 } from '@/features/auth/secure-verification'
+import { formatBillUsd } from '@/features/enterprise-console/lib/bill-utils'
 import type { Bill } from '@/features/enterprise-console/types'
 import { formatQuotaWithCurrency } from '@/lib/currency'
 import { handleServerError } from '@/lib/handle-server-error'
@@ -158,7 +159,7 @@ export function AdjustmentDialog(props: AdjustmentDialogProps) {
   }
 
   const description = props.bill
-    ? `${props.bill.bill_no} · ${t('Outstanding')}: ${props.bill.currency} ${(total - paid).toFixed(2)}`
+    ? `${props.bill.bill_no} · ${t('Outstanding')}: ${props.bill.currency} ${formatBillUsd(total - paid)}`
     : t('Current balance: {{amount}}', {
         amount: formatQuotaWithCurrency(props.balanceQuota ?? 0),
       })
@@ -210,7 +211,7 @@ export function AdjustmentDialog(props: AdjustmentDialogProps) {
                   <FormDescription>
                     {kind === 'bill'
                       ? t('New total: {{amount}}', {
-                          amount: `${props.bill?.currency ?? 'USD'} ${(total + amount).toFixed(2)}`,
+                          amount: `${props.bill?.currency ?? 'USD'} ${formatBillUsd(total + amount)}`,
                         })
                       : t(
                           'Positive adds to the balance, negative deducts. Every adjustment is written to the ledger with your remark.'

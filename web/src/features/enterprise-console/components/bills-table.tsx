@@ -27,7 +27,7 @@ import { handleServerError } from '@/lib/handle-server-error'
 
 import { downloadBillCsv, type BillExportScope } from '../api'
 import { BILL_STATUSES, BILL_TYPES, CREDIT_PERIOD_STATUSES } from '../constants'
-import { isBillOverdue } from '../lib/bill-utils'
+import { formatBillUsd, isBillOverdue } from '../lib/bill-utils'
 import { openInvoicePrintWindow } from '../lib/invoice-html'
 import type { Bill } from '../types'
 
@@ -359,7 +359,7 @@ export function BillsTable(props: BillsTableProps) {
           const period = original.period
           return (
             <ShareBar
-              value={`$${quotaUnitsToDollars(period.used_quota).toFixed(2)} / $${quotaUnitsToDollars(period.limit_quota).toFixed(2)}`}
+              value={`$${formatBillUsd(quotaUnitsToDollars(period.used_quota))} / $${formatBillUsd(quotaUnitsToDollars(period.limit_quota))}`}
               percentage={
                 creditUsagePercent(period.used_quota, period.limit_quota) ?? 0
               }
@@ -367,14 +367,14 @@ export function BillsTable(props: BillsTableProps) {
           )
         }
         const bill = original.bill
-        const total = `$${Number.parseFloat(bill.total_usd).toFixed(2)}`
+        const total = `$${formatBillUsd(Number.parseFloat(bill.total_usd))}`
         const limit = original.summary?.limit_quota ?? 0
         if (bill.bill_type !== 'credit' || limit <= 0) {
           return <span className='font-mono'>{total}</span>
         }
         return (
           <ShareBar
-            value={`${total} / $${quotaUnitsToDollars(limit).toFixed(2)}`}
+            value={`${total} / $${formatBillUsd(quotaUnitsToDollars(limit))}`}
             percentage={creditUsagePercent(bill.amount_quota, limit) ?? 0}
           />
         )

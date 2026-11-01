@@ -32,7 +32,7 @@ function renderContent(context: FinanceBillContext) {
 }
 
 describe('BillDetailContent summary cards', () => {
-  test('credit bill shows the total with two decimals plus paid and outstanding amounts', () => {
+  test('credit bill shows the exact USD amounts plus paid and outstanding amounts', () => {
     renderContent(
       contextWith({
         bill: {
@@ -43,10 +43,10 @@ describe('BillDetailContent summary cards', () => {
       })
     )
     expect(screen.getByText('Total amount')).toBeInTheDocument()
-    expect(screen.getByText('USD 3.46')).toBeInTheDocument()
+    expect(screen.getByText('USD 3.456789')).toBeInTheDocument()
     expect(screen.getByText('Paid')).toBeInTheDocument()
     expect(screen.getByText('USD 1.20')).toBeInTheDocument()
-    expect(screen.getByText('Outstanding: USD 2.26')).toBeInTheDocument()
+    expect(screen.getByText('Outstanding: USD 2.256789')).toBeInTheDocument()
     expect(screen.getByText('Issued')).toBeInTheDocument()
     expect(screen.getByText('Due: 2026-04-15')).toBeInTheDocument()
   })

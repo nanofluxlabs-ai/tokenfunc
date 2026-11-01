@@ -1,5 +1,6 @@
 import { useTranslation } from 'react-i18next'
 
+import { formatBillUsd } from '@/features/enterprise-console/lib/bill-utils'
 import type { StatementBalanceSnapshot } from '@/features/enterprise-console/types'
 import { toIntlLocale } from '@/i18n/languages'
 import { formatQuotaWithCurrency } from '@/lib/currency'
@@ -47,19 +48,19 @@ export function BillDetailMetrics(props: BillDetailMetricsProps) {
     <div className='grid grid-cols-2 gap-3 lg:grid-cols-3 xl:grid-cols-4'>
       <MetricCard
         label={isStatement ? t('Consumption') : t('Total amount')}
-        value={`${currency} ${total.toFixed(2)}`}
+        value={`${currency} ${formatBillUsd(total)}`}
       />
       {context.kind === 'bill' && !isStatement && (
         <MetricCard
           label={t('Paid')}
-          value={`${currency} ${paid.toFixed(2)}`}
-          hint={`${t('Outstanding')}: ${currency} ${(total - paid).toFixed(2)}`}
+          value={`${currency} ${formatBillUsd(paid)}`}
+          hint={`${t('Outstanding')}: ${currency} ${formatBillUsd(total - paid)}`}
         />
       )}
       {summary.limit_quota > 0 && (
         <MetricCard
           label={t('Credit limit (USD)')}
-          value={`$${quotaUnitsToDollars(summary.limit_quota).toFixed(2)}`}
+          value={`$${formatBillUsd(quotaUnitsToDollars(summary.limit_quota))}`}
         />
       )}
       {usagePercent != null && (

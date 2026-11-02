@@ -641,6 +641,58 @@ func TestTokenAllowUserQuotaQueryOnCreateAndUpdate(t *testing.T) {
 	}
 }
 
+func TestTokenRejectsZeroQuotaWithoutUnlimited(t *testing.T) {
+	db := setupTokenControllerTestDB(t)
+	existing := seedToken(t, db, 1, "zero-quota", "zero-quota-key")
+
+	for _, tc := range []struct {
+		name   string
+		method string
+		update bool
+	}{
+		{name: "create", method: http.MethodPost},
+		{name: "update", method: http.MethodPut, update: true},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			// 非无限额度 + 0：出生即死的令牌（首发调用报 token invalid），拒绝
+			body := map[string]any{"name": "born-dead", "expired_time": -1, "unlimited_quota": false, "remain_quota": 0, "status": common.TokenStatusEnabled}
+			if tc.update {
+				body["id"] = existing.Id
+			}
+			ctx, recorder := newAuthenticatedContext(t, tc.method, "/api/token/", body, 1)
+			if tc.update {
+				UpdateToken(ctx)
+			} else {
+				AddToken(ctx)
+			}
+			response := decodeAPIResponse(t, recorder)
+			assert.False(t, response.Success, response.Message)
+			assert.Contains(t, response.Message, "quota must be greater than zero")
+		})
+	}
+
+	// 正数固定额度不受影响
+	ctx, recorder := newAuthenticatedContext(t, http.MethodPost, "/api/token/", map[string]any{"name": "fixed-ok", "expired_time": -1, "unlimited_quota": false, "remain_quota": 100000, "status": common.TokenStatusEnabled}, 1)
+	AddToken(ctx)
+	response := decodeAPIResponse(t, recorder)
+	require.True(t, response.Success, response.Message)
+
+	// 耗尽态（状态翻转为 exhausted + remain 0 + 非无限，模拟 ValidateUserToken 用完后的落库）：
+	// status_only 启用仍被既有守卫拒绝（提示补额度或改无限），与本次收紧无关
+	require.NoError(t, db.Model(existing).Updates(map[string]any{"status": common.TokenStatusExhausted, "remain_quota": 0, "unlimited_quota": false}).Error)
+	ctx, recorder = newAuthenticatedContext(t, http.MethodPut, "/api/token/?status_only=true", map[string]any{"id": existing.Id, "status": common.TokenStatusEnabled}, 1)
+	UpdateToken(ctx)
+	response = decodeAPIResponse(t, recorder)
+	assert.False(t, response.Success, response.Message)
+	assert.Contains(t, response.Message, "cannot be enabled")
+
+	// status_only 停用不带额度字段（绑定零值），不得被 0 额度校验误伤
+	ctx, recorder = newAuthenticatedContext(t, http.MethodPut, "/api/token/?status_only=true", map[string]any{"id": existing.Id, "status": common.TokenStatusDisabled}, 1)
+	UpdateToken(ctx)
+	response = decodeAPIResponse(t, recorder)
+	require.True(t, response.Success, response.Message)
+}
+
 func TestGetTokenUsageFollowsTheUserQuotaSwitchAndIPWhitelist(t *testing.T) {
 	for _, tc := range []struct {
 		name          string

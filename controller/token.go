@@ -310,10 +310,10 @@ func AddToken(c *gin.Context) {
 	}
 	params := tokenAuditParams(c)
 	params["name"] = token.Name
-	// 非无限额度时，检查额度值是否超出有效范围
+	// 非无限额度时，检查额度值是否超出有效范围；额度为 0 的令牌出生即死（首发调用报 token invalid），一并拒绝
 	if !token.UnlimitedQuota {
-		if token.RemainQuota < 0 {
-			common.ApiErrorT(c, "Quota value cannot be negative")
+		if token.RemainQuota <= 0 {
+			common.ApiErrorT(c, "key quota must be greater than zero unless unlimited quota is enabled")
 			return
 		}
 		maxQuotaValue := maxTokenQuota()
@@ -418,8 +418,9 @@ func UpdateToken(c *gin.Context) {
 		return
 	}
 	if !token.UnlimitedQuota {
-		if token.RemainQuota < 0 {
-			common.ApiErrorT(c, "Quota value cannot be negative")
+		// 额度为 0 的非无限令牌出生即死，与 AddToken 同口径拒绝；status_only 请求体不带额度字段（绑定为零值）且不落库额度，跳过
+		if statusOnly == "" && token.RemainQuota <= 0 {
+			common.ApiErrorT(c, "key quota must be greater than zero unless unlimited quota is enabled")
 			return
 		}
 		maxQuotaValue := maxTokenQuota()

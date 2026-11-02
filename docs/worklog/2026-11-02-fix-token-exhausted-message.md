@@ -3,7 +3,7 @@
 - 日期：2026-11-02
 - 分支：fix-token-exhausted-message
 - PR：（未建）
-- 关键 commit：（见本分支提交）
+- 关键 commit：58f51d7ee
 
 ## 背景
 

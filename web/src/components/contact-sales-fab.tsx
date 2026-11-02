@@ -14,6 +14,12 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useStatus } from '@/hooks/use-status'
 import { cn } from '@/lib/utils'
 
+// 弹层开合：不用默认的关键帧动画（挂载瞬间就播放，弹层尚未定位、不可见，看起来像直接出现），
+// 改用 Base UI 的 data-starting-style / data-ending-style 过渡（与 Sheet 相同的做法）：
+// 从按钮所在的右下角缩放 + 上移展开，缓出曲线 280ms；收起 160ms 更干脆
+const POPUP_MOTION_CLASS =
+  'data-open:animate-none data-closed:animate-none transition-[opacity,scale,translate] duration-280 ease-[cubic-bezier(0.16,1,0.3,1)] data-starting-style:translate-y-2 data-starting-style:scale-90 data-starting-style:opacity-0 data-ending-style:translate-y-1 data-ending-style:scale-95 data-ending-style:opacity-0 data-ending-style:duration-160 data-ending-style:ease-in motion-reduce:transition-opacity motion-reduce:data-starting-style:scale-100 motion-reduce:data-starting-style:translate-y-0'
+
 const FAB_ICON_CLASS =
   'absolute inset-0 size-5 transition-[transform,opacity] duration-200 ease-out motion-reduce:transition-none'
 
@@ -148,8 +154,10 @@ export function ContactSalesFab() {
         align='end'
         sideOffset={12}
         collisionPadding={16}
-        // 从按钮方向（右下角）缩放展开，时长比默认的 100ms 稍长，收起更快
-        className='data-open:zoom-in-90 w-[min(18rem,calc(100vw-2rem))] gap-3 p-4 ease-out data-closed:duration-150 data-open:duration-200 motion-reduce:animate-none'
+        className={cn(
+          'w-[min(18rem,calc(100vw-2rem))] gap-3 p-4',
+          POPUP_MOTION_CLASS
+        )}
       >
         <p className='m-0 text-sm font-medium'>{t('Contact sales')}</p>
         {body}

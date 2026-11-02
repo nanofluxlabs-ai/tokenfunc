@@ -581,6 +581,14 @@ func TokenAuth() func(c *gin.Context) {
 				common.SysLog(common.LogText("TokenAuth ValidateUserToken database error: %s", err.Error()))
 				abortWithOpenAiMessage(c, http.StatusInternalServerError,
 					common.TranslateMessage(c, i18n.MsgDatabaseError))
+			} else if errors.Is(err, model.ErrTokenExhausted) {
+				// 已耗尽 / 已过期是持有者可自行解决的状态，单独提示；
+				// 其余（不存在 / 禁用）保持统一的无效令牌文案与 401，契约不变。
+				abortWithOpenAiMessage(c, http.StatusUnauthorized,
+					common.TranslateMessage(c, i18n.MsgTokenExhausted))
+			} else if errors.Is(err, model.ErrTokenExpired) {
+				abortWithOpenAiMessage(c, http.StatusUnauthorized,
+					common.TranslateMessage(c, i18n.MsgTokenExpired))
 			} else {
 				abortWithOpenAiMessage(c, http.StatusUnauthorized,
 					common.TranslateMessage(c, i18n.MsgTokenInvalid))

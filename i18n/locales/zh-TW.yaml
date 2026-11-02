@@ -4,6 +4,8 @@
 # Errors returned to AI clients
 common.database_error: "資料庫出錯，請聯繫管理員"
 auth.user_banned: "使用者已被封禁"
+token.expired: "令牌已過期，請修改有效期或重新建立令牌"
+token.exhausted: "令牌額度已耗盡，請提高令牌額度或開啟無限額度"
 token.get_info_failed: "獲取令牌資訊失敗，請稍後重試"
 token.invalid: "無效的令牌"
 token.not_provided: "未提供令牌"

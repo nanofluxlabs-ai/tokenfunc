@@ -57,8 +57,10 @@ var (
 	ErrEnterpriseLoginUserTaken     = errors.New("this account already belongs to an enterprise")
 	ErrEnterpriseLoginUserInvalid   = errors.New("this account cannot be used as an enterprise member")
 	ErrEnterpriseLoginUserNotFound  = errors.New("no account found for this username or email")
-	ErrEnterpriseInvalidRole        = errors.New("invalid member role")
-	ErrEnterpriseNoAccess           = errors.New("enterprise access required")
+	// 绑定的自有账号是成员个人财产，企业管理员无权重置其密码（那等于接管个人账号）
+	ErrEnterpriseLoginNotProvisioned = errors.New("password reset is only available for enterprise-provisioned accounts")
+	ErrEnterpriseInvalidRole         = errors.New("invalid member role")
+	ErrEnterpriseNoAccess            = errors.New("enterprise access required")
 )
 
 // EnterpriseTeam 团队（扁平，不嵌套）；预算字段由团队预算模块使用
@@ -874,6 +876,47 @@ func ProvisionEnterpriseMemberLogin(enterpriseId int, memberId int, role string)
 		return nil, err
 	}
 	user.FinishInsert(0)
+	return &ProvisionedLogin{UserId: user.Id, Username: user.Username, Password: password}, nil
+}
+
+// ResetEnterpriseMemberLoginPassword 重置企业开通账号的登录密码：
+// 随机新密码只返回一次；auth_version+1 顶掉旧会话与访问令牌（与自改密码同口径）；
+// 不动账号状态、余额与成员绑定。仅限 provisioned 账号——绑定的自有账号归成员个人，管理员无权接管。
+func ResetEnterpriseMemberLoginPassword(enterpriseId int, memberId int) (*ProvisionedLogin, error) {
+	member, err := getEnterpriseMember(DB, enterpriseId, memberId)
+	if err != nil {
+		return nil, err
+	}
+	if member.UserId == 0 {
+		return nil, ErrEnterpriseMemberNoLogin
+	}
+	if !member.Provisioned {
+		return nil, ErrEnterpriseLoginNotProvisioned
+	}
+	password := common.GetRandomString(16)
+	hash, err := common.HashAccountPassword(password)
+	if err != nil {
+		return nil, err
+	}
+	var user User
+	err = DB.Transaction(func(tx *gorm.DB) error {
+		if err := lockForUpdate(tx).Select("id", "username", "role").First(&user, "id = ?", member.UserId).Error; err != nil {
+			return err
+		}
+		if user.Role != common.RoleCommonUser {
+			return ErrEnterpriseLoginUserInvalid
+		}
+		if _, err := IncrementUserAuthVersionWithTx(tx, user.Id); err != nil {
+			return err
+		}
+		return tx.Model(&User{}).Where("id = ?", user.Id).Update("password", hash).Error
+	})
+	if err != nil {
+		return nil, err
+	}
+	if err := PublishUserAuthCache(user.Id); err != nil {
+		common.SysLog("failed to refresh member user cache after password reset: " + err.Error())
+	}
 	return &ProvisionedLogin{UserId: user.Id, Username: user.Username, Password: password}, nil
 }
 

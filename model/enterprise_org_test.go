@@ -291,6 +291,59 @@ func TestEnterpriseMemberLoginAndAccess(t *testing.T) {
 	assert.ErrorIs(t, err, ErrEnterpriseNoAccess)
 }
 
+// 重置企业开通账号的密码：只换密码并顶掉旧凭据（auth_version+1），不动状态 / 余额 / 绑定；
+// 绑定的自有账号与未开通登录的成员不可重置
+func TestResetEnterpriseMemberLoginPassword(t *testing.T) {
+	setupEnterprisePostgres(t)
+	_, ent := newEnterpriseForTest(t, "resetowner", "Reset Co")
+	rd := &EnterpriseTeam{EnterpriseId: ent.Id, Name: "RD"}
+	require.NoError(t, CreateEnterpriseTeam(rd))
+	carol := &EnterpriseMember{EnterpriseId: ent.Id, TeamId: rd.Id, Name: "Carol", Email: "carol@reset.co"}
+	require.NoError(t, CreateEnterpriseMember(carol))
+	noLogin := &EnterpriseMember{EnterpriseId: ent.Id, Name: "NoLogin"}
+	require.NoError(t, CreateEnterpriseMember(noLogin))
+	bound := &EnterpriseMember{EnterpriseId: ent.Id, TeamId: rd.Id, Name: "Bound"}
+	require.NoError(t, CreateEnterpriseMember(bound))
+	personal := createEnterpriseTestUser(t, "personaluser", common.RoleCommonUser)
+	require.NoError(t, BindEnterpriseMemberLogin(ent.Id, bound.Id, personal, EnterpriseMemberRoleDeveloper))
+
+	login, err := ProvisionEnterpriseMemberLogin(ent.Id, carol.Id, EnterpriseMemberRoleDeveloper)
+	require.NoError(t, err)
+	before, err := GetUserById(login.UserId, true)
+	require.NoError(t, err)
+	beforeQuota := before.Quota
+
+	// 未开通 / 绑定自有账号：拒绝（企业管理员无权重置成员个人账号的密码）
+	_, err = ResetEnterpriseMemberLoginPassword(ent.Id, noLogin.Id)
+	assert.ErrorIs(t, err, ErrEnterpriseMemberNoLogin)
+	_, err = ResetEnterpriseMemberLoginPassword(ent.Id, bound.Id)
+	assert.ErrorIs(t, err, ErrEnterpriseLoginNotProvisioned)
+
+	reset, err := ResetEnterpriseMemberLoginPassword(ent.Id, carol.Id)
+	require.NoError(t, err)
+	assert.Equal(t, login.UserId, reset.UserId)
+	assert.Equal(t, login.Username, reset.Username, "username is unchanged")
+	assert.NotEqual(t, login.Password, reset.Password)
+	after, err := GetUserById(login.UserId, true)
+	require.NoError(t, err)
+	assert.True(t, common.ValidatePasswordAndHash(reset.Password, after.Password), "new password is usable")
+	assert.False(t, common.ValidatePasswordAndHash(login.Password, after.Password), "old password is gone")
+	assert.Equal(t, after.AuthVersion, before.AuthVersion+1, "password reset revokes stale sessions and tokens")
+	assert.Equal(t, common.UserStatusEnabled, after.Status, "reset does not touch account status")
+	assert.Equal(t, beforeQuota, after.Quota, "reset does not touch personal balance")
+	assert.Equal(t, common.RoleCommonUser, after.Role)
+
+	// 成员绑定与角色不受影响
+	_, actor, err := GetEnterpriseAccess(login.UserId)
+	require.NoError(t, err)
+	assert.Equal(t, EnterpriseMemberRoleDeveloper, actor.Role)
+	assert.True(t, actor.Provisioned)
+
+	// 跨企业不可重置
+	_, err = ResetEnterpriseMemberLoginPassword(ent.Id+100, carol.Id)
+	assert.ErrorIs(t, err, ErrEnterpriseResourceNotFound)
+}
+
 func TestEnterpriseMemberImportIsAllOrNothing(t *testing.T) {
 	setupEnterprisePostgres(t)
 	_, ent := newEnterpriseForTest(t, "importowner", "Import Co")

@@ -92,6 +92,7 @@ func registerEnterpriseRoutes(apiRouter *gin.RouterGroup) {
 			memberAdminRoute.PUT("/members/:id", controller.UpdateEnterpriseMember)
 			memberAdminRoute.DELETE("/members/:id", controller.DeleteEnterpriseMember)
 			memberAdminRoute.POST("/members/:id/login", controller.SetEnterpriseMemberLogin)
+			memberAdminRoute.POST("/members/:id/login/reset", controller.ResetEnterpriseMemberLogin)
 			memberAdminRoute.DELETE("/members/:id/login", controller.RemoveEnterpriseMemberLogin)
 			memberAdminRoute.PUT("/members/:id/role", controller.SetEnterpriseMemberRole)
 		}

@@ -31,6 +31,7 @@ func newEnterpriseConsoleRouter() *gin.Engine {
 	console.POST("/teams", middleware.RequireEnterpriseRole(model.EnterpriseMemberRoleEnterpriseAdmin), CreateEnterpriseTeam)
 	console.GET("/members", ListEnterpriseMembers)
 	console.POST("/members", middleware.RequireEnterpriseRole(model.EnterpriseMemberRoleTeamAdmin), CreateEnterpriseMember)
+	console.POST("/members/:id/login/reset", middleware.RequireEnterpriseRole(model.EnterpriseMemberRoleTeamAdmin), ResetEnterpriseMemberLogin)
 	console.PUT("/members/:id/role", middleware.RequireEnterpriseRole(model.EnterpriseMemberRoleTeamAdmin), SetEnterpriseMemberRole)
 	console.GET("/ledger", middleware.RequireEnterpriseRole(model.EnterpriseMemberRoleEnterpriseAdmin), ListEnterpriseLedgerSelf)
 	console.GET("/bills", middleware.RequireEnterpriseRole(model.EnterpriseMemberRoleEnterpriseAdmin), ListEnterpriseBillsSelf)
@@ -223,6 +224,81 @@ func TestEnterpriseConsoleMemberRoles(t *testing.T) {
 
 func itoa(value int) string {
 	return strconv.Itoa(value)
+}
+
+// 成员密码重置：owner 可重置企业开通账号（新密码只返回一次）；绑定自有账号与未开通登录拒绝；
+// 团队管理员对企业管理员成员越权重置被拒
+func TestEnterpriseConsoleMemberPasswordReset(t *testing.T) {
+	setupAccessTokenAudit(t)
+	model.InitColumnNames()
+	require.NoError(t, model.DB.AutoMigrate(&model.Enterprise{}, &model.EnterpriseTeam{}, &model.EnterpriseMember{}))
+	owner := &model.User{Username: "reset-owner", Password: "placeholder", Role: common.RoleCommonUser, Status: common.UserStatusEnabled, Group: "default", AuthVersion: 1, AffCode: "reset-own"}
+	require.NoError(t, model.DB.Create(owner).Error)
+	require.NoError(t, model.UpgradeUserToEnterprise(owner.Id, &model.Enterprise{Name: "Reset Co"}, ""))
+	ent, err := model.GetEnterpriseByUserId(owner.Id)
+	require.NoError(t, err)
+	rd := &model.EnterpriseTeam{EnterpriseId: ent.Id, Name: "RD"}
+	require.NoError(t, model.CreateEnterpriseTeam(rd))
+	carol := &model.EnterpriseMember{EnterpriseId: ent.Id, TeamId: rd.Id, Name: "Carol", Email: "carol@reset.co"}
+	require.NoError(t, model.CreateEnterpriseMember(carol))
+	login, err := model.ProvisionEnterpriseMemberLogin(ent.Id, carol.Id, model.EnterpriseMemberRoleDeveloper)
+	require.NoError(t, err)
+	bound := &model.EnterpriseMember{EnterpriseId: ent.Id, TeamId: rd.Id, Name: "Bound"}
+	require.NoError(t, model.CreateEnterpriseMember(bound))
+	personal := &model.User{Username: "reset-personal", Password: "placeholder", Role: common.RoleCommonUser, Status: common.UserStatusEnabled, Group: "default", AuthVersion: 1, AffCode: "reset-per"}
+	require.NoError(t, model.DB.Create(personal).Error)
+	require.NoError(t, model.BindEnterpriseMemberLogin(ent.Id, bound.Id, personal, model.EnterpriseMemberRoleDeveloper))
+	// 团队管理员与企业管理员成员同团队：范围能查到，但角色权限不够
+	lead := &model.EnterpriseMember{EnterpriseId: ent.Id, TeamId: rd.Id, Name: "Lead"}
+	require.NoError(t, model.CreateEnterpriseMember(lead))
+	leadUser := &model.User{Username: "reset-lead", Password: "placeholder", Role: common.RoleCommonUser, Status: common.UserStatusEnabled, Group: "default", AuthVersion: 1, AffCode: "reset-lead"}
+	require.NoError(t, model.DB.Create(leadUser).Error)
+	require.NoError(t, model.BindEnterpriseMemberLogin(ent.Id, lead.Id, leadUser, model.EnterpriseMemberRoleTeamAdmin))
+	boss := &model.EnterpriseMember{EnterpriseId: ent.Id, TeamId: rd.Id, Name: "Boss"}
+	require.NoError(t, model.CreateEnterpriseMember(boss))
+	_, err = model.ProvisionEnterpriseMemberLogin(ent.Id, boss.Id, model.EnterpriseMemberRoleEnterpriseAdmin)
+	require.NoError(t, err)
+	noLogin := &model.EnterpriseMember{EnterpriseId: ent.Id, Name: "NoLogin"}
+	require.NoError(t, model.CreateEnterpriseMember(noLogin))
+
+	router := newEnterpriseConsoleRouter()
+	ownerToken, _ := createScopedAccessToken(t, owner.Id, 0, "enterprise:read", "enterprise:write")
+	leadToken, _ := createScopedAccessToken(t, leadUser.Id, 0, "enterprise:read", "enterprise:write")
+
+	// owner 重置企业开通账号：新密码只返回一次，用户名不变
+	response := accessTokenRequest(router, "POST", "/api/enterprise/members/"+itoa(carol.Id)+"/login/reset", ownerToken, "", "")
+	require.Equal(t, http.StatusOK, response.Code, response.Body.String())
+	parsed := struct {
+		Success bool                   `json:"success"`
+		Data    map[string]interface{} `json:"data"`
+	}{}
+	require.NoError(t, common.Unmarshal(response.Body.Bytes(), &parsed), response.Body.String())
+	require.True(t, parsed.Success)
+	assert.Equal(t, login.Username, parsed.Data["username"])
+	resetPassword, _ := parsed.Data["password"].(string)
+	assert.NotEmpty(t, resetPassword)
+	user, err := model.GetUserById(login.UserId, true)
+	require.NoError(t, err)
+	assert.True(t, common.ValidatePasswordAndHash(resetPassword, user.Password), "returned password is usable")
+	// 审计留痕（密码本身不进审计）
+	var auditCount int64
+	require.NoError(t, model.LOG_DB.Model(&model.AuditLog{}).Where("action = ?", "enterprise.member.login_password_reset").Count(&auditCount).Error)
+	assert.Equal(t, int64(1), auditCount)
+
+	// 绑定自有账号：业务错误；未开通登录（角色 none）：与解绑同口径先被角色守卫拦下
+	response = accessTokenRequest(router, "POST", "/api/enterprise/members/"+itoa(bound.Id)+"/login/reset", ownerToken, "", "")
+	require.Equal(t, http.StatusOK, response.Code)
+	assert.Contains(t, response.Body.String(), "provisioned")
+	response = accessTokenRequest(router, "POST", "/api/enterprise/members/"+itoa(noLogin.Id)+"/login/reset", ownerToken, "", "")
+	assert.Equal(t, http.StatusForbidden, response.Code)
+	assert.Contains(t, response.Body.String(), "cannot manage")
+
+	// 团队管理员越权重置企业管理员成员：403
+	assert.Equal(t, http.StatusForbidden, accessTokenRequest(router, "POST", "/api/enterprise/members/"+itoa(boss.Id)+"/login/reset", leadToken, "", "").Code)
+	// 团队管理员可以重置本团队开发者成员
+	response = accessTokenRequest(router, "POST", "/api/enterprise/members/"+itoa(carol.Id)+"/login/reset", leadToken, "", "")
+	require.Equal(t, http.StatusOK, response.Code, response.Body.String())
+	assert.Contains(t, response.Body.String(), `"password"`)
 }
 
 // 企业概览：key 四态按余额 / 到期时间派生、待办计数（逾期账单、超预算团队、耗尽与即将过期 key）、近 30 天补零、

@@ -3,7 +3,7 @@
 - 日期：2026-11-02
 - 分支：feat-ent-member-reset-password
 - PR：（未建）
-- 关键 commit：（见本分支提交）
+- 关键 commit：79c965bdf
 
 ## 背景
 

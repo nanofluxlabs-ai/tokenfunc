@@ -1515,6 +1515,9 @@
     "The full official parameter list, with descriptions from the {{name}} API reference. Use \"Show properties\" to see nested fields. Parameters marked \"Not forwarded by this site\" are ignored if sent; notes starting with \"On this site\" describe extra limits here.": "公式の全パラメーター一覧です。説明は {{name}} の API リファレンスによります。「プロパティを表示」でネストしたフィールドを確認できます。「このサイトでは転送しません」と付いたパラメーターは送っても無視され、「このサイトでは」で始まる注記はこのサイト固有の制限です。",
     "Official reference": "公式リファレンス",
     "Quota must be greater than zero": "クォータは 0 より大きくしてください",
-    "key quota must be greater than zero unless unlimited quota is enabled": "無制限クォータを有効にしない場合、キーのクォータは 0 より大きくしてください"
+    "key quota must be greater than zero unless unlimited quota is enabled": "無制限クォータを有効にしない場合、キーのクォータは 0 より大きくしてください",
+    "Password reset": "パスワードをリセットしました",
+    "The member must sign in again everywhere: active sessions and access tokens are revoked. The new password is shown only once.": "メンバーはすべての場所で再ログインが必要です：既存のセッションとアクセストークンはすべて無効になります。新しいパスワードは一度だけ表示されます。",
+    "This is the member's own account. They reset the password from the sign-in page.": "これはメンバー自身のアカウントです。メンバー自身がログインページからパスワードをリセットしてください。"
   }
 }

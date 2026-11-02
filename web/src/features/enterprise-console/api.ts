@@ -129,6 +129,14 @@ export async function removeMemberLogin(id: number): Promise<ApiResponse> {
   return res.data
 }
 
+/** 重置企业开通账号的密码：新初始密码只在响应里出现一次 */
+export async function resetMemberLoginPassword(
+  id: number
+): Promise<ApiResponse<ProvisionedLogin>> {
+  const res = await api.post(`${BASE}/members/${id}/login/reset`)
+  return res.data
+}
+
 export async function setMemberRole(
   id: number,
   role: MemberRole

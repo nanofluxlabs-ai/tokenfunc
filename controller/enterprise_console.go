@@ -6,8 +6,10 @@ import (
 	"strconv"
 
 	"github.com/QuantumNous/new-api/common"
+	"github.com/QuantumNous/new-api/i18n"
 	"github.com/QuantumNous/new-api/middleware"
 	"github.com/QuantumNous/new-api/model"
+	"github.com/QuantumNous/new-api/service"
 
 	"github.com/gin-gonic/gin"
 )
@@ -45,6 +47,7 @@ func enterpriseApiError(c *gin.Context, err error) {
 		model.ErrEnterpriseLoginUserTaken,
 		model.ErrEnterpriseLoginUserInvalid,
 		model.ErrEnterpriseLoginUserNotFound,
+		model.ErrEnterpriseLoginNotProvisioned,
 		model.ErrEnterpriseInvalidRole,
 		model.ErrEnterpriseTokenQuotaPolicy,
 		model.ErrEnterpriseInvalidGroup,
@@ -460,6 +463,38 @@ func RemoveEnterpriseMemberLogin(c *gin.Context) {
 	}
 	recordEnterpriseConsoleAudit(c, "enterprise.member.login_unbind", map[string]any{"member_id": id, "user_id": member.UserId})
 	common.ApiSuccess(c, nil)
+}
+
+// ResetEnterpriseMemberLogin 重置企业开通账号的密码：权限同解绑（须能授予该成员当前角色）；
+// 新初始密码只在这里出现一次，不入库、不进审计
+func ResetEnterpriseMemberLogin(c *gin.Context) {
+	id, ok := paramId(c)
+	if !ok {
+		return
+	}
+	enterprise := currentEnterprise(c)
+	member, err := model.GetEnterpriseMember(enterprise.Id, id, currentScope(c))
+	if err != nil {
+		enterpriseApiError(c, err)
+		return
+	}
+	if !canAssignRole(currentActor(c), member.Role) {
+		c.JSON(http.StatusForbidden, gin.H{"success": false, "message": "you cannot manage this member's role"})
+		return
+	}
+	login, err := model.ResetEnterpriseMemberLoginPassword(enterprise.Id, id)
+	if err != nil {
+		enterpriseApiError(c, err)
+		return
+	}
+	recordEnterpriseConsoleAudit(c, "enterprise.member.login_password_reset", map[string]any{"member_id": id, "username": login.Username, "user_id": login.UserId})
+	// 尽力通知成员本人（邮箱缺失或发送失败不阻塞重置）
+	if user, userErr := model.GetUserById(login.UserId, false); userErr == nil && user.Email != "" {
+		if notifyErr := service.NotifyAccountSecurityChange(service.AccountMailLanguage(c, user.Id), user.Email, i18n.MsgSecurityEventPasswordUpdated); notifyErr != nil {
+			common.SysLog("failed to notify member of password reset: " + notifyErr.Error())
+		}
+	}
+	common.ApiSuccess(c, login)
 }
 
 // SetEnterpriseMemberRole 改角色：操作者必须同时有权授予新角色与管理旧角色

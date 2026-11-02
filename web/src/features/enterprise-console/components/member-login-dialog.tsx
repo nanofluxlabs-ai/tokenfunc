@@ -20,7 +20,12 @@ import {
 } from '@/components/ui/select'
 import { handleServerError } from '@/lib/handle-server-error'
 
-import { removeMemberLogin, setMemberLogin, setMemberRole } from '../api'
+import {
+  removeMemberLogin,
+  resetMemberLoginPassword,
+  setMemberLogin,
+  setMemberRole,
+} from '../api'
 import { assignableRolesFor, MEMBER_ROLE_LABELS } from '../lib/member-roles'
 import type {
   EnterpriseActor,
@@ -71,8 +76,8 @@ function RoleSelect(props: {
 /**
  * 成员的「登录与角色」：
  * - 未绑定：绑定已有账号（邮箱 / 用户名）或一键开通新账号，并选择角色
- * - 已绑定：改角色或解绑
- * 一键开通的初始密码只在这里显示一次。
+ * - 已绑定：改角色、解绑，或重置企业开通账号的密码（绑定的自有账号归成员个人，走登录页找回）
+ * 开通与重置的密码只在这里显示一次。
  */
 export function MemberLoginDialog(props: MemberLoginDialogProps) {
   const { t } = useTranslation()
@@ -81,8 +86,12 @@ export function MemberLoginDialog(props: MemberLoginDialogProps) {
   const [identifier, setIdentifier] = useState('')
   const [role, setRole] = useState<MemberRole>('developer')
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const [provisioned, setProvisioned] = useState<ProvisionedLogin | null>(null)
+  const [credential, setCredential] = useState<{
+    kind: 'provision' | 'reset'
+    login: ProvisionedLogin
+  } | null>(null)
   const [confirmUnbind, setConfirmUnbind] = useState(false)
+  const [confirmReset, setConfirmReset] = useState(false)
 
   const member = props.member
   const hasLogin = Boolean(member && member.user_id > 0)
@@ -96,8 +105,9 @@ export function MemberLoginDialog(props: MemberLoginDialogProps) {
         ? member.role
         : (roles[0] ?? 'developer')
     )
-    setProvisioned(null)
+    setCredential(null)
     setConfirmUnbind(false)
+    setConfirmReset(false)
   }, [member, roles])
 
   const handleGrant = async () => {
@@ -115,11 +125,30 @@ export function MemberLoginDialog(props: MemberLoginDialogProps) {
       }
       props.onSaved()
       if (mode === 'provision') {
-        setProvisioned(result.data)
+        setCredential({ kind: 'provision', login: result.data })
       } else {
         toast.success(t('Console access granted'))
         props.onOpenChange(false)
       }
+    } catch (error) {
+      handleServerError(error)
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  const handleReset = async () => {
+    if (!member) return
+    setIsSubmitting(true)
+    try {
+      const result = await resetMemberLoginPassword(member.id)
+      if (!result.success || !result.data) {
+        handleServerError(result)
+        return
+      }
+      setConfirmReset(false)
+      props.onSaved()
+      setCredential({ kind: 'reset', login: result.data })
     } catch (error) {
       handleServerError(error)
     } finally {
@@ -166,12 +195,13 @@ export function MemberLoginDialog(props: MemberLoginDialogProps) {
     }
   }
 
-  if (provisioned) {
+  if (credential) {
+    const isProvision = credential.kind === 'provision'
     return (
       <Dialog
         open={member !== null}
         onOpenChange={props.onOpenChange}
-        title={t('Account created')}
+        title={isProvision ? t('Account created') : t('Password reset')}
         description={t(
           'Share these credentials through a secure channel. The password is shown only once.'
         )}
@@ -187,25 +217,25 @@ export function MemberLoginDialog(props: MemberLoginDialogProps) {
                 {t('Username')}
               </div>
               <code className='font-mono text-sm break-all'>
-                {provisioned.username}
+                {credential.login.username}
               </code>
             </div>
             <CopyButton
-              value={provisioned.username}
+              value={credential.login.username}
               aria-label={t('Copy username')}
             />
           </div>
           <div className='bg-muted flex items-center gap-2 rounded-md p-3'>
             <div className='min-w-0 flex-1'>
               <div className='text-muted-foreground text-xs'>
-                {t('Initial password')}
+                {isProvision ? t('Initial password') : t('New password')}
               </div>
               <code className='font-mono text-sm break-all'>
-                {provisioned.password}
+                {credential.login.password}
               </code>
             </div>
             <CopyButton
-              value={provisioned.password ?? ''}
+              value={credential.login.password ?? ''}
               aria-label={t('Copy password')}
             />
           </div>
@@ -241,13 +271,24 @@ export function MemberLoginDialog(props: MemberLoginDialogProps) {
         footer={
           hasLogin ? (
             <div className='flex w-full items-center justify-between gap-2'>
-              <Button
-                variant='outline'
-                onClick={() => setConfirmUnbind(true)}
-                disabled={isSubmitting}
-              >
-                {t('Remove access')}
-              </Button>
+              <div className='flex items-center gap-2'>
+                <Button
+                  variant='outline'
+                  onClick={() => setConfirmUnbind(true)}
+                  disabled={isSubmitting}
+                >
+                  {t('Remove access')}
+                </Button>
+                {member?.provisioned && (
+                  <Button
+                    variant='outline'
+                    onClick={() => setConfirmReset(true)}
+                    disabled={isSubmitting}
+                  >
+                    {t('Reset password')}
+                  </Button>
+                )}
+              </div>
               <Button
                 onClick={() => void handleRole()}
                 disabled={isSubmitting || role === member?.role}
@@ -336,6 +377,13 @@ export function MemberLoginDialog(props: MemberLoginDialogProps) {
               </AlertDescription>
             </Alert>
           )}
+          {hasLogin && !member?.provisioned && (
+            <p className='text-muted-foreground text-xs'>
+              {t(
+                "This is the member's own account. They reset the password from the sign-in page."
+              )}
+            </p>
+          )}
         </div>
       </Dialog>
       <ConfirmDialog
@@ -348,6 +396,15 @@ export function MemberLoginDialog(props: MemberLoginDialogProps) {
         destructive
         confirmText={t('Remove access')}
         handleConfirm={() => void handleUnbind()}
+      />
+      <ConfirmDialog
+        open={confirmReset}
+        onOpenChange={(open) => !open && setConfirmReset(false)}
+        title={t('Reset password')}
+        desc={t(
+          'The member must sign in again everywhere: active sessions and access tokens are revoked. The new password is shown only once.'
+        )}
+        handleConfirm={() => void handleReset()}
       />
     </>
   )

@@ -62,6 +62,7 @@ func init() {
 		"PUT /api/enterprise/members/:id":                accessTokenScopeRule("enterprise:write"),
 		"DELETE /api/enterprise/members/:id":             accessTokenScopeRule("enterprise:write"),
 		"POST /api/enterprise/members/:id/login":         accessTokenScopeRule("enterprise:write"),
+		"POST /api/enterprise/members/:id/login/reset":   accessTokenScopeRule("enterprise:write"),
 		"DELETE /api/enterprise/members/:id/login":       accessTokenScopeRule("enterprise:write"),
 		"PUT /api/enterprise/members/:id/role":           accessTokenScopeRule("enterprise:write"),
 		"GET /api/enterprise/tokens":                     accessTokenScopeRule("enterprise:read"),

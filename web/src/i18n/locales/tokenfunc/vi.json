@@ -1515,6 +1515,9 @@
     "The full official parameter list, with descriptions from the {{name}} API reference. Use \"Show properties\" to see nested fields. Parameters marked \"Not forwarded by this site\" are ignored if sent; notes starting with \"On this site\" describe extra limits here.": "Danh sách tham số chính thức đầy đủ, mô tả lấy từ tài liệu API của {{name}}. Bấm « Hiện thuộc tính » để xem các trường lồng nhau. Tham số có nhãn « Trang này không chuyển tiếp » sẽ bị bỏ qua; ghi chú bắt đầu bằng « Trên trang này » mô tả giới hạn riêng của trang.",
     "Official reference": "Tài liệu chính thức",
     "Quota must be greater than zero": "Hạn mức phải lớn hơn 0",
-    "key quota must be greater than zero unless unlimited quota is enabled": "Hạn mức khóa phải lớn hơn 0 khi không bật hạn mức không giới hạn"
+    "key quota must be greater than zero unless unlimited quota is enabled": "Hạn mức khóa phải lớn hơn 0 khi không bật hạn mức không giới hạn",
+    "Password reset": "Đã đặt lại mật khẩu",
+    "The member must sign in again everywhere: active sessions and access tokens are revoked. The new password is shown only once.": "Thành viên cần đăng nhập lại ở mọi nơi: các phiên hoạt động và mã truy cập sẽ bị thu hồi. Mật khẩu mới chỉ hiển thị một lần.",
+    "This is the member's own account. They reset the password from the sign-in page.": "Đây là tài khoản cá nhân của thành viên. Họ cần tự đặt lại mật khẩu trên trang đăng nhập."
   }
 }

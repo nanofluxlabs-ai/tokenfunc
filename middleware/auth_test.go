@@ -456,6 +456,94 @@ func TestAccessTokenIdentityAndSingleLookup(t *testing.T) {
 	}
 }
 
+// TokenAuth 对「额度耗尽 / 已过期」返回持有者可自行解决的可区分文案；
+// 「不存在 / 已禁用」继续合并为「无效的令牌」（防枚举口径不变，响应逐字节一致）。
+func TestTokenAuthDistinguishesTokenStateMessages(t *testing.T) {
+	require.NoError(t, i18n.Init())
+	previousDB := model.DB
+	previousLogDB := model.LOG_DB
+	previousType := common.MainDatabaseType()
+	previousRedis := common.RedisEnabled
+	db, err := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{})
+	require.NoError(t, err)
+	require.NoError(t, db.AutoMigrate(&model.User{}, &model.Token{}, &model.Option{}))
+	model.DB = db
+	model.LOG_DB = db
+	common.SetMainDatabaseType(common.DatabaseTypeSQLite)
+	common.RedisEnabled = false
+	// Initialize production column quoting (commonKeyCol) for the key lookup.
+	t.Setenv("LOG_SQL_DSN", "")
+	require.NoError(t, model.InitLogDB())
+	t.Cleanup(func() {
+		model.DB = previousDB
+		model.LOG_DB = previousLogDB
+		common.SetMainDatabaseType(previousType)
+		common.RedisEnabled = previousRedis
+	})
+	user := &model.User{Username: "token-state-owner", Password: "placeholder", Role: common.RoleCommonUser, Status: common.UserStatusEnabled, Group: "default", AuthVersion: 1, AffCode: "token-state-owner"}
+	require.NoError(t, db.Create(user).Error)
+
+	seed := func(name, key string, mutate func(*model.Token)) {
+		t.Helper()
+		token := &model.Token{UserId: user.Id, Name: name, Key: key, Status: common.TokenStatusEnabled, ExpiredTime: -1, RemainQuota: 100, UnlimitedQuota: false, Group: "default", CreatedTime: 1, AccessedTime: 1}
+		if mutate != nil {
+			mutate(token)
+		}
+		require.NoError(t, db.Create(token).Error)
+	}
+	seed("exhausted-status", "exhaustedstatuskey", func(tk *model.Token) { tk.Status = common.TokenStatusExhausted })
+	seed("exhausted-live", "exhaustedlivekey", func(tk *model.Token) { tk.RemainQuota = 0 })
+	seed("expired-status", "expiredstatuskey", func(tk *model.Token) { tk.Status = common.TokenStatusExpired })
+	seed("expired-live", "expiredlivekey", func(tk *model.Token) { tk.ExpiredTime = 1 })
+	seed("disabled", "disabledstatekey", func(tk *model.Token) { tk.Status = common.TokenStatusDisabled })
+	seed("healthy", "healthystatekey", nil)
+
+	bodies := map[string]string{}
+	for _, tc := range []struct {
+		name        string
+		key         string
+		abort       bool
+		wantMessage string
+	}{
+		{"exhausted status", "sk-exhaustedstatuskey", true, "令牌额度已耗尽"},
+		{"exhausted live", "sk-exhaustedlivekey", true, "令牌额度已耗尽"},
+		{"expired status", "sk-expiredstatuskey", true, "令牌已过期"},
+		{"expired live", "sk-expiredlivekey", true, "令牌已过期"},
+		{"disabled", "sk-disabledstatekey", true, "无效的令牌"},
+		{"not found", "sk-missingstatekey", true, "无效的令牌"},
+		{"healthy", "sk-healthystatekey", false, ""},
+	} {
+		recorder := httptest.NewRecorder()
+		c, _ := gin.CreateTestContext(recorder)
+		c.Request = httptest.NewRequest(http.MethodPost, "/v1/chat/completions", nil)
+		c.Request.Header.Set("Authorization", "Bearer "+tc.key)
+		c.Request.Header.Set("Accept-Language", "zh-CN")
+		TokenAuth()(c)
+		if !tc.abort {
+			assert.False(t, c.IsAborted(), tc.name)
+			continue
+		}
+		assert.True(t, c.IsAborted(), tc.name)
+		assert.Equal(t, http.StatusUnauthorized, recorder.Code, tc.name)
+		assert.Contains(t, recorder.Body.String(), tc.wantMessage, tc.name)
+		assert.Contains(t, recorder.Body.String(), `"type":"new_api_error"`, tc.name)
+		bodies[tc.name] = recorder.Body.String()
+	}
+	// 防枚举口径与对外契约：不存在与已禁用响应逐字节一致；不引入新的机器可读 code
+	assert.Equal(t, bodies["not found"], bodies["disabled"])
+	assert.Contains(t, bodies["exhausted live"], `"code":""`)
+
+	// 英文文案同样可区分
+	recorder := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(recorder)
+	c.Request = httptest.NewRequest(http.MethodPost, "/v1/chat/completions", nil)
+	c.Request.Header.Set("Authorization", "Bearer sk-exhaustedlivekey")
+	c.Request.Header.Set("Accept-Language", "en-US")
+	TokenAuth()(c)
+	assert.True(t, c.IsAborted())
+	assert.Contains(t, recorder.Body.String(), "Token quota is exhausted")
+}
+
 func TestAPIKeyFromWebSocketSubprotocol(t *testing.T) {
 	tests := []struct {
 		name      string

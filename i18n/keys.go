@@ -8,6 +8,8 @@ package i18n
 const (
 	MsgDatabaseError          = "common.database_error"
 	MsgAuthUserBanned         = "auth.user_banned"
+	MsgTokenExpired           = "token.expired"
+	MsgTokenExhausted         = "token.exhausted"
 	MsgTokenGetInfoFailed     = "token.get_info_failed"
 	MsgTokenInvalid           = "token.invalid"
 	MsgTokenNotProvided       = "token.not_provided"

@@ -20,6 +20,10 @@ var (
 var (
 	ErrTokenNotProvided = errors.New("token not provided")
 	ErrTokenInvalid     = errors.New("token invalid")
+	// 已耗尽 / 已过期是持有者可自行解决的状态，单独返回原因供出口区分文案；
+	// 不存在与禁用仍合并为 ErrTokenInvalid（防枚举口径）。
+	ErrTokenExhausted = errors.New("token quota exhausted")
+	ErrTokenExpired   = errors.New("token expired")
 )
 
 // Redemption errors

@@ -430,18 +430,32 @@ func TestEnterpriseConsoleTokenManagement(t *testing.T) {
 	assert.Contains(t, dataOf(body)["models_by_group"].(map[string]any)[""], "gpt-4o")
 
 	// 校验：非法 CIDR、越权分组、模型不在分组、持有人不属团队
-	for _, test := range []struct{ name, body string }{
-		{"invalid cidr", `{"name":"k","unlimited_quota":true,"allow_ips":"10.0.0.0/99"}`},
-		{"group not selectable", `{"name":"k","unlimited_quota":true,"group":"ghost-group"}`},
-		{"model not in group", `{"name":"k","unlimited_quota":true,"model_limits":["claude-9"]}`},
-		{"holder not in team", `{"name":"k","unlimited_quota":true,"team_id":` + itoa(rd.Id) + `,"member_id":` + itoa(tester.Id) + `}`},
+	for _, test := range []struct{ name, body, msgContains string }{
+		{"invalid cidr", `{"name":"k","unlimited_quota":true,"allow_ips":"10.0.0.0/99"}`, ""},
+		{"group not selectable", `{"name":"k","unlimited_quota":true,"group":"ghost-group"}`, ""},
+		{"model not in group", `{"name":"k","unlimited_quota":true,"model_limits":["claude-9"]}`, ""},
+		{"holder not in team", `{"name":"k","unlimited_quota":true,"team_id":` + itoa(rd.Id) + `,"member_id":` + itoa(tester.Id) + `}`, ""},
+		// 额度为 0 且未启用无限额度：拒绝「出生即死」的 key（否则首发调用报 token.invalid）
+		{"zero quota without unlimited", `{"name":"k","unlimited_quota":false,"remain_quota":0}`, "quota must be greater than zero"},
 	} {
 		t.Run(test.name, func(t *testing.T) {
 			code, body := call("POST", "/api/enterprise/tokens", ownerToken, test.body)
 			assert.Equal(t, http.StatusOK, code)
 			assert.Equal(t, false, body["success"], body["message"])
+			if test.msgContains != "" {
+				assert.Contains(t, body["message"], test.msgContains)
+			}
 		})
 	}
+
+	// 正数固定额度不受影响（用完即删，不挤占后续用例的 key 配额）
+	code, body = call("POST", "/api/enterprise/tokens", ownerToken, `{"name":"fixed-ok","unlimited_quota":false,"remain_quota":100000}`)
+	require.Equal(t, http.StatusOK, code)
+	require.Equal(t, true, body["success"], body["message"])
+	fixedId := int(dataOf(body)["id"].(float64))
+	code, body = call("DELETE", "/api/enterprise/tokens/"+itoa(fixedId), ownerToken, "")
+	require.Equal(t, http.StatusOK, code)
+	require.Equal(t, true, body["success"], body["message"])
 
 	// 创建：带模型白名单、CIDR、分组，归属研发团队 Alice
 	code, body = call("POST", "/api/enterprise/tokens", ownerToken, `{"name":"alice-key","unlimited_quota":true,"team_id":`+itoa(rd.Id)+`,"member_id":`+itoa(alice.Id)+`,"group":"default","model_limits":["gpt-4o","gpt-4o"],"allow_ips":"10.0.0.0/8\n 192.168.1.1 \n"}`)
@@ -507,8 +521,8 @@ func TestEnterpriseConsoleTokenManagement(t *testing.T) {
 	require.Equal(t, http.StatusOK, code)
 	require.Equal(t, true, body["success"], body["message"])
 
-	// 编辑：改名 + 挪到 QA 团队公共 key + 固定额度 0（之后不能启用）
-	code, body = call("PUT", "/api/enterprise/tokens/"+itoa(keyId), ownerToken, `{"name":"qa-key","unlimited_quota":false,"remain_quota":0,"team_id":`+itoa(qa.Id)+`}`)
+	// 编辑：改名 + 挪到 QA 团队公共 key + 固定额度（API 不再接受 0 额度；耗尽态直写 DB 模拟用完）
+	code, body = call("PUT", "/api/enterprise/tokens/"+itoa(keyId), ownerToken, `{"name":"qa-key","unlimited_quota":false,"remain_quota":100000,"team_id":`+itoa(qa.Id)+`}`)
 	require.Equal(t, http.StatusOK, code)
 	require.Equal(t, true, body["success"], body["message"])
 	assignment, err := model.GetEnterpriseTokenAssignment(keyId)
@@ -519,6 +533,7 @@ func TestEnterpriseConsoleTokenManagement(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, "qa-key", updated.Name)
 	assert.False(t, updated.ModelLimitsEnabled, "model limits cleared when omitted")
+	require.NoError(t, model.DB.Model(&model.Token{}).Where("id = ?", keyId).Update("remain_quota", 0).Error)
 
 	// 启停：停用成功；耗尽的 key 不能启用；团队管理员看不到别的团队的 key
 	code, body = call("PUT", "/api/enterprise/tokens/"+itoa(keyId)+"/status", ownerToken, `{"status":2}`)

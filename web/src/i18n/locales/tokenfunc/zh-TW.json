@@ -1513,6 +1513,8 @@
     "Failed to load the parameter list.": "參數列表載入失敗。",
     "Loading parameters…": "正在載入參數…",
     "The full official parameter list, with descriptions from the {{name}} API reference. Use \"Show properties\" to see nested fields. Parameters marked \"Not forwarded by this site\" are ignored if sent; notes starting with \"On this site\" describe extra limits here.": "以下是官方完整參數，說明譯自 {{name}} 官方文件，點「展開屬性」查看巢狀欄位。標有「本站不轉發」的參數傳了會被忽略，以「本站說明」開頭的是本站的額外限制。",
-    "Official reference": "官方文件"
+    "Official reference": "官方文件",
+    "Quota must be greater than zero": "額度必須大於 0",
+    "key quota must be greater than zero unless unlimited quota is enabled": "未啟用無限額度時，金鑰額度必須大於 0"
   }
 }

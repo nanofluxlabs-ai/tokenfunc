@@ -1513,6 +1513,8 @@
     "Failed to load the parameter list.": "Không tải được danh sách tham số.",
     "Loading parameters…": "Đang tải tham số…",
     "The full official parameter list, with descriptions from the {{name}} API reference. Use \"Show properties\" to see nested fields. Parameters marked \"Not forwarded by this site\" are ignored if sent; notes starting with \"On this site\" describe extra limits here.": "Danh sách tham số chính thức đầy đủ, mô tả lấy từ tài liệu API của {{name}}. Bấm « Hiện thuộc tính » để xem các trường lồng nhau. Tham số có nhãn « Trang này không chuyển tiếp » sẽ bị bỏ qua; ghi chú bắt đầu bằng « Trên trang này » mô tả giới hạn riêng của trang.",
-    "Official reference": "Tài liệu chính thức"
+    "Official reference": "Tài liệu chính thức",
+    "Quota must be greater than zero": "Hạn mức phải lớn hơn 0",
+    "key quota must be greater than zero unless unlimited quota is enabled": "Hạn mức khóa phải lớn hơn 0 khi không bật hạn mức không giới hạn"
   }
 }

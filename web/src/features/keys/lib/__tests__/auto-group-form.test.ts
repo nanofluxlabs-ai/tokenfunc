@@ -209,3 +209,37 @@ describe('API key user quota query form mapping', () => {
     }
   )
 })
+
+describe('API key fixed quota validation', () => {
+  const parse = (overrides: Record<string, unknown>) =>
+    getApiKeyFormSchema(t).safeParse({
+      ...getApiKeyFormDefaultValues(false),
+      name: 'k',
+      unlimited_quota: false,
+      ...overrides,
+    })
+
+  test('rejects a zero fixed quota with the greater-than-zero message', () => {
+    const result = parse({ remain_quota_dollars: 0 })
+    expect(result.success).toBe(false)
+    if (!result.success) {
+      expect(result.error.issues[0].message).toBe(
+        'Quota must be greater than zero'
+      )
+    }
+  })
+
+  test('still rejects a negative fixed quota', () => {
+    expect(parse({ remain_quota_dollars: -1 }).success).toBe(false)
+  })
+
+  test('accepts a positive fixed quota', () => {
+    expect(parse({ remain_quota_dollars: 0.02 }).success).toBe(true)
+  })
+
+  test('skips the amount check when unlimited quota is on', () => {
+    expect(
+      parse({ unlimited_quota: true, remain_quota_dollars: 0 }).success
+    ).toBe(true)
+  })
+})

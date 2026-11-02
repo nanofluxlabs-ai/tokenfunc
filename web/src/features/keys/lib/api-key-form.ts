@@ -85,14 +85,15 @@ export function getApiKeyFormSchema(t: TFunction, maxAutoGroups = 5) {
         return
       }
 
+      // 固定额度必须大于 0：0 额度非无限的令牌出生即死，首发调用即被网关拒绝
       if (
         data.remain_quota_dollars === undefined ||
-        data.remain_quota_dollars < 0
+        data.remain_quota_dollars <= 0
       ) {
         ctx.addIssue({
           code: 'custom',
           path: ['remain_quota_dollars'],
-          message: t('Quota must be zero or greater'),
+          message: t('Quota must be greater than zero'),
         })
       }
     })

@@ -1513,6 +1513,8 @@
     "Failed to load the parameter list.": "Failed to load the parameter list.",
     "Loading parameters…": "Loading parameters…",
     "The full official parameter list, with descriptions from the {{name}} API reference. Use \"Show properties\" to see nested fields. Parameters marked \"Not forwarded by this site\" are ignored if sent; notes starting with \"On this site\" describe extra limits here.": "The full official parameter list, with descriptions from the {{name}} API reference. Use \"Show properties\" to see nested fields. Parameters marked \"Not forwarded by this site\" are ignored if sent; notes starting with \"On this site\" describe extra limits here.",
-    "Official reference": "Official reference"
+    "Official reference": "Official reference",
+    "Quota must be greater than zero": "Quota must be greater than zero",
+    "key quota must be greater than zero unless unlimited quota is enabled": "key quota must be greater than zero unless unlimited quota is enabled"
   }
 }

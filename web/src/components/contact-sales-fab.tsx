@@ -14,6 +14,13 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useStatus } from '@/hooks/use-status'
 import { cn } from '@/lib/utils'
 
+const FAB_ICON_CLASS =
+  'absolute inset-0 size-5 transition-[transform,opacity] duration-200 ease-out motion-reduce:transition-none'
+
+// 切换微信 / Telegram 时内容淡入并轻微上移
+const TAB_PANEL_CLASS =
+  'animate-in fade-in-0 slide-in-from-bottom-1 mt-3 duration-200 motion-reduce:animate-none'
+
 // 右下角是发送按钮的页面不显示入口，避免遮挡
 const HIDDEN_PATH_PREFIXES = ['/playground', '/chat']
 
@@ -93,10 +100,10 @@ export function ContactSalesFab() {
           <TabsTrigger value='wechat'>{t('WeChat')}</TabsTrigger>
           <TabsTrigger value='telegram'>Telegram</TabsTrigger>
         </TabsList>
-        <TabsContent value='wechat' className='mt-3'>
+        <TabsContent value='wechat' className={TAB_PANEL_CLASS}>
           <WeChatPanel qrcodeUrl={qrcodeUrl} />
         </TabsContent>
-        <TabsContent value='telegram' className='mt-3'>
+        <TabsContent value='telegram' className={TAB_PANEL_CLASS}>
           <TelegramPanel username={telegram} />
         </TabsContent>
       </Tabs>
@@ -115,22 +122,34 @@ export function ContactSalesFab() {
             size='icon'
             aria-label={t('Contact sales')}
             title={t('Contact sales')}
-            className='fixed right-4 bottom-4 z-40 size-12 rounded-full shadow-lg sm:right-6 sm:bottom-6'
+            // 悬停微放大、按下回弹；减少动态效果的系统设置下不做位移动画
+            className='fixed right-4 bottom-4 z-40 size-12 rounded-full shadow-lg transition-[transform,box-shadow] duration-200 ease-out hover:scale-105 hover:shadow-xl active:scale-95 motion-reduce:transition-none motion-reduce:hover:scale-100 sm:right-6 sm:bottom-6'
           />
         }
       >
-        {open ? (
-          <X className='size-5' aria-hidden='true' />
-        ) : (
-          <Headset className='size-5' aria-hidden='true' />
-        )}
+        {/* 两个图标叠放，打开时耳机旋出、关闭符号旋入，交叉淡入淡出 */}
+        <span className='relative size-5' aria-hidden='true'>
+          <Headset
+            className={cn(
+              FAB_ICON_CLASS,
+              open ? 'scale-50 rotate-90 opacity-0' : 'scale-100 rotate-0'
+            )}
+          />
+          <X
+            className={cn(
+              FAB_ICON_CLASS,
+              open ? 'scale-100 rotate-0' : 'scale-50 -rotate-90 opacity-0'
+            )}
+          />
+        </span>
       </PopoverTrigger>
       <PopoverContent
         side='top'
         align='end'
         sideOffset={12}
         collisionPadding={16}
-        className='w-[min(18rem,calc(100vw-2rem))] gap-3 p-4'
+        // 从按钮方向（右下角）缩放展开，时长比默认的 100ms 稍长，收起更快
+        className='data-open:zoom-in-90 w-[min(18rem,calc(100vw-2rem))] gap-3 p-4 ease-out data-closed:duration-150 data-open:duration-200 motion-reduce:animate-none'
       >
         <p className='m-0 text-sm font-medium'>{t('Contact sales')}</p>
         {body}

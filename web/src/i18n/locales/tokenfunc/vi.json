@@ -731,7 +731,6 @@
     "Short name": "Tên ngắn",
     "Short name (discount input label)": "Tên ngắn (nhãn ô nhập chiết khấu)",
     "Show \"unit / exchange rate\" line in intro": "Hiển thị dòng \"đơn vị / tỷ giá\" trong lời dẫn",
-    "Shown in the \"Contact sales\" dialog on the home page (optional)": "Hiển thị trong hộp thoại \"Liên hệ kinh doanh\" trên trang chủ (tùy chọn)",
     "Sign up free": "Đăng ký miễn phí",
     "Sign up to create an API key, then change one base_url to connect.": "Đăng ký để tạo API key, rồi đổi một dòng base_url là kết nối xong.",
     "Simple (input / cache read / output)": "Đơn giản (đầu vào / đọc cache / đầu ra)",
@@ -1518,6 +1517,13 @@
     "key quota must be greater than zero unless unlimited quota is enabled": "Hạn mức khóa phải lớn hơn 0 khi không bật hạn mức không giới hạn",
     "Password reset": "Đã đặt lại mật khẩu",
     "The member must sign in again everywhere: active sessions and access tokens are revoked. The new password is shown only once.": "Thành viên cần đăng nhập lại ở mọi nơi: các phiên hoạt động và mã truy cập sẽ bị thu hồi. Mật khẩu mới chỉ hiển thị một lần.",
-    "This is the member's own account. They reset the password from the sign-in page.": "Đây là tài khoản cá nhân của thành viên. Họ cần tự đặt lại mật khẩu trên trang đăng nhập."
+    "This is the member's own account. They reset the password from the sign-in page.": "Đây là tài khoản cá nhân của thành viên. Họ cần tự đặt lại mật khẩu trên trang đăng nhập.",
+    "Scan with WeChat to add sales": "Quét bằng WeChat để thêm bộ phận kinh doanh",
+    "Sales Telegram QR code": "Mã QR Telegram của bộ phận kinh doanh",
+    "Open Telegram": "Mở Telegram",
+    "Sales Telegram username": "Tên người dùng Telegram của bộ phận kinh doanh",
+    "Enter a Telegram username such as @name, or a t.me link": "Nhập tên người dùng Telegram (ví dụ @name) hoặc liên kết t.me",
+    "Accepts @username, username or a t.me link; shown in the contact sales button at the bottom right (optional)": "Chấp nhận @tên, tên hoặc liên kết t.me; hiển thị ở nút liên hệ kinh doanh góc dưới bên phải (tùy chọn)",
+    "Shown in the \"Contact sales\" dialog on the home page and the contact sales button at the bottom right (optional)": "Hiển thị trong hộp thoại \"Liên hệ kinh doanh\" trên trang chủ và nút liên hệ ở góc dưới bên phải (tùy chọn)"
   }
 }

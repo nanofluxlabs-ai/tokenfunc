@@ -40,6 +40,7 @@ const SITE_SECTIONS = [
           Logo: settings.Logo,
           ThemePreset: settings.ThemePreset,
           SalesContactQRCodeImageURL: settings.SalesContactQRCodeImageURL,
+          SalesContactTelegram: settings.SalesContactTelegram,
           Footer: settings.Footer,
           About: settings.About,
           HomePageContent: settings.HomePageContent,

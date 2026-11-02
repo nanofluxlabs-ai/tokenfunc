@@ -55,6 +55,10 @@ import { useSettingsForm } from '../hooks/use-settings-form'
 import { useUpdateOption } from '../hooks/use-update-option'
 import { isValidTaskPublicAddress } from './task-public-address'
 
+// 商务 Telegram：@name、name 或 (https://)t.me/name；后端 common.NormalizeTelegramUsername 再规范成纯用户名
+const TELEGRAM_CONTACT_PATTERN =
+  /^(?:@?[A-Za-z0-9_]{3,32}|(?:https?:\/\/)?(?:www\.)?(?:t|telegram)\.me\/[A-Za-z0-9_]{3,32}\/?)$/
+
 const _systemInfoSchema = z.object({
   SystemName: z.string().min(1),
   ServerAddress: z.string().optional(),
@@ -62,6 +66,7 @@ const _systemInfoSchema = z.object({
   Logo: z.string().url().optional().or(z.literal('')),
   ThemePreset: z.string(),
   SalesContactQRCodeImageURL: z.string().url().optional().or(z.literal('')),
+  SalesContactTelegram: z.string(),
   Footer: z.string().optional(),
   About: z.string().optional(),
   HomePageContent: z.string().optional(),
@@ -98,6 +103,7 @@ export function SystemInfoSection({ defaultValues }: SystemInfoSectionProps) {
     SalesContactQRCodeImageURL: normalizeValue(
       defaultValues.SalesContactQRCodeImageURL
     ),
+    SalesContactTelegram: normalizeValue(defaultValues.SalesContactTelegram),
     Footer: normalizeValue(defaultValues.Footer),
     About: normalizeValue(defaultValues.About),
     HomePageContent: normalizeValue(defaultValues.HomePageContent),
@@ -124,6 +130,13 @@ export function SystemInfoSection({ defaultValues }: SystemInfoSectionProps) {
     Logo: z.string().url().optional().or(z.literal('')),
     ThemePreset: z.string(),
     SalesContactQRCodeImageURL: z.string().url().optional().or(z.literal('')),
+    SalesContactTelegram: z
+      .string()
+      .trim()
+      .refine((value) => value === '' || TELEGRAM_CONTACT_PATTERN.test(value), {
+        error: () =>
+          t('Enter a Telegram username such as @name, or a t.me link'),
+      }),
     Footer: z.string().optional(),
     About: z.string().optional(),
     HomePageContent: z.string().optional(),
@@ -304,7 +317,26 @@ export function SystemInfoSection({ defaultValues }: SystemInfoSectionProps) {
                     </FormControl>
                     <FormDescription>
                       {t(
-                        'Shown in the "Contact sales" dialog on the home page (optional)'
+                        'Shown in the "Contact sales" dialog on the home page and the contact sales button at the bottom right (optional)'
+                      )}
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name='SalesContactTelegram'
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>{t('Sales Telegram username')}</FormLabel>
+                    <FormControl>
+                      <Input placeholder='@tokenfunc_sales' {...field} />
+                    </FormControl>
+                    <FormDescription>
+                      {t(
+                        'Accepts @username, username or a t.me link; shown in the contact sales button at the bottom right (optional)'
                       )}
                     </FormDescription>
                     <FormMessage />

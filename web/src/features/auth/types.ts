@@ -144,6 +144,8 @@ export interface SystemStatus {
   theme?: string
   server_address?: string
   sales_qrcode?: string
+  /** 商务 Telegram 用户名（后端已规范化为纯用户名） */
+  sales_telegram?: string
   github_oauth?: boolean
   github_client_id?: string
   discord_oauth?: boolean

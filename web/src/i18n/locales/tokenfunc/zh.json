@@ -731,7 +731,6 @@
     "Short name": "简短名",
     "Short name (discount input label)": "简短名（生成表单折扣输入框标签）",
     "Show \"unit / exchange rate\" line in intro": "引导语显示「单价单位 / 汇率」行",
-    "Shown in the \"Contact sales\" dialog on the home page (optional)": "显示在首页“联系销售”弹窗中（可选）",
     "Sign up free": "免费注册",
     "Sign up to create an API key, then change one base_url to connect.": "注册即可创建 API Key，改一行 base_url 完成接入。",
     "Simple (input / cache read / output)": "简表（输入 / 缓存命中 / 输出）",
@@ -1518,6 +1517,13 @@
     "key quota must be greater than zero unless unlimited quota is enabled": "未启用无限额度时，密钥额度必须大于 0",
     "Password reset": "密码已重置",
     "The member must sign in again everywhere: active sessions and access tokens are revoked. The new password is shown only once.": "成员需要在所有设备上重新登录：现有会话与访问令牌全部失效。新密码仅显示一次。",
-    "This is the member's own account. They reset the password from the sign-in page.": "这是成员的个人账号，请成员自行在登录页重置密码。"
+    "This is the member's own account. They reset the password from the sign-in page.": "这是成员的个人账号，请成员自行在登录页重置密码。",
+    "Scan with WeChat to add sales": "微信扫码添加商务",
+    "Sales Telegram QR code": "商务 Telegram 二维码",
+    "Open Telegram": "打开 Telegram",
+    "Sales Telegram username": "商务 Telegram 用户名",
+    "Enter a Telegram username such as @name, or a t.me link": "请输入 Telegram 用户名（如 @name）或 t.me 链接",
+    "Accepts @username, username or a t.me link; shown in the contact sales button at the bottom right (optional)": "支持 @用户名、用户名或 t.me 链接，显示在右下角联系商务入口中（可选）",
+    "Shown in the \"Contact sales\" dialog on the home page and the contact sales button at the bottom right (optional)": "显示在首页“联系销售”弹窗和右下角联系商务入口中（可选）"
   }
 }

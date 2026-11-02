@@ -8,6 +8,10 @@ var ThemePreset = "tokenfunc"
 // SalesContactQRCodeImageURL 营销页"联系销售"弹窗展示的商务微信二维码图片地址
 var SalesContactQRCodeImageURL = ""
 
+// SalesContactTelegram 商务 Telegram 用户名（全站右下角联系商务入口），原样保存管理员的输入，
+// 下发前经 NormalizeTelegramUsername 规范化
+var SalesContactTelegram = ""
+
 // 系统日志（stdout / 文件）格式与滚动。LogFormatJSON 由 InitEnv 按 LOG_FORMAT 置位，
 // 运行时默认 json；包级默认 false 让测试与未初始化路径保持上游文本格式。
 var LogFormatJSON = false

@@ -731,7 +731,6 @@
     "Short name": "Nom court",
     "Short name (discount input label)": "Nom court (libellé du champ de remise)",
     "Show \"unit / exchange rate\" line in intro": "Afficher la ligne « unité / taux de change » dans l’introduction",
-    "Shown in the \"Contact sales\" dialog on the home page (optional)": "Affiché dans la boîte de dialogue « Contacter le commercial » de la page d'accueil (facultatif)",
     "Sign up free": "Inscription gratuite",
     "Sign up to create an API key, then change one base_url to connect.": "Inscrivez-vous pour créer une clé API, puis changez une base_url pour vous connecter.",
     "Simple (input / cache read / output)": "Simple (entrée / lecture cache / sortie)",
@@ -1518,6 +1517,13 @@
     "key quota must be greater than zero unless unlimited quota is enabled": "Le quota de la clé doit être supérieur à zéro si le quota illimité n'est pas activé",
     "Password reset": "Réinitialisation du mot de passe",
     "The member must sign in again everywhere: active sessions and access tokens are revoked. The new password is shown only once.": "Le membre doit se reconnecter partout : les sessions actives et les jetons d'accès sont révoqués. Le nouveau mot de passe n'est affiché qu'une seule fois.",
-    "This is the member's own account. They reset the password from the sign-in page.": "Il s'agit du compte personnel du membre. Il doit réinitialiser le mot de passe depuis la page de connexion."
+    "This is the member's own account. They reset the password from the sign-in page.": "Il s'agit du compte personnel du membre. Il doit réinitialiser le mot de passe depuis la page de connexion.",
+    "Scan with WeChat to add sales": "Scannez avec WeChat pour contacter le commercial",
+    "Sales Telegram QR code": "QR code Telegram du commercial",
+    "Open Telegram": "Ouvrir Telegram",
+    "Sales Telegram username": "Nom d’utilisateur Telegram du commercial",
+    "Enter a Telegram username such as @name, or a t.me link": "Saisissez un nom d’utilisateur Telegram (ex. @name) ou un lien t.me",
+    "Accepts @username, username or a t.me link; shown in the contact sales button at the bottom right (optional)": "Accepte @nom, nom ou un lien t.me ; affiché dans le bouton de contact commercial en bas à droite (facultatif)",
+    "Shown in the \"Contact sales\" dialog on the home page and the contact sales button at the bottom right (optional)": "Affiché dans la boîte de dialogue « Contacter le commercial » de la page d’accueil et dans le bouton de contact en bas à droite (facultatif)"
   }
 }

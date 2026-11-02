@@ -731,7 +731,6 @@
     "Short name": "Short name",
     "Short name (discount input label)": "Short name (discount input label)",
     "Show \"unit / exchange rate\" line in intro": "Show \"unit / exchange rate\" line in intro",
-    "Shown in the \"Contact sales\" dialog on the home page (optional)": "Shown in the \"Contact sales\" dialog on the home page (optional)",
     "Sign up free": "Sign up free",
     "Sign up to create an API key, then change one base_url to connect.": "Sign up to create an API key, then change one base_url to connect.",
     "Simple (input / cache read / output)": "Simple (input / cache read / output)",
@@ -1518,6 +1517,13 @@
     "key quota must be greater than zero unless unlimited quota is enabled": "key quota must be greater than zero unless unlimited quota is enabled",
     "Password reset": "Password reset",
     "The member must sign in again everywhere: active sessions and access tokens are revoked. The new password is shown only once.": "The member must sign in again everywhere: active sessions and access tokens are revoked. The new password is shown only once.",
-    "This is the member's own account. They reset the password from the sign-in page.": "This is the member's own account. They reset the password from the sign-in page."
+    "This is the member's own account. They reset the password from the sign-in page.": "This is the member's own account. They reset the password from the sign-in page.",
+    "Scan with WeChat to add sales": "Scan with WeChat to add sales",
+    "Sales Telegram QR code": "Sales Telegram QR code",
+    "Open Telegram": "Open Telegram",
+    "Sales Telegram username": "Sales Telegram username",
+    "Enter a Telegram username such as @name, or a t.me link": "Enter a Telegram username such as @name, or a t.me link",
+    "Accepts @username, username or a t.me link; shown in the contact sales button at the bottom right (optional)": "Accepts @username, username or a t.me link; shown in the contact sales button at the bottom right (optional)",
+    "Shown in the \"Contact sales\" dialog on the home page and the contact sales button at the bottom right (optional)": "Shown in the \"Contact sales\" dialog on the home page and the contact sales button at the bottom right (optional)"
   }
 }

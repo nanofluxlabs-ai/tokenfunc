@@ -30,6 +30,7 @@ const defaultSiteSettings: SiteSettings = {
   Logo: '',
   ThemePreset: 'tokenfunc',
   SalesContactQRCodeImageURL: '',
+  SalesContactTelegram: '',
   Footer: '',
   About: '',
   HomePageContent: '',

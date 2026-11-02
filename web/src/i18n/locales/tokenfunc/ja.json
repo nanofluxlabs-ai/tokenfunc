@@ -731,7 +731,6 @@
     "Short name": "短縮名",
     "Short name (discount input label)": "短縮名（割引入力欄のラベル）",
     "Show \"unit / exchange rate\" line in intro": "導入文に「単価単位 / 為替」行を表示",
-    "Shown in the \"Contact sales\" dialog on the home page (optional)": "ホームページの「営業に問い合わせ」ダイアログに表示されます（任意）",
     "Sign up free": "無料で登録",
     "Sign up to create an API key, then change one base_url to connect.": "登録して API キーを作成し、base_url を 1 行変えるだけで接続できます。",
     "Simple (input / cache read / output)": "簡易表（入力 / キャッシュ読取 / 出力）",
@@ -1518,6 +1517,13 @@
     "key quota must be greater than zero unless unlimited quota is enabled": "無制限クォータを有効にしない場合、キーのクォータは 0 より大きくしてください",
     "Password reset": "パスワードをリセットしました",
     "The member must sign in again everywhere: active sessions and access tokens are revoked. The new password is shown only once.": "メンバーはすべての場所で再ログインが必要です：既存のセッションとアクセストークンはすべて無効になります。新しいパスワードは一度だけ表示されます。",
-    "This is the member's own account. They reset the password from the sign-in page.": "これはメンバー自身のアカウントです。メンバー自身がログインページからパスワードをリセットしてください。"
+    "This is the member's own account. They reset the password from the sign-in page.": "これはメンバー自身のアカウントです。メンバー自身がログインページからパスワードをリセットしてください。",
+    "Scan with WeChat to add sales": "WeChat でスキャンして営業担当を追加",
+    "Sales Telegram QR code": "営業担当の Telegram QR コード",
+    "Open Telegram": "Telegram を開く",
+    "Sales Telegram username": "営業担当の Telegram ユーザー名",
+    "Enter a Telegram username such as @name, or a t.me link": "Telegram ユーザー名（例：@name）または t.me リンクを入力してください",
+    "Accepts @username, username or a t.me link; shown in the contact sales button at the bottom right (optional)": "@ユーザー名、ユーザー名、t.me リンクに対応。右下の営業問い合わせボタンに表示されます（任意）",
+    "Shown in the \"Contact sales\" dialog on the home page and the contact sales button at the bottom right (optional)": "ホームページの「営業に問い合わせ」ダイアログと右下の問い合わせボタンに表示されます（任意）"
   }
 }

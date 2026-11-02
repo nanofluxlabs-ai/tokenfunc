@@ -96,8 +96,9 @@ func validateEnterpriseTokenRequest(c *gin.Context, enterprise *model.Enterprise
 		common.ApiErrorMsg(c, "key name is required and must be at most 50 characters")
 		return nil, false
 	}
-	if !req.UnlimitedQuota && (req.RemainQuota < 0 || req.RemainQuota > maxTokenQuota()) {
-		common.ApiErrorMsg(c, "invalid key quota")
+	// 额度为 0 的非无限 key 出生即死（首发调用报 token invalid），直接拒绝
+	if !req.UnlimitedQuota && (req.RemainQuota <= 0 || req.RemainQuota > maxTokenQuota()) {
+		common.ApiErrorMsg(c, "key quota must be greater than zero unless unlimited quota is enabled")
 		return nil, false
 	}
 	if req.ExpiredTime != -1 && req.ExpiredTime != 0 && req.ExpiredTime < common.GetTimestamp() {

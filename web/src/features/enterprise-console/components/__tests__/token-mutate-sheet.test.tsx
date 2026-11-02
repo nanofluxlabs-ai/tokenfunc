@@ -205,6 +205,33 @@ describe('TokenMutateSheet', () => {
     expect(onOpenChange).toHaveBeenCalledWith(false)
   })
 
+  test('fixed quota mode blocks a zero amount with an inline error and submits once positive', async () => {
+    renderSheet({ member: alice })
+    expect(await screen.findByText('Issue API Key to Alice')).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('radio', { name: /Fixed quota/ }))
+    fireEvent.click(screen.getByRole('button', { name: 'Create' }))
+
+    expect(
+      await screen.findByText('Quota must be greater than zero')
+    ).toBeInTheDocument()
+    expect(apiMock.createEnterpriseToken).not.toHaveBeenCalled()
+
+    fireEvent.change(screen.getByLabelText('Quota (USD)'), {
+      target: { value: '2' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Create' }))
+
+    await waitFor(() =>
+      expect(apiMock.createEnterpriseToken).toHaveBeenCalledWith(
+        expect.objectContaining({
+          unlimited_quota: false,
+          remain_quota: 1_000_000,
+        })
+      )
+    )
+  })
+
   test('choosing a periodic quota sends the policy and uses the period amount as the remaining quota', async () => {
     renderSheet({ member: alice })
     expect(

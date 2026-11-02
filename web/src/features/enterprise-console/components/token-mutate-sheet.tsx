@@ -184,6 +184,14 @@ export function TokenMutateSheet(props: TokenMutateSheetProps) {
           allow_ips: z.string(),
         })
         .superRefine((values, ctx) => {
+          // 固定额度必须大于 0：0 额度非无限的 key 出生即死，首发调用即被网关拒绝
+          if (values.quota_mode === 'fixed' && values.quota_dollars <= 0) {
+            ctx.addIssue({
+              code: 'custom',
+              path: ['quota_dollars'],
+              message: t('Quota must be greater than zero'),
+            })
+          }
           // 只有周期模式才校验周期字段
           if (values.quota_mode !== 'periodic') return
           for (const issue of tokenQuotaPolicyIssues(values.quota_policy, t)) {

@@ -717,7 +717,7 @@
     "Select user": "ユーザーを選択",
     "Seller profile saved": "発行者情報を保存しました",
     "Send a lightweight GET to the probe path. Network errors, 5xx and 403 count as failures, 401 pauses dispatch at once; 404, 429 and other 4xx are ignored": "プローブパスへ軽量な GET を送ります。ネットワークエラー、5xx、403 は失敗として数え、401 は即座に配信を停止します。404、429 やその他の 4xx は無視します",
-    "Send a real test request through the channel. Transport errors and 5xx during normal traffic count toward the same threshold; key or balance failures pause dispatch at once; content-safety blocks, rate limits and gateway-side errors are ignored. One successful request resumes dispatch. External channels are skipped by scheduled channel tests while this is on.": "チャネル経由で実際のテストリクエストを送ります。通常トラフィック中の通信エラーと 5xx は同じしきい値に加算され、キー失効や残高不足は即座に配信を停止し、コンテンツ安全ブロック・レート制限・ゲートウェイ側のエラーは無視します。1回の成功で配信を再開します。有効時はスケジュールされたチャネルテストが外部チャネルをスキップします。",
+    "Send a real test request through the channel. Transport errors and 5xx during normal traffic count toward the same threshold; 401 and balance failures pause dispatch at once; 429, other 4xx and gateway-side errors are ignored. One successful request resumes dispatch. External channels are skipped by scheduled channel tests while this is on.": "チャネル経由で実際のテストリクエストを送ります。通常トラフィック中の通信エラーと 5xx は同じしきい値に加算され、401 と残高不足は即座に配信を停止し、429・その他の 4xx・ゲートウェイ側のエラーは無視します。1回の成功で配信を再開します。有効時はスケジュールされたチャネルテストが外部チャネルをスキップします。",
     "Send your first model request through the gateway in minutes.": "数分でゲートウェイ経由の最初のモデルリクエストを送れます。",
     "Service SLA": "サービス SLA",
     "Service contract and Data Processing Agreement (DPA)": "サービス契約とデータ処理契約（DPA）",

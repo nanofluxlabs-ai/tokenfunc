@@ -687,7 +687,7 @@ export function ChannelHealthSection({
                         <FormLabel>{t('Inference probes')}</FormLabel>
                         <FormDescription>
                           {t(
-                            'Send a real test request through the channel. Transport errors and 5xx during normal traffic count toward the same threshold; key or balance failures pause dispatch at once; content-safety blocks, rate limits and gateway-side errors are ignored. One successful request resumes dispatch. External channels are skipped by scheduled channel tests while this is on.'
+                            'Send a real test request through the channel. Transport errors and 5xx during normal traffic count toward the same threshold; 401 and balance failures pause dispatch at once; 429, other 4xx and gateway-side errors are ignored. One successful request resumes dispatch. External channels are skipped by scheduled channel tests while this is on.'
                           )}
                         </FormDescription>
                       </SettingsSwitchContent>

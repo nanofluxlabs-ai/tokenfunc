@@ -9,7 +9,8 @@ import (
 )
 
 // 外部渠道健康态的失败分类（TokenFunc 二开）。
-// 只有渠道真正临时或永久不可用才影响调度：请求本身的问题（内容安全）、上游背压（限流）、网关自身的错误都不计入。
+// 只有渠道真正临时或永久不可用才影响调度。判定只看标准 HTTP 状态码与网关内部的错误类型，不解析上游错误文本：
+// 各家上游的报错措辞不统一，按文本定责在生产上会漏判真故障。上游把内容安全、限流包成 500 的，应在上游侧改回标准状态码。
 // relay、推理探测、接口探测三个入口共用这一套判定。
 
 // ChannelHealthVerdict 一次结果对渠道健康的影响
@@ -30,29 +31,6 @@ const (
 	ChannelHealthFailureFromProbe
 )
 
-// channelHealthIgnoredKeywords 命中即不计入健康失败（小写匹配）：内容安全拦截与上游限流。
-// 上游中转站常把这两类错误包成 500，所以不能只看状态码。
-var channelHealthIgnoredKeywords = []string{
-	// 内容安全
-	"1301",
-	"sensitive",
-	"unsafe content",
-	"content filter",
-	"content_filter",
-	"content management policy",
-	"敏感",
-	"不安全",
-	// 限流 / 并发
-	"rate limit",
-	"rate_limit",
-	"ratelimit",
-	"concurrency limit",
-	"concurrent",
-	"too many requests",
-	"请求过于频繁",
-	"并发",
-}
-
 // ClassifyChannelHealthFailure 判定一次失败对渠道健康的影响
 func ClassifyChannelHealthFailure(err *types.NewAPIError, source ChannelHealthFailureSource) ChannelHealthVerdict {
 	if err == nil {
@@ -70,13 +48,9 @@ func ClassifyChannelHealthFailure(err *types.NewAPIError, source ChannelHealthFa
 	if err.GetErrorType() == types.ErrorTypeNewAPIError {
 		return ChannelHealthVerdictIgnore
 	}
-	message := strings.ToLower(err.Error())
-	// 永久故障关键词与上游「自动禁用」共用一套：余额耗尽、账号被禁、无权限
-	if matched, _ := AcSearch(message, operation_setting.AutomaticDisableKeywords, true); matched {
+	// 唯一的文本匹配：复用上游「自动禁用关键词」设置项（余额耗尽、账号被禁、无权限），由运营维护，漏判只是退回阈值计数
+	if matched, _ := AcSearch(strings.ToLower(err.Error()), operation_setting.AutomaticDisableKeywords, true); matched {
 		return ChannelHealthVerdictPermanent
-	}
-	if matched, _ := AcSearch(message, channelHealthIgnoredKeywords, true); matched {
-		return ChannelHealthVerdictIgnore
 	}
 	switch {
 	case err.StatusCode == http.StatusUnauthorized:

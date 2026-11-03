@@ -181,7 +181,8 @@ func TestChannelHealthRelaySuccessClearsFailuresForBareChannel(t *testing.T) {
 	assert.False(t, model.IsChannelInferencePending(channel.Id))
 }
 
-// 只有渠道真正不可用才影响调度：内容安全、限流、网关自身错误不计入；密钥失效、余额耗尽立即暂停；探测的 4xx 按渠道不可用处理
+// 只按标准状态码与错误类型判定：429 与真实流量 4xx、网关自身错误不计入；401、余额耗尽立即暂停；探测的 4xx 按渠道不可用处理。
+// 上游把内容安全、限流包成 500 的按临时故障计数（不解析错误文本）
 func TestClassifyChannelHealthFailure(t *testing.T) {
 	cases := []struct {
 		name   string
@@ -193,8 +194,8 @@ func TestClassifyChannelHealthFailure(t *testing.T) {
 		{"网关自身错误", types.NewError(errors.New("count token failed"), types.ErrorCodeCountTokenFailed), ChannelHealthFailureFromRelay, ChannelHealthVerdictIgnore},
 		{"传输失败", types.NewError(errors.New("dial tcp: connection refused"), types.ErrorCodeDoRequestFailed), ChannelHealthFailureFromRelay, ChannelHealthVerdictTransient},
 		{"渠道密钥不可用", types.NewError(errors.New("no available key"), types.ErrorCodeChannelNoAvailableKey), ChannelHealthFailureFromRelay, ChannelHealthVerdictPermanent},
-		{"内容安全包成 500", upstreamErr(500, "[1301][系统检测到输入或生成内容可能包含不安全或敏感内容]"), ChannelHealthFailureFromRelay, ChannelHealthVerdictIgnore},
-		{"并发限流包成 500", upstreamErr(500, "Concurrency limit exceeded for user, please retry later"), ChannelHealthFailureFromRelay, ChannelHealthVerdictIgnore},
+		{"内容安全包成 500 按状态码计临时故障", upstreamErr(500, "[1301][系统检测到输入或生成内容可能包含不安全或敏感内容]"), ChannelHealthFailureFromRelay, ChannelHealthVerdictTransient},
+		{"并发限流包成 500 按状态码计临时故障", upstreamErr(500, "Concurrency limit exceeded for user, please retry later"), ChannelHealthFailureFromRelay, ChannelHealthVerdictTransient},
 		{"429 限流", upstreamErr(429, "Rate limit reached for requests"), ChannelHealthFailureFromRelay, ChannelHealthVerdictIgnore},
 		{"429 额度耗尽", upstreamErr(429, "You exceeded your current quota, please check your plan and billing details."), ChannelHealthFailureFromRelay, ChannelHealthVerdictPermanent},
 		{"401 密钥失效", upstreamErr(401, "Incorrect API key provided"), ChannelHealthFailureFromRelay, ChannelHealthVerdictPermanent},
@@ -229,7 +230,7 @@ func TestChannelHealthPermanentFailurePausesImmediatelyAndIgnoredLeavesStateUnto
 	setupChannelHealthPostgres(t)
 	channel := newHealthTestChannel(t, 7, true)
 
-	RecordExternalChannelRelayFailure(channel, upstreamErr(500, "Concurrency limit exceeded for user"))
+	RecordExternalChannelRelayFailure(channel, upstreamErr(429, "rate limited"))
 	RecordExternalChannelRelayFailure(channel, upstreamErr(400, "invalid request"))
 	_, err := RecordChannelInferenceProbe(channel, ChannelHealthVerdictIgnore, "rate limited")
 	require.NoError(t, err)

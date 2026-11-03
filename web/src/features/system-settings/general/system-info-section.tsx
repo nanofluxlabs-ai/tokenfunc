@@ -51,9 +51,20 @@ import {
 } from '../components/settings-form-layout'
 import { SettingsPageFormActions } from '../components/settings-page-context'
 import { SettingsSection } from '../components/settings-section'
+import { SiteAssetUploadButton } from '../components/site-asset-upload-button'
 import { useSettingsForm } from '../hooks/use-settings-form'
 import { useUpdateOption } from '../hooks/use-update-option'
 import { isValidTaskPublicAddress } from './task-public-address'
+
+// 商务微信二维码：手填的绝对地址，或后台上传后回填的站内素材路径（/api/site-assets/...）
+const salesQrCodeUrlSchema = z
+  .string()
+  .refine(
+    (value) =>
+      value === '' ||
+      value.startsWith('/api/site-assets/') ||
+      z.string().url().safeParse(value).success
+  )
 
 // 商务 Telegram：@name、name 或 (https://)t.me/name；后端 common.NormalizeTelegramUsername 再规范成纯用户名
 const TELEGRAM_CONTACT_PATTERN =
@@ -65,7 +76,7 @@ const _systemInfoSchema = z.object({
   TaskPublicAddress: z.string().refine(isValidTaskPublicAddress),
   Logo: z.string().url().optional().or(z.literal('')),
   ThemePreset: z.string(),
-  SalesContactQRCodeImageURL: z.string().url().optional().or(z.literal('')),
+  SalesContactQRCodeImageURL: salesQrCodeUrlSchema,
   SalesContactTelegram: z.string(),
   Footer: z.string().optional(),
   About: z.string().optional(),
@@ -129,7 +140,7 @@ export function SystemInfoSection({ defaultValues }: SystemInfoSectionProps) {
     }),
     Logo: z.string().url().optional().or(z.literal('')),
     ThemePreset: z.string(),
-    SalesContactQRCodeImageURL: z.string().url().optional().or(z.literal('')),
+    SalesContactQRCodeImageURL: salesQrCodeUrlSchema,
     SalesContactTelegram: z
       .string()
       .trim()
@@ -309,12 +320,34 @@ export function SystemInfoSection({ defaultValues }: SystemInfoSectionProps) {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>{t('Sales WeChat QR code URL')}</FormLabel>
-                    <FormControl>
-                      <Input
-                        placeholder={t('https://example.com/sales-wechat.png')}
-                        {...field}
+                    <div className='flex gap-2'>
+                      <FormControl>
+                        <Input
+                          placeholder={t(
+                            'https://example.com/sales-wechat.png'
+                          )}
+                          {...field}
+                        />
+                      </FormControl>
+                      <SiteAssetUploadButton
+                        kind='sales-qrcode'
+                        onUploaded={(url) =>
+                          form.setValue('SalesContactQRCodeImageURL', url, {
+                            shouldDirty: true,
+                            shouldValidate: true,
+                          })
+                        }
                       />
-                    </FormControl>
+                    </div>
+                    {field.value && (
+                      <div className='size-24 rounded-md border bg-white p-1.5'>
+                        <img
+                          src={field.value}
+                          alt={t('Sales WeChat QR code')}
+                          className='size-full object-contain'
+                        />
+                      </div>
+                    )}
                     <FormDescription>
                       {t(
                         'Shown in the "Contact sales" dialog on the home page and the contact sales button at the bottom right (optional)'

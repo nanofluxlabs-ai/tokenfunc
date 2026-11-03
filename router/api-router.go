@@ -284,6 +284,7 @@ func SetApiRouter(router *gin.Engine) {
 		registerChannelRoutes(apiRouter)
 		registerEnterpriseRoutes(apiRouter)
 		registerFinanceRoutes(apiRouter)
+		registerSiteAssetRoutes(apiRouter)
 		registerPromoterRoutes(apiRouter)
 		registerLogArchiveRoutes(apiRouter)
 		registerLogStatRoutes(apiRouter)

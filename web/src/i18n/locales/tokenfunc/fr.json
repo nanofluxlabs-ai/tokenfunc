@@ -1524,6 +1524,14 @@
     "Sales Telegram username": "Nom d’utilisateur Telegram du commercial",
     "Enter a Telegram username such as @name, or a t.me link": "Saisissez un nom d’utilisateur Telegram (ex. @name) ou un lien t.me",
     "Accepts @username, username or a t.me link; shown in the contact sales button at the bottom right (optional)": "Accepte @nom, nom ou un lien t.me ; affiché dans le bouton de contact commercial en bas à droite (facultatif)",
-    "Shown in the \"Contact sales\" dialog on the home page and the contact sales button at the bottom right (optional)": "Affiché dans la boîte de dialogue « Contacter le commercial » de la page d’accueil et dans le bouton de contact en bas à droite (facultatif)"
+    "Shown in the \"Contact sales\" dialog on the home page and the contact sales button at the bottom right (optional)": "Affiché dans la boîte de dialogue « Contacter le commercial » de la page d’accueil et dans le bouton de contact en bas à droite (facultatif)",
+    "Unsupported asset type": "Type de ressource non pris en charge",
+    "Please choose an image to upload": "Veuillez choisir une image à téléverser",
+    "Only PNG, JPEG or WebP images up to 2 MB are supported": "Seules les images PNG, JPEG ou WebP de 2 Mo maximum sont prises en charge",
+    "Object storage is not configured. Enter an image URL instead.": "Le stockage objet n’est pas configuré. Saisissez plutôt l’URL de l’image.",
+    "Upload failed, please try again later": "Échec du téléversement, veuillez réessayer plus tard",
+    "Image uploaded. Click Save to apply it.": "Image téléversée. Cliquez sur Enregistrer pour l’appliquer.",
+    "Uploading…": "Téléversement…",
+    "Upload image": "Téléverser une image"
   }
 }

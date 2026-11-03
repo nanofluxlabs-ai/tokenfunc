@@ -33,6 +33,7 @@ var accessTokenExemptRoutes = []string{
 	"GET /api/privacy-policy",
 	"GET /api/about",
 	"GET /api/home_page_content",
+	"GET /api/site-assets/:kind/:name",
 	"GET /api/ratio_config",
 	"GET /api/user/groups",
 

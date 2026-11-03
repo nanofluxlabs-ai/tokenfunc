@@ -1524,6 +1524,14 @@
     "Sales Telegram username": "営業担当の Telegram ユーザー名",
     "Enter a Telegram username such as @name, or a t.me link": "Telegram ユーザー名（例：@name）または t.me リンクを入力してください",
     "Accepts @username, username or a t.me link; shown in the contact sales button at the bottom right (optional)": "@ユーザー名、ユーザー名、t.me リンクに対応。右下の営業問い合わせボタンに表示されます（任意）",
-    "Shown in the \"Contact sales\" dialog on the home page and the contact sales button at the bottom right (optional)": "ホームページの「営業に問い合わせ」ダイアログと右下の問い合わせボタンに表示されます（任意）"
+    "Shown in the \"Contact sales\" dialog on the home page and the contact sales button at the bottom right (optional)": "ホームページの「営業に問い合わせ」ダイアログと右下の問い合わせボタンに表示されます（任意）",
+    "Unsupported asset type": "サポートされていない素材の種類です",
+    "Please choose an image to upload": "アップロードする画像を選択してください",
+    "Only PNG, JPEG or WebP images up to 2 MB are supported": "2 MB 以下の PNG、JPEG、WebP 画像のみ対応しています",
+    "Object storage is not configured. Enter an image URL instead.": "オブジェクトストレージが設定されていません。画像の URL を入力してください。",
+    "Upload failed, please try again later": "アップロードに失敗しました。しばらくしてから再試行してください",
+    "Image uploaded. Click Save to apply it.": "画像をアップロードしました。「保存」をクリックすると反映されます。",
+    "Uploading…": "アップロード中…",
+    "Upload image": "画像をアップロード"
   }
 }

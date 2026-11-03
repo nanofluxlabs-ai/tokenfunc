@@ -1,3 +1,4 @@
 {
-  "%s %s started": "%s %s 已启动"
+  "%s %s started": "%s %s 已启动",
+  "site asset upload failed: %s": "站点素材上传失败：%s"
 }

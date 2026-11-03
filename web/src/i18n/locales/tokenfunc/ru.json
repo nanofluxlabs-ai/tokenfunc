@@ -1524,6 +1524,14 @@
     "Sales Telegram username": "Имя пользователя Telegram отдела продаж",
     "Enter a Telegram username such as @name, or a t.me link": "Введите имя пользователя Telegram (например, @name) или ссылку t.me",
     "Accepts @username, username or a t.me link; shown in the contact sales button at the bottom right (optional)": "Принимает @имя, имя или ссылку t.me; показывается в кнопке связи с отделом продаж в правом нижнем углу (необязательно)",
-    "Shown in the \"Contact sales\" dialog on the home page and the contact sales button at the bottom right (optional)": "Показывается в диалоге «Связаться с отделом продаж» на главной странице и в кнопке связи в правом нижнем углу (необязательно)"
+    "Shown in the \"Contact sales\" dialog on the home page and the contact sales button at the bottom right (optional)": "Показывается в диалоге «Связаться с отделом продаж» на главной странице и в кнопке связи в правом нижнем углу (необязательно)",
+    "Unsupported asset type": "Неподдерживаемый тип ресурса",
+    "Please choose an image to upload": "Выберите изображение для загрузки",
+    "Only PNG, JPEG or WebP images up to 2 MB are supported": "Поддерживаются только изображения PNG, JPEG или WebP размером до 2 МБ",
+    "Object storage is not configured. Enter an image URL instead.": "Объектное хранилище не настроено. Укажите URL изображения.",
+    "Upload failed, please try again later": "Не удалось загрузить, попробуйте позже",
+    "Image uploaded. Click Save to apply it.": "Изображение загружено. Нажмите «Сохранить», чтобы применить.",
+    "Uploading…": "Загрузка…",
+    "Upload image": "Загрузить изображение"
   }
 }

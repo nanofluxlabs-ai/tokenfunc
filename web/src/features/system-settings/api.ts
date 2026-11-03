@@ -125,3 +125,16 @@ export async function fetchUpstreamRatios(request: FetchUpstreamRatiosRequest) {
   )
   return res.data
 }
+
+/** tokenfunc 二开：上传站点素材（如商务微信二维码）到对象存储，返回站内访问地址 */
+export async function uploadSiteAsset(kind: 'sales-qrcode', file: File) {
+  const formData = new FormData()
+  formData.append('kind', kind)
+  formData.append('file', file)
+  const res = await api.post<{
+    success: boolean
+    message?: string
+    data?: { url: string }
+  }>('/api/site-assets', formData)
+  return res.data
+}

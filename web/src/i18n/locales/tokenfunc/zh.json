@@ -1524,6 +1524,14 @@
     "Sales Telegram username": "商务 Telegram 用户名",
     "Enter a Telegram username such as @name, or a t.me link": "请输入 Telegram 用户名（如 @name）或 t.me 链接",
     "Accepts @username, username or a t.me link; shown in the contact sales button at the bottom right (optional)": "支持 @用户名、用户名或 t.me 链接，显示在右下角联系商务入口中（可选）",
-    "Shown in the \"Contact sales\" dialog on the home page and the contact sales button at the bottom right (optional)": "显示在首页“联系销售”弹窗和右下角联系商务入口中（可选）"
+    "Shown in the \"Contact sales\" dialog on the home page and the contact sales button at the bottom right (optional)": "显示在首页“联系销售”弹窗和右下角联系商务入口中（可选）",
+    "Unsupported asset type": "不支持的素材类型",
+    "Please choose an image to upload": "请选择要上传的图片",
+    "Only PNG, JPEG or WebP images up to 2 MB are supported": "仅支持 2 MB 以内的 PNG、JPEG 或 WebP 图片",
+    "Object storage is not configured. Enter an image URL instead.": "未配置对象存储，请改为填写图片地址。",
+    "Upload failed, please try again later": "上传失败，请稍后重试",
+    "Image uploaded. Click Save to apply it.": "图片已上传，点击「保存」后生效。",
+    "Uploading…": "上传中…",
+    "Upload image": "上传图片"
   }
 }

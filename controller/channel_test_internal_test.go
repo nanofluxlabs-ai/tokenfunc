@@ -521,32 +521,36 @@ func TestProbeChannelEndpointTreatsOnly2xxAsSuccess(t *testing.T) {
 	}))
 	t.Cleanup(server.Close)
 
-	ok, detail := probeChannelEndpoint(context.Background(), newProbeTestChannel(server.URL+"/", ""))
-	assert.True(t, ok)
+	verdict, detail := probeChannelEndpoint(context.Background(), newProbeTestChannel(server.URL+"/", ""))
+	assert.Equal(t, service.ChannelHealthVerdictOK, verdict)
 	assert.Equal(t, "HTTP 200", detail)
 	assert.Equal(t, "/v1/models", gotPath, "未配置探测路径时回落到 /v1/models，且不会出现双斜杠")
 	assert.Equal(t, "Bearer sk-probe", gotAuth)
 
-	ok, _ = probeChannelEndpoint(context.Background(), newProbeTestChannel(server.URL, "health"))
-	assert.True(t, ok)
+	verdict, _ = probeChannelEndpoint(context.Background(), newProbeTestChannel(server.URL, "health"))
+	assert.Equal(t, service.ChannelHealthVerdictOK, verdict)
 	assert.Equal(t, "/health", gotPath)
 
 	atomic.StoreInt32(&status, http.StatusNotFound)
-	ok, detail = probeChannelEndpoint(context.Background(), newProbeTestChannel(server.URL, ""))
-	assert.False(t, ok, "4xx 同样视为接口不可用")
+	verdict, detail = probeChannelEndpoint(context.Background(), newProbeTestChannel(server.URL, ""))
+	assert.Equal(t, service.ChannelHealthVerdictIgnore, verdict, "404 只说明上游不提供探测接口，不计入")
 	assert.Equal(t, "HTTP 404", detail)
 
+	atomic.StoreInt32(&status, http.StatusUnauthorized)
+	verdict, _ = probeChannelEndpoint(context.Background(), newProbeTestChannel(server.URL, ""))
+	assert.Equal(t, service.ChannelHealthVerdictPermanent, verdict)
+
 	atomic.StoreInt32(&status, http.StatusBadGateway)
-	ok, detail = probeChannelEndpoint(context.Background(), newProbeTestChannel(server.URL, ""))
-	assert.False(t, ok)
+	verdict, detail = probeChannelEndpoint(context.Background(), newProbeTestChannel(server.URL, ""))
+	assert.Equal(t, service.ChannelHealthVerdictTransient, verdict)
 	assert.Equal(t, "HTTP 502", detail)
 }
 
 func TestProbeChannelEndpointReportsNetworkFailure(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {}))
 	server.Close()
-	ok, detail := probeChannelEndpoint(context.Background(), newProbeTestChannel(server.URL, ""))
-	assert.False(t, ok)
+	verdict, detail := probeChannelEndpoint(context.Background(), newProbeTestChannel(server.URL, ""))
+	assert.Equal(t, service.ChannelHealthVerdictTransient, verdict)
 	assert.NotEmpty(t, detail)
 }
 

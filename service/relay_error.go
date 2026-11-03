@@ -73,12 +73,11 @@ func ProcessChannelError(c *gin.Context, channelError types.ChannelError, err *t
 		})
 	}
 
-	// TokenFunc 二开：外部渠道 5xx 计入推理维度的连续失败（与慢探同阈值），不改 status
-	if err.StatusCode >= 500 && err.StatusCode <= 599 {
+	// TokenFunc 二开：外部渠道的失败按分类器写入推理维度（内容安全、限流、网关自身错误不计入），不改 status
+	if ClassifyChannelHealthFailure(err, ChannelHealthFailureFromRelay) != ChannelHealthVerdictIgnore {
 		if channel, cacheErr := model.CacheGetChannel(channelError.ChannelId); cacheErr == nil && channel.GetIsExternal() {
-			statusCode, reason := err.StatusCode, err.MaskSensitiveErrorWithStatusCode()
 			gopool.Go(func() {
-				RecordExternalChannelRelayFailure(channel, statusCode, reason)
+				RecordExternalChannelRelayFailure(channel, err)
 			})
 		}
 	}

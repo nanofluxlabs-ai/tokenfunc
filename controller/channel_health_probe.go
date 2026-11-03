@@ -76,8 +76,8 @@ func (externalFastProbeHandler) Run(ctx context.Context, task *model.SystemTask,
 	finishSystemTaskHandler(task, runnerID, model.SystemTaskStatusSucceeded, summary, nil)
 }
 
-// probeChannelEndpoint 对渠道做一次 GET 探测：网络错误 / 超时 / 非 2xx 都算失败
-func probeChannelEndpoint(ctx context.Context, channel *model.Channel) (bool, string) {
+// probeChannelEndpoint 对渠道做一次 GET 探测：网络错误 / 超时 / 5xx 为临时故障，401 为永久故障，404 / 429 等不计入
+func probeChannelEndpoint(ctx context.Context, channel *model.Channel) (service.ChannelHealthVerdict, string) {
 	probePath := channel.GetFastProbeURL()
 	url := probePath
 	if !strings.HasPrefix(probePath, "http://") && !strings.HasPrefix(probePath, "https://") {
@@ -87,7 +87,7 @@ func probeChannelEndpoint(ctx context.Context, channel *model.Channel) (bool, st
 	defer cancel()
 	req, err := http.NewRequestWithContext(probeCtx, http.MethodGet, url, nil)
 	if err != nil {
-		return false, "invalid probe url: " + err.Error()
+		return service.ChannelHealthVerdictTransient, "invalid probe url: " + err.Error()
 	}
 	key, _, keyErr := channel.GetNextEnabledKey()
 	if keyErr != nil {
@@ -99,18 +99,15 @@ func probeChannelEndpoint(ctx context.Context, channel *model.Channel) (bool, st
 	settings := channel.GetSetting()
 	client, err := service.GetHttpClientWithProxySettings(settings.Proxy, settings)
 	if err != nil {
-		return false, "http client: " + err.Error()
+		return service.ChannelHealthVerdictTransient, "http client: " + err.Error()
 	}
 	resp, err := client.Do(req)
 	if err != nil {
-		return false, err.Error()
+		return service.ChannelHealthVerdictTransient, err.Error()
 	}
 	defer resp.Body.Close()
 	_, _ = io.Copy(io.Discard, io.LimitReader(resp.Body, 64*1024))
-	if resp.StatusCode >= 200 && resp.StatusCode < 300 {
-		return true, fmt.Sprintf("HTTP %d", resp.StatusCode)
-	}
-	return false, fmt.Sprintf("HTTP %d", resp.StatusCode)
+	return service.ClassifyChannelApiProbeStatus(resp.StatusCode), fmt.Sprintf("HTTP %d", resp.StatusCode)
 }
 
 func runExternalFastProbeTask(ctx context.Context, report func(processed, total int)) (externalProbeSummary, error) {
@@ -134,12 +131,12 @@ func runExternalFastProbeTask(ctx context.Context, report func(processed, total 
 		if ctx.Err() != nil {
 			return summary, ctx.Err()
 		}
-		ok, detail := probeChannelEndpoint(ctx, channel)
-		transition, recordErr := service.RecordChannelApiProbe(channel, ok, detail)
+		verdict, detail := probeChannelEndpoint(ctx, channel)
+		transition, recordErr := service.RecordChannelApiProbe(channel, verdict, detail)
 		if recordErr != nil {
 			common.SysLog(fmt.Sprintf("failed to record api probe: channel_id=%d, error=%v", channel.Id, recordErr))
 		}
-		summary.add(ok, transition)
+		summary.add(verdict == service.ChannelHealthVerdictOK, transition)
 		if report != nil {
 			report(i+1, total)
 		}
@@ -199,18 +196,24 @@ func probeChannelInference(ctx context.Context, channel *model.Channel, testUser
 	if ctx.Err() != nil {
 		return false, service.ChannelHealthTransition{}
 	}
-	ok := result.localErr == nil && result.newAPIError == nil
+	verdict := service.ClassifyChannelHealthFailure(result.newAPIError, service.ChannelHealthFailureFromProbe)
 	detail := ""
 	switch {
 	case result.newAPIError != nil:
 		detail = result.newAPIError.MaskSensitiveErrorWithStatusCode()
 	case result.localErr != nil:
+		// 本地错误（不支持测试、未定价等）是网关配置问题，不是渠道不可用
+		verdict = service.ChannelHealthVerdictIgnore
 		detail = result.localErr.Error()
 	}
+	ok := verdict == service.ChannelHealthVerdictOK
 	if ok {
 		channel.UpdateResponseTime(milliseconds)
 	}
-	transition, err := service.RecordChannelInferenceProbe(channel, ok, detail)
+	if verdict == service.ChannelHealthVerdictIgnore {
+		common.SysLog(fmt.Sprintf("inference probe ignored: channel_id=%d, detail=%s", channel.Id, common.LocalLogPreview(detail)))
+	}
+	transition, err := service.RecordChannelInferenceProbe(channel, verdict, detail)
 	if err != nil {
 		common.SysLog(fmt.Sprintf("failed to record inference probe: channel_id=%d, error=%v", channel.Id, err))
 	}
@@ -236,21 +239,10 @@ func runExternalSlowProbeTask(ctx context.Context, report func(processed, total 
 	if err != nil {
 		return summary, err
 	}
-	ids := make([]int, 0, len(channels))
-	for _, channel := range channels {
-		ids = append(ids, channel.Id)
-	}
-	states, err := model.GetChannelHealthStates(ids)
-	if err != nil {
-		return summary, err
-	}
+	// 接口探测失败的渠道照样测推理：接口探测可能误判（上游不提供探测接口等），推理结果才是渠道能否派发的依据
 	targets := make([]*model.Channel, 0, len(channels))
 	for _, channel := range channels {
 		if channel.Status == common.ChannelStatusManuallyDisabled {
-			continue
-		}
-		// 接口都不通的渠道不浪费推理请求，等快探恢复后再测
-		if state, ok := states[channel.Id]; ok && state.ApiHealth == model.ChannelHealthFailed {
 			continue
 		}
 		targets = append(targets, channel)
@@ -323,8 +315,8 @@ func runPostCreateChannelChecks(channelIds []int) {
 			if result.localErr == nil && result.newAPIError == nil {
 				service.RecordChannelManualTestSuccess(channel)
 			}
-			ok, detail := probeChannelEndpoint(ctx, channel)
-			if _, err := service.RecordChannelApiProbe(channel, ok, detail); err != nil {
+			verdict, detail := probeChannelEndpoint(ctx, channel)
+			if _, err := service.RecordChannelApiProbe(channel, verdict, detail); err != nil {
 				common.SysLog(fmt.Sprintf("failed to record post-create api probe: channel_id=%d, error=%v", channel.Id, err))
 			}
 		}(channelId)

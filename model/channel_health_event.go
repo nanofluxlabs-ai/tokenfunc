@@ -7,7 +7,7 @@ const (
 	ChannelHealthEventProbeFailed     = "probe_failed"     // 单次探测失败（未达阈值）
 	ChannelHealthEventDispatchPaused  = "dispatch_paused"  // 连续失败达阈值，开始暂停派发
 	ChannelHealthEventDispatchResumed = "dispatch_resumed" // 恢复派发
-	ChannelHealthEventRelayFailed     = "relay_failed"     // relay 命中 5xx
+	ChannelHealthEventRelayFailed     = "relay_failed"     // relay 命中计入健康的失败（未达阈值）
 )
 
 // 健康维度

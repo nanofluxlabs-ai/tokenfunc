@@ -596,7 +596,7 @@ export function ChannelHealthSection({
                         <FormLabel>{t('API probes')}</FormLabel>
                         <FormDescription>
                           {t(
-                            'Send a lightweight GET to the probe path and treat any non-2xx or network error as a failure'
+                            'Send a lightweight GET to the probe path. Network errors, 5xx and 403 count as failures, 401 pauses dispatch at once; 404, 429 and other 4xx are ignored'
                           )}
                         </FormDescription>
                       </SettingsSwitchContent>
@@ -687,7 +687,7 @@ export function ChannelHealthSection({
                         <FormLabel>{t('Inference probes')}</FormLabel>
                         <FormDescription>
                           {t(
-                            'Send a real test request through the channel. Upstream 5xx responses during normal traffic count toward the same threshold, and one successful request resumes dispatch. External channels are skipped by scheduled channel tests while this is on.'
+                            'Send a real test request through the channel. Transport errors and 5xx during normal traffic count toward the same threshold; key or balance failures pause dispatch at once; content-safety blocks, rate limits and gateway-side errors are ignored. One successful request resumes dispatch. External channels are skipped by scheduled channel tests while this is on.'
                           )}
                         </FormDescription>
                       </SettingsSwitchContent>

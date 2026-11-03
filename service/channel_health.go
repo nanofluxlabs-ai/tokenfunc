@@ -6,6 +6,7 @@ import (
 
 	"github.com/QuantumNous/new-api/common"
 	"github.com/QuantumNous/new-api/model"
+	"github.com/QuantumNous/new-api/relaykit/types"
 	"github.com/QuantumNous/new-api/setting/operation_setting"
 )
 
@@ -57,8 +58,8 @@ func inferenceDimension(state *model.ChannelHealthState, setting *operation_sett
 	}
 }
 
-// applyHealthResult 单维度流转。immediate=true 时成功直接置 ok（relay / 手动测试），否则 failed 态下要连续成功达恢复阈值。
-// 返回 (本次进入 failed, 本次离开 failed)。
+// applyHealthResult 单维度流转。immediate=true 时成功直接置 ok（relay / 手动测试）、失败直接置 failed（永久故障），
+// 否则成功要在 failed 态下连续达恢复阈值，失败要连续达失败阈值。返回 (本次进入 failed, 本次离开 failed)。
 func applyHealthResult(dim healthDimension, ok bool, immediate bool, detail string, now int64) (bool, bool) {
 	*dim.lastProbeAt = now
 	if ok {
@@ -81,7 +82,7 @@ func applyHealthResult(dim healthDimension, ok bool, immediate bool, detail stri
 	if *dim.health == model.ChannelHealthFailed {
 		return false, false
 	}
-	if *dim.failCount >= dim.failThreshold {
+	if immediate || *dim.failCount >= dim.failThreshold {
 		*dim.health = model.ChannelHealthFailed
 		return true, false
 	}
@@ -98,11 +99,14 @@ func lockChannelHealth(channelId int) func() {
 	return mu.Unlock
 }
 
-func recordChannelHealth(channel *model.Channel, pick func(*model.ChannelHealthState, *operation_setting.MonitorSetting) healthDimension, ok bool, immediate bool, source string, detail string) (ChannelHealthTransition, error) {
+// recordChannelHealth 把一次判定写入状态机。verdict 为 ignore 时不碰状态；immediateSuccess 只对成功生效（relay / 手动测试一次成功即恢复）。
+func recordChannelHealth(channel *model.Channel, pick func(*model.ChannelHealthState, *operation_setting.MonitorSetting) healthDimension, verdict ChannelHealthVerdict, immediateSuccess bool, source string, detail string) (ChannelHealthTransition, error) {
 	transition := ChannelHealthTransition{}
-	if channel == nil || !channel.GetIsExternal() {
+	if channel == nil || !channel.GetIsExternal() || verdict == ChannelHealthVerdictIgnore {
 		return transition, nil
 	}
+	ok := verdict == ChannelHealthVerdictOK
+	immediate := (ok && immediateSuccess) || verdict == ChannelHealthVerdictPermanent
 	unlock := lockChannelHealth(channel.Id)
 	defer unlock()
 
@@ -152,18 +156,18 @@ func notifyChannelHealth(channel *model.Channel, subject, content string) {
 }
 
 // RecordChannelApiProbe 记录一次接口探测（快探）结果
-func RecordChannelApiProbe(channel *model.Channel, ok bool, detail string) (ChannelHealthTransition, error) {
-	return recordChannelHealth(channel, apiDimension, ok, false, model.ChannelHealthSourceFastProbe, detail)
+func RecordChannelApiProbe(channel *model.Channel, verdict ChannelHealthVerdict, detail string) (ChannelHealthTransition, error) {
+	return recordChannelHealth(channel, apiDimension, verdict, false, model.ChannelHealthSourceFastProbe, detail)
 }
 
 // RecordChannelInferenceProbe 记录一次推理探测（慢探）结果
-func RecordChannelInferenceProbe(channel *model.Channel, ok bool, detail string) (ChannelHealthTransition, error) {
-	return recordChannelHealth(channel, inferenceDimension, ok, false, model.ChannelHealthSourceSlowProbe, detail)
+func RecordChannelInferenceProbe(channel *model.Channel, verdict ChannelHealthVerdict, detail string) (ChannelHealthTransition, error) {
+	return recordChannelHealth(channel, inferenceDimension, verdict, false, model.ChannelHealthSourceSlowProbe, detail)
 }
 
 // RecordChannelManualTestSuccess 手动测试成功直接把推理维度置 ok；失败不计数（手动测试可能带错模型）
 func RecordChannelManualTestSuccess(channel *model.Channel) {
-	if _, err := recordChannelHealth(channel, inferenceDimension, true, true, model.ChannelHealthSourceManualTest, ""); err != nil {
+	if _, err := recordChannelHealth(channel, inferenceDimension, ChannelHealthVerdictOK, true, model.ChannelHealthSourceManualTest, ""); err != nil {
 		common.SysLog(fmt.Sprintf("failed to record manual test success: channel_id=%d, error=%v", channel.Id, err))
 	}
 }
@@ -197,21 +201,23 @@ func RecordExternalChannelRelaySuccess(channel *model.Channel) {
 	if channel == nil {
 		return
 	}
-	if _, err := recordChannelHealth(channel, inferenceDimension, true, true, model.ChannelHealthSourceRelay, ""); err != nil {
+	if _, err := recordChannelHealth(channel, inferenceDimension, ChannelHealthVerdictOK, true, model.ChannelHealthSourceRelay, ""); err != nil {
 		common.SysLog(fmt.Sprintf("failed to record relay success: channel_id=%d, error=%v", channel.Id, err))
 	}
 }
 
-// RecordExternalChannelRelayFailure relay 命中 5xx：推理维度累加失败计数（与慢探同阈值）
-func RecordExternalChannelRelayFailure(channel *model.Channel, statusCode int, detail string) {
-	if statusCode < 500 || statusCode > 599 {
+// RecordExternalChannelRelayFailure relay 失败：按分类器判定写入推理维度（临时故障与慢探同阈值，永久故障立即暂停）
+func RecordExternalChannelRelayFailure(channel *model.Channel, err *types.NewAPIError) {
+	verdict := ClassifyChannelHealthFailure(err, ChannelHealthFailureFromRelay)
+	if verdict == ChannelHealthVerdictOK || verdict == ChannelHealthVerdictIgnore {
 		return
 	}
 	channel = resolveExternalChannel(channel)
 	if channel == nil {
 		return
 	}
-	if _, err := recordChannelHealth(channel, inferenceDimension, false, false, model.ChannelHealthSourceRelay, fmt.Sprintf("HTTP %d: %s", statusCode, detail)); err != nil {
+	detail := fmt.Sprintf("HTTP %d: %s", err.StatusCode, err.MaskSensitiveErrorWithStatusCode())
+	if _, err := recordChannelHealth(channel, inferenceDimension, verdict, false, model.ChannelHealthSourceRelay, detail); err != nil {
 		common.SysLog(fmt.Sprintf("failed to record relay failure: channel_id=%d, error=%v", channel.Id, err))
 	}
 }

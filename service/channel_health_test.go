@@ -1,12 +1,14 @@
 package service
 
 import (
+	"errors"
 	"os"
 	"testing"
 
 	"github.com/QuantumNous/new-api/common"
 	"github.com/QuantumNous/new-api/constant"
 	"github.com/QuantumNous/new-api/model"
+	"github.com/QuantumNous/new-api/relaykit/types"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -58,6 +60,11 @@ func newHealthTestChannel(t *testing.T, id int, external bool) *model.Channel {
 	return channel
 }
 
+// upstreamErr 模拟上游返回的错误（与 relay 错误处理里的类型一致）
+func upstreamErr(statusCode int, message string) *types.NewAPIError {
+	return types.WithOpenAIError(types.OpenAIError{Message: message, Type: "upstream_error"}, statusCode)
+}
+
 func eventKinds(t *testing.T, channelId int) []string {
 	t.Helper()
 	events, err := model.GetChannelHealthEvents(channelId, 50)
@@ -74,7 +81,7 @@ func TestChannelHealthApiProbePausesAfterThresholdAndRecoversAfterSuccesses(t *t
 	channel := newHealthTestChannel(t, 1, true)
 
 	for i := range 2 {
-		transition, err := RecordChannelApiProbe(channel, false, "HTTP 502")
+		transition, err := RecordChannelApiProbe(channel, ChannelHealthVerdictTransient, "HTTP 502")
 		require.NoError(t, err, "failure %d", i)
 		assert.False(t, transition.Paused)
 	}
@@ -84,7 +91,7 @@ func TestChannelHealthApiProbePausesAfterThresholdAndRecoversAfterSuccesses(t *t
 	assert.Equal(t, 2, state.ApiFailCount)
 	assert.False(t, model.IsChannelDispatchPaused(channel.Id))
 
-	transition, err := RecordChannelApiProbe(channel, false, "HTTP 502")
+	transition, err := RecordChannelApiProbe(channel, ChannelHealthVerdictTransient, "HTTP 502")
 	require.NoError(t, err)
 	assert.True(t, transition.Paused)
 	state, err = model.GetChannelHealthState(channel.Id)
@@ -95,11 +102,11 @@ func TestChannelHealthApiProbePausesAfterThresholdAndRecoversAfterSuccesses(t *t
 	assert.True(t, model.IsChannelDispatchPaused(channel.Id))
 
 	// failed 态下连续成功达到恢复阈值（默认 2）才恢复
-	transition, err = RecordChannelApiProbe(channel, true, "HTTP 200")
+	transition, err = RecordChannelApiProbe(channel, ChannelHealthVerdictOK, "HTTP 200")
 	require.NoError(t, err)
 	assert.False(t, transition.Resumed)
 	assert.True(t, model.IsChannelDispatchPaused(channel.Id))
-	transition, err = RecordChannelApiProbe(channel, true, "HTTP 200")
+	transition, err = RecordChannelApiProbe(channel, ChannelHealthVerdictOK, "HTTP 200")
 	require.NoError(t, err)
 	assert.True(t, transition.Resumed)
 	state, err = model.GetChannelHealthState(channel.Id)
@@ -120,14 +127,14 @@ func TestChannelHealthRelayFailuresPauseInferenceAndOneSuccessResumes(t *testing
 	setupChannelHealthPostgres(t)
 	channel := newHealthTestChannel(t, 2, true)
 
-	// 非 5xx 不计数
-	RecordExternalChannelRelayFailure(channel, 429, "rate limited")
+	// 限流不计数
+	RecordExternalChannelRelayFailure(channel, upstreamErr(429, "rate limited"))
 	state, err := model.GetChannelHealthState(channel.Id)
 	require.NoError(t, err)
 	assert.Equal(t, 0, state.InferenceFailCount)
 
-	RecordExternalChannelRelayFailure(channel, 502, "bad gateway")
-	RecordExternalChannelRelayFailure(channel, 503, "unavailable")
+	RecordExternalChannelRelayFailure(channel, upstreamErr(502, "bad gateway"))
+	RecordExternalChannelRelayFailure(channel, upstreamErr(503, "unavailable"))
 	state, err = model.GetChannelHealthState(channel.Id)
 	require.NoError(t, err)
 	assert.Equal(t, model.ChannelHealthFailed, state.InferenceHealth)
@@ -154,9 +161,9 @@ func TestChannelHealthRelaySuccessClearsFailuresForBareChannel(t *testing.T) {
 	bare := &model.Channel{Id: channel.Id, Type: channel.Type, Name: channel.Name}
 
 	// 与生产一致：失败路径（ProcessChannelError）传缓存里的完整渠道，成功路径传 relay 循环里的精简渠道
-	RecordExternalChannelRelayFailure(channel, 500, "content filter")
+	RecordExternalChannelRelayFailure(channel, upstreamErr(503, "upstream unavailable"))
 	RecordExternalChannelRelaySuccess(bare)
-	RecordExternalChannelRelayFailure(channel, 500, "concurrency limit")
+	RecordExternalChannelRelayFailure(channel, upstreamErr(502, "bad gateway"))
 
 	state, err := model.GetChannelHealthState(channel.Id)
 	require.NoError(t, err)
@@ -174,23 +181,94 @@ func TestChannelHealthRelaySuccessClearsFailuresForBareChannel(t *testing.T) {
 	assert.False(t, model.IsChannelInferencePending(channel.Id))
 }
 
+// 只有渠道真正不可用才影响调度：内容安全、限流、网关自身错误不计入；密钥失效、余额耗尽立即暂停；探测的 4xx 按渠道不可用处理
+func TestClassifyChannelHealthFailure(t *testing.T) {
+	cases := []struct {
+		name   string
+		err    *types.NewAPIError
+		source ChannelHealthFailureSource
+		want   ChannelHealthVerdict
+	}{
+		{"成功", nil, ChannelHealthFailureFromRelay, ChannelHealthVerdictOK},
+		{"网关自身错误", types.NewError(errors.New("count token failed"), types.ErrorCodeCountTokenFailed), ChannelHealthFailureFromRelay, ChannelHealthVerdictIgnore},
+		{"传输失败", types.NewError(errors.New("dial tcp: connection refused"), types.ErrorCodeDoRequestFailed), ChannelHealthFailureFromRelay, ChannelHealthVerdictTransient},
+		{"渠道密钥不可用", types.NewError(errors.New("no available key"), types.ErrorCodeChannelNoAvailableKey), ChannelHealthFailureFromRelay, ChannelHealthVerdictPermanent},
+		{"内容安全包成 500", upstreamErr(500, "[1301][系统检测到输入或生成内容可能包含不安全或敏感内容]"), ChannelHealthFailureFromRelay, ChannelHealthVerdictIgnore},
+		{"并发限流包成 500", upstreamErr(500, "Concurrency limit exceeded for user, please retry later"), ChannelHealthFailureFromRelay, ChannelHealthVerdictIgnore},
+		{"429 限流", upstreamErr(429, "Rate limit reached for requests"), ChannelHealthFailureFromRelay, ChannelHealthVerdictIgnore},
+		{"429 额度耗尽", upstreamErr(429, "You exceeded your current quota, please check your plan and billing details."), ChannelHealthFailureFromRelay, ChannelHealthVerdictPermanent},
+		{"401 密钥失效", upstreamErr(401, "Incorrect API key provided"), ChannelHealthFailureFromRelay, ChannelHealthVerdictPermanent},
+		{"403 余额不足", upstreamErr(403, "Your credit balance is too low to access the API"), ChannelHealthFailureFromRelay, ChannelHealthVerdictPermanent},
+		{"503 上游不可用", upstreamErr(503, "Service temporarily unavailable"), ChannelHealthFailureFromRelay, ChannelHealthVerdictTransient},
+		{"504 网关超时", upstreamErr(504, "gateway timeout"), ChannelHealthFailureFromProbe, ChannelHealthVerdictTransient},
+		{"真实流量 400", upstreamErr(400, "messages: invalid role"), ChannelHealthFailureFromRelay, ChannelHealthVerdictIgnore},
+		{"真实流量 404", upstreamErr(404, "model not found"), ChannelHealthFailureFromRelay, ChannelHealthVerdictIgnore},
+		{"探测 400", upstreamErr(400, "unsupported model"), ChannelHealthFailureFromProbe, ChannelHealthVerdictTransient},
+		{"探测 404", upstreamErr(404, "no available accounts supporting model"), ChannelHealthFailureFromProbe, ChannelHealthVerdictTransient},
+		{"探测 429", upstreamErr(429, "too many requests"), ChannelHealthFailureFromProbe, ChannelHealthVerdictIgnore},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			assert.Equal(t, tc.want, ClassifyChannelHealthFailure(tc.err, tc.source))
+		})
+	}
+
+	apiCases := map[int]ChannelHealthVerdict{
+		200: ChannelHealthVerdictOK, 204: ChannelHealthVerdictOK,
+		401: ChannelHealthVerdictPermanent,
+		403: ChannelHealthVerdictTransient, 408: ChannelHealthVerdictTransient, 502: ChannelHealthVerdictTransient,
+		404: ChannelHealthVerdictIgnore, 429: ChannelHealthVerdictIgnore, 400: ChannelHealthVerdictIgnore,
+	}
+	for status, want := range apiCases {
+		assert.Equal(t, want, ClassifyChannelApiProbeStatus(status), "status %d", status)
+	}
+}
+
+// 永久故障不等阈值，一次即暂停；忽略类结果不碰状态、不写事件
+func TestChannelHealthPermanentFailurePausesImmediatelyAndIgnoredLeavesStateUntouched(t *testing.T) {
+	setupChannelHealthPostgres(t)
+	channel := newHealthTestChannel(t, 7, true)
+
+	RecordExternalChannelRelayFailure(channel, upstreamErr(500, "Concurrency limit exceeded for user"))
+	RecordExternalChannelRelayFailure(channel, upstreamErr(400, "invalid request"))
+	_, err := RecordChannelInferenceProbe(channel, ChannelHealthVerdictIgnore, "rate limited")
+	require.NoError(t, err)
+	states, err := model.GetChannelHealthStates([]int{channel.Id})
+	require.NoError(t, err)
+	assert.Empty(t, states, "忽略类结果不落库")
+	assert.Empty(t, eventKinds(t, channel.Id))
+
+	RecordExternalChannelRelayFailure(channel, upstreamErr(401, "Incorrect API key provided"))
+	assert.True(t, model.IsChannelDispatchPaused(channel.Id))
+	state, err := model.GetChannelHealthState(channel.Id)
+	require.NoError(t, err)
+	assert.Equal(t, model.ChannelHealthFailed, state.InferenceHealth)
+	assert.Equal(t, []string{model.ChannelHealthEventDispatchPaused}, eventKinds(t, channel.Id))
+
+	// 接口探测的永久故障同样立即暂停
+	other := newHealthTestChannel(t, 8, true)
+	transition, err := RecordChannelApiProbe(other, ChannelHealthVerdictPermanent, "HTTP 401")
+	require.NoError(t, err)
+	assert.True(t, transition.Paused)
+}
+
 func TestChannelHealthSlowProbeRecoverThresholdAndManualTestShortcut(t *testing.T) {
 	setupChannelHealthPostgres(t)
 	channel := newHealthTestChannel(t, 3, true)
 
 	for range 2 {
-		_, err := RecordChannelInferenceProbe(channel, false, "timeout")
+		_, err := RecordChannelInferenceProbe(channel, ChannelHealthVerdictTransient, "timeout")
 		require.NoError(t, err)
 	}
 	assert.True(t, model.IsChannelDispatchPaused(channel.Id))
 
 	// 慢探恢复阈值默认 1：一次成功即恢复
-	transition, err := RecordChannelInferenceProbe(channel, true, "")
+	transition, err := RecordChannelInferenceProbe(channel, ChannelHealthVerdictOK, "")
 	require.NoError(t, err)
 	assert.True(t, transition.Resumed)
 
 	for range 2 {
-		_, err := RecordChannelInferenceProbe(channel, false, "timeout")
+		_, err := RecordChannelInferenceProbe(channel, ChannelHealthVerdictTransient, "timeout")
 		require.NoError(t, err)
 	}
 	assert.True(t, model.IsChannelDispatchPaused(channel.Id))
@@ -204,11 +282,11 @@ func TestChannelHealthIgnoresNonExternalChannels(t *testing.T) {
 	channel := newHealthTestChannel(t, 4, false)
 
 	for range 5 {
-		transition, err := RecordChannelApiProbe(channel, false, "HTTP 500")
+		transition, err := RecordChannelApiProbe(channel, ChannelHealthVerdictTransient, "HTTP 500")
 		require.NoError(t, err)
 		assert.False(t, transition.Paused)
 	}
-	RecordExternalChannelRelayFailure(channel, 500, "boom")
+	RecordExternalChannelRelayFailure(channel, upstreamErr(500, "boom"))
 	states, err := model.GetChannelHealthStates([]int{channel.Id})
 	require.NoError(t, err)
 	assert.Empty(t, states)
@@ -222,7 +300,7 @@ func TestChannelHealthDispatchGateSkipsPausedChannelInMemoryCache(t *testing.T) 
 	paused := newHealthTestChannel(t, 5, true)
 	healthy := newHealthTestChannel(t, 6, true)
 	for range 3 {
-		_, err := RecordChannelApiProbe(paused, false, "HTTP 500")
+		_, err := RecordChannelApiProbe(paused, ChannelHealthVerdictTransient, "HTTP 500")
 		require.NoError(t, err)
 	}
 	require.True(t, model.IsChannelDispatchPaused(paused.Id))
@@ -240,7 +318,7 @@ func TestChannelHealthDispatchGateSkipsPausedChannelInMemoryCache(t *testing.T) 
 
 	// 两个都暂停时无可用渠道
 	for range 3 {
-		_, err := RecordChannelApiProbe(healthy, false, "HTTP 500")
+		_, err := RecordChannelApiProbe(healthy, ChannelHealthVerdictTransient, "HTTP 500")
 		require.NoError(t, err)
 	}
 	selected, err := model.GetRandomSatisfiedChannel("default", "gpt-4o-mini", 0, nil)

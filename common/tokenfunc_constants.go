@@ -42,3 +42,8 @@ var LogArchiveS3Prefix = ""
 var LogArchiveS3AccessKey = ""
 var LogArchiveS3SecretKey = ""
 var LogArchiveS3PathStyle = false
+
+// SiteAssetPublicBaseURL 站点素材（后台上传的公开图片）的公开访问域名，指向同一个 COS 桶
+// （如 https://files.tokenfunc.com，需在 COS 绑定自定义域名并对 site-assets/* 开公有读）。
+// 留空时素材经本站 /api/site-assets/... 转发读取。
+var SiteAssetPublicBaseURL = ""

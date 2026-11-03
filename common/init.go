@@ -109,6 +109,7 @@ func InitEnv() {
 	LogArchiveS3AccessKey = GetEnvOrDefaultString("LOG_ARCHIVE_S3_ACCESS_KEY", LogArchiveS3AccessKey)
 	LogArchiveS3SecretKey = GetEnvOrDefaultString("LOG_ARCHIVE_S3_SECRET_KEY", LogArchiveS3SecretKey)
 	LogArchiveS3PathStyle = GetEnvOrDefaultBool("LOG_ARCHIVE_S3_PATH_STYLE", LogArchiveS3PathStyle)
+	SiteAssetPublicBaseURL = strings.TrimRight(GetEnvOrDefaultString("SITE_ASSET_PUBLIC_BASE_URL", SiteAssetPublicBaseURL), "/")
 	MemoryCacheEnabled = os.Getenv("MEMORY_CACHE_ENABLED") == "true"
 	IsMasterNode = os.Getenv("NODE_TYPE") != "slave"
 	PasswordLoginEncryptionEnabled = GetEnvOrDefaultBool("PASSWORD_LOGIN_ENCRYPTION_ENABLED", false)

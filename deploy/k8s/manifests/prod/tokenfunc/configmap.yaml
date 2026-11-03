@@ -40,3 +40,4 @@ data:
   LOG_ARCHIVE_S3_BUCKET: "<bucket>-<appid>"
   LOG_ARCHIVE_S3_PREFIX: "prod"
   LOG_ARCHIVE_S3_PATH_STYLE: "false"
+  SITE_ASSET_PUBLIC_BASE_URL: "https://files.tokenfunc.com"

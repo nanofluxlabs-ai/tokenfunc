@@ -20,8 +20,9 @@ import (
 )
 
 // 站点素材（TokenFunc 二开）：管理员在后台上传的公开图片（目前只有商务微信二维码），
-// 存在日志归档所用的同一个 COS 桶的 site-assets/ 目录下。桶保持私有，访客经
-// GET /api/site-assets/:kind/:name 由本站转发读取。对象名按内容寻址，可以永久缓存。
+// 存在日志归档所用的同一个 COS 桶根目录的 site-assets/ 下（不跟随归档前缀，便于只对这一目录开公有读）。
+// 配置了 SITE_ASSET_PUBLIC_BASE_URL（如 https://files.tokenfunc.com）时返回 COS 直链；
+// 未配置时访客经 GET /api/site-assets/:kind/:name 由本站转发读取。对象名按内容寻址，可以永久缓存。
 
 const (
 	siteAssetMaxBytes     = 2 << 20
@@ -123,12 +124,25 @@ func UploadSiteAsset(c *gin.Context) {
 	name := hex.EncodeToString(sum[:])[:16] + "." + ext
 	ctx, cancel := context.WithTimeout(c.Request.Context(), 30*time.Second)
 	defer cancel()
-	if _, err := store.Put(ctx, store.Key(siteAssetDir, kind, name), bytes.NewReader(body), int64(len(body)), contentType, nil); err != nil {
+	if _, err := store.Put(ctx, siteAssetObjectKey(kind, name), bytes.NewReader(body), int64(len(body)), contentType, nil); err != nil {
 		common.SysError(common.LogText("site asset upload failed: %s", err.Error()))
 		common.ApiErrorT(c, "Upload failed, please try again later")
 		return
 	}
-	common.ApiSuccess(c, gin.H{"url": "/api/site-assets/" + kind + "/" + name})
+	common.ApiSuccess(c, gin.H{"url": siteAssetURL(kind, name)})
+}
+
+// siteAssetObjectKey 桶内 key：固定在根目录 site-assets/ 下，与日志归档前缀无关
+func siteAssetObjectKey(kind string, name string) string {
+	return siteAssetDir + "/" + kind + "/" + name
+}
+
+// siteAssetURL 访问地址：配置了公开域名用 COS 直链，否则走本站转发
+func siteAssetURL(kind string, name string) string {
+	if common.SiteAssetPublicBaseURL != "" {
+		return common.SiteAssetPublicBaseURL + "/" + siteAssetObjectKey(kind, name)
+	}
+	return "/api/" + siteAssetObjectKey(kind, name)
 }
 
 // GetSiteAsset GET /api/site-assets/:kind/:name：公开读取站点素材，参数严格校验，杜绝读取桶内其他对象
@@ -143,7 +157,7 @@ func GetSiteAsset(c *gin.Context) {
 		c.Status(http.StatusServiceUnavailable)
 		return
 	}
-	key := store.Key(siteAssetDir, kind, name)
+	key := siteAssetObjectKey(kind, name)
 	object, ok := siteAssetCacheGet(key)
 	if !ok {
 		ctx, cancel := context.WithTimeout(c.Request.Context(), 15*time.Second)

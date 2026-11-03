@@ -316,9 +316,30 @@ export function SystemInfoSection({ defaultValues }: SystemInfoSectionProps) {
 
               <FormField
                 control={form.control}
-                name='SalesContactQRCodeImageURL'
+                name='general_setting.docs_link'
                 render={({ field }) => (
                   <FormItem>
+                    <FormLabel>{t('Documentation Link')}</FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder={t('https://docs.example.com')}
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormDescription>
+                      {t('Link to your documentation site')}
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name='SalesContactQRCodeImageURL'
+                render={({ field }) => (
+                  // 与同一行的另一项顶部对齐，不被较高的二维码预览撑开间距
+                  <FormItem className='content-start'>
                     <FormLabel>{t('Sales WeChat QR code URL')}</FormLabel>
                     <div className='flex gap-2'>
                       <FormControl>
@@ -362,7 +383,8 @@ export function SystemInfoSection({ defaultValues }: SystemInfoSectionProps) {
                 control={form.control}
                 name='SalesContactTelegram'
                 render={({ field }) => (
-                  <FormItem>
+                  // 与同一行的另一项顶部对齐，不被较高的二维码预览撑开间距
+                  <FormItem className='content-start'>
                     <FormLabel>{t('Sales Telegram username')}</FormLabel>
                     <FormControl>
                       <Input placeholder='@tokenfunc_sales' {...field} />
@@ -371,26 +393,6 @@ export function SystemInfoSection({ defaultValues }: SystemInfoSectionProps) {
                       {t(
                         'Accepts @username, username or a t.me link; shown in the contact sales button at the bottom right (optional)'
                       )}
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name='general_setting.docs_link'
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>{t('Documentation Link')}</FormLabel>
-                    <FormControl>
-                      <Input
-                        placeholder={t('https://docs.example.com')}
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormDescription>
-                      {t('Link to your documentation site')}
                     </FormDescription>
                     <FormMessage />
                   </FormItem>

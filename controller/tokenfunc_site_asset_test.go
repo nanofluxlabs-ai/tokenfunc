@@ -89,6 +89,10 @@ func TestSiteAssetUploadAndServe(t *testing.T) {
 	jpegResult := siteAssetUpload(t, router, "sales-qrcode", "qr.png", testImage(t, "jpeg"))
 	assert.True(t, strings.HasSuffix(jpegResult["data"].(map[string]any)["url"].(string), ".jpg"))
 
+	// 对象固定存在桶根目录 site-assets/ 下，不带归档前缀
+	_, stored := store.objects["site-assets/sales-qrcode/"+strings.TrimPrefix(url, "/api/site-assets/sales-qrcode/")]
+	assert.True(t, stored)
+
 	recorder := httptest.NewRecorder()
 	router.ServeHTTP(recorder, httptest.NewRequest(http.MethodGet, url, nil))
 	require.Equal(t, http.StatusOK, recorder.Code)
@@ -144,4 +148,15 @@ func TestSiteAssetServeValidatesPathAndStore(t *testing.T) {
 	result := siteAssetUpload(t, disabled, "sales-qrcode", "qr.png", testImage(t, "png"))
 	assert.Equal(t, false, result["success"])
 	assert.Contains(t, result["message"], "Object storage is not configured")
+}
+
+func TestSiteAssetUploadReturnsPublicDomainURLWhenConfigured(t *testing.T) {
+	previous := common.SiteAssetPublicBaseURL
+	common.SiteAssetPublicBaseURL = "https://files.example.com"
+	t.Cleanup(func() { common.SiteAssetPublicBaseURL = previous })
+	router := newSiteAssetTestRouter(t, &financeMemoryStore{objects: map[string][]byte{}})
+
+	result := siteAssetUpload(t, router, "sales-qrcode", "qr.png", testImage(t, "png"))
+	require.Equal(t, true, result["success"], result)
+	assert.Regexp(t, `^https://files\.example\.com/site-assets/sales-qrcode/[0-9a-f]{16}\.png$`, result["data"].(map[string]any)["url"])
 }

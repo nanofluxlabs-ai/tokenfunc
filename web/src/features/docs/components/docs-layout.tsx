@@ -141,11 +141,18 @@ export function DocsLayout(props: {
               </Sheet>
             </div>
 
-            <article className='w-full max-w-4xl'>
+            {/* 有右侧示例栏（API 页）时正文限宽；其余页占满正文栏，宽内容铺开、段落仍限宽（见 tokenfunc-docs.css .docs-wide）。
+                lg 以上右侧留出 pr-10 给 fixed 贴边的目录细线，避免压住表格边缘 */}
+            <article
+              className={cn(
+                'w-full',
+                props.aside ? 'max-w-4xl' : 'docs-wide lg:pr-10'
+              )}
+            >
               <h1 className='text-foreground text-3xl font-bold tracking-tight'>
                 {title}
               </h1>
-              <p className='text-muted-foreground mt-2 text-base'>
+              <p className='text-muted-foreground mt-2 max-w-4xl text-base'>
                 {entry.description[props.lang]}
               </p>
 

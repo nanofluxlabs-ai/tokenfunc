@@ -369,3 +369,12 @@
   --scalar-radius-lg: var(--radius);
   --scalar-radius-xl: calc(var(--radius) + 4px);
 }
+
+/*
+ * 宽版正文（无右侧示例栏的文档页）：文章占满正文栏，表格、代码块、卡片、步骤等宽内容随之铺开，减少挤压换行；
+ * 段落、列表、引用仍限制在 56rem（原 max-w-4xl），中文一行约 55 字、英文不至于过长，保证阅读舒适。
+ * 只约束 .docs-prose 的直接子元素，嵌套在表格 / 列表里的段落不受影响。
+ */
+.docs-wide .docs-prose > :is(p, ul, ol, blockquote, dl) {
+  max-width: 56rem;
+}

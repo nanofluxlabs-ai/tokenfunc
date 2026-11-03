@@ -42,6 +42,43 @@ describe('sample models', () => {
     expect(pickFamilyModel(models, 'deepseek')).toBe('deepseek-v4-pro')
   })
 
+  it('picks the newest GPT generation first, then prefers Sol over other tiers', () => {
+    expect(
+      pickFamilyModel(
+        [
+          'gpt-5.6-sol',
+          'gpt-6-luna',
+          'gpt-6.1-terra',
+          'gpt-6.1-sol',
+          'gpt-6-astra',
+        ],
+        'gpt'
+      )
+    ).toBe('gpt-6.1-sol')
+    // 生产当前只有 gpt-6-luna 与 gpt-5.6-terra：选最新一代的 Luna，而不是旧一代的 Terra
+    expect(
+      pickFamilyModel(['gpt-5.6-terra', 'gpt-5.6-luna', 'gpt-6-luna'], 'gpt')
+    ).toBe('gpt-6-luna')
+    // mini / codex / pro 等变体不作示例
+    expect(
+      pickFamilyModel(['gpt-6.1-mini', 'gpt-6-codex', 'gpt-5.5'], 'gpt')
+    ).toBe('gpt-5.5')
+  })
+
+  it('prefers the newest Claude Sonnet', () => {
+    expect(
+      pickFamilyModel(
+        [
+          'claude-opus-5-5',
+          'claude-sonnet-5',
+          'claude-sonnet-5-5',
+          'claude-haiku-5-5',
+        ],
+        'claude'
+      )
+    ).toBe('claude-sonnet-5-5')
+  })
+
   it('skips embedding, audio and other non-chat models', () => {
     expect(
       pickFamilyModel(['gpt-4o-transcribe', 'gpt-4o-mini-tts', 'gpt-4o'], 'gpt')

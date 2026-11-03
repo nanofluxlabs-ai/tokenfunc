@@ -28,13 +28,17 @@ export const MODEL_FAMILIES: ModelFamily[] = [
   'image',
 ]
 
-/** 站点模型列表拿不到时（未加载、预渲染）使用的示例名 */
+/**
+ * 站点模型列表拿不到时（未加载、预渲染）使用的示例名。
+ * Claude / GPT 用官方定位为「速度与能力最均衡」的当前主力款（2026-11 核对官方模型列表）：
+ * Claude Sonnet 5.5、GPT-6.1 Sol；新一代发布后同步更新这里。
+ */
 export const FALLBACK_MODELS: Record<ModelFamily, string> = {
-  claude: 'claude-sonnet-4-5',
-  gpt: 'gpt-5',
+  claude: 'claude-sonnet-5-5',
+  gpt: 'gpt-6.1-sol',
   deepseek: 'deepseek-chat',
   gemini: 'gemini-2.5-pro',
-  image: 'gpt-image-1',
+  image: 'gpt-image-2',
 }
 
 /**
@@ -43,7 +47,8 @@ export const FALLBACK_MODELS: Record<ModelFamily, string> = {
  */
 const FAMILY_PREFERENCES: Record<ModelFamily, RegExp[]> = {
   claude: [/^claude-sonnet/, /^claude-.*sonnet/, /^claude-opus/, /^claude-/],
-  gpt: [/^gpt-5(\.\d+)?$/, /^gpt-5/, /^gpt-4\.1/, /^gpt-4o/, /^gpt-/],
+  // GPT 按代际挑选（见 pickGptModel），这里只兜底匹配旧式命名
+  gpt: [/^gpt-/],
   deepseek: [/^deepseek-chat$/, /^deepseek-v/, /^deepseek-/],
   gemini: [/^gemini-.*pro/, /^gemini-.*flash/, /^gemini-/],
   image: [/^gpt-image/, /^dall-e/, /image/],
@@ -52,11 +57,43 @@ const FAMILY_PREFERENCES: Record<ModelFamily, RegExp[]> = {
 const EXCLUDED =
   /(embedding|tts|whisper|audio|realtime|transcribe|moderation|search|rerank)/
 
+// GPT 主力对话模型：gpt-<代际>[-<档位>]，不含 mini / nano / codex / pro / chat-latest 等变体
+const GPT_MAIN_PATTERN = /^gpt-(\d+(?:\.\d+)?)(?:-(sol|terra|astra|luna))?$/
+// 同一代际里的档位偏好：Sol 是官方推荐的均衡主力，Luna 是轻量款排最后
+const GPT_TIER_RANK: Record<string, number> = {
+  sol: 0,
+  terra: 1,
+  astra: 2,
+  '': 3,
+  luna: 4,
+}
+
+/**
+ * GPT 先按代际取最新（gpt-6.1 > gpt-6 > gpt-5.6），同代再按档位偏好；
+ * 站点只有轻量款时也选最新一代（如只有 gpt-6-luna 时不退回 gpt-5.6-terra）。
+ */
+function pickGptModel(candidates: string[]): string | undefined {
+  const ranked = candidates
+    .map((name) => ({ name, match: GPT_MAIN_PATTERN.exec(name.toLowerCase()) }))
+    .filter((item) => item.match !== null)
+    .map((item) => ({
+      name: item.name,
+      version: Number(item.match?.[1]),
+      tier: GPT_TIER_RANK[item.match?.[2] ?? ''],
+    }))
+    .sort((a, b) => b.version - a.version || a.tier - b.tier)
+  return ranked[0]?.name
+}
+
 export function pickFamilyModel(
   models: string[],
   family: ModelFamily
 ): string | undefined {
   const candidates = models.filter((name) => !EXCLUDED.test(name.toLowerCase()))
+  if (family === 'gpt') {
+    const main = pickGptModel(candidates)
+    if (main) return main
+  }
   for (const rule of FAMILY_PREFERENCES[family]) {
     const matched = candidates
       .filter((name) => rule.test(name.toLowerCase()))

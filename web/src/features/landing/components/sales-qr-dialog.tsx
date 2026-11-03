@@ -4,7 +4,7 @@ import { Dialog } from '@/components/dialog'
 
 import { Eyebrow } from './landing-primitives'
 
-/** 联系销售：展示后台配置的商务微信二维码（系统设置 → 站点与品牌） */
+/** 联系商务：展示后台配置的商务微信二维码（系统设置 → 站点与品牌） */
 export function SalesQrDialog(props: {
   open: boolean
   onOpenChange: (open: boolean) => void

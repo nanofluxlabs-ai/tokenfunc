@@ -16,6 +16,7 @@ import { requireServerSuccess } from '@/lib/server-error-message'
 import { listModelConsumptions } from '../../api'
 import { FINANCE_QUERY_KEY, MODEL_GROUP_PAGE_SIZE } from '../../constants'
 import type { DayRange } from '../../lib/date-presets'
+import { FILTER_BAR_BUTTON_CLASS } from '../../lib/filter-layout'
 import { buildModelConsumptionTree } from '../../lib/model-consumption-tree'
 import { GroupFilterSelect } from '../group-filter-select'
 import {
@@ -34,7 +35,7 @@ function FilterInput(props: {
   placeholder: string
 }) {
   return (
-    <div className='relative min-w-[160px] flex-1'>
+    <div className='relative col-span-2 min-w-0 sm:min-w-[160px] sm:flex-1'>
       <Search className='text-muted-foreground pointer-events-none absolute top-1/2 left-2 h-4 w-4 -translate-y-1/2' />
       <Input
         value={props.value}
@@ -144,7 +145,8 @@ export function ModelConsumptionPanel(props: { range: DayRange }) {
 
   return (
     <div className='flex flex-col gap-3'>
-      <div className='flex flex-wrap items-center gap-2'>
+      {/* 手机端六栏网格：三个筛选项各占 2 栏一行、两个按钮各占 3 栏一行，sm 起恢复单行 flex */}
+      <div className='grid grid-cols-6 gap-2 sm:flex sm:flex-wrap sm:items-center'>
         <FilterInput
           value={draft.model}
           onChange={(model) => setDraft({ ...draft, model })}
@@ -160,11 +162,21 @@ export function ModelConsumptionPanel(props: { range: DayRange }) {
         <GroupFilterSelect
           value={draft.group}
           onChange={(group) => setDraft({ ...draft, group })}
+          className='col-span-2 w-full sm:w-[160px]'
         />
-        <Button size='sm' onClick={apply}>
+        <Button
+          size='sm'
+          className={`col-span-3 ${FILTER_BAR_BUTTON_CLASS}`}
+          onClick={apply}
+        >
           {t('Query model consumption')}
         </Button>
-        <Button size='sm' variant='outline' onClick={reset}>
+        <Button
+          size='sm'
+          variant='outline'
+          className={`col-span-3 ${FILTER_BAR_BUTTON_CLASS}`}
+          onClick={reset}
+        >
           {t('Reset model consumption filters')}
         </Button>
       </div>

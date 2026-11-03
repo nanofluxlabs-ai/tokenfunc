@@ -14,6 +14,7 @@ import { requireServerSuccess } from '@/lib/server-error-message'
 import { listUserConsumptions } from '../../api'
 import { FINANCE_PAGE_SIZE, FINANCE_QUERY_KEY } from '../../constants'
 import type { DayRange } from '../../lib/date-presets'
+import { FILTER_BAR_BUTTON_CLASS } from '../../lib/filter-layout'
 import { GroupFilterSelect } from '../group-filter-select'
 import { useUserConsumptionColumns } from './user-consumption-columns'
 
@@ -112,8 +113,9 @@ export function UserConsumptionPanel(props: { range: DayRange }) {
 
   return (
     <div className='flex flex-col gap-3'>
-      <div className='flex flex-wrap items-center gap-2'>
-        <div className='relative min-w-[240px] flex-1'>
+      {/* 手机端两列网格（筛选项一行、按钮一行），sm 起恢复单行 flex */}
+      <div className='grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:items-center'>
+        <div className='relative min-w-0 sm:min-w-[240px] sm:flex-1'>
           <Search className='text-muted-foreground pointer-events-none absolute top-1/2 left-2 h-4 w-4 -translate-y-1/2' />
           <Input
             value={draftKeyword}
@@ -124,11 +126,20 @@ export function UserConsumptionPanel(props: { range: DayRange }) {
             className='pl-8'
           />
         </div>
-        <GroupFilterSelect value={draftGroup} onChange={setDraftGroup} />
-        <Button size='sm' onClick={apply}>
+        <GroupFilterSelect
+          value={draftGroup}
+          onChange={setDraftGroup}
+          className='w-full sm:w-[160px]'
+        />
+        <Button size='sm' className={FILTER_BAR_BUTTON_CLASS} onClick={apply}>
           {t('Query user consumption')}
         </Button>
-        <Button size='sm' variant='outline' onClick={reset}>
+        <Button
+          size='sm'
+          variant='outline'
+          className={FILTER_BAR_BUTTON_CLASS}
+          onClick={reset}
+        >
           {t('Reset user consumption filters')}
         </Button>
       </div>

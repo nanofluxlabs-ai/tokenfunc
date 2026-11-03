@@ -113,7 +113,7 @@ export function OverviewPanel(props: OverviewPanelProps) {
           </AlertDescription>
         </Alert>
       )}
-      <div className='grid gap-3 sm:grid-cols-2 xl:grid-cols-4'>
+      <div className='grid grid-cols-2 gap-2 sm:gap-3 xl:grid-cols-4'>
         {cards.map((card) => (
           <MetricCard
             key={card.label}

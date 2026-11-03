@@ -136,15 +136,16 @@ export function BillsPanel() {
 
   return (
     <div className='flex flex-col gap-4'>
+      {/* 手机端两列网格：名称 / 账单号一行，状态 / 按钮一行，合计 / 开票方设置一行；sm 起恢复单行 flex */}
       <form
-        className='flex flex-wrap items-center gap-2'
+        className='grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:items-center'
         onSubmit={(event) => {
           event.preventDefault()
           applyFilters(draft)
         }}
       >
         <Input
-          className='w-44'
+          className='w-full sm:w-44'
           placeholder={t('Enterprise name')}
           aria-label={t('Enterprise name')}
           value={draft.enterpriseName}
@@ -153,7 +154,7 @@ export function BillsPanel() {
           }
         />
         <Input
-          className='w-44'
+          className='w-full sm:w-44'
           placeholder={t('Bill No.')}
           aria-label={t('Bill No.')}
           value={draft.billNo}
@@ -161,7 +162,7 @@ export function BillsPanel() {
             setDraft({ ...draft, billNo: event.target.value })
           }
         />
-        <div className='w-40'>
+        <div className='w-full sm:w-40'>
           <Select
             items={STATUS_OPTIONS.map((option) => ({
               value: option.value,
@@ -189,33 +190,38 @@ export function BillsPanel() {
             </SelectContent>
           </Select>
         </div>
-        <Button type='submit' size='sm'>
-          {t('Search')}
-        </Button>
-        <Button
-          type='button'
-          variant='outline'
-          size='sm'
-          onClick={() => {
-            setDraft(EMPTY_FILTERS)
-            applyFilters(EMPTY_FILTERS)
-          }}
-        >
-          {t('Reset')}
-        </Button>
-        <span className='text-muted-foreground text-sm'>
-          {t('Total: {{count}}', { count: total })}
-        </span>
-        <div className='flex-1' />
-        <Button
-          type='button'
-          variant='outline'
-          size='sm'
-          onClick={() => setSellerOpen(true)}
-        >
-          <Settings2 className='h-4 w-4' />
-          {t('Invoice issuer settings')}
-        </Button>
+        <div className='flex gap-2 sm:contents'>
+          <Button type='submit' size='sm' className='flex-1 sm:flex-none'>
+            {t('Search')}
+          </Button>
+          <Button
+            type='button'
+            variant='outline'
+            size='sm'
+            className='flex-1 sm:flex-none'
+            onClick={() => {
+              setDraft(EMPTY_FILTERS)
+              applyFilters(EMPTY_FILTERS)
+            }}
+          >
+            {t('Reset')}
+          </Button>
+        </div>
+        <div className='col-span-2 flex items-center justify-between gap-2 sm:contents'>
+          <span className='text-muted-foreground text-sm'>
+            {t('Total: {{count}}', { count: total })}
+          </span>
+          <div className='hidden flex-1 sm:block' />
+          <Button
+            type='button'
+            variant='outline'
+            size='sm'
+            onClick={() => setSellerOpen(true)}
+          >
+            <Settings2 className='h-4 w-4' />
+            {t('Invoice issuer settings')}
+          </Button>
+        </div>
       </form>
       <BillsTable
         rows={(data?.items ?? []).map(toTableRow)}

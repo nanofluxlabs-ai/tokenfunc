@@ -146,6 +146,34 @@ func TestChannelHealthRelayFailuresPauseInferenceAndOneSuccessResumes(t *testing
 	}, eventKinds(t, channel.Id))
 }
 
+// relay 首次尝试拿到的 channel 只有 Id / Type / Name（与 controller.getChannel 一致），钩子须按 Id 识别外部渠道；
+// 中间的成功要清零计数，否则相隔很久的两次 5xx 也会暂停派发
+func TestChannelHealthRelaySuccessClearsFailuresForBareChannel(t *testing.T) {
+	setupChannelHealthPostgres(t)
+	channel := newHealthTestChannel(t, 3, true)
+	bare := &model.Channel{Id: channel.Id, Type: channel.Type, Name: channel.Name}
+
+	// 与生产一致：失败路径（ProcessChannelError）传缓存里的完整渠道，成功路径传 relay 循环里的精简渠道
+	RecordExternalChannelRelayFailure(channel, 500, "content filter")
+	RecordExternalChannelRelaySuccess(bare)
+	RecordExternalChannelRelayFailure(channel, 500, "concurrency limit")
+
+	state, err := model.GetChannelHealthState(channel.Id)
+	require.NoError(t, err)
+	assert.Equal(t, 1, state.InferenceFailCount)
+	assert.NotEqual(t, model.ChannelHealthFailed, state.InferenceHealth)
+	assert.False(t, model.IsChannelDispatchPaused(channel.Id))
+
+	// 重启或其他实例写入后：待清除集合从库重建，relay 成功仍能清零
+	require.NoError(t, model.DB.Model(&model.ChannelHealthState{}).Where("channel_id = ?", channel.Id).Update("inference_fail_count", 1).Error)
+	model.ReloadChannelHealthStates()
+	RecordExternalChannelRelaySuccess(bare)
+	state, err = model.GetChannelHealthState(channel.Id)
+	require.NoError(t, err)
+	assert.Equal(t, 0, state.InferenceFailCount)
+	assert.False(t, model.IsChannelInferencePending(channel.Id))
+}
+
 func TestChannelHealthSlowProbeRecoverThresholdAndManualTestShortcut(t *testing.T) {
 	setupChannelHealthPostgres(t)
 	channel := newHealthTestChannel(t, 3, true)

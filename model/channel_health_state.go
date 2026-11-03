@@ -100,7 +100,7 @@ func SaveChannelHealthState(state *ChannelHealthState) error {
 	if err != nil {
 		return err
 	}
-	setChannelDispatchPaused(state.ChannelId, state.DispatchPaused)
+	syncChannelHealthSets(state)
 	return nil
 }
 
@@ -147,16 +147,36 @@ func DeleteOrphanChannelHealthRows() error {
 var (
 	channelDispatchPausedMu sync.RWMutex
 	channelDispatchPaused   = map[int]struct{}{}
+	// channelInferencePending 推理维度有未清零失败计数或处于 failed 的渠道。
+	// relay 成功只对这些渠道写库；与暂停集合一样随写入同步、随渠道缓存周期从库重建，重启和多实例都不丢。
+	channelInferencePending = map[int]struct{}{}
 )
 
-func setChannelDispatchPaused(channelId int, paused bool) {
+func syncChannelHealthSets(state *ChannelHealthState) {
 	channelDispatchPausedMu.Lock()
 	defer channelDispatchPausedMu.Unlock()
-	if paused {
-		channelDispatchPaused[channelId] = struct{}{}
+	setMember(channelDispatchPaused, state.ChannelId, state.DispatchPaused)
+	setMember(channelInferencePending, state.ChannelId, state.inferencePending())
+}
+
+func setMember(set map[int]struct{}, id int, member bool) {
+	if member {
+		set[id] = struct{}{}
 		return
 	}
-	delete(channelDispatchPaused, channelId)
+	delete(set, id)
+}
+
+func (s *ChannelHealthState) inferencePending() bool {
+	return s.InferenceFailCount > 0 || s.InferenceHealth == ChannelHealthFailed
+}
+
+// IsChannelInferencePending 渠道推理维度是否有待 relay 成功清除的失败状态
+func IsChannelInferencePending(channelId int) bool {
+	channelDispatchPausedMu.RLock()
+	defer channelDispatchPausedMu.RUnlock()
+	_, pending := channelInferencePending[channelId]
+	return pending
 }
 
 // IsChannelDispatchPaused 渠道是否因健康态被暂停派发
@@ -167,23 +187,28 @@ func IsChannelDispatchPaused(channelId int) bool {
 	return paused
 }
 
-// ReloadChannelHealthStates 从库重建暂停派发集合；随渠道缓存同步周期执行，多实例靠这个收敛
+// ReloadChannelHealthStates 从库重建暂停派发集合与推理待清除集合；随渠道缓存同步周期执行，多实例靠这个收敛
 func ReloadChannelHealthStates() {
-	var ids []int
+	var rows []*ChannelHealthState
 	err := DB.Table("channel_health_states").
 		Joins("JOIN channels ON channels.id = channel_health_states.channel_id AND channels.is_external = ?", true).
-		Where("channel_health_states.api_health = ? OR channel_health_states.inference_health = ?", ChannelHealthFailed, ChannelHealthFailed).
-		Pluck("channel_health_states.channel_id", &ids).Error
+		Where("channel_health_states.api_health = ? OR channel_health_states.inference_health = ? OR channel_health_states.inference_fail_count > 0", ChannelHealthFailed, ChannelHealthFailed).
+		Select("channel_health_states.*").
+		Find(&rows).Error
 	if err != nil {
 		common.SysLog("failed to reload channel health states: " + err.Error())
 		return
 	}
-	next := make(map[int]struct{}, len(ids))
-	for _, id := range ids {
-		next[id] = struct{}{}
+	paused := make(map[int]struct{}, len(rows))
+	pending := make(map[int]struct{}, len(rows))
+	for _, row := range rows {
+		row.fillDerived()
+		setMember(paused, row.ChannelId, row.DispatchPaused)
+		setMember(pending, row.ChannelId, row.inferencePending())
 	}
 	channelDispatchPausedMu.Lock()
-	channelDispatchPaused = next
+	channelDispatchPaused = paused
+	channelInferencePending = pending
 	channelDispatchPausedMu.Unlock()
 }
 

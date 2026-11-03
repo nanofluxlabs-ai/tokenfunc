@@ -168,19 +168,35 @@ func RecordChannelManualTestSuccess(channel *model.Channel) {
 	}
 }
 
-// externalInferenceFailing 本进程观察到推理失败计数 > 0 或 failed 态的外部渠道。
-// relay 成功只对这些渠道写库，避免热路径每个请求都落一次 DB。
-var externalInferenceFailing sync.Map
+// resolveExternalChannel relay 循环首次尝试拿到的 channel 只有 Id / Type / Name（分发中间件已选好渠道），
+// 不带 IsExternal 等字段；按 Id 从渠道缓存取完整渠道再判断是否外部渠道。
+func resolveExternalChannel(channel *model.Channel) *model.Channel {
+	if channel == nil {
+		return nil
+	}
+	if channel.IsExternal == nil {
+		cached, err := model.CacheGetChannel(channel.Id)
+		if err != nil {
+			return nil
+		}
+		channel = cached
+	}
+	if !channel.GetIsExternal() {
+		return nil
+	}
+	return channel
+}
 
-// RecordExternalChannelRelaySuccess relay 成功：推理维度直接置 ok 并清零计数（tokensolo 行为）
+// RecordExternalChannelRelaySuccess relay 成功：推理维度直接置 ok 并清零计数（tokensolo 行为）。
+// 只对推理维度有未清零失败或 failed 的渠道写库，避免热路径每个请求都落一次 DB。
 func RecordExternalChannelRelaySuccess(channel *model.Channel) {
-	if channel == nil || !channel.GetIsExternal() {
+	if channel == nil || !model.IsChannelInferencePending(channel.Id) {
 		return
 	}
-	if _, failing := externalInferenceFailing.Load(channel.Id); !failing && !model.IsChannelDispatchPaused(channel.Id) {
+	channel = resolveExternalChannel(channel)
+	if channel == nil {
 		return
 	}
-	externalInferenceFailing.Delete(channel.Id)
 	if _, err := recordChannelHealth(channel, inferenceDimension, true, true, model.ChannelHealthSourceRelay, ""); err != nil {
 		common.SysLog(fmt.Sprintf("failed to record relay success: channel_id=%d, error=%v", channel.Id, err))
 	}
@@ -188,10 +204,13 @@ func RecordExternalChannelRelaySuccess(channel *model.Channel) {
 
 // RecordExternalChannelRelayFailure relay 命中 5xx：推理维度累加失败计数（与慢探同阈值）
 func RecordExternalChannelRelayFailure(channel *model.Channel, statusCode int, detail string) {
-	if channel == nil || !channel.GetIsExternal() || statusCode < 500 || statusCode > 599 {
+	if statusCode < 500 || statusCode > 599 {
 		return
 	}
-	externalInferenceFailing.Store(channel.Id, struct{}{})
+	channel = resolveExternalChannel(channel)
+	if channel == nil {
+		return
+	}
 	if _, err := recordChannelHealth(channel, inferenceDimension, false, false, model.ChannelHealthSourceRelay, fmt.Sprintf("HTTP %d: %s", statusCode, detail)); err != nil {
 		common.SysLog(fmt.Sprintf("failed to record relay failure: channel_id=%d, error=%v", channel.Id, err))
 	}

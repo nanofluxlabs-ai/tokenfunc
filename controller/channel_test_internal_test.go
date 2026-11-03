@@ -6,21 +6,26 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"sync/atomic"
 	"testing"
 
 	"github.com/QuantumNous/new-api/common"
 	"github.com/QuantumNous/new-api/constant"
+	"github.com/QuantumNous/new-api/i18n"
 	"github.com/QuantumNous/new-api/model"
 	"github.com/QuantumNous/new-api/pkg/billingexpr"
 	relaycommon "github.com/QuantumNous/new-api/relay/common"
 	"github.com/QuantumNous/new-api/relaykit/dto"
 	"github.com/QuantumNous/new-api/service"
 	"github.com/QuantumNous/new-api/setting/operation_setting"
+	"github.com/QuantumNous/new-api/setting/ratio_setting"
 	"github.com/QuantumNous/new-api/types"
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"gorm.io/driver/postgres"
+	"gorm.io/gorm"
 )
 
 func TestGetChannelDefaultBaseURLsUsesBuiltInDefaults(t *testing.T) {
@@ -543,4 +548,80 @@ func TestProbeChannelEndpointReportsNetworkFailure(t *testing.T) {
 	ok, detail := probeChannelEndpoint(context.Background(), newProbeTestChannel(server.URL, ""))
 	assert.False(t, ok)
 	assert.NotEmpty(t, detail)
+}
+
+// 推理探测开启后上游定时测试跳过外部渠道，被自动禁用的外部渠道要靠推理探测成功恢复（受「自动启用」开关控制）
+func TestExternalInferenceProbeReenablesAutoDisabledChannel(t *testing.T) {
+	dsn := os.Getenv("TEST_POSTGRES_DSN")
+	if dsn == "" {
+		t.Skip("TEST_POSTGRES_DSN is not configured")
+	}
+	db, err := gorm.Open(postgres.New(postgres.Config{DSN: dsn, PreferSimpleProtocol: true}), &gorm.Config{})
+	require.NoError(t, err)
+	sqlDB, err := db.DB()
+	require.NoError(t, err)
+	tables := []any{&model.User{}, &model.Channel{}, &model.Ability{}, &model.Option{}, &model.Log{}, &model.ChannelHealthState{}, &model.ChannelHealthEvent{}}
+	previousDB, previousLogDB := model.DB, model.LOG_DB
+	previousMain, previousLog := common.MainDatabaseType(), common.LogDatabaseType()
+	previousRedis, previousMemoryCache, previousEnable := common.RedisEnabled, common.MemoryCacheEnabled, common.AutomaticEnableChannelEnabled
+	previousMaster, previousRatios := common.IsMasterNode, ratio_setting.ModelRatio2JSONString()
+	// 列名常量按数据库类型在 InitLogDB 里初始化；关掉 master 标记避免顺带跑审计日志迁移
+	syncColumnNames := func() {
+		common.IsMasterNode = false
+		require.NoError(t, model.InitLogDB())
+	}
+	model.DB = db
+	common.SetDatabaseTypes(common.DatabaseTypePostgreSQL, common.DatabaseTypePostgreSQL)
+	syncColumnNames()
+	common.RedisEnabled, common.MemoryCacheEnabled = false, false
+	require.NoError(t, i18n.Init())
+	require.NoError(t, ratio_setting.UpdateModelRatioByJSONString(`{"gpt-4o-mini":0.075}`))
+	t.Cleanup(func() {
+		require.NoError(t, db.Migrator().DropTable(tables...))
+		require.NoError(t, sqlDB.Close())
+		model.DB = previousDB
+		common.SetDatabaseTypes(previousMain, previousLog)
+		syncColumnNames()
+		model.LOG_DB = previousLogDB
+		common.IsMasterNode = previousMaster
+		require.NoError(t, ratio_setting.UpdateModelRatioByJSONString(previousRatios))
+		common.RedisEnabled, common.MemoryCacheEnabled, common.AutomaticEnableChannelEnabled = previousRedis, previousMemoryCache, previousEnable
+	})
+	require.NoError(t, db.Migrator().DropTable(tables...))
+	require.NoError(t, db.AutoMigrate(tables...))
+	service.InitHttpClient()
+
+	root := &model.User{Username: "root", Password: "password123", DisplayName: "root", Role: common.RoleRootUser, Status: common.UserStatusEnabled, AffCode: "root", Group: "default"}
+	require.NoError(t, db.Create(root).Error)
+	upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"id":"chatcmpl-1","object":"chat.completion","created":1,"model":"gpt-4o-mini","choices":[{"index":0,"message":{"role":"assistant","content":"hi"},"finish_reason":"stop"}],"usage":{"prompt_tokens":1,"completion_tokens":1,"total_tokens":2}}`))
+	}))
+	t.Cleanup(upstream.Close)
+
+	newChannel := func(id int) *model.Channel {
+		external := true
+		baseURL := upstream.URL
+		channel := &model.Channel{Id: id, Type: constant.ChannelTypeOpenAI, Key: "sk-probe", BaseURL: &baseURL, Status: common.ChannelStatusAutoDisabled,
+			Name: fmt.Sprintf("external-%d", id), Models: "gpt-4o-mini", Group: "default", IsExternal: &external}
+		require.NoError(t, channel.Insert())
+		return channel
+	}
+	statusOf := func(id int) int {
+		channel, err := model.GetChannelById(id, true)
+		require.NoError(t, err)
+		return channel.Status
+	}
+
+	common.AutomaticEnableChannelEnabled = false
+	disabled := newChannel(1)
+	ok, _ := probeChannelInference(context.Background(), disabled, root.Id)
+	require.True(t, ok)
+	assert.Equal(t, common.ChannelStatusAutoDisabled, statusOf(disabled.Id), "未开启自动启用时只记健康态，不改 status")
+
+	common.AutomaticEnableChannelEnabled = true
+	recovered := newChannel(2)
+	ok, _ = probeChannelInference(context.Background(), recovered, root.Id)
+	require.True(t, ok)
+	assert.Equal(t, common.ChannelStatusEnabled, statusOf(recovered.Id))
 }

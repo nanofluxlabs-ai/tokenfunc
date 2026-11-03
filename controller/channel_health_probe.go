@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/QuantumNous/new-api/common"
+	"github.com/QuantumNous/new-api/constant"
 	"github.com/QuantumNous/new-api/model"
 	"github.com/QuantumNous/new-api/service"
 	"github.com/QuantumNous/new-api/setting/operation_setting"
@@ -212,6 +213,15 @@ func probeChannelInference(ctx context.Context, channel *model.Channel, testUser
 	transition, err := service.RecordChannelInferenceProbe(channel, ok, detail)
 	if err != nil {
 		common.SysLog(fmt.Sprintf("failed to record inference probe: channel_id=%d, error=%v", channel.Id, err))
+	}
+	// 推理探测开启后上游定时测试跳过外部渠道，这里接管「自动启用」：被上游自动禁用的外部渠道推理成功即恢复（同受 AutomaticEnableChannelEnabled 控制）。
+	// 接口探测只证明接口可达，不据此启用。
+	if ok && service.ShouldEnableChannel(nil, channel.Status) {
+		usingKey := ""
+		if result.context != nil {
+			usingKey = common.GetContextKeyString(result.context, constant.ContextKeyChannelKey)
+		}
+		service.EnableChannel(channel.Id, usingKey, channel.Name)
 	}
 	return ok, transition
 }

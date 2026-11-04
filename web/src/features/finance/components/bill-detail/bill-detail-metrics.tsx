@@ -1,3 +1,4 @@
+import { Fragment } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { formatBillUsd } from '@/features/enterprise-console/lib/bill-utils'
@@ -5,6 +6,7 @@ import type { StatementBalanceSnapshot } from '@/features/enterprise-console/typ
 import { toIntlLocale } from '@/i18n/languages'
 import { formatQuotaWithCurrency } from '@/lib/currency'
 import { formatNumber, quotaUnitsToDollars } from '@/lib/format'
+import { cn } from '@/lib/utils'
 
 import { creditUsagePercent, periodDays } from '../../lib/bill-ref'
 import { formatTokenAmount } from '../../lib/token-amount'
@@ -44,31 +46,55 @@ export function BillDetailMetrics(props: BillDetailMetricsProps) {
       ? `${t('Calendar month')} · ${t('{{count}} days', { count: days })}`
       : t('{{count}} days', { count: days })
 
-  return (
-    <div className='grid grid-cols-2 gap-3 lg:grid-cols-3 xl:grid-cols-4'>
-      <MetricCard
-        label={isStatement ? t('Consumption') : t('Total amount')}
-        value={`${currency} ${formatBillUsd(total)}`}
-      />
-      {context.kind === 'bill' && !isStatement && (
+  // 卡片数随账单类型变化（月结单 5 张、授信账单最多 8 张）：宽屏按实际张数定列数，避免最后一张孤零零独占一行
+  const cards: Array<{ key: string; node: React.ReactNode }> = [
+    {
+      key: 'total',
+      node: (
+        <MetricCard
+          label={isStatement ? t('Consumption') : t('Total amount')}
+          value={`${currency} ${formatBillUsd(total)}`}
+        />
+      ),
+    },
+  ]
+  if (context.kind === 'bill' && !isStatement) {
+    cards.push({
+      key: 'paid',
+      node: (
         <MetricCard
           label={t('Paid')}
           value={`${currency} ${formatBillUsd(paid)}`}
           hint={`${t('Outstanding')}: ${currency} ${formatBillUsd(total - paid)}`}
         />
-      )}
-      {summary.limit_quota > 0 && (
+      ),
+    })
+  }
+  if (summary.limit_quota > 0) {
+    cards.push({
+      key: 'limit',
+      node: (
         <MetricCard
           label={t('Credit limit (USD)')}
           value={`$${formatBillUsd(quotaUnitsToDollars(summary.limit_quota))}`}
         />
-      )}
-      {usagePercent != null && (
+      ),
+    })
+  }
+  if (usagePercent != null) {
+    cards.push({
+      key: 'usage',
+      node: (
         <MetricCard
           label={t('Usage rate')}
           value={`${usagePercent.toFixed(2)}%`}
         />
-      )}
+      ),
+    })
+  }
+  cards.push({
+    key: 'period',
+    node: (
       <MetricCard
         // 日期区间放不进手机半宽卡，单独占一行
         className='col-span-2 sm:col-span-1'
@@ -80,7 +106,12 @@ export function BillDetailMetrics(props: BillDetailMetricsProps) {
         }
         hint={cycleLabel}
       />
-      {context.kind === 'bill' && (
+    ),
+  })
+  if (context.kind === 'bill') {
+    cards.push({
+      key: 'issued',
+      node: (
         <MetricCard
           label={t('Issued')}
           value={<span className='text-lg'>{billDay(summary.issued_at)}</span>}
@@ -88,19 +119,54 @@ export function BillDetailMetrics(props: BillDetailMetricsProps) {
             isStatement ? undefined : `${t('Due')}: ${billDay(summary.due_at)}`
           }
         />
+      ),
+    })
+  }
+  cards.push(
+    {
+      key: 'requests',
+      node: (
+        <MetricCard
+          label={t('Requests')}
+          value={formatNumber(props.requestCount, locale)}
+          loading={props.requestsLoading}
+        />
+      ),
+    },
+    {
+      key: 'tokens',
+      node: (
+        <MetricCard
+          label={t('Token usage')}
+          value={formatTokenAmount(promptTokens + completionTokens)}
+          hint={`${t('Input')} ${formatTokenAmount(promptTokens)} · ${t('Output')} ${formatTokenAmount(completionTokens)}`}
+        />
+      ),
+    }
+  )
+
+  return (
+    <div
+      className={cn(
+        'grid grid-cols-2 gap-3 lg:grid-cols-3',
+        WIDE_COLUMNS[cards.length] ?? 'xl:grid-cols-4'
       )}
-      <MetricCard
-        label={t('Requests')}
-        value={formatNumber(props.requestCount, locale)}
-        loading={props.requestsLoading}
-      />
-      <MetricCard
-        label={t('Token usage')}
-        value={formatTokenAmount(promptTokens + completionTokens)}
-        hint={`${t('Input')} ${formatTokenAmount(promptTokens)} · ${t('Output')} ${formatTokenAmount(completionTokens)}`}
-      />
+    >
+      {cards.map((card) => (
+        <Fragment key={card.key}>{card.node}</Fragment>
+      ))}
     </div>
   )
+}
+
+/** 宽屏列数（Tailwind 类名必须是字面量）：5 张以内排成一行；6 张 3×2；更多按 4 列折行 */
+const WIDE_COLUMNS: Record<number, string> = {
+  1: 'xl:grid-cols-1',
+  2: 'xl:grid-cols-2',
+  3: 'xl:grid-cols-3',
+  4: 'xl:grid-cols-4',
+  5: 'xl:grid-cols-5',
+  6: 'xl:grid-cols-3',
 }
 
 const STATEMENT_BALANCE_KEYS = [

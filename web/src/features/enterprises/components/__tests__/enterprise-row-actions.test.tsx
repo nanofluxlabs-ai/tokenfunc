@@ -52,10 +52,30 @@ test('a credit enterprise keeps the Top-up action disabled because it is settled
   expect(screen.getByTestId('open-state')).toHaveTextContent('none:0')
 })
 
-test('every enterprise exposes a Reset password action that opens the reset-password dialog for that row', async () => {
+test('billing, members and reset password live in the overflow menu and open the matching dialog', async () => {
   renderActions({ billing_mode: 'credit' })
 
-  await userEvent.click(screen.getByRole('button', { name: 'Reset password' }))
+  // 行上只露出编辑与充值两个图标，其余收进「更多」菜单
+  expect(
+    screen.queryByRole('button', { name: 'Billing' })
+  ).not.toBeInTheDocument()
+  expect(
+    screen.queryByRole('button', { name: 'Members' })
+  ).not.toBeInTheDocument()
+  expect(
+    screen.queryByRole('button', { name: 'Reset password' })
+  ).not.toBeInTheDocument()
+
+  await userEvent.click(screen.getByRole('button', { name: 'Open menu' }))
+  await userEvent.click(
+    await screen.findByRole('menuitem', { name: 'Reset password' })
+  )
 
   expect(screen.getByTestId('open-state')).toHaveTextContent('reset-password:5')
+
+  await userEvent.click(screen.getByRole('button', { name: 'Open menu' }))
+  await userEvent.click(
+    await screen.findByRole('menuitem', { name: 'Members' })
+  )
+  expect(screen.getByTestId('open-state')).toHaveTextContent('members:5')
 })

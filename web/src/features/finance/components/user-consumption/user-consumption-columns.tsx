@@ -14,7 +14,8 @@ import {
   UserCell,
 } from './user-consumption-cells'
 
-const NUMERIC = 'text-right tabular-nums'
+// 手机卡片视图（<640px）里标签左对齐，数值只在桌面右对齐
+const NUMERIC = 'tabular-nums sm:text-right'
 
 export function useUserConsumptionColumns(
   range: DayRange
@@ -41,7 +42,7 @@ export function useUserConsumptionColumns(
         header: () => <div className={NUMERIC}>{t('Balance')}</div>,
         meta: { label: t('Balance') },
         cell: ({ row }) => (
-          <div className='flex justify-end'>
+          <div className='flex sm:justify-end'>
             <BalanceCell row={row.original} />
           </div>
         ),
@@ -54,7 +55,7 @@ export function useUserConsumptionColumns(
         ),
         meta: { label: t('Consumption in range') },
         cell: ({ row }) => (
-          <div className='flex justify-end'>
+          <div className='flex sm:justify-end'>
             <ConsumptionCell row={row.original} locale={locale} />
           </div>
         ),

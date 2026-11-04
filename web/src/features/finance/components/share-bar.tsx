@@ -18,7 +18,8 @@ export function ShareBar(props: ShareBarProps) {
   return (
     <div
       className={cn(
-        'flex min-w-[160px] flex-col items-end gap-1',
+        // 手机卡片视图里占满格宽、左对齐；桌面保持固定最小宽与右对齐
+        'flex w-full flex-col items-start gap-1 sm:w-auto sm:min-w-[160px] sm:items-end',
         props.className
       )}
     >

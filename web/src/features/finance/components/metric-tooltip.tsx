@@ -23,7 +23,7 @@ type MetricTooltipProps = {
 }
 
 const TRIGGER_CLASS =
-  'decoration-muted-foreground/60 inline-flex cursor-help flex-col items-end underline decoration-dashed underline-offset-4'
+  'decoration-muted-foreground/60 inline-flex cursor-help flex-col items-start underline sm:items-end decoration-dashed underline-offset-4'
 
 function MetricDetails(props: Pick<MetricTooltipProps, 'items' | 'note'>) {
   return (

@@ -12,7 +12,8 @@ import { cn } from '@/lib/utils'
 import type { ModelTreeNode } from '../../lib/model-consumption-tree'
 import { ShareBar } from '../share-bar'
 
-const NUMERIC = 'text-right tabular-nums'
+// 手机卡片视图（<640px）里标签左对齐，数值只在桌面右对齐
+const NUMERIC = 'tabular-nums sm:text-right'
 const INDENT_CLASS = ['pl-0', 'pl-6', 'pl-12']
 
 /** 金额强制按美元展示（倍率后的实际计费额），保留 4 位 */
@@ -92,7 +93,7 @@ export function useModelConsumptionColumns(): ColumnDef<
         ),
         meta: { label: t('Cost (USD)') },
         cell: ({ row }) => (
-          <div className='flex justify-end'>
+          <div className='flex sm:justify-end'>
             <ShareBar
               value={formatModelCost(row.original.netQuota)}
               percentage={row.original.share}

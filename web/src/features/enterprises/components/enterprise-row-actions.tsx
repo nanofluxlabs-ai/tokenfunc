@@ -1,4 +1,4 @@
-import { Edit, HandCoins, Users, Wallet } from 'lucide-react'
+import { Edit, HandCoins, LockKeyhole, Users, Wallet } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
 import { Button } from '@/components/ui/button'
@@ -96,6 +96,25 @@ export function EnterpriseRowActions(props: {
             ? t('Credit enterprises are settled by bill payment')
             : t('Top-up')}
         </TooltipContent>
+      </Tooltip>
+      {/* 重置企业主账号的登录密码：与个人用户同一个弹窗与接口 */}
+      <Tooltip>
+        <TooltipTrigger
+          render={
+            <Button
+              variant='ghost'
+              size='icon-sm'
+              onClick={() => {
+                setCurrentRow(props.enterprise)
+                setOpen('reset-password')
+              }}
+              aria-label={t('Reset password')}
+            />
+          }
+        >
+          <LockKeyhole />
+        </TooltipTrigger>
+        <TooltipContent>{t('Reset password')}</TooltipContent>
       </Tooltip>
     </div>
   )

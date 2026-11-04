@@ -25,6 +25,7 @@ import {
   ArrowUp,
   ArrowDown,
   KeyRound,
+  LockKeyhole,
   ShieldAlert,
   Link2,
   CreditCard,
@@ -63,6 +64,7 @@ import { getUserActionMessage } from '../lib'
 import type { User } from '../types'
 import { UserBindingDialog } from './dialogs/user-binding-dialog'
 import { UserTopupDialog } from './dialogs/user-topup-dialog'
+import { ResetPasswordDialog } from './reset-password-dialog'
 import { useUsers } from './users-provider'
 
 // enterprise_adjust / enterprise_credit are requested from the enterprise pages, not here
@@ -91,6 +93,7 @@ export function DataTableRowActions({ row }: DataTableRowActionsProps) {
     requestVerification,
     verificationActive,
   } = useUsers()
+  const [resetPasswordOpen, setResetPasswordOpen] = useState(false)
   const [resetPasskeyOpen, setResetPasskeyOpen] = useState(false)
   const [resetTwoFAOpen, setResetTwoFAOpen] = useState(false)
   const [bindingDialogOpen, setBindingDialogOpen] = useState(false)
@@ -305,6 +308,19 @@ export function DataTableRowActions({ row }: DataTableRowActionsProps) {
         <DropdownMenuItem
           onSelect={(event) => {
             event.preventDefault()
+            setResetPasswordOpen(true)
+          }}
+          disabled={isRoot}
+        >
+          {t('Reset password')}
+          <DropdownMenuShortcut>
+            <LockKeyhole size={16} />
+          </DropdownMenuShortcut>
+        </DropdownMenuItem>
+
+        <DropdownMenuItem
+          onSelect={(event) => {
+            event.preventDefault()
             setResetPasskeyOpen(true)
           }}
           disabled={isRoot}
@@ -341,6 +357,13 @@ export function DataTableRowActions({ row }: DataTableRowActionsProps) {
           </DropdownMenuShortcut>
         </DropdownMenuItem>
       </DataTableRowActionMenu>
+
+      <ResetPasswordDialog
+        open={resetPasswordOpen}
+        onOpenChange={setResetPasswordOpen}
+        user={user}
+        onSuccess={triggerRefresh}
+      />
 
       <ConfirmDialog
         open={resetPasskeyOpen && !verificationActive}

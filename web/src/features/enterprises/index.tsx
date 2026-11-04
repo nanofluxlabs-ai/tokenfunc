@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next'
 
 import { Button } from '@/components/ui/button'
 import { UserTopupDialog } from '@/features/users/components/dialogs/user-topup-dialog'
+import { ResetPasswordDialog } from '@/features/users/components/reset-password-dialog'
 
 import { EnterpriseBillingDrawer } from './components/enterprise-billing-drawer'
 import { EnterpriseMembersDrawer } from './components/enterprise-members-drawer'
@@ -42,6 +43,14 @@ export function EnterprisesPanel() {
           onOpenChange={(isOpen) => !isOpen && setOpen(null)}
           user={{ id: currentRow.user_id, username: currentRow.username }}
           onSuccess={triggerRefresh}
+        />
+      )}
+      {/* 企业主账号的密码重置复用个人用户的弹窗：同一接口、同一二次验证 */}
+      {currentRow && (
+        <ResetPasswordDialog
+          open={open === 'reset-password'}
+          onOpenChange={(isOpen) => !isOpen && setOpen(null)}
+          user={{ id: currentRow.user_id, username: currentRow.username }}
         />
       )}
       <EnterpriseMutateDrawer

@@ -1533,6 +1533,10 @@
     "Upload failed, please try again later": "アップロードに失敗しました。しばらくしてから再試行してください",
     "Image uploaded. Click Save to apply it.": "画像をアップロードしました。「保存」をクリックすると反映されます。",
     "Uploading…": "アップロード中…",
-    "Upload image": "画像をアップロード"
+    "Upload image": "画像をアップロード",
+    "Verify to reset password": "パスワードをリセットするには本人確認が必要です",
+    "Reset password for {{username}}? A new random password will be generated and all of their sessions will be signed out.": "{{username}} のパスワードをリセットしますか？新しいランダムなパスワードが生成され、すべてのセッションがサインアウトされます。",
+    "Failed to reset password": "パスワードのリセットに失敗しました",
+    "The user must sign in again everywhere: active sessions and access tokens are revoked. The new password is shown only once.": "ユーザーはすべての端末で再ログインが必要です。既存のセッションとアクセストークンは失効します。新しいパスワードは一度しか表示されません。"
   }
 }

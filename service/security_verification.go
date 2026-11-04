@@ -38,14 +38,15 @@ const (
 	VerificationScopeAccountDelete       = "account.delete"
 	// Administrative step-up scopes bind the managed user into the proof so a
 	// proof issued for one account cannot be replayed against another.
-	VerificationScopeAdminUserCreate       = "admin.user.create"
-	VerificationScopeAdminUserUpdate       = "admin.user.update"
-	VerificationScopeAdminUserDelete       = "admin.user.delete"
-	VerificationScopeAdminUserManage       = "admin.user.manage"
-	VerificationScopeAdminUserPasskeyReset = "admin.user.passkey.reset"
-	VerificationScopeAdminUserTwoFADisable = "admin.user.2fa.disable"
-	VerificationScopeAdminUserBindingClear = "admin.user.binding.clear"
-	verificationScopeAdminUserPrefix       = "admin.user."
+	VerificationScopeAdminUserCreate        = "admin.user.create"
+	VerificationScopeAdminUserUpdate        = "admin.user.update"
+	VerificationScopeAdminUserDelete        = "admin.user.delete"
+	VerificationScopeAdminUserManage        = "admin.user.manage"
+	VerificationScopeAdminUserPasskeyReset  = "admin.user.passkey.reset"
+	VerificationScopeAdminUserPasswordReset = "admin.user.password.reset" // TokenFunc 二开：管理员随机重置密码
+	VerificationScopeAdminUserTwoFADisable  = "admin.user.2fa.disable"
+	VerificationScopeAdminUserBindingClear  = "admin.user.binding.clear"
+	verificationScopeAdminUserPrefix        = "admin.user."
 )
 
 // adminUserManageActions are the ManageUser actions that change a user's
@@ -200,7 +201,7 @@ func BindVerificationOperation(operation VerificationOperation) (VerificationBin
 			return VerificationBinding{}, ErrVerificationContextInvalid
 		}
 		normalized = context
-	case VerificationScopeAdminUserUpdate, VerificationScopeAdminUserDelete, VerificationScopeAdminUserPasskeyReset, VerificationScopeAdminUserTwoFADisable:
+	case VerificationScopeAdminUserUpdate, VerificationScopeAdminUserDelete, VerificationScopeAdminUserPasskeyReset, VerificationScopeAdminUserPasswordReset, VerificationScopeAdminUserTwoFADisable:
 		var context AdminUserContext
 		if len(fields) != 1 || common.Unmarshal(fields["user_id"], &context.UserID) != nil || context.UserID <= 0 {
 			return VerificationBinding{}, ErrVerificationContextInvalid
@@ -332,7 +333,7 @@ func securityVerificationPolicy(scope string, state model.UserVerificationState)
 		VerificationScopePasswordSet, VerificationScopePasswordChange, VerificationScopeAccountDelete,
 		VerificationScopeAdminUserCreate, VerificationScopeAdminUserUpdate, VerificationScopeAdminUserDelete,
 		VerificationScopeAdminUserManage, VerificationScopeAdminUserPasskeyReset,
-		VerificationScopeAdminUserTwoFADisable, VerificationScopeAdminUserBindingClear:
+		VerificationScopeAdminUserTwoFADisable, VerificationScopeAdminUserPasswordReset, VerificationScopeAdminUserBindingClear:
 		if scope == VerificationScopeAccountDelete && state.Role == common.RoleRootUser {
 			return nil, ErrVerificationForbidden
 		}
@@ -397,7 +398,7 @@ func GetVerificationRequirements(identity AuthIdentity, scope string) (*Verifica
 			case VerificationScopeAccountBind, VerificationScopeAccountUnbind, VerificationScopePasswordSet, VerificationScopePasswordChange, VerificationScopeAccountDelete,
 				VerificationScopeAdminUserCreate, VerificationScopeAdminUserUpdate, VerificationScopeAdminUserDelete,
 				VerificationScopeAdminUserManage, VerificationScopeAdminUserPasskeyReset,
-				VerificationScopeAdminUserTwoFADisable, VerificationScopeAdminUserBindingClear:
+				VerificationScopeAdminUserTwoFADisable, VerificationScopeAdminUserPasswordReset, VerificationScopeAdminUserBindingClear:
 				methods[i].Available, methods[i].Reason = false, "Password authentication is disabled."
 			}
 		}

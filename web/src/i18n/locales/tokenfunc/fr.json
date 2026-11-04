@@ -1533,6 +1533,10 @@
     "Upload failed, please try again later": "Échec du téléversement, veuillez réessayer plus tard",
     "Image uploaded. Click Save to apply it.": "Image téléversée. Cliquez sur Enregistrer pour l’appliquer.",
     "Uploading…": "Téléversement…",
-    "Upload image": "Téléverser une image"
+    "Upload image": "Téléverser une image",
+    "Verify to reset password": "Vérifiez votre identité pour réinitialiser le mot de passe",
+    "Reset password for {{username}}? A new random password will be generated and all of their sessions will be signed out.": "Réinitialiser le mot de passe de {{username}} ? Un nouveau mot de passe aléatoire sera généré et toutes ses sessions seront déconnectées.",
+    "Failed to reset password": "Échec de la réinitialisation du mot de passe",
+    "The user must sign in again everywhere: active sessions and access tokens are revoked. The new password is shown only once.": "L'utilisateur devra se reconnecter partout : les sessions actives et les jetons d'accès sont révoqués. Le nouveau mot de passe n'est affiché qu'une seule fois."
   }
 }

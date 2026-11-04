@@ -1533,6 +1533,10 @@
     "Upload failed, please try again later": "Upload failed, please try again later",
     "Image uploaded. Click Save to apply it.": "Image uploaded. Click Save to apply it.",
     "Uploading…": "Uploading…",
-    "Upload image": "Upload image"
+    "Upload image": "Upload image",
+    "Verify to reset password": "Verify to reset password",
+    "Reset password for {{username}}? A new random password will be generated and all of their sessions will be signed out.": "Reset password for {{username}}? A new random password will be generated and all of their sessions will be signed out.",
+    "Failed to reset password": "Failed to reset password",
+    "The user must sign in again everywhere: active sessions and access tokens are revoked. The new password is shown only once.": "The user must sign in again everywhere: active sessions and access tokens are revoked. The new password is shown only once."
   }
 }

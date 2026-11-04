@@ -51,3 +51,11 @@ test('a credit enterprise keeps the Top-up action disabled because it is settled
   expect(screen.getByRole('button', { name: 'Top-up' })).toBeDisabled()
   expect(screen.getByTestId('open-state')).toHaveTextContent('none:0')
 })
+
+test('every enterprise exposes a Reset password action that opens the reset-password dialog for that row', async () => {
+  renderActions({ billing_mode: 'credit' })
+
+  await userEvent.click(screen.getByRole('button', { name: 'Reset password' }))
+
+  expect(screen.getByTestId('open-state')).toHaveTextContent('reset-password:5')
+})

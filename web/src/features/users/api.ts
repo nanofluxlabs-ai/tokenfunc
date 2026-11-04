@@ -208,6 +208,28 @@ export async function resetUserTwoFA(
   return res.data
 }
 
+export type ResetUserPasswordResult = {
+  user_id: number
+  username: string
+  password: string
+}
+
+/**
+ * 管理员随机重置用户密码（TokenFunc 二开）；需要 `admin.user.password.reset` proof，
+ * 新密码只在响应里出现一次
+ */
+export async function resetUserPassword(
+  id: number,
+  proofToken: string
+): Promise<ApiResponse<ResetUserPasswordResult>> {
+  const res = await api.post(
+    `/api/user/${id}/reset_password`,
+    undefined,
+    securityProofConfig(proofToken)
+  )
+  return res.data
+}
+
 /**
  * Get all available groups
  */

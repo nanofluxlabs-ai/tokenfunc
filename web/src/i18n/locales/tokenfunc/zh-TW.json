@@ -1533,6 +1533,10 @@
     "Upload failed, please try again later": "上傳失敗，請稍後重試",
     "Image uploaded. Click Save to apply it.": "圖片已上傳，點擊「儲存」後生效。",
     "Uploading…": "上傳中…",
-    "Upload image": "上傳圖片"
+    "Upload image": "上傳圖片",
+    "Verify to reset password": "驗證後重設密碼",
+    "Reset password for {{username}}? A new random password will be generated and all of their sessions will be signed out.": "要重設 {{username}} 的密碼嗎？將產生新的隨機密碼，並使該使用者的所有工作階段登出。",
+    "Failed to reset password": "重設密碼失敗",
+    "The user must sign in again everywhere: active sessions and access tokens are revoked. The new password is shown only once.": "該使用者需要在所有裝置上重新登入：現有工作階段與存取權杖全部失效。新密碼僅顯示一次。"
   }
 }

@@ -126,6 +126,7 @@ export type EnterprisesDialogType =
   | 'billing'
   | 'members'
   | 'topup'
+  | 'reset-password'
 
 export type CreditCycleType = 'natural_month' | 'fixed_days' | 'quota_based'
 

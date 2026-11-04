@@ -45,6 +45,7 @@ export type SecurityProofScope =
   | 'admin.user.manage'
   | 'admin.user.passkey.reset'
   | 'admin.user.2fa.disable'
+  | 'admin.user.password.reset'
   | 'admin.user.binding.clear'
 
 /** ManageUser actions that change a user's status or role and need step-up;
@@ -74,6 +75,7 @@ export type VerificationOperation =
         | 'admin.user.delete'
         | 'admin.user.passkey.reset'
         | 'admin.user.2fa.disable'
+        | 'admin.user.password.reset'
       context: { user_id: number }
     }
   | {

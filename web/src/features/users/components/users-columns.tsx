@@ -21,6 +21,7 @@ import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { ActivityTimeCell } from '@/components/activity-time-cell'
+import { CopyButton } from '@/components/copy-button'
 import { BadgeCell } from '@/components/data-table'
 import { GroupBadge } from '@/components/group-badge'
 import { LongText } from '@/components/long-text'
@@ -107,6 +108,11 @@ export function useUsersColumns(): ColumnDef<User>[] {
                 <LongText className='max-w-[140px] text-sm font-normal'>
                   <UsageLogsUserLink username={username} />
                 </LongText>
+                <CopyButton
+                  value={username}
+                  className='size-6 shrink-0'
+                  tooltip={t('Copy username')}
+                />
                 {remark && (
                   <Tooltip>
                     <TooltipTrigger
@@ -149,7 +155,16 @@ export function useUsersColumns(): ColumnDef<User>[] {
           if (!email) {
             return <span className='text-muted-foreground text-sm'>—</span>
           }
-          return <LongText className='max-w-[200px] text-sm'>{email}</LongText>
+          return (
+            <div className='flex items-center gap-1'>
+              <LongText className='max-w-[200px] text-sm'>{email}</LongText>
+              <CopyButton
+                value={email}
+                className='size-6 shrink-0'
+                tooltip={t('Copy email')}
+              />
+            </div>
+          )
         },
         enableSorting: false,
         size: 220,

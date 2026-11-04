@@ -321,8 +321,8 @@ export function ChannelUsagePage() {
                 typeCounts={data?.type_counts ?? {}}
               />
               <div className='flex flex-wrap items-center justify-between gap-2'>
-                <div className='flex flex-wrap items-center gap-2'>
-                  <div className='relative min-w-[220px]'>
+                <div className='flex w-full flex-wrap items-center gap-2 sm:w-auto'>
+                  <div className='relative w-full sm:w-auto sm:min-w-[220px]'>
                     <Search className='text-muted-foreground pointer-events-none absolute top-1/2 left-2 h-4 w-4 -translate-y-1/2' />
                     <Input
                       value={draftKeyword}
@@ -349,7 +349,10 @@ export function ChannelUsagePage() {
                       )
                     }
                   >
-                    <SelectTrigger aria-label={t('Status')} className='w-36'>
+                    <SelectTrigger
+                      aria-label={t('Status')}
+                      className='w-full sm:w-36'
+                    >
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent alignItemWithTrigger={false}>
@@ -369,7 +372,7 @@ export function ChannelUsagePage() {
                     {t('Query')}
                   </Button>
                 </div>
-                <div className='flex flex-wrap items-center gap-2'>
+                <div className='flex w-full flex-wrap items-center gap-2 sm:w-auto'>
                   <ToggleGroup
                     variant='outline'
                     size='sm'

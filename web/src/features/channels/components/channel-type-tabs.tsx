@@ -26,7 +26,8 @@ export function ChannelTypeTabs(props: ChannelTypeTabsProps) {
     >
       <TabsList
         variant='line'
-        className='max-w-full flex-wrap justify-start group-data-horizontal/tabs:h-auto'
+        // 允许换行；上游触发器默认 h-[calc(100%-1px)] flex-1，列表高度为 auto 时百分比高度会算错、溢出到下方元素，这里固定触发器高度且不撑满整行
+        className='max-w-full flex-wrap justify-start group-data-horizontal/tabs:h-auto [&_[data-slot=tabs-trigger]]:h-7 [&_[data-slot=tabs-trigger]]:flex-none'
         aria-label={t('Channel type')}
       >
         <TabsTrigger value='all'>

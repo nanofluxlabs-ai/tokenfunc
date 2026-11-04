@@ -1,6 +1,8 @@
 package relay
 
 import (
+	"bufio"
+	"bytes"
 	"fmt"
 	"io"
 	"net/http"
@@ -122,6 +124,12 @@ func relayResponsesRequest(c *gin.Context, info *relaycommon.RelayInfo, adaptor 
 	info.RelayMode = relayconstant.RelayModeResponses
 	info.RequestURLPath = "/v1/responses"
 
+	// ChatGPT Codex 后端只接受 stream=true（否则 400 "Stream must be set to true"）：
+	// 上游一律流式，非流式客户端由下面的缓冲处理器攒成一个 JSON 再返回
+	if info.ChannelType == constant.ChannelTypeCodex {
+		responsesReq.Stream = common.GetPointer(true)
+	}
+
 	convertedRequest, err := adaptor.ConvertOpenAIResponsesRequest(c, info, *responsesReq)
 	if err != nil {
 		return nil, newConvertRequestFailedError(c, info, err)
@@ -166,6 +174,10 @@ func relayResponsesRequest(c *gin.Context, info *relaycommon.RelayInfo, adaptor 
 	httpResp = resp.(*http.Response)
 	clientStream := info.IsStream
 	upstreamStream := isResponsesEventStreamContentType(httpResp.Header.Get("Content-Type"))
+	if !upstreamStream && httpResp.StatusCode == http.StatusOK {
+		// ChatGPT Codex 后端返回 SSE 时不带 Content-Type，只看响应头会把事件流当 JSON 整体解析；按首字节再判一次
+		upstreamStream, httpResp.Body = sniffResponsesEventStream(httpResp.Body)
+	}
 	info.IsStream = clientStream || upstreamStream
 	if httpResp.StatusCode != http.StatusOK {
 		newApiErr := service.RelayErrorHandler(c.Request.Context(), httpResp, false)
@@ -201,4 +213,18 @@ func relayResponsesRequest(c *gin.Context, info *relaycommon.RelayInfo, adaptor 
 
 func isResponsesEventStreamContentType(contentType string) bool {
 	return strings.Contains(strings.ToLower(contentType), "text/event-stream")
+}
+
+// sniffResponsesEventStream 预读响应首字节判断是否 SSE（以 "event:" 或 "data:" 开头），读过的字节原样放回 body
+func sniffResponsesEventStream(body io.ReadCloser) (bool, io.ReadCloser) {
+	if body == nil {
+		return false, body
+	}
+	reader := bufio.NewReader(body)
+	head, _ := reader.Peek(6)
+	isStream := bytes.HasPrefix(head, []byte("event:")) || bytes.HasPrefix(head, []byte("data:"))
+	return isStream, struct {
+		io.Reader
+		io.Closer
+	}{reader, body}
 }

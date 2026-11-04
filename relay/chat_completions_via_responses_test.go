@@ -209,6 +209,88 @@ func TestTextRequestViaResponsesConvertsClaudeDirectly(t *testing.T) {
 	assert.Equal(t, "ok", response.Content[0].GetText())
 }
 
+// ChatGPT Codex 后端返回 SSE 不带 Content-Type、且只接受 stream=true：
+// 流式客户端要按首字节识别出事件流并转成 chat chunk；非流式客户端上游仍走流式，由缓冲处理器攒成一个 JSON
+func TestTextRequestViaResponsesHandlesCodexEventStreamWithoutContentType(t *testing.T) {
+	const sse = "event: response.created\n" +
+		"data: {\"type\":\"response.created\",\"sequence_number\":0,\"response\":{\"id\":\"resp_1\",\"object\":\"response\",\"status\":\"in_progress\",\"model\":\"gpt-6-luna\"}}\n\n" +
+		"event: response.output_item.added\n" +
+		"data: {\"type\":\"response.output_item.added\",\"sequence_number\":1,\"output_index\":0,\"item\":{\"type\":\"message\",\"id\":\"msg_1\",\"role\":\"assistant\",\"status\":\"in_progress\",\"content\":[]}}\n\n" +
+		"event: response.output_text.delta\n" +
+		"data: {\"type\":\"response.output_text.delta\",\"sequence_number\":2,\"item_id\":\"msg_1\",\"output_index\":0,\"content_index\":0,\"delta\":\"ok\"}\n\n" +
+		"event: response.completed\n" +
+		"data: {\"type\":\"response.completed\",\"sequence_number\":3,\"response\":{\"id\":\"resp_1\",\"object\":\"response\",\"status\":\"completed\",\"model\":\"gpt-6-luna\",\"output\":[{\"type\":\"message\",\"id\":\"msg_1\",\"role\":\"assistant\",\"status\":\"completed\",\"content\":[{\"type\":\"output_text\",\"text\":\"ok\"}]}],\"usage\":{\"input_tokens\":3,\"output_tokens\":2,\"total_tokens\":5}}}\n\n"
+
+	previousTimeout := constant.StreamingTimeout
+	constant.StreamingTimeout = 30
+	t.Cleanup(func() { constant.StreamingTimeout = previousTimeout })
+
+	captured := make(chan []byte, 2)
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		body, _ := io.ReadAll(r.Body)
+		captured <- body
+		// 与 chatgpt.com/backend-api/codex/responses 一致：不发 Content-Type
+		w.Header()["Content-Type"] = nil
+		w.WriteHeader(http.StatusOK)
+		_, _ = io.WriteString(w, sse)
+	}))
+	defer server.Close()
+
+	run := func(t *testing.T, clientStream bool) (*httptest.ResponseRecorder, *dto.Usage, map[string]any) {
+		t.Helper()
+		gin.SetMode(gin.TestMode)
+		recorder := httptest.NewRecorder()
+		c, _ := gin.CreateTestContext(recorder)
+		c.Request = httptest.NewRequest(http.MethodPost, "/v1/chat/completions", nil)
+		c.Request.Header.Set("Content-Type", "application/json")
+		info := &relaycommon.RelayInfo{
+			RelayMode:       relayconstant.RelayModeChatCompletions,
+			RelayFormat:     relaytypes.RelayFormatOpenAI,
+			OriginModelName: "gpt-6-luna",
+			IsStream:        clientStream,
+			ChannelMeta: &relaycommon.ChannelMeta{
+				ChannelType:       constant.ChannelTypeCodex,
+				ChannelBaseUrl:    server.URL,
+				ApiKey:            "test-key",
+				UpstreamModelName: "gpt-6-luna",
+			},
+		}
+		adaptor := &openaichannel.Adaptor{}
+		adaptor.Init(info)
+		request := &dto.GeneralOpenAIRequest{
+			Model:    "gpt-6-luna",
+			Stream:   common.GetPointer(clientStream),
+			Messages: []dto.Message{{Role: "user", Content: "hello"}},
+		}
+		usage, apiErr := textRequestViaResponses(c, info, adaptor, request)
+		require.Nil(t, apiErr)
+		require.NotNil(t, usage)
+		var upstreamBody map[string]any
+		require.NoError(t, common.Unmarshal(<-captured, &upstreamBody))
+		return recorder, usage, upstreamBody
+	}
+
+	t.Run("stream client", func(t *testing.T) {
+		recorder, usage, upstreamBody := run(t, true)
+		assert.Equal(t, 5, usage.TotalTokens)
+		assert.Equal(t, true, upstreamBody["stream"])
+		body := recorder.Body.String()
+		assert.Contains(t, body, "data: ")
+		assert.Contains(t, body, "chat.completion.chunk")
+		assert.Contains(t, body, "\"ok\"")
+	})
+
+	t.Run("non-stream client is served from the forced upstream stream", func(t *testing.T) {
+		recorder, usage, upstreamBody := run(t, false)
+		assert.Equal(t, 5, usage.TotalTokens)
+		assert.Equal(t, true, upstreamBody["stream"], "Codex 上游必须 stream=true")
+		var response dto.OpenAITextResponse
+		require.NoError(t, common.Unmarshal(recorder.Body.Bytes(), &response))
+		require.Len(t, response.Choices, 1)
+		assert.Equal(t, "ok", response.Choices[0].Message.StringContent())
+	})
+}
+
 func TestApplySystemPromptIfNeededSkipsToolLoadingMessages(t *testing.T) {
 	tools := json.RawMessage(`[{"type":"function","function":{"name":"get_current_time","parameters":{"type":"object","properties":{"city":{"type":"string"}}}}}]`)
 	toolLoading := dto.Message{Role: "system", Tools: tools}

@@ -17,13 +17,14 @@ export function UsageTab(props: UsageTabProps) {
   const summary = useUsageSummary(props.usageParams)
   return (
     <div className='flex flex-col gap-4'>
-      <div className='grid gap-3 sm:grid-cols-3'>
+      <div className='grid grid-cols-2 gap-3 sm:grid-cols-3'>
         <MetricCard
           label={t('Requests')}
           value={formatNumber(summary.data?.total_calls ?? 0, locale)}
           loading={summary.isLoading}
         />
         <MetricCard
+          className='order-first col-span-2 sm:order-none sm:col-span-1'
           label={t('Total amount (USD)')}
           value={`$${Number.parseFloat(summary.data?.total_amount_usd ?? '0').toFixed(4)}`}
           loading={summary.isLoading}

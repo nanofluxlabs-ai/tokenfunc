@@ -21,13 +21,14 @@ export function TopupTab(props: TopupTabProps) {
 
   return (
     <div className='flex flex-col gap-4'>
-      <div className='grid gap-3 sm:grid-cols-3'>
+      <div className='grid grid-cols-2 gap-3 sm:grid-cols-3'>
         <MetricCard
           label={t('Entries')}
           value={formatNumber(summary.data?.total_entries ?? 0, locale)}
           loading={summary.isLoading}
         />
         <MetricCard
+          className='order-first col-span-2 sm:order-none sm:col-span-1'
           label={t('Net amount (USD)')}
           value={formatSignedUsd(summary.data?.total_amount_usd ?? '0.000000')}
           loading={summary.isLoading}

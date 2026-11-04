@@ -88,7 +88,7 @@ export function useModelConsumptionColumns(): ColumnDef<
           <DataTableColumnHeader
             column={column}
             title={t('Cost (USD)')}
-            className='justify-end'
+            className='-me-3 justify-end'
           />
         ),
         meta: { label: t('Cost (USD)') },
@@ -110,7 +110,7 @@ export function useModelConsumptionColumns(): ColumnDef<
           <DataTableColumnHeader
             column={column}
             title={t('Requests')}
-            className='justify-end'
+            className='-me-3 justify-end'
           />
         ),
         meta: { label: t('Requests') },
@@ -128,7 +128,7 @@ export function useModelConsumptionColumns(): ColumnDef<
           <DataTableColumnHeader
             column={column}
             title={t('Tokens')}
-            className='justify-end'
+            className='-me-3 justify-end'
           />
         ),
         meta: { label: t('Tokens') },

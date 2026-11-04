@@ -37,7 +37,8 @@ export function useChannelUsageColumns(params: {
     () => [
       {
         accessorKey: 'id',
-        header: 'ID',
+        // 单元格前有 20px 的展开箭头占位（含隐藏占位），表头同样缩进才能对齐
+        header: () => <span className='pl-5'>ID</span>,
         enableSorting: false,
         cell: ({ row }) => {
           const expandable = isExpandable(row.original)
@@ -142,7 +143,7 @@ export function useChannelUsageColumns(params: {
           <DataTableColumnHeader
             column={column}
             title={rangeColumnTitle}
-            className='justify-end'
+            className='-me-3 justify-end'
           />
         ),
         cell: ({ row }) => (
@@ -165,7 +166,7 @@ export function useChannelUsageColumns(params: {
           <DataTableColumnHeader
             column={column}
             title={t('This month value')}
-            className='justify-end'
+            className='-me-3 justify-end'
           />
         ),
         cell: ({ row }) => (
@@ -188,7 +189,7 @@ export function useChannelUsageColumns(params: {
           <DataTableColumnHeader
             column={column}
             title={t('Total value')}
-            className='justify-end'
+            className='-me-3 justify-end'
           />
         ),
         cell: ({ row }) => (

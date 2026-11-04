@@ -380,6 +380,11 @@ func (a *Adaptor) resolve(c *gin.Context, info *relaycommon.RelayInfo) error {
 }
 
 func incomingRequestPath(c *gin.Context, info *relaycommon.RelayInfo) string {
+	// 网关把 Chat / Claude 请求按 chat→responses 策略转成 Responses 后，RelayMode 与 RequestURLPath 已改成
+	// /v1/responses，要按它匹配路由；按客户端原始路径匹配会把 Responses 请求体发到上游的 chat 端点（TokenFunc 二开）
+	if info != nil && info.RelayMode == relayconstant.RelayModeResponses && info.RequestURLPath != "" {
+		return relaycommon.NormalizePlaygroundPath(strings.Split(info.RequestURLPath, "?")[0])
+	}
 	if c != nil && c.Request != nil && c.Request.URL != nil {
 		// 游乐场 /pg/... 按 /v1/... 匹配路由（TokenFunc 二开）
 		return relaycommon.NormalizePlaygroundPath(c.Request.URL.Path)

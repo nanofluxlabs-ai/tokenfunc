@@ -381,7 +381,8 @@ func (a *Adaptor) resolve(c *gin.Context, info *relaycommon.RelayInfo) error {
 
 func incomingRequestPath(c *gin.Context, info *relaycommon.RelayInfo) string {
 	if c != nil && c.Request != nil && c.Request.URL != nil {
-		return c.Request.URL.Path
+		// 游乐场 /pg/... 按 /v1/... 匹配路由（TokenFunc 二开）
+		return relaycommon.NormalizePlaygroundPath(c.Request.URL.Path)
 	}
 	if info == nil {
 		return ""

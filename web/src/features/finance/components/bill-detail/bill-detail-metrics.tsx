@@ -98,7 +98,7 @@ export function BillDetailMetrics(props: BillDetailMetricsProps) {
       <MetricCard
         // 日期区间放不进手机半宽卡，单独占一行
         className='col-span-2 sm:col-span-1'
-        label={t('Period')}
+        label={t('Billing period')}
         value={
           <span className='text-lg'>
             {billDay(summary.period_start)} ~ {billDay(summary.period_end - 1)}

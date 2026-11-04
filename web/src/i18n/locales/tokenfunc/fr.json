@@ -1537,6 +1537,7 @@
     "Verify to reset password": "Vérifiez votre identité pour réinitialiser le mot de passe",
     "Reset password for {{username}}? A new random password will be generated and all of their sessions will be signed out.": "Réinitialiser le mot de passe de {{username}} ? Un nouveau mot de passe aléatoire sera généré et toutes ses sessions seront déconnectées.",
     "Failed to reset password": "Échec de la réinitialisation du mot de passe",
-    "The user must sign in again everywhere: active sessions and access tokens are revoked. The new password is shown only once.": "L'utilisateur devra se reconnecter partout : les sessions actives et les jetons d'accès sont révoqués. Le nouveau mot de passe n'est affiché qu'une seule fois."
+    "The user must sign in again everywhere: active sessions and access tokens are revoked. The new password is shown only once.": "L'utilisateur devra se reconnecter partout : les sessions actives et les jetons d'accès sont révoqués. Le nouveau mot de passe n'est affiché qu'une seule fois.",
+    "Billing period": "Période de facturation"
   }
 }

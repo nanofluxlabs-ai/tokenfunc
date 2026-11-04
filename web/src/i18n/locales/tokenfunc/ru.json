@@ -1537,6 +1537,7 @@
     "Verify to reset password": "Подтвердите личность для сброса пароля",
     "Reset password for {{username}}? A new random password will be generated and all of their sessions will be signed out.": "Сбросить пароль пользователя {{username}}? Будет создан новый случайный пароль, а все его сеансы будут завершены.",
     "Failed to reset password": "Не удалось сбросить пароль",
-    "The user must sign in again everywhere: active sessions and access tokens are revoked. The new password is shown only once.": "Пользователю потребуется войти заново на всех устройствах: активные сеансы и токены доступа отозваны. Новый пароль показывается только один раз."
+    "The user must sign in again everywhere: active sessions and access tokens are revoked. The new password is shown only once.": "Пользователю потребуется войти заново на всех устройствах: активные сеансы и токены доступа отозваны. Новый пароль показывается только один раз.",
+    "Billing period": "Расчётный период"
   }
 }

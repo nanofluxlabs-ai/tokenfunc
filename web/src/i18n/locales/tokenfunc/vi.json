@@ -1537,6 +1537,7 @@
     "Verify to reset password": "Xác minh để đặt lại mật khẩu",
     "Reset password for {{username}}? A new random password will be generated and all of their sessions will be signed out.": "Đặt lại mật khẩu cho {{username}}? Mật khẩu ngẫu nhiên mới sẽ được tạo và tất cả phiên đăng nhập của người dùng này sẽ bị đăng xuất.",
     "Failed to reset password": "Đặt lại mật khẩu thất bại",
-    "The user must sign in again everywhere: active sessions and access tokens are revoked. The new password is shown only once.": "Người dùng phải đăng nhập lại ở mọi nơi: các phiên đang hoạt động và mã truy cập đều bị thu hồi. Mật khẩu mới chỉ hiển thị một lần."
+    "The user must sign in again everywhere: active sessions and access tokens are revoked. The new password is shown only once.": "Người dùng phải đăng nhập lại ở mọi nơi: các phiên đang hoạt động và mã truy cập đều bị thu hồi. Mật khẩu mới chỉ hiển thị một lần.",
+    "Billing period": "Kỳ thanh toán"
   }
 }

@@ -1537,6 +1537,7 @@
     "Verify to reset password": "パスワードをリセットするには本人確認が必要です",
     "Reset password for {{username}}? A new random password will be generated and all of their sessions will be signed out.": "{{username}} のパスワードをリセットしますか？新しいランダムなパスワードが生成され、すべてのセッションがサインアウトされます。",
     "Failed to reset password": "パスワードのリセットに失敗しました",
-    "The user must sign in again everywhere: active sessions and access tokens are revoked. The new password is shown only once.": "ユーザーはすべての端末で再ログインが必要です。既存のセッションとアクセストークンは失効します。新しいパスワードは一度しか表示されません。"
+    "The user must sign in again everywhere: active sessions and access tokens are revoked. The new password is shown only once.": "ユーザーはすべての端末で再ログインが必要です。既存のセッションとアクセストークンは失効します。新しいパスワードは一度しか表示されません。",
+    "Billing period": "請求期間"
   }
 }

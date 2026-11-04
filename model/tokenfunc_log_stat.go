@@ -17,7 +17,10 @@ CROSS JOIN LATERAL (SELECT
 	COALESCE((o.j->>'cache_tokens')::numeric, 0)::bigint AS cache_read,
 	COALESCE((o.j->>'cache_creation_tokens')::numeric, 0)::bigint AS cache_write_total,
 	COALESCE((o.j->>'cache_creation_tokens_5m')::numeric, 0)::bigint + COALESCE((o.j->>'cache_creation_tokens_1h')::numeric, 0)::bigint AS cache_write_split,
-	(COALESCE(o.j->>'usage_semantic', '') = 'anthropic' OR jsonb_exists(o.j, 'cache_creation_tokens')) AS is_net
+	(COALESCE(o.j->>'usage_semantic', '') = 'anthropic'
+		OR COALESCE((o.j->>'cache_creation_tokens_5m')::numeric, 0) > 0
+		OR COALESCE((o.j->>'cache_creation_tokens_1h')::numeric, 0) > 0
+		OR (jsonb_exists(o.j, 'cache_creation_tokens') AND NOT jsonb_exists(o.j, 'cache_creation_tokens_12h'))) AS is_net
 ) b
 CROSS JOIN LATERAL (SELECT
 	b.cache_read, b.is_net,

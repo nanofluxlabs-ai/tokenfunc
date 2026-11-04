@@ -1538,6 +1538,10 @@
     "Reset password for {{username}}? A new random password will be generated and all of their sessions will be signed out.": "{{username}} のパスワードをリセットしますか？新しいランダムなパスワードが生成され、すべてのセッションがサインアウトされます。",
     "Failed to reset password": "パスワードのリセットに失敗しました",
     "The user must sign in again everywhere: active sessions and access tokens are revoked. The new password is shown only once.": "ユーザーはすべての端末で再ログインが必要です。既存のセッションとアクセストークンは失効します。新しいパスワードは一度しか表示されません。",
-    "Billing period": "請求期間"
+    "Billing period": "請求期間",
+    "Input / output tokens. Input counts only tokens that missed the cache; cache read and cache write tokens are listed below and billed at their own rates.": "入力 / 出力トークン。入力にはキャッシュ未ヒット分のみを数えます。キャッシュ読み取り・書き込みは下に別掲し、それぞれの倍率で課金されます。",
+    "Chat to Responses policy must be valid JSON": "Chat から Responses へのポリシーは有効な JSON である必要があります",
+    "Chat to Responses policy has an invalid model pattern {{pattern}}": "Chat から Responses へのポリシーのモデルパターン {{pattern}} が無効です",
+    "Chat to Responses policy is enabled but no channel scope is set; set all_channels, channel_ids or channel_types": "Chat から Responses へのポリシーは有効ですがチャネル範囲が未指定です。all_channels、channel_ids、channel_types のいずれかを設定してください"
   }
 }

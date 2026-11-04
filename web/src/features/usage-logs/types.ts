@@ -196,6 +196,8 @@ export interface LogOtherData {
   text_output?: number
   cache_tokens?: number
   image_cache_tokens?: number
+  /** 'anthropic' 表示 prompt_tokens 不含缓存；缺省为 OpenAI 语义，prompt_tokens 含缓存读写 */
+  usage_semantic?: string
   billing_tokens?: Record<string, number>
   cache_creation_tokens?: number
   cache_creation_tokens_5m?: number

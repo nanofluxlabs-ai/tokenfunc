@@ -33,6 +33,7 @@ import { formatLogQuota, formatTimestampToDate } from '@/lib/format'
 
 import type { UsageLog } from '../data/schema'
 import { formatModelName, logTokenName, parseLogOther } from '../lib/format'
+import { resolveTokenUsage } from '../lib/token-usage'
 import {
   getLogTypeConfig,
   isDisplayableLogType,
@@ -127,12 +128,10 @@ export function CommonLogMobileCard<TData>(props: {
   const costCell = props.cells.get('quota')
   const contentCell = props.cells.get('content')
   const channelCell = props.cells.get('channel')
-  const cacheRead = other?.cache_tokens || 0
-  const cacheWrite =
-    (other?.cache_creation_tokens_5m || 0) +
-      (other?.cache_creation_tokens_1h || 0) ||
-    other?.cache_creation_tokens ||
-    0
+  // 输入统一显示未命中缓存的部分，与桌面端列表同一套口径
+  const tokenUsage = resolveTokenUsage(log, other)
+  const cacheRead = tokenUsage.cacheReadTokens
+  const cacheWrite = tokenUsage.cacheWriteTokens
   const showTokens =
     displayable &&
     props.cells.has('prompt_tokens') &&
@@ -293,13 +292,13 @@ export function CommonLogMobileCard<TData>(props: {
           <span>
             {t('Input')}{' '}
             <span className='text-foreground tabular-nums'>
-              {log.prompt_tokens.toLocaleString()}
+              {tokenUsage.inputTokens.toLocaleString()}
             </span>
           </span>
           <span>
             {t('Output')}{' '}
             <span className='text-foreground tabular-nums'>
-              {log.completion_tokens.toLocaleString()}
+              {tokenUsage.outputTokens.toLocaleString()}
             </span>
           </span>
           {cacheRead > 0 && (

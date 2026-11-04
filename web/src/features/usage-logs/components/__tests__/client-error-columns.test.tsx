@@ -113,6 +113,22 @@ test('token cell labels cache read and cache write quantities in words', () => {
   expect(cell).toHaveTextContent('Cache Write 200')
 })
 
+test('token cell shows only uncached input for OpenAI-style usage whose prompt total includes cache reads', () => {
+  renderCells(makeLog(2, { cache_tokens: 512 }), ['prompt_tokens'])
+  const cell = screen.getByTestId('cell-prompt_tokens')
+  expect(cell).toHaveTextContent('488 / 500')
+  expect(cell).toHaveTextContent('Cache Read 512')
+})
+
+test('token cell keeps Anthropic input unchanged because it already excludes cache reads', () => {
+  renderCells(makeLog(2, { usage_semantic: 'anthropic', cache_tokens: 512 }), [
+    'prompt_tokens',
+  ])
+  const cell = screen.getByTestId('cell-prompt_tokens')
+  expect(cell).toHaveTextContent('1,000 / 500')
+  expect(cell).toHaveTextContent('Cache Read 512')
+})
+
 test('token cell omits the cache line when neither cache quantity is present', () => {
   renderCells(makeLog(2, { cache_tokens: 0 }), ['prompt_tokens'])
   const cell = screen.getByTestId('cell-prompt_tokens')

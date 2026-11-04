@@ -66,6 +66,7 @@ import {
   renderAuditContent,
   renderLogContent,
 } from '../../lib/format'
+import { resolveTokenUsage } from '../../lib/token-usage'
 import {
   isDisplayableLogType,
   isTimingLogType,
@@ -742,7 +743,7 @@ export function useCommonLogsColumns(
                 <TooltipContent side='top' className='max-w-72'>
                   <p className='text-xs'>
                     {t(
-                      'Input / output tokens. Cache read and cache write tokens are listed below them and billed at their own rates; Anthropic models exclude cached tokens from the input count, OpenAI models include them.'
+                      'Input / output tokens. Input counts only tokens that missed the cache; cache read and cache write tokens are listed below and billed at their own rates.'
                     )}
                   </p>
                 </TooltipContent>
@@ -757,25 +758,18 @@ export function useCommonLogsColumns(
 
           const other = parseLogOther(log.other)
 
-          const promptTokens = log.prompt_tokens || 0
-          const completionTokens = log.completion_tokens || 0
-          if (promptTokens === 0 && completionTokens === 0) {
+          if ((log.prompt_tokens || 0) === 0 && (log.completion_tokens || 0) === 0) {
             return <span className='text-muted-foreground text-xs'>-</span>
           }
 
-          const cacheReadTokens = other?.cache_tokens || 0
-          const cacheWrite5m = other?.cache_creation_tokens_5m || 0
-          const cacheWrite1h = other?.cache_creation_tokens_1h || 0
-          const hasSplitCache = cacheWrite5m > 0 || cacheWrite1h > 0
-          const cacheWriteTokens = hasSplitCache
-            ? cacheWrite5m + cacheWrite1h
-            : other?.cache_creation_tokens || 0
+          // 输入统一显示未命中缓存的部分，OpenAI 语义的 prompt_tokens 要先减掉缓存读写
+          const { inputTokens, outputTokens, cacheReadTokens, cacheWriteTokens } =
+            resolveTokenUsage(log, other)
 
           return (
             <div className='flex flex-col gap-0.5'>
               <span className='font-mono text-xs font-medium tabular-nums'>
-                {promptTokens.toLocaleString()} /{' '}
-                {completionTokens.toLocaleString()}
+                {inputTokens.toLocaleString()} / {outputTokens.toLocaleString()}
               </span>
               {(cacheReadTokens > 0 || cacheWriteTokens > 0) && (
                 <div className='text-muted-foreground flex items-center gap-1 text-[11px] whitespace-nowrap tabular-nums'>

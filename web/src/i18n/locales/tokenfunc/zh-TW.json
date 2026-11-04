@@ -1538,6 +1538,10 @@
     "Reset password for {{username}}? A new random password will be generated and all of their sessions will be signed out.": "要重設 {{username}} 的密碼嗎？將產生新的隨機密碼，並使該使用者的所有工作階段登出。",
     "Failed to reset password": "重設密碼失敗",
     "The user must sign in again everywhere: active sessions and access tokens are revoked. The new password is shown only once.": "該使用者需要在所有裝置上重新登入：現有工作階段與存取權杖全部失效。新密碼僅顯示一次。",
-    "Billing period": "帳期範圍"
+    "Billing period": "帳期範圍",
+    "Input / output tokens. Input counts only tokens that missed the cache; cache read and cache write tokens are listed below and billed at their own rates.": "輸入 / 輸出 token。輸入只統計未命中快取的部分；快取讀取與快取寫入單獨列在下方，按各自的倍率計費。",
+    "Chat to Responses policy must be valid JSON": "Chat 轉 Responses 策略必須是合法的 JSON",
+    "Chat to Responses policy has an invalid model pattern {{pattern}}": "Chat 轉 Responses 策略的模型正規表示式 {{pattern}} 無效",
+    "Chat to Responses policy is enabled but no channel scope is set; set all_channels, channel_ids or channel_types": "Chat 轉 Responses 策略已啟用但未指定渠道範圍，請設定 all_channels、channel_ids 或 channel_types 之一"
   }
 }

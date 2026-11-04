@@ -229,6 +229,22 @@ it('keeps input, output and cache quantities readable without empty metric cells
   expect(screen.getByText('200')).toBeVisible()
 })
 
+it('shows only uncached input on the card for OpenAI-style usage whose prompt total includes cache reads', () => {
+  renderLogs({
+    logs: [
+      {
+        ...log,
+        prompt_tokens: 196531,
+        completion_tokens: 392,
+        other: JSON.stringify({ cache_tokens: 195712 }),
+      },
+    ],
+  })
+  expect(screen.getByText('819')).toBeVisible()
+  expect(screen.getByText('195,712')).toBeVisible()
+  expect(screen.queryByText('196,531')).not.toBeInTheDocument()
+})
+
 it('shows the established empty state when no logs exist', () => {
   renderLogs({ logs: [] })
   expect(screen.getByText('No Logs Found')).toBeVisible()

@@ -1538,6 +1538,10 @@
     "Reset password for {{username}}? A new random password will be generated and all of their sessions will be signed out.": "Сбросить пароль пользователя {{username}}? Будет создан новый случайный пароль, а все его сеансы будут завершены.",
     "Failed to reset password": "Не удалось сбросить пароль",
     "The user must sign in again everywhere: active sessions and access tokens are revoked. The new password is shown only once.": "Пользователю потребуется войти заново на всех устройствах: активные сеансы и токены доступа отозваны. Новый пароль показывается только один раз.",
-    "Billing period": "Расчётный период"
+    "Billing period": "Расчётный период",
+    "Input / output tokens. Input counts only tokens that missed the cache; cache read and cache write tokens are listed below and billed at their own rates.": "Входные / выходные токены. Во входных учитываются только токены, не попавшие в кэш; чтение и запись кэша перечислены ниже и тарифицируются отдельно.",
+    "Chat to Responses policy must be valid JSON": "Политика Chat → Responses должна быть корректным JSON",
+    "Chat to Responses policy has an invalid model pattern {{pattern}}": "Политика Chat → Responses содержит недопустимый шаблон модели {{pattern}}",
+    "Chat to Responses policy is enabled but no channel scope is set; set all_channels, channel_ids or channel_types": "Политика Chat → Responses включена, но область каналов не задана; укажите all_channels, channel_ids или channel_types"
   }
 }

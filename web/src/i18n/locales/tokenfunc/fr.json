@@ -1538,6 +1538,10 @@
     "Reset password for {{username}}? A new random password will be generated and all of their sessions will be signed out.": "Réinitialiser le mot de passe de {{username}} ? Un nouveau mot de passe aléatoire sera généré et toutes ses sessions seront déconnectées.",
     "Failed to reset password": "Échec de la réinitialisation du mot de passe",
     "The user must sign in again everywhere: active sessions and access tokens are revoked. The new password is shown only once.": "L'utilisateur devra se reconnecter partout : les sessions actives et les jetons d'accès sont révoqués. Le nouveau mot de passe n'est affiché qu'une seule fois.",
-    "Billing period": "Période de facturation"
+    "Billing period": "Période de facturation",
+    "Input / output tokens. Input counts only tokens that missed the cache; cache read and cache write tokens are listed below and billed at their own rates.": "Jetons d'entrée / de sortie. L'entrée ne compte que les jetons hors cache ; les lectures et écritures de cache sont listées en dessous et facturées à leurs propres tarifs.",
+    "Chat to Responses policy must be valid JSON": "La politique Chat vers Responses doit être un JSON valide",
+    "Chat to Responses policy has an invalid model pattern {{pattern}}": "La politique Chat vers Responses contient un motif de modèle invalide {{pattern}}",
+    "Chat to Responses policy is enabled but no channel scope is set; set all_channels, channel_ids or channel_types": "La politique Chat vers Responses est activée mais aucune portée de canal n'est définie ; définissez all_channels, channel_ids ou channel_types"
   }
 }

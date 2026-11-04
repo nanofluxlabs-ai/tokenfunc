@@ -1538,6 +1538,10 @@
     "Reset password for {{username}}? A new random password will be generated and all of their sessions will be signed out.": "Reset password for {{username}}? A new random password will be generated and all of their sessions will be signed out.",
     "Failed to reset password": "Failed to reset password",
     "The user must sign in again everywhere: active sessions and access tokens are revoked. The new password is shown only once.": "The user must sign in again everywhere: active sessions and access tokens are revoked. The new password is shown only once.",
-    "Billing period": "Billing period"
+    "Billing period": "Billing period",
+    "Input / output tokens. Input counts only tokens that missed the cache; cache read and cache write tokens are listed below and billed at their own rates.": "Input / output tokens. Input counts only tokens that missed the cache; cache read and cache write tokens are listed below and billed at their own rates.",
+    "Chat to Responses policy must be valid JSON": "Chat to Responses policy must be valid JSON",
+    "Chat to Responses policy has an invalid model pattern {{pattern}}": "Chat to Responses policy has an invalid model pattern {{pattern}}",
+    "Chat to Responses policy is enabled but no channel scope is set; set all_channels, channel_ids or channel_types": "Chat to Responses policy is enabled but no channel scope is set; set all_channels, channel_ids or channel_types"
   }
 }

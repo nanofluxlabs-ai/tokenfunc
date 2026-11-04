@@ -103,7 +103,10 @@ func (a *Adaptor) ConvertOpenAIResponsesRequest(c *gin.Context, info *relaycommo
 	request.Store = json.RawMessage("false")
 	// rm max_output_tokens
 	request.MaxOutputTokens = nil
+	// ChatGPT Codex 后端拒绝采样参数（如 "Unsupported parameter: top_p"），
+	// chat→responses 转换会把游乐场等客户端的 top_p 带进来
 	request.Temperature = nil
+	request.TopP = nil
 	request.FrequencyPenalty = nil
 	request.PresencePenalty = nil
 	return request, nil

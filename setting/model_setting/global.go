@@ -35,6 +35,38 @@ func (p ChatCompletionsToResponsesPolicy) IsChannelEnabled(channelID int, channe
 	return false
 }
 
+// ChatCompletionsToResponsesPolicyOptionKey 系统设置里该策略的完整键名
+const ChatCompletionsToResponsesPolicyOptionKey = "global.chat_completions_to_responses_policy"
+
+// ValidateChatCompletionsToResponsesPolicyJSON 保存前校验策略：启用时必须明确圈定渠道范围
+// （all_channels / channel_ids / channel_types 三选一），模型正则必须能编译。
+// 否则一份只写了 channel_types 但漏写 all_channels 的 JSON 会在合并默认值后悄悄作用于全部渠道（TokenFunc 二开）
+func ValidateChatCompletionsToResponsesPolicyJSON(value string) error {
+	value = strings.TrimSpace(value)
+	if value == "" {
+		return nil
+	}
+	var policy ChatCompletionsToResponsesPolicy
+	if err := common.UnmarshalJsonStr(value, &policy); err != nil {
+		return common.NewMessage("Chat to Responses policy must be valid JSON")
+	}
+	for _, pattern := range policy.ModelPatterns {
+		if pattern == "" {
+			continue
+		}
+		if _, err := regexp.Compile(pattern); err != nil {
+			return common.NewMessage("Chat to Responses policy has an invalid model pattern {{pattern}}", map[string]any{"pattern": pattern})
+		}
+	}
+	if !policy.Enabled {
+		return nil
+	}
+	if policy.AllChannels || len(policy.ChannelIDs) > 0 || len(policy.ChannelTypes) > 0 {
+		return nil
+	}
+	return common.NewMessage("Chat to Responses policy is enabled but no channel scope is set; set all_channels, channel_ids or channel_types")
+}
+
 type GlobalSettings struct {
 	PassThroughRequestEnabled bool     `json:"pass_through_request_enabled"`
 	ThinkingModelBlacklist    []string `json:"thinking_model_blacklist"`
@@ -58,9 +90,11 @@ var defaultOpenaiSettings = GlobalSettings{
 		"stable-diffusion-3-medium",
 		"yi-medium",
 	},
+	// 默认不圈定任何渠道：保存的 JSON 是合并进这个默认值的，缺字段时沿用默认值。
+	// 之前默认 AllChannels=true，管理员只写 channel_types 就会悄悄变成对全部渠道生效（TokenFunc 二开）
 	ChatCompletionsToResponsesPolicy: ChatCompletionsToResponsesPolicy{
 		Enabled:     false,
-		AllChannels: true,
+		AllChannels: false,
 	},
 }
 

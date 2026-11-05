@@ -360,6 +360,16 @@ func InitResources() error {
 		}
 	}
 	model.InitOptionMap()
+	// TokenFunc：用户分组 / 渠道分组注册表首次启动从存量数据播种
+	if common.IsMasterNode {
+		if err := model.SeedTokenFuncGroupRegistries(); err != nil {
+			common.SysError(common.LogText("failed to seed tokenfunc group registries: %s", err.Error()))
+		}
+		// 可见性显式化：把「默认可见」基线转成每个用户分组自己的列表（只执行一次）
+		if err := service.MigrateExplicitGroupVisibility(); err != nil {
+			common.SysError(common.LogText("failed to migrate tokenfunc group visibility: %s", err.Error()))
+		}
+	}
 
 	// 清理旧的磁盘缓存文件
 	common.CleanupOldCacheFiles()

@@ -309,6 +309,8 @@ export type BillingSettings = {
   MaxTokenAutoGroups: number
   DefaultUseAutoGroup: boolean
   'group_ratio_setting.group_special_usable_group': string
+  // TokenFunc 二开：渠道分组名称与排序注册表
+  'tokenfunc_group_setting.channel_groups': string
   PayAddress: string
   EpayId: string
   EpayKey: string

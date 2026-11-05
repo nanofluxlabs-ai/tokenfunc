@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/QuantumNous/new-api/common"
+	"github.com/QuantumNous/new-api/setting/config"
 	"github.com/QuantumNous/new-api/setting/ratio_setting"
 
 	"github.com/shopspring/decimal"
@@ -64,8 +65,12 @@ func TestEnterpriseCreateAndUpgrade(t *testing.T) {
 	previousGroupRatios := ratio_setting.GroupRatio2JSONString()
 	require.NoError(t, ratio_setting.UpdateGroupRatioByJSONString(`{"default":1,"vip":0.8}`))
 	t.Cleanup(func() { require.NoError(t, ratio_setting.UpdateGroupRatioByJSONString(previousGroupRatios)) })
+	// 主账号分组校验的是用户分组注册表（TokenFunc），vip 需先登记
+	registryCfg := config.GlobalConfig.Get("tokenfunc_group_setting")
+	require.NoError(t, config.UpdateConfigFromMap(registryCfg, map[string]string{"user_groups": `{"vip":{"label":"VIP","kind":"enterprise","order":1}}`}))
+	t.Cleanup(func() { _ = config.UpdateConfigFromMap(registryCfg, map[string]string{"user_groups": "{}"}) })
 
-	// 主账号分组必须是分组倍率里已配置的分组
+	// 主账号分组必须是已登记的用户分组
 	assert.ErrorIs(t, CreateEnterpriseWithNewUser(&User{Username: "nogroup", Password: "password123", Group: "missing"}, &Enterprise{Name: "No Group"}), ErrEnterpriseInvalidGroup)
 
 	// 新建主账号：不发新用户赠送额度，分组与登录邮箱写入主账号，开票抬头经 jsonb 往返不丢字段

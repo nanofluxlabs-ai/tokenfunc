@@ -1,4 +1,3 @@
-import { useQuery } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 
 import {
@@ -8,8 +7,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { getGroups } from '@/features/users/api'
-import { requireServerSuccess } from '@/lib/server-error-message'
+import {
+  useChannelGroupOptions,
+  useUserGroupOptions,
+  userGroupOptionLabel,
+} from '@/hooks/use-group-options'
 
 const ALL_GROUPS = '__all__'
 
@@ -18,27 +20,30 @@ type GroupFilterSelectProps = {
   value: string
   onChange: (group: string) => void
   className?: string
+  /**
+   * 按哪个维度筛：用户消耗按 users.group（用户分组），模型消费 / 账单按 logs.group（渠道分组）。
+   * 两张注册表都来自 TokenFunc 二开接口，选项按后台排序并显示名称。
+   */
+  kind: 'user' | 'channel'
 }
 
-/**
- * 分组筛选下拉：选项为系统配置的全部分组（/api/group，与使用日志的分组筛选同一来源与缓存键）。
- * auto 是令牌的自动分组，日志与用户上不会出现，不作为选项。
- */
 export function GroupFilterSelect(props: GroupFilterSelectProps) {
   const { t } = useTranslation()
-  const { data } = useQuery({
-    queryKey: ['groups'],
-    queryFn: async () => requireServerSuccess(await getGroups()),
+  const userGroups = useUserGroupOptions({ enabled: props.kind === 'user' })
+  const channelGroups = useChannelGroupOptions({
+    enabled: props.kind === 'channel',
   })
-  const groups = (data?.data ?? [])
-    .filter((group) => group !== 'auto')
-    .sort((a, b) => a.localeCompare(b))
-  // 已选的分组即使已从系统配置中删掉，也保留为选项，避免下拉显示空白
-  if (props.value && !groups.includes(props.value)) groups.push(props.value)
-  const options = [
-    { value: ALL_GROUPS, label: t('All groups') },
-    ...groups.map((group) => ({ value: group, label: group })),
-  ]
+  const groups = (
+    props.kind === 'user' ? userGroups.options : channelGroups.options
+  ).map((option) => ({
+    value: option.value,
+    label: userGroupOptionLabel(option),
+  }))
+  // 已选的分组即使已从注册表里删掉，也保留为选项，避免下拉显示空白
+  if (props.value && !groups.some((group) => group.value === props.value)) {
+    groups.push({ value: props.value, label: props.value })
+  }
+  const options = [{ value: ALL_GROUPS, label: t('All groups') }, ...groups]
 
   return (
     <Select

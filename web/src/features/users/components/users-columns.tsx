@@ -23,7 +23,6 @@ import { useTranslation } from 'react-i18next'
 import { ActivityTimeCell } from '@/components/activity-time-cell'
 import { CopyButton } from '@/components/copy-button'
 import { BadgeCell } from '@/components/data-table'
-import { GroupBadge } from '@/components/group-badge'
 import { LongText } from '@/components/long-text'
 import { StatusBadge } from '@/components/status-badge'
 import { TableId } from '@/components/table-id'
@@ -46,6 +45,7 @@ import {
 } from '../constants'
 import type { User } from '../types'
 import { DataTableRowActions } from './data-table-row-actions'
+import { UserGroupBadge } from './user-group-badge'
 import { UserQuotaCell } from './user-quota-cell'
 
 export function useUsersColumns(): ColumnDef<User>[] {
@@ -231,7 +231,7 @@ export function useUsersColumns(): ColumnDef<User>[] {
           const group = row.getValue('group') as string
           return (
             <BadgeCell>
-              <GroupBadge group={group} className='font-normal' />
+              <UserGroupBadge group={group} className='font-normal' />
             </BadgeCell>
           )
         },

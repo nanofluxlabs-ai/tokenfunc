@@ -63,13 +63,16 @@ import {
 } from '@/components/ui/sheet'
 import { Switch } from '@/components/ui/switch'
 import { getPaymentErrorTranslation } from '@/features/wallet/lib/payment'
+import {
+  useUserGroupOptions,
+  userGroupOptionLabel,
+} from '@/hooks/use-group-options'
 import { getCurrencyDisplay, getCurrencyLabel } from '@/lib/currency'
 import { handleServerError } from '@/lib/handle-server-error'
 
 import {
   createPlan,
   updatePlan,
-  getGroups,
   createWaffoPancakeSubscriptionProduct,
   listWaffoPancakeSubscriptionProductOptions,
 } from '../api'
@@ -102,7 +105,12 @@ export function SubscriptionsMutateDrawer({
   const tokensOnly = currencyMeta.kind === 'tokens'
   const currencyLabel = getCurrencyLabel()
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const [groupOptions, setGroupOptions] = useState<string[]>([])
+  // 升级 / 降级分组是用户分组（TokenFunc 注册表），显示名称并括注 key
+  const { options: userGroupOptions } = useUserGroupOptions()
+  const groupOptions = userGroupOptions.map((option) => ({
+    value: option.value,
+    label: userGroupOptionLabel(option),
+  }))
   const [creatingPancakeProduct, setCreatingPancakeProduct] = useState(false)
   const [pancakeProducts, setPancakeProducts] = useState<
     { id: string; name: string; status: string }[]
@@ -121,15 +129,6 @@ export function SubscriptionsMutateDrawer({
       } else {
         form.reset(PLAN_FORM_DEFAULTS)
       }
-      getGroups()
-        .then((res) => {
-          if (res.success) {
-            setGroupOptions(res.data || [])
-          } else {
-            handleServerError(res)
-          }
-        })
-        .catch(() => {})
       // Best-effort — empty list still lets the operator use "+ Create".
       listWaffoPancakeSubscriptionProductOptions()
         .then((res) => {
@@ -411,10 +410,7 @@ export function SubscriptionsMutateDrawer({
                         <Combobox
                           options={[
                             { value: '__none__', label: t('No Upgrade') },
-                            ...groupOptions.map((g) => ({
-                              value: g,
-                              label: g,
-                            })),
+                            ...groupOptions,
                           ]}
                           onValueChange={(v) =>
                             field.onChange(v === '__none__' ? '' : v)
@@ -442,10 +438,7 @@ export function SubscriptionsMutateDrawer({
                               value: '__none__',
                               label: t('Downgrade to pre-purchase group'),
                             },
-                            ...groupOptions.map((g) => ({
-                              value: g,
-                              label: g,
-                            })),
+                            ...groupOptions,
                           ]}
                           onValueChange={(v) =>
                             field.onChange(v === '__none__' ? '' : v)

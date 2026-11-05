@@ -1,3 +1,4 @@
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import {
   RouterProvider,
   createMemoryHistory,
@@ -11,12 +12,19 @@ import {
 } from '@tanstack/react-table'
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { afterEach, beforeEach, expect, test, vi } from 'vitest'
+import type { ReactNode } from 'react'
+import { expect, test, vi } from 'vitest'
 
 import { TooltipProvider } from '@/components/ui/tooltip'
 
 import type { User } from '../../types'
 import { useUsersColumns } from '../users-columns'
+
+// 分组列会读用户分组注册表，测试里给空列表
+vi.mock('@/lib/tokenfunc-groups', () => ({
+  listUserGroups: vi.fn(async () => ({ success: true, data: [] })),
+  tokenFuncGroupQueryKeys: { user: ['tokenfunc-groups', 'user'] },
+}))
 
 // 用户列表：用户名、邮箱旁的一键复制
 
@@ -33,6 +41,12 @@ function ColumnCell(props: { user: User; columnId: string }) {
   return cell ? flexRender(cell.column.columnDef.cell, cell.getContext()) : null
 }
 
+function withQueryClient(node: ReactNode) {
+  return (
+    <QueryClientProvider client={new QueryClient()}>{node}</QueryClientProvider>
+  )
+}
+
 async function renderUsernameCell(user: User) {
   const rootRoute = createRootRoute({
     component: () => (
@@ -45,7 +59,7 @@ async function renderUsernameCell(user: User) {
     routeTree: rootRoute,
     history: createMemoryHistory({ initialEntries: ['/'] }),
   })
-  render(<RouterProvider router={router} />)
+  render(withQueryClient(<RouterProvider router={router} />))
   await router.load()
 }
 
@@ -60,24 +74,12 @@ const baseUser = {
   group: 'default',
 } as User
 
-let writeText: ReturnType<typeof vi.fn>
-
-beforeEach(() => {
-  writeText = vi.fn().mockResolvedValue(undefined)
-  Object.defineProperty(navigator, 'clipboard', {
-    value: { writeText },
-    configurable: true,
-  })
-})
-
-afterEach(() => {
-  vi.restoreAllMocks()
-})
-
 test('clicking the copy button next to the username copies the username', async () => {
+  const user = userEvent.setup()
+  const writeText = vi.spyOn(navigator.clipboard, 'writeText')
   await renderUsernameCell(baseUser)
 
-  await userEvent.click(screen.getByRole('button', { name: 'Copy username' }))
+  await user.click(screen.getByRole('button', { name: 'Copy username' }))
 
   expect(writeText).toHaveBeenCalledWith('alice')
   expect(
@@ -86,14 +88,18 @@ test('clicking the copy button next to the username copies the username', async 
 })
 
 test('clicking the copy button next to the email copies the email', async () => {
-  const user = { ...baseUser, id: 8, email: 'bob@example.com' } as User
+  const user = userEvent.setup()
+  const writeText = vi.spyOn(navigator.clipboard, 'writeText')
+  const row = { ...baseUser, id: 8, email: 'bob@example.com' } as User
   render(
-    <TooltipProvider>
-      <ColumnCell user={user} columnId='email' />
-    </TooltipProvider>
+    withQueryClient(
+      <TooltipProvider>
+        <ColumnCell user={row} columnId='email' />
+      </TooltipProvider>
+    )
   )
 
-  await userEvent.click(screen.getByRole('button', { name: 'Copy email' }))
+  await user.click(screen.getByRole('button', { name: 'Copy email' }))
 
   expect(writeText).toHaveBeenCalledWith('bob@example.com')
 })
@@ -101,9 +107,11 @@ test('clicking the copy button next to the email copies the email', async () => 
 test('email column without an email shows the placeholder and no copy button', () => {
   const user = { ...baseUser, id: 9, email: '' } as User
   render(
-    <TooltipProvider>
-      <ColumnCell user={user} columnId='email' />
-    </TooltipProvider>
+    withQueryClient(
+      <TooltipProvider>
+        <ColumnCell user={user} columnId='email' />
+      </TooltipProvider>
+    )
   )
 
   expect(screen.getByText('—')).toBeInTheDocument()

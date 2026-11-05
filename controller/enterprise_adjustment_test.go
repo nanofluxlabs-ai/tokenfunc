@@ -12,6 +12,7 @@ import (
 	"github.com/QuantumNous/new-api/i18n"
 	"github.com/QuantumNous/new-api/model"
 	"github.com/QuantumNous/new-api/service"
+	"github.com/QuantumNous/new-api/setting/config"
 	"github.com/QuantumNous/new-api/setting/ratio_setting"
 
 	"github.com/gin-gonic/gin"
@@ -288,12 +289,16 @@ func TestAdminEnterpriseCreditRequiresProof(t *testing.T) {
 	assert.Equal(t, http.StatusNotFound, response.Code)
 }
 
-// 企业主账号分组：可选项来自分组倍率；新建 / 修改时非法分组被拒且不落任何写入；改分组让主账号登录态失效并留审计
+// 企业主账号分组：可选项来自用户分组注册表的企业档位加 default；新建 / 修改时非法分组被拒且不落任何写入；改分组让主账号登录态失效并留审计
 func TestAdminEnterpriseOwnerGroup(t *testing.T) {
 	setupEnterpriseAdjustmentPostgres(t)
 	previousGroupRatios := ratio_setting.GroupRatio2JSONString()
 	require.NoError(t, ratio_setting.UpdateGroupRatioByJSONString(`{"vip":0.8,"default":1}`))
 	t.Cleanup(func() { require.NoError(t, ratio_setting.UpdateGroupRatioByJSONString(previousGroupRatios)) })
+	// 可选项来自用户分组注册表：企业档位 + default（TokenFunc）
+	registryCfg := config.GlobalConfig.Get("tokenfunc_group_setting")
+	require.NoError(t, config.UpdateConfigFromMap(registryCfg, map[string]string{"user_groups": `{"vip":{"label":"VIP","kind":"enterprise","order":1},"staff":{"label":"Staff","kind":"individual","order":2}}`}))
+	t.Cleanup(func() { _ = config.UpdateConfigFromMap(registryCfg, map[string]string{"user_groups": "{}"}) })
 	operator := &model.User{Username: "group-root", Password: "root-operator-hash", Role: common.RoleRootUser, Status: common.UserStatusEnabled, Group: "default", AuthVersion: 1, AffCode: "group-root"}
 	require.NoError(t, model.DB.Create(operator).Error)
 	identity, _ := createAccessTokenTestSession(t, operator.Id, "enterprise-group-session")
@@ -301,7 +306,7 @@ func TestAdminEnterpriseOwnerGroup(t *testing.T) {
 
 	response := enterpriseAdminRequest(router, http.MethodGet, "/api/admin/enterprise/group-options", "", "")
 	require.Equal(t, http.StatusOK, response.Code)
-	assert.JSONEq(t, `{"success":true,"message":"","data":[{"group":"default","ratio":1},{"group":"vip","ratio":0.8}]}`, response.Body.String())
+	assert.JSONEq(t, `{"success":true,"message":"","data":[{"group":"default","label":"Default group","kind":"individual"},{"group":"vip","label":"VIP","kind":"enterprise"}]}`, response.Body.String())
 
 	createBody := func(group string, email string) string {
 		return fmt.Sprintf(`{"mode":"new_user","username":"group-owner","password":"password123","email":%q,"group":%q,"enterprise":{"name":"Group Co"}}`, email, group)

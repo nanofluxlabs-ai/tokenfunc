@@ -2,15 +2,13 @@ package controller
 
 import (
 	"errors"
-	"maps"
 	"net/http"
-	"slices"
 	"strconv"
 	"strings"
 
 	"github.com/QuantumNous/new-api/common"
 	"github.com/QuantumNous/new-api/model"
-	"github.com/QuantumNous/new-api/setting/ratio_setting"
+	"github.com/QuantumNous/new-api/setting"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
@@ -57,10 +55,11 @@ type adminEnterpriseDetail struct {
 	OwnerGroup string `json:"owner_group"`
 }
 
-// enterpriseGroupOption 企业主账号可选分组及其倍率
+// enterpriseGroupOption 企业主账号可选的用户分组
 type enterpriseGroupOption struct {
-	Group string  `json:"group"`
-	Ratio float64 `json:"ratio"`
+	Group string `json:"group"`
+	Label string `json:"label"`
+	Kind  string `json:"kind"`
 }
 
 func (r enterpriseProfileRequest) toEnterprise() *model.Enterprise {
@@ -111,12 +110,15 @@ func AdminGetEnterprise(c *gin.Context) {
 	common.ApiSuccess(c, adminEnterpriseDetail{Enterprise: enterprise, OwnerGroup: ownerGroup})
 }
 
-// AdminListEnterpriseGroupOptions 企业主账号可选分组：分组倍率里已配置的全部分组，按名称升序
+// AdminListEnterpriseGroupOptions 企业主账号可选分组：用户分组注册表里的企业档位加 default，按后台排序
 func AdminListEnterpriseGroupOptions(c *gin.Context) {
-	ratios := ratio_setting.GetGroupRatioCopy()
-	options := make([]enterpriseGroupOption, 0, len(ratios))
-	for _, group := range slices.Sorted(maps.Keys(ratios)) {
-		options = append(options, enterpriseGroupOption{Group: group, Ratio: ratios[group]})
+	entries := setting.ListUserGroups()
+	options := make([]enterpriseGroupOption, 0, len(entries))
+	for _, entry := range entries {
+		if entry.Kind != setting.UserGroupKindEnterprise && entry.Key != setting.DefaultGroupKey {
+			continue
+		}
+		options = append(options, enterpriseGroupOption{Group: entry.Key, Label: entry.Label, Kind: entry.Kind})
 	}
 	common.ApiSuccess(c, options)
 }

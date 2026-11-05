@@ -29,13 +29,14 @@ import {
   useDataTable,
 } from '@/components/data-table'
 import { useMediaQuery } from '@/hooks'
-import { useTableUrlState } from '@/hooks/use-table-url-state'
 import {
-  createServerError,
-  requireServerSuccess,
-} from '@/lib/server-error-message'
+  useUserGroupOptions,
+  userGroupOptionLabel,
+} from '@/hooks/use-group-options'
+import { useTableUrlState } from '@/hooks/use-table-url-state'
+import { createServerError } from '@/lib/server-error-message'
 
-import { getGroups, getUsers, searchUsers } from '../api'
+import { getUsers, searchUsers } from '../api'
 import {
   USER_STATUS,
   getUserStatusOptions,
@@ -101,11 +102,8 @@ export function UsersTable() {
       | string[]
       | undefined) ?? []
 
-  const { data: groupsData } = useQuery({
-    queryKey: ['groups'],
-    queryFn: async () => requireServerSuccess(await getGroups()),
-    staleTime: 5 * 60 * 1000,
-  })
+  // 用户分组注册表（TokenFunc）：筛选项显示名称
+  const { options: userGroupOptions } = useUserGroupOptions()
 
   const sortParams = useMemo(() => {
     const activeSort = sorting[0]
@@ -247,9 +245,9 @@ export function UsersTable() {
           {
             columnId: 'group',
             title: t('User Group'),
-            options: (groupsData?.data ?? []).map((group) => ({
-              label: group,
-              value: group,
+            options: userGroupOptions.map((group) => ({
+              label: userGroupOptionLabel(group),
+              value: group.value,
             })),
             singleSelect: true,
           },

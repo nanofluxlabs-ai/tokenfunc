@@ -34,7 +34,6 @@ import { toast } from 'sonner'
 import { ConfirmDialog } from '@/components/confirm-dialog'
 import { CopyButton } from '@/components/copy-button'
 import { BadgeListCell } from '@/components/data-table'
-import { GroupBadge } from '@/components/group-badge'
 import { ProviderBadge } from '@/components/provider-badge'
 import { StatusBadge, type StatusBadgeProps } from '@/components/status-badge'
 import { TableId } from '@/components/table-id'
@@ -90,6 +89,7 @@ import {
 import { isDispatchPaused, pausedHealthDimensions } from '../lib/channel-health'
 import { parseUpstreamUpdateMeta } from '../lib/upstream-update-utils'
 import type { Channel } from '../types'
+import { ChannelGroupCell } from './channel-group-cell'
 import { ChannelHealthBadges } from './channel-health-badges'
 import { ChannelRowActionsLayoutContext } from './channel-row-actions-context'
 import { TaskPluginChannelBadge } from './channel-type-badge'
@@ -1167,22 +1167,12 @@ export function useChannelsColumns(
         accessorKey: 'group',
         header: t('Groups'),
         meta: { mobileHidden: true },
-        cell: ({ row }) => {
-          const group = row.getValue('group') as string
-          const groupArray = parseGroupsList(group)
-          return (
-            <BadgeListCell
-              items={groupArray.map((g) => (
-                <GroupBadge
-                  key={g}
-                  group={g}
-                  label={sensitiveVisible ? undefined : SENSITIVE_MASK}
-                  size='sm'
-                />
-              ))}
-            />
-          )
-        },
+        cell: ({ row }) => (
+          <ChannelGroupCell
+            channel={row.original}
+            maskedLabel={sensitiveVisible ? undefined : SENSITIVE_MASK}
+          />
+        ),
         filterFn: (row, id, value) => {
           if (!value || value.length === 0 || value.includes('all')) {
             return true

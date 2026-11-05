@@ -107,6 +107,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { SecureVerificationDialog } from '@/features/auth/secure-verification'
 import { PluginIcon } from '@/features/task-plugins/components/plugin-icon'
 import { useCopyToClipboard } from '@/hooks/use-copy-to-clipboard'
+import { useChannelGroupOptions } from '@/hooks/use-group-options'
 import { useHiddenClickUnlock } from '@/hooks/use-hidden-click-unlock'
 import {
   ADMIN_PERMISSION_ACTIONS,
@@ -131,7 +132,6 @@ import {
   getAllModels,
   getChannel,
   getChannelDefaultBaseURLs,
-  getGroups,
   getPrefillGroups,
   getTaskPluginOptions,
   refreshCodexCredential,
@@ -540,12 +540,9 @@ export function ChannelMutateDrawer({
     meta: { errorToast: false },
   })
 
-  // Fetch available groups
-  const { data: groupsData, isLoading: isLoadingGroups } = useQuery({
-    queryKey: ['groups'],
-    queryFn: async () => requireServerSuccess(await getGroups()),
-    enabled: open && !showProviderPicker,
-  })
+  // 渠道分组（TokenFunc 注册表，按后台排序）：显示名称，括注 key
+  const { options: channelGroupOptions, isLoading: isLoadingGroups } =
+    useChannelGroupOptions({ enabled: open && !showProviderPicker })
 
   // Fetch all available models
   const { data: allModelsData } = useQuery({
@@ -743,13 +740,20 @@ export function ChannelMutateDrawer({
 
   // Transform groups to multi-select options
   const groupOptions = useMemo(() => {
-    if (!groupsData?.data) return []
-    const allGroups = new Set([...groupsData.data, ...(currentGroups || [])])
-    return [...allGroups].map((group) => ({
-      value: group,
-      label: group,
-    }))
-  }, [groupsData, currentGroups])
+    const known = new Map(
+      channelGroupOptions.map((option) => [
+        option.key,
+        option.label === option.key
+          ? option.key
+          : `${option.label} (${option.key})`,
+      ])
+    )
+    // 渠道当前带着但已不在定价表里的分组也保留为选项
+    for (const group of currentGroups || []) {
+      if (!known.has(group)) known.set(group, group)
+    }
+    return [...known].map(([value, label]) => ({ value, label }))
+  }, [channelGroupOptions, currentGroups])
 
   // Parse current models as array
   const currentModelsArray = useMemo(

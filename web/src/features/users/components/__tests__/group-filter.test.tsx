@@ -52,10 +52,29 @@ afterEach(() => {
   useAuthStore.getState().auth.reset()
 })
 
+const userGroupFixture = (key: string, order: number) => ({
+  key,
+  label: key,
+  description: '',
+  kind: 'individual',
+  order,
+  user_count: 0,
+  override_count: 0,
+})
+
 async function renderUsers(initialEntry = '/users/') {
   const get = vi.spyOn(api, 'get').mockImplementation(async (url) => {
-    if (url === '/api/group/') {
-      return { data: { success: true, data: ['default', 'premium'] } }
+    // 用户分组筛选项来自 TokenFunc 注册表
+    if (url === '/api/tokenfunc/groups/user') {
+      return {
+        data: {
+          success: true,
+          data: [
+            userGroupFixture('default', 0),
+            userGroupFixture('premium', 1),
+          ],
+        },
+      }
     }
     return {
       data: {

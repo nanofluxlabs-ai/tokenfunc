@@ -10,7 +10,6 @@ import (
 	"github.com/QuantumNous/new-api/model"
 	"github.com/QuantumNous/new-api/service"
 	"github.com/QuantumNous/new-api/setting/operation_setting"
-	"github.com/QuantumNous/new-api/setting/ratio_setting"
 
 	"github.com/gin-gonic/gin"
 )
@@ -150,7 +149,8 @@ func validateEnterpriseTokenRequest(c *gin.Context, enterprise *model.Enterprise
 	if len(limits) > 0 {
 		effectiveGroup := policy.group
 		if effectiveGroup == "" {
-			effectiveGroup = ownerGroup
+			// 不选分组时按主账号分组解析默认渠道分组（企业档位本身不是渠道分组）
+			effectiveGroup = service.ResolveDefaultUsingGroup(ownerGroup)
 		}
 		allowed := service.GetGroupsEnabledModels([]string{effectiveGroup})
 		for _, name := range limits {
@@ -193,20 +193,16 @@ func GetEnterpriseTokenOptions(c *gin.Context) {
 		common.ApiError(c, err)
 		return
 	}
-	usable := service.GetUserUsableGroups(ownerGroup)
-	groups := make([]gin.H, 0, len(usable))
+	// 可选渠道分组按后台排序；不选分组时走主账号分组解析出的默认渠道分组
+	options := service.ListUserSelectableChannelGroups(ownerGroup)
+	groups := make([]gin.H, 0, len(options))
 	modelsByGroup := map[string][]string{}
-	for groupName := range ratio_setting.GetGroupRatioCopy() {
-		desc, ok := usable[groupName]
-		if !ok || !service.IsUserSelectableGroup(ownerGroup, groupName) {
-			continue
-		}
-		groups = append(groups, gin.H{"value": groupName, "desc": desc, "ratio": service.GetUserGroupRatio(ownerGroup, groupName)})
-		modelsByGroup[groupName] = service.GetGroupsEnabledModels([]string{groupName})
+	for _, option := range options {
+		groups = append(groups, gin.H{"value": option.Key, "desc": option.Label, "label": option.Label, "ratio": option.Ratio, "order": option.Order})
+		modelsByGroup[option.Key] = service.GetGroupsEnabledModels([]string{option.Key})
 	}
-	slices.SortFunc(groups, func(a, b gin.H) int { return strings.Compare(a["value"].(string), b["value"].(string)) })
-	// 不选分组时按主账号分组路由
-	modelsByGroup[""] = service.GetGroupsEnabledModels([]string{ownerGroup})
+	defaultGroup := service.ResolveDefaultUsingGroup(ownerGroup)
+	modelsByGroup[""] = service.GetGroupsEnabledModels([]string{defaultGroup})
 	total, err := model.CountUserTokens(enterprise.UserId)
 	if err != nil {
 		common.ApiError(c, err)
@@ -214,6 +210,7 @@ func GetEnterpriseTokenOptions(c *gin.Context) {
 	}
 	common.ApiSuccess(c, gin.H{
 		"owner_group":     ownerGroup,
+		"default_group":   defaultGroup,
 		"groups":          groups,
 		"models_by_group": modelsByGroup,
 		"limit":           enterpriseTokenLimit(enterprise),

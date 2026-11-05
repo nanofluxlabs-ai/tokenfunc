@@ -284,6 +284,7 @@ func SetApiRouter(router *gin.Engine) {
 		handlePermissionRoute(apiRouter.Group("", middleware.AdminAuth()), http.MethodGet, "/task_plugin_options", authz.TaskPluginBind, controller.GetTaskPluginOptions)
 		registerChannelRoutes(apiRouter)
 		registerEnterpriseRoutes(apiRouter)
+		registerTokenFuncGroupRoutes(apiRouter)
 		registerFinanceRoutes(apiRouter)
 		registerSiteAssetRoutes(apiRouter)
 		registerPromoterRoutes(apiRouter)

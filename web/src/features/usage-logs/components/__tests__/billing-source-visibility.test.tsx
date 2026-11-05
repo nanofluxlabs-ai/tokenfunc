@@ -87,10 +87,10 @@ async function renderLogs(props: {
       url.startsWith('/api/log/self?')
     ) {
       data = { items: records, total: records.length }
-    } else if (url === '/api/group/') {
+    } else if (url === '/api/tokenfunc/groups/channel') {
       data = []
-    } else if (url === '/api/user/self/groups') {
-      data = {}
+    } else if (url === '/api/tokenfunc/groups/self') {
+      data = { user_group: 'default', default_group: 'default', groups: [] }
     }
     return { data: { success: true, data } }
   })

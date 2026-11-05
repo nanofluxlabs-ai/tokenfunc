@@ -67,12 +67,32 @@ async function renderFilter(
   }
 ) {
   vi.spyOn(api, 'get').mockImplementation(async (url) => {
-    if (url === '/api/user/self/groups' || url === '/api/group/') {
+    // 日志按渠道分组筛：管理员读注册表全量，普通用户读自己可选的（TokenFunc）
+    if (
+      url === '/api/tokenfunc/groups/self' ||
+      url === '/api/tokenfunc/groups/channel'
+    ) {
       if (groups === null) throw new Error('Group loading failed')
+      const items = Object.entries(groups).map(([key, info], order) => ({
+        key,
+        label: key,
+        order,
+        ratio: info.ratio,
+        auto: key === 'auto',
+        topup_ratio: 1,
+        default_visible: true,
+      }))
       return {
         data: {
           success: true,
-          data: url === '/api/group/' ? Object.keys(groups) : groups,
+          data:
+            url === '/api/tokenfunc/groups/channel'
+              ? items
+              : {
+                  user_group: 'default',
+                  default_group: 'default',
+                  groups: items,
+                },
         },
       }
     }
@@ -141,8 +161,8 @@ it('loads personal groups and filters choices without submitting until Search', 
       page: 1,
     })
   )
-  expect(api.get).toHaveBeenCalledWith('/api/user/self/groups')
-  expect(api.get).not.toHaveBeenCalledWith('/api/group/')
+  expect(api.get).toHaveBeenCalledWith('/api/tokenfunc/groups/self')
+  expect(api.get).not.toHaveBeenCalledWith('/api/tokenfunc/groups/channel')
 })
 
 it('loads all groups in the administrator view', async () => {
@@ -150,8 +170,8 @@ it('loads all groups in the administrator view', async () => {
   await renderFilter()
   await userEvent.click(screen.getByRole('combobox', { name: 'Group' }))
   expect(await screen.findByRole('option', { name: 'premium' })).toBeVisible()
-  expect(api.get).toHaveBeenCalledWith('/api/group/')
-  expect(api.get).not.toHaveBeenCalledWith('/api/user/self/groups')
+  expect(api.get).toHaveBeenCalledWith('/api/tokenfunc/groups/channel')
+  expect(api.get).not.toHaveBeenCalledWith('/api/tokenfunc/groups/self')
 })
 
 it('confirms a keyboard choice before Enter submits the selected group', async () => {

@@ -8,7 +8,7 @@ import (
 	"strings"
 
 	"github.com/QuantumNous/new-api/common"
-	"github.com/QuantumNous/new-api/setting/ratio_setting"
+	"github.com/QuantumNous/new-api/setting"
 
 	"gorm.io/gorm"
 )
@@ -248,10 +248,10 @@ func ListEnterprises(keyword string, billingMode string, startIdx int, num int) 
 	return items, total, nil
 }
 
-// NormalizeEnterpriseOwnerGroup 去空格并校验企业主账号分组：必须是分组倍率里已配置的分组
+// NormalizeEnterpriseOwnerGroup 去空格并校验企业主账号分组：必须是已登记的用户分组（default 恒可用）
 func NormalizeEnterpriseOwnerGroup(group string) (string, error) {
 	group = strings.TrimSpace(group)
-	if group == "" || !ratio_setting.ContainsGroupRatio(group) {
+	if group == "" || !setting.IsRegisteredUserGroup(group) {
 		return "", ErrEnterpriseInvalidGroup
 	}
 	return group, nil

@@ -1,0 +1,211 @@
+// TokenFunc 二开：用户分组列表的一行。桌面渲染为表格行，手机渲染为卡片；
+// 两种布局共用操作区：定价 / 编辑 / 删除 固定三格，default 没有删除就留同尺寸占位，保证各行图标对齐。
+// 用户分组数量少，列表不提供排序，顺序按后台 order（创建先后）。
+import { Link } from '@tanstack/react-router'
+import { Coins, Pencil, Trash2 } from 'lucide-react'
+import type { ReactNode } from 'react'
+import { useTranslation } from 'react-i18next'
+
+import { StatusBadge } from '@/components/status-badge'
+import { Button } from '@/components/ui/button'
+import { TableCell } from '@/components/ui/table'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
+import { translateServerText } from '@/lib/server-error-message'
+import type { UserGroupItem } from '@/lib/tokenfunc-groups'
+import { cn } from '@/lib/utils'
+
+export const DEFAULT_USER_GROUP_KEY = 'default'
+
+type UserGroupRowProps = {
+  group: UserGroupItem
+  layout: 'table' | 'card'
+  onEdit: (group: UserGroupItem) => void
+  onPricing: (group: UserGroupItem) => void
+  onDelete: (group: UserGroupItem) => void
+}
+
+/** 用户分组的用户数链到用户列表并按分组筛选；个人 / 企业分组分别落到各自页签 */
+function UserCountLink(props: { group: UserGroupItem; className?: string }) {
+  const { t } = useTranslation()
+  return (
+    <Link
+      to='/users'
+      search={{
+        type: props.group.kind === 'enterprise' ? 'enterprise' : 'personal',
+        group: [props.group.key],
+      }}
+      className={cn(
+        'hover:text-primary font-mono tabular-nums underline-offset-4 hover:underline',
+        props.className
+      )}
+      aria-label={t('View users of {{group}}', { group: props.group.key })}
+    >
+      {props.group.user_count}
+    </Link>
+  )
+}
+
+/** 个人 / 企业类型徽章；用户分组列表与定价面板共用 */
+export function UserGroupKindBadge(props: { kind: UserGroupItem['kind'] }) {
+  const { t } = useTranslation()
+  const isEnterprise = props.kind === 'enterprise'
+  return (
+    <StatusBadge
+      label={isEnterprise ? t('Enterprise') : t('Personal')}
+      variant={isEnterprise ? 'info' : 'neutral'}
+      copyable={false}
+    />
+  )
+}
+
+export function UserGroupRow(props: UserGroupRowProps) {
+  const { t } = useTranslation()
+  const group = props.group
+  const label = translateServerText(t, group.label) || group.key
+  const isDefault = group.key === DEFAULT_USER_GROUP_KEY
+  const hasUsers = group.user_count > 0
+
+  const kindBadge = <UserGroupKindBadge kind={group.kind} />
+
+  const overrideCell =
+    group.override_count > 0 ? (
+      <span className='font-mono tabular-nums'>{group.override_count}</span>
+    ) : (
+      <span className='text-muted-foreground'>—</span>
+    )
+
+  const actions = (
+    <div className='flex items-center justify-end gap-1'>
+      <Tooltip>
+        <TooltipTrigger
+          render={
+            <Button
+              variant='ghost'
+              size='icon-sm'
+              onClick={() => props.onPricing(group)}
+              aria-label={t('Pricing')}
+            />
+          }
+        >
+          <Coins />
+        </TooltipTrigger>
+        <TooltipContent>{t('Pricing')}</TooltipContent>
+      </Tooltip>
+      <Tooltip>
+        <TooltipTrigger
+          render={
+            <Button
+              variant='ghost'
+              size='icon-sm'
+              onClick={() => props.onEdit(group)}
+              aria-label={t('Edit')}
+            />
+          }
+        >
+          <Pencil />
+        </TooltipTrigger>
+        <TooltipContent>{t('Edit')}</TooltipContent>
+      </Tooltip>
+      {/* default 是上游的保底分组，根本没有删除入口，用不可见占位保持对齐；有用户的分组先迁走用户才能删 */}
+      {isDefault ? (
+        <span
+          className='invisible size-7 shrink-0'
+          aria-hidden='true'
+          data-testid='delete-placeholder'
+        />
+      ) : (
+        <Tooltip>
+          <TooltipTrigger
+            render={
+              <Button
+                variant='ghost'
+                size='icon-sm'
+                disabled={hasUsers}
+                onClick={() => props.onDelete(group)}
+                aria-label={t('Delete')}
+                className='text-destructive hover:text-destructive'
+              />
+            }
+          >
+            <Trash2 />
+          </TooltipTrigger>
+          <TooltipContent>
+            {hasUsers
+              ? t('Move its users to another group before deleting')
+              : t('Delete')}
+          </TooltipContent>
+        </Tooltip>
+      )}
+    </div>
+  )
+
+  const descriptionNode: ReactNode = group.description ? (
+    <span className='block truncate' title={group.description}>
+      {group.description}
+    </span>
+  ) : (
+    <span className='text-muted-foreground'>—</span>
+  )
+
+  if (props.layout === 'card') {
+    return (
+      <li className='bg-background flex flex-col gap-3 rounded-lg border p-3'>
+        <div className='flex items-start gap-2'>
+          <div className='flex min-w-0 flex-1 flex-col gap-1'>
+            <div className='flex min-w-0 flex-wrap items-center gap-2'>
+              <span className='truncate text-sm font-medium'>{label}</span>
+              {kindBadge}
+            </div>
+            <code className='text-muted-foreground truncate font-mono text-xs'>
+              {group.key}
+            </code>
+          </div>
+        </div>
+        <div className='text-muted-foreground text-sm'>{descriptionNode}</div>
+        <div className='flex items-center justify-between gap-3 text-sm'>
+          <span className='flex items-center gap-4'>
+            <span className='flex items-center gap-1.5'>
+              <span className='text-muted-foreground'>{t('Users')}</span>
+              <UserCountLink group={group} />
+            </span>
+            <span className='flex items-center gap-1.5'>
+              <span className='text-muted-foreground'>
+                {t('Pricing differences')}
+              </span>
+              {overrideCell}
+            </span>
+          </span>
+          {actions}
+        </div>
+      </li>
+    )
+  }
+
+  return (
+    <tr className='bg-background border-b transition-colors last:border-0 hover:[background-color:color-mix(in_oklch,var(--muted)_50%,var(--background))]'>
+      <TableCell className='max-w-48'>
+        <code className='block truncate font-mono text-xs' title={group.key}>
+          {group.key}
+        </code>
+      </TableCell>
+      <TableCell className='max-w-56'>
+        <span className='block truncate font-medium' title={label}>
+          {label}
+        </span>
+      </TableCell>
+      <TableCell>{kindBadge}</TableCell>
+      <TableCell className='text-muted-foreground max-w-72'>
+        {descriptionNode}
+      </TableCell>
+      <TableCell className='text-right'>
+        <UserCountLink group={group} />
+      </TableCell>
+      <TableCell className='text-right'>{overrideCell}</TableCell>
+      <TableCell>{actions}</TableCell>
+    </tr>
+  )
+}

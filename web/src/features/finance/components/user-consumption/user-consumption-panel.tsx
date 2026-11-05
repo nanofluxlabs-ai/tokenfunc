@@ -127,6 +127,7 @@ export function UserConsumptionPanel(props: { range: DayRange }) {
           />
         </div>
         <GroupFilterSelect
+          kind='user'
           value={draftGroup}
           onChange={setDraftGroup}
           className='w-full sm:w-[160px]'

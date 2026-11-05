@@ -1,3 +1,4 @@
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import {
   RouterProvider,
   createMemoryHistory,
@@ -10,10 +11,17 @@ import {
   useReactTable,
 } from '@tanstack/react-table'
 import { render, screen } from '@testing-library/react'
-import { expect, test } from 'vitest'
+import type { ReactNode } from 'react'
+import { expect, test, vi } from 'vitest'
 
 import type { User } from '../../types'
 import { useUsersColumns } from '../users-columns'
+
+// 分组列会读用户分组注册表，测试里给空列表
+vi.mock('@/lib/tokenfunc-groups', () => ({
+  listUserGroups: vi.fn(async () => ({ success: true, data: [] })),
+  tokenFuncGroupQueryKeys: { user: ['tokenfunc-groups', 'user'] },
+}))
 
 function ColumnCell(props: { user: User; columnId: string }) {
   const table = useReactTable({
@@ -26,6 +34,12 @@ function ColumnCell(props: { user: User; columnId: string }) {
     .rows[0]?.getAllCells()
     .find((item) => item.column.id === props.columnId)
   return cell ? flexRender(cell.column.columnDef.cell, cell.getContext()) : null
+}
+
+function withQueryClient(node: ReactNode) {
+  return (
+    <QueryClientProvider client={new QueryClient()}>{node}</QueryClientProvider>
+  )
 }
 
 function UsernameCell(props: { user: User }) {
@@ -51,7 +65,7 @@ test('username column links to the usage logs filtered by that username', async 
     routeTree: rootRoute,
     history: createMemoryHistory({ initialEntries: ['/'] }),
   })
-  render(<RouterProvider router={router} />)
+  render(withQueryClient(<RouterProvider router={router} />))
   await router.load()
 
   const link = await screen.findByRole('link', {
@@ -78,7 +92,7 @@ test('email column shows the email when the user has one', async () => {
     request_count: 0,
     group: 'default',
   } as User
-  render(<ColumnCell user={user} columnId='email' />)
+  render(withQueryClient(<ColumnCell user={user} columnId='email' />))
 
   expect(screen.getByText('bob@example.com')).toBeInTheDocument()
 })
@@ -95,7 +109,7 @@ test('email column shows a dash placeholder when the user has no email', async (
     request_count: 0,
     group: 'default',
   } as User
-  render(<ColumnCell user={user} columnId='email' />)
+  render(withQueryClient(<ColumnCell user={user} columnId='email' />))
 
   expect(screen.getByText('—')).toBeInTheDocument()
   expect(screen.queryByText(/@/)).not.toBeInTheDocument()

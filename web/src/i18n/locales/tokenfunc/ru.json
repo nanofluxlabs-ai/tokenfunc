@@ -1546,11 +1546,7 @@
     "Edit groups": "Изменить группы",
     "Keep at least one group": "Оставьте хотя бы одну группу",
     "Groups updated": "Группы обновлены",
-    "Advanced editor": "Расширенный редактор",
-    "Back to channel groups": "Назад к группам каналов",
     "Channel groups decide which channel pool a request uses and its base ratio.": "Группы каналов определяют, какой пул каналов использует запрос и его базовый коэффициент.",
-    "Advanced editor exposes every upstream group option, including user group overrides.": "Расширенный редактор открывает все исходные настройки групп, включая переопределения для групп пользователей.",
-    "User groups and their differential pricing are managed under User management › User groups.": "Группы пользователей и их дифференцированные цены настраиваются в разделе «Пользователи › Группы пользователей».",
     "Go to user groups": "Перейти к группам пользователей",
     "Each channel group is a pool of channels with its own base ratio. Drag to change the order shown to users.": "Каждая группа каналов — это пул каналов со своим базовым коэффициентом. Перетащите, чтобы изменить порядок показа пользователям.",
     "Add channel group": "Добавить группу каналов",
@@ -1605,6 +1601,9 @@
     "Users can no longer be assigned to this group. This cannot be undone.": "Пользователей больше нельзя будет назначить в эту группу. Это действие нельзя отменить.",
     "View users of {{group}}": "Показать пользователей группы {{group}}",
     "Visible by default": "По умолчанию видна",
-    "Visible for {{group}}": "Видимость {{group}}"
+    "Visible for {{group}}": "Видимость {{group}}",
+    "User group pricing": "Цены для групп пользователей",
+    "Fix invalid group settings before saving.": "Исправьте недопустимые настройки групп перед сохранением.",
+    "Add, delete or reorder user groups under User management › User groups.": "Добавление, удаление и сортировка групп пользователей выполняются в разделе Управление пользователями › Группы пользователей."
   }
 }

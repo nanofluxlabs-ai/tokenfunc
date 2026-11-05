@@ -415,10 +415,19 @@ export function UsersMutateDrawer({
                         <FormLabel>{t('Group')}</FormLabel>
                         <FormControl>
                           <Combobox
-                            options={userGroupOptions.map((option) => ({
-                              value: option.value,
-                              label: userGroupOptionLabel(option),
-                            }))}
+                            // 普通用户只能选个人类型的分组（default 永远可选）；
+                            // 历史数据落在企业分组时仍保留当前值，避免下拉空白
+                            options={userGroupOptions
+                              .filter(
+                                (option) =>
+                                  option.kind === 'individual' ||
+                                  option.key === 'default' ||
+                                  option.value === field.value
+                              )
+                              .map((option) => ({
+                                value: option.value,
+                                label: userGroupOptionLabel(option),
+                              }))}
                             onValueChange={field.onChange}
                             value={field.value}
                             className='w-full'

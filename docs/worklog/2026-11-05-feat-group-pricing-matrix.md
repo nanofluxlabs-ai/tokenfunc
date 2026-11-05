@@ -32,6 +32,13 @@
 - 列表展示：用户列表分组列显示名称悬浮 key（`user-group-badge.tsx`，查询放单元格内避免列重建）；渠道列表分组列换成 `channel-group-cell.tsx`，单个渠道可在弹层里改分组（至少保留一个，`handleUpdateChannelGroups`），Tag 聚合行只读；可复制徽章光标由 `cursor-copy` 改为手型。
 - 测试同步：mock 旧 `/api/group/`、`/api/user/self/groups` 的用例改为新接口形状；用户列测试补 `QueryClientProvider`；新增 `group-filter-select.test.tsx`、`channel-group-cell.test.tsx`。
 
+### 二期修订（黑鹰本地验收反馈）
+- 系统设置 › 分组定价 同一页两段：上段渠道分组（表 + 自动分组折叠区，右上角保存只管这段，保存后失效 `tokenfunc-groups` 缓存），下段「用户分组定价」挂载 `UserGroupPricingPanel`（左列用户分组、右侧共用定价表，自带保存与「未保存改动」确认）。定价表与保存逻辑从抽屉抽成 `user-group-pricing-table.tsx` / `hooks/use-user-group-pricing.ts`，抽屉只剩壳子。
+- 「高级编辑器」下线：不再挂载上游 `GroupRatioForm`（文件不动），相关文案删除。
+- 排序控件统一放行尾与删除同组（`row-order-controls.tsx`）：渠道分组行、自动分组行（不再用共享 `AutoGroupOrderItem`，它被 API 密钥抽屉复用且把手固定在左）、用户分组行三处对齐；`default` 行没有删除按钮时渲染不可见占位。
+- 编辑普通用户时分组下拉只列个人类型 + default，历史企业分组仍保留为一项。
+- 未改（已答复）：自动分组上限 5 是上游「每个令牌最多可选的自动分组数」，限制一次请求串行尝试的池数，后台可改；分组类型只用于过滤下拉，不影响倍率；创建用户不选分组是上游行为，创建后在编辑里改。
+
 ## 验证
 
 - `GOWORK=off go build ./...`、`go vet` 改动包通过。
@@ -40,10 +47,11 @@
 - 前端：`bun check -b` 无类型错误；改动文件 `oxfmt` / `oxlint` 通过（`bun run lint` 仅 `scripts/sync-i18n.mjs:235` 既有 curly 报错）；`bunx vitest run` 覆盖 users / system-settings / enterprises / subscriptions / channels / keys / playground / enterprise-console / finance / usage-logs / components / hooks：206 文件 1691 用例，1 条 `visual-billing-editor` 用例并发下偶发、单跑通过且文件未改。
 - 本地 `make api` + `make web`（worktree slot 1）实测：启动日志 `seeded tokenfunc channel group registry with 3 groups` / `user group registry with 1 groups`；用户管理 › 用户分组 新建 `ent_std`（企业），定价抽屉把 vip 覆盖 0.9、svip 开放可见并覆盖 1.5，保存后列表「定价差异」= 3；系统设置 › 分组定价 改 vip 基准 0.8、svip 改名「高级池」并下移，刷新后保持；令牌分组下拉显示「默认分组 default 1x / VIP 分组 vip 0.8x」且不含未默认可见的 svip；企业主账号分组下拉显示「默认分组 (default) / 企业标准 (ent_std)」。
 
+- 二期修订：`bun check -b` 无类型错误；改动文件 oxfmt / oxlint 通过；`bunx vitest run` users / channel-groups / enterprises / finance / channels / keys 93 文件 710 用例通过；本地页面实测分组定价页两段布局、排序控件靠右、用户分组列表对齐。
+
 ## 遗留
 
 - 手机端（<640px）布局只靠 Tailwind 断点，浏览器缩放未生效，待真机过一遍。
-- 「使用指南」按钮未放进新的渠道分组页：上游 `GroupPricingGuide` 未导出，按约定不改上游文件。
 
 - `service/task_billing.go` 的 `GetGroupGroupRatio(group, group)` 把用户分组与渠道分组传成同一值，疑似上游 bug，本次未动。
 - 生产存量 vip / svip / ddjs 用户迁回 default 的 SQL 在发版前执行，写进发布报告。

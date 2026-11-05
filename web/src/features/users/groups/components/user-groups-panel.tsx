@@ -177,7 +177,6 @@ export function UserGroupsPanel() {
       <StaticDataTable>
         <TableHeader>
           <TableRow>
-            <TableHead className='w-10' aria-label={t('Order')} />
             <TableHead>{t('Group key')}</TableHead>
             <TableHead>{t('Name')}</TableHead>
             <TableHead>{t('Type')}</TableHead>

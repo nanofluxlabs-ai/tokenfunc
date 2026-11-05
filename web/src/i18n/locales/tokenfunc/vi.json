@@ -1546,11 +1546,7 @@
     "Edit groups": "Chỉnh sửa nhóm",
     "Keep at least one group": "Giữ lại ít nhất một nhóm",
     "Groups updated": "Đã cập nhật nhóm",
-    "Advanced editor": "Trình chỉnh sửa nâng cao",
-    "Back to channel groups": "Quay lại nhóm kênh",
     "Channel groups decide which channel pool a request uses and its base ratio.": "Nhóm kênh quyết định yêu cầu đi qua nhóm kênh nào và hệ số cơ bản của nó.",
-    "Advanced editor exposes every upstream group option, including user group overrides.": "Trình chỉnh sửa nâng cao hiển thị mọi tùy chọn nhóm gốc, bao gồm cả ghi đè theo nhóm người dùng.",
-    "User groups and their differential pricing are managed under User management › User groups.": "Nhóm người dùng và định giá riêng được quản lý tại Quản lý người dùng › Nhóm người dùng.",
     "Go to user groups": "Đi tới nhóm người dùng",
     "Each channel group is a pool of channels with its own base ratio. Drag to change the order shown to users.": "Mỗi nhóm kênh là một nhóm các kênh với hệ số cơ bản riêng. Kéo để thay đổi thứ tự hiển thị cho người dùng.",
     "Add channel group": "Thêm nhóm kênh",
@@ -1605,6 +1601,9 @@
     "Users can no longer be assigned to this group. This cannot be undone.": "Người dùng sẽ không thể được gán vào nhóm này nữa. Không thể hoàn tác.",
     "View users of {{group}}": "Xem người dùng của {{group}}",
     "Visible by default": "Mặc định hiển thị",
-    "Visible for {{group}}": "Hiển thị {{group}}"
+    "Visible for {{group}}": "Hiển thị {{group}}",
+    "User group pricing": "Định giá nhóm người dùng",
+    "Fix invalid group settings before saving.": "Hãy sửa các cài đặt nhóm không hợp lệ trước khi lưu.",
+    "Add, delete or reorder user groups under User management › User groups.": "Thêm, xóa hoặc sắp xếp nhóm người dùng tại Quản lý người dùng › Nhóm người dùng."
   }
 }

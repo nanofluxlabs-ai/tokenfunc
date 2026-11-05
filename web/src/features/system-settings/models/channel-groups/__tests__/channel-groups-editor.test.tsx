@@ -24,6 +24,11 @@ vi.mock('@/features/channels/api', () => ({
   getChannels: (...args: unknown[]) => getChannels(...args),
 }))
 
+// 段二是用户管理模块自带数据与保存的面板，这里只验证挂载，不测其内部
+vi.mock('@/features/users/groups', () => ({
+  UserGroupPricingPanel: () => <div data-testid='user-group-pricing-panel' />,
+}))
+
 const defaults: GroupFormValues = {
   GroupRatio: '{"default":1,"vip":0.8}',
   TopupGroupRatio: '{"vip":1.2}',
@@ -289,31 +294,92 @@ describe('channel groups editor', () => {
     ])
   })
 
-  it('shows the upstream editor with its own save button in advanced mode', async () => {
-    const user = userEvent.setup()
+  it('mounts the user group pricing panel below the channel groups with a single save button', () => {
     render(<Fixture />)
 
     expect(
-      screen.queryByRole('button', { name: 'Switch to JSON' })
-    ).not.toBeInTheDocument()
-    expect(
       screen.getAllByRole('button', { name: 'Save group settings' })
     ).toHaveLength(1)
+    expect(
+      screen.queryByRole('button', { name: 'Advanced editor' })
+    ).not.toBeInTheDocument()
+    const channelGroups = screen.getByRole('list', { name: 'Channel groups' })
+    const panel = screen.getByTestId('user-group-pricing-panel')
+    expect(
+      channelGroups.compareDocumentPosition(panel) &
+        Node.DOCUMENT_POSITION_FOLLOWING
+    ).toBeTruthy()
+  })
 
-    await user.click(screen.getByRole('button', { name: 'Advanced editor' }))
-    expect(screen.getByRole('button', { name: 'Switch to JSON' })).toBeVisible()
-    expect(
-      screen.getAllByRole('button', { name: 'Save group settings' })
-    ).toHaveLength(1)
-    expect(
-      screen.queryByRole('button', { name: 'Add channel group' })
-    ).not.toBeInTheDocument()
+  it('invalidates the group registry cache after a successful save', async () => {
+    const user = userEvent.setup()
+    const invalidate = vi.spyOn(client, 'invalidateQueries')
+    render(<Fixture />)
 
     await user.click(
-      screen.getByRole('button', { name: 'Back to channel groups' })
+      screen.getByRole('button', { name: 'Save group settings' })
     )
+    await waitFor(() =>
+      expect(invalidate).toHaveBeenCalledWith({
+        queryKey: ['tokenfunc-groups'],
+      })
+    )
+  })
+
+  it('keeps move, drag and remove controls of a channel group row in one trailing action group', () => {
+    render(<Fixture />)
+    const row = rowByKey('vip')
+
+    const actions = within(row)
+      .getByRole('button', { name: 'Move vip up' })
+      .closest('[data-slot="row-actions"]')
+    expect(actions).not.toBeNull()
     expect(
-      screen.getByRole('button', { name: 'Add channel group' })
-    ).toBeVisible()
+      within(actions as HTMLElement)
+        .getAllByRole('button')
+        .map((button) => button.getAttribute('aria-label'))
+    ).toEqual([
+      'Move vip up',
+      'Move vip down',
+      'Drag vip to reorder',
+      'Remove vip',
+    ])
+    // 操作组是行内最后一个子元素，字段区在它前面
+    expect(row.lastElementChild).toBe(actions)
+    expect(
+      within(row)
+        .getByRole('textbox', { name: 'Name' })
+        .compareDocumentPosition(actions as HTMLElement) &
+        Node.DOCUMENT_POSITION_FOLLOWING
+    ).toBeTruthy()
+  })
+
+  it('keeps move, drag and remove controls of an auto group row in one trailing action group', async () => {
+    const user = userEvent.setup()
+    render(<Fixture />)
+    await user.click(screen.getByRole('button', { name: /Auto group order/ }))
+
+    const list = screen.getByRole('list', { name: 'Auto group order' })
+    const row = within(list)
+      .getAllByRole('listitem')
+      .find((item) => item.textContent?.includes('vip'))
+    if (!row) throw new Error('auto group row vip not found')
+    expect(within(row).getByText('Ratio 0.8')).toBeVisible()
+
+    const actions = within(row)
+      .getByRole('button', { name: 'Move vip up' })
+      .closest('[data-slot="row-actions"]')
+    expect(actions).not.toBeNull()
+    expect(
+      within(actions as HTMLElement)
+        .getAllByRole('button')
+        .map((button) => button.getAttribute('aria-label'))
+    ).toEqual([
+      'Move vip up',
+      'Move vip down',
+      'Drag vip to reorder',
+      'Remove vip',
+    ])
+    expect(row.lastElementChild).toBe(actions)
   })
 })

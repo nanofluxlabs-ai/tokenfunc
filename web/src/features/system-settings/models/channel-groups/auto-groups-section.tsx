@@ -1,12 +1,12 @@
 // TokenFunc 二开：渠道分组列表下方的「自动分组」折叠区。
 // 候选顺序增删与上下移动沿用上游 GroupRatioVisualEditor 的 auto 段交互；
+// 行控件与渠道分组行共用 RowOrderControls（操作组统一放行尾）；
 // 开关与上限输入由上层以 FormField 传入，保留 react-hook-form 校验。
 import { ChevronDown } from 'lucide-react'
-import { Reorder } from 'motion/react'
+import { Reorder, useDragControls } from 'motion/react'
 import { useCallback, useMemo, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 
-import { AutoGroupOrderItem } from '@/components/auto-group-order-item'
 import { EmptyState } from '@/components/empty-state'
 import { StatusBadge } from '@/components/status-badge'
 import { Button } from '@/components/ui/button'
@@ -21,22 +21,89 @@ import { toIntlLocale } from '@/i18n/languages'
 import { formatNumber } from '@/lib/format'
 
 import { safeJsonParse } from '../../utils/json-parser'
+import { RowOrderControls } from './row-order-controls'
+
+/** 自动分组候选所需的渠道分组摘要（已按显示顺序） */
+export type AutoGroupCandidate = {
+  key: string
+  ratio: string
+}
 
 type AutoGroupsSectionProps = {
   open: boolean
   onOpenChange: (open: boolean) => void
   /** AutoGroups 字段的 JSON 字符串 */
   autoGroups: string
-  /** 当前页面上的渠道分组 key（已按显示顺序） */
-  channelGroupKeys: string[]
+  /** 当前页面上 key 合法的渠道分组 */
+  channelGroups: AutoGroupCandidate[]
   onAutoGroupsChange: (json: string) => void
   defaultUseAutoGroupField: ReactNode
   maxTokenAutoGroupsField: ReactNode
 }
 
-export function AutoGroupsSection(props: AutoGroupsSectionProps) {
+type AutoGroupRowProps = {
+  group: string
+  index: number
+  count: number
+  /** 对应渠道分组的基准倍率；分组已不在定价表时为 null */
+  ratio: string | null
+  onMove: (index: number, direction: 'up' | 'down') => void
+  onRemove: (group: string) => void
+}
+
+function AutoGroupRow(props: AutoGroupRowProps) {
   const { t, i18n } = useTranslation()
   const locale = toIntlLocale(i18n.resolvedLanguage || i18n.language)
+  const dragControls = useDragControls()
+  const ratioNumber = props.ratio === null ? Number.NaN : Number(props.ratio)
+
+  return (
+    <Reorder.Item
+      value={props.group}
+      dragListener={false}
+      dragMomentum={false}
+      dragControls={dragControls}
+      data-slot='auto-group-row'
+      className='bg-background relative flex min-w-0 items-center gap-2 rounded-lg border p-2'
+    >
+      <span className='text-muted-foreground w-5 shrink-0 text-center text-sm tabular-nums'>
+        {formatNumber(props.index + 1, locale)}
+      </span>
+      <div className='flex min-w-0 flex-1 flex-wrap items-center gap-2'>
+        <span
+          className='min-w-0 truncate font-mono text-sm font-medium'
+          title={props.group}
+        >
+          {props.group}
+        </span>
+        {props.ratio === null ? (
+          <StatusBadge variant='danger' copyable={false}>
+            {t('Not in pricing table')}
+          </StatusBadge>
+        ) : (
+          <StatusBadge variant='neutral' copyable={false}>
+            {t('Ratio')}{' '}
+            {Number.isNaN(ratioNumber)
+              ? props.ratio
+              : formatNumber(ratioNumber, locale)}
+          </StatusBadge>
+        )}
+      </div>
+      <RowOrderControls
+        name={props.group}
+        index={props.index}
+        count={props.count}
+        dragControls={dragControls}
+        onMove={props.onMove}
+        onRemove={() => props.onRemove(props.group)}
+        removeIcon='cancel'
+      />
+    </Reorder.Item>
+  )
+}
+
+export function AutoGroupsSection(props: AutoGroupsSectionProps) {
+  const { t } = useTranslation()
 
   const autoGroupsList = useMemo(
     () =>
@@ -80,12 +147,17 @@ export function AutoGroupsSection(props: AutoGroupsSectionProps) {
     [autoGroupsList, emit]
   )
 
+  const ratioByKey = useMemo(
+    () => new Map(props.channelGroups.map((group) => [group.key, group.ratio])),
+    [props.channelGroups]
+  )
+
   const candidates = useMemo(
     () =>
-      props.channelGroupKeys
-        .filter((key) => !autoGroupsList.includes(key))
-        .map((key) => ({ value: key, label: key })),
-    [props.channelGroupKeys, autoGroupsList]
+      props.channelGroups
+        .filter((group) => !autoGroupsList.includes(group.key))
+        .map((group) => ({ value: group.key, label: group.key })),
+    [props.channelGroups, autoGroupsList]
   )
 
   return (
@@ -148,25 +220,15 @@ export function AutoGroupsSection(props: AutoGroupsSectionProps) {
                 className='flex flex-col gap-2'
               >
                 {autoGroupsList.map((group, index) => (
-                  <AutoGroupOrderItem
+                  <AutoGroupRow
                     key={group}
                     group={group}
                     index={index}
                     count={autoGroupsList.length}
+                    ratio={ratioByKey.get(group) ?? null}
                     onMove={handleMove}
                     onRemove={handleRemove}
-                    leading={
-                      <span className='text-muted-foreground w-5 shrink-0 text-center text-sm tabular-nums'>
-                        {formatNumber(index + 1, locale)}
-                      </span>
-                    }
-                  >
-                    {!props.channelGroupKeys.includes(group) && (
-                      <StatusBadge variant='danger' copyable={false}>
-                        {t('Not in pricing table')}
-                      </StatusBadge>
-                    )}
-                  </AutoGroupOrderItem>
+                  />
                 ))}
               </Reorder.Group>
             )}

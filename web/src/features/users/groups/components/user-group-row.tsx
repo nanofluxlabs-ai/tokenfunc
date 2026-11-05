@@ -1,4 +1,5 @@
-// TokenFunc 二开：用户分组列表的一行。桌面渲染为表格行，手机渲染为卡片；两种布局共用拖拽把手与操作按钮。
+// TokenFunc 二开：用户分组列表的一行。桌面渲染为表格行，手机渲染为卡片；
+// 两种布局共用操作区：定价 / 编辑 / 删除 / 拖拽把手 从左到右固定四格，default 没有删除就留同尺寸占位，保证各行图标对齐。
 import { Drag01Icon } from '@hugeicons/core-free-icons'
 import { HugeiconsIcon } from '@hugeicons/react'
 import { Link } from '@tanstack/react-router'
@@ -55,6 +56,19 @@ function UserCountLink(props: { group: UserGroupItem; className?: string }) {
   )
 }
 
+/** 个人 / 企业类型徽章；用户分组列表与定价面板共用 */
+export function UserGroupKindBadge(props: { kind: UserGroupItem['kind'] }) {
+  const { t } = useTranslation()
+  const isEnterprise = props.kind === 'enterprise'
+  return (
+    <StatusBadge
+      label={isEnterprise ? t('Enterprise') : t('Personal')}
+      variant={isEnterprise ? 'info' : 'neutral'}
+      copyable={false}
+    />
+  )
+}
+
 export function UserGroupRow(props: UserGroupRowProps) {
   const { t } = useTranslation()
   const dragControls = useDragControls()
@@ -62,8 +76,6 @@ export function UserGroupRow(props: UserGroupRowProps) {
   const label = translateServerText(t, group.label) || group.key
   const isDefault = group.key === DEFAULT_USER_GROUP_KEY
   const hasUsers = group.user_count > 0
-  const kindLabel =
-    group.kind === 'enterprise' ? t('Enterprise') : t('Personal')
 
   const handleDragStart = (event: PointerEvent<HTMLButtonElement>) => {
     dragControls.start(event)
@@ -94,13 +106,7 @@ export function UserGroupRow(props: UserGroupRowProps) {
     </Button>
   )
 
-  const kindBadge = (
-    <StatusBadge
-      label={kindLabel}
-      variant={group.kind === 'enterprise' ? 'info' : 'neutral'}
-      copyable={false}
-    />
-  )
+  const kindBadge = <UserGroupKindBadge kind={group.kind} />
 
   const overrideCell =
     group.override_count > 0 ? (
@@ -141,8 +147,14 @@ export function UserGroupRow(props: UserGroupRowProps) {
         </TooltipTrigger>
         <TooltipContent>{t('Edit')}</TooltipContent>
       </Tooltip>
-      {/* default 是上游的保底分组，根本没有删除入口；有用户的分组先迁走用户才能删 */}
-      {!isDefault && (
+      {/* default 是上游的保底分组，根本没有删除入口，用不可见占位保持对齐；有用户的分组先迁走用户才能删 */}
+      {isDefault ? (
+        <span
+          className='invisible size-7 shrink-0'
+          aria-hidden='true'
+          data-testid='delete-placeholder'
+        />
+      ) : (
         <Tooltip>
           <TooltipTrigger
             render={
@@ -165,6 +177,7 @@ export function UserGroupRow(props: UserGroupRowProps) {
           </TooltipContent>
         </Tooltip>
       )}
+      {dragHandle}
     </div>
   )
 
@@ -188,7 +201,6 @@ export function UserGroupRow(props: UserGroupRowProps) {
         className='bg-background flex flex-col gap-3 rounded-lg border p-3'
       >
         <div className='flex items-start gap-2'>
-          {dragHandle}
           <div className='flex min-w-0 flex-1 flex-col gap-1'>
             <div className='flex min-w-0 flex-wrap items-center gap-2'>
               <span className='truncate text-sm font-medium'>{label}</span>
@@ -229,7 +241,6 @@ export function UserGroupRow(props: UserGroupRowProps) {
       onDragEnd={props.onDragEnd}
       className='bg-background border-b transition-colors last:border-0 hover:[background-color:color-mix(in_oklch,var(--muted)_50%,var(--background))]'
     >
-      <TableCell className='w-10 pr-0'>{dragHandle}</TableCell>
       <TableCell className='max-w-48'>
         <code className='block truncate font-mono text-xs' title={group.key}>
           {group.key}

@@ -1546,11 +1546,7 @@
     "Edit groups": "編輯分組",
     "Keep at least one group": "至少保留一個分組",
     "Groups updated": "分組已更新",
-    "Advanced editor": "進階編輯器",
-    "Back to channel groups": "返回渠道分組",
     "Channel groups decide which channel pool a request uses and its base ratio.": "渠道分組決定請求走哪個渠道池以及基準倍率。",
-    "Advanced editor exposes every upstream group option, including user group overrides.": "進階編輯器可直接編輯上游全部分組選項，包括使用者分組的覆蓋規則。",
-    "User groups and their differential pricing are managed under User management › User groups.": "使用者分組與差異定價請到「使用者管理 › 使用者分組」管理。",
     "Go to user groups": "前往使用者分組",
     "Each channel group is a pool of channels with its own base ratio. Drag to change the order shown to users.": "每個渠道分組是一組渠道池，有自己的基準倍率。拖曳可調整展示給使用者的順序。",
     "Add channel group": "新增渠道分組",
@@ -1605,6 +1601,9 @@
     "Users can no longer be assigned to this group. This cannot be undone.": "使用者將無法再被分配到該分組。此操作不可復原。",
     "View users of {{group}}": "查看 {{group}} 分組的使用者",
     "Visible by default": "預設可見",
-    "Visible for {{group}}": "{{group}} 是否可見"
+    "Visible for {{group}}": "{{group}} 是否可見",
+    "User group pricing": "使用者分組定價",
+    "Fix invalid group settings before saving.": "請先修正無效的分組設定再儲存。",
+    "Add, delete or reorder user groups under User management › User groups.": "新增、刪除、排序使用者分組請到 使用者管理 › 使用者分組。"
   }
 }

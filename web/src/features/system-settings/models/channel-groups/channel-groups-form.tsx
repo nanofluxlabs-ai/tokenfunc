@@ -1,12 +1,20 @@
 // TokenFunc 二开：系统设置 › 模型 › 分组定价 Tab 的内容。
-// 默认模式是渠道分组编辑器；「高级编辑器」直接渲染上游 GroupRatioForm（含可视化 / JSON 与保存按钮）。
-import { Link } from '@tanstack/react-router'
-import { Code2, ListTree } from 'lucide-react'
-import { memo, useCallback, useState, type ComponentProps } from 'react'
+// 自上而下两段：渠道分组（本表单，右上角「保存分组设置」只管这一段）、
+// 用户分组定价（用户管理模块的面板，自带保存，这里只做挂载）。
+import { useQueryClient } from '@tanstack/react-query'
+import { memo, useCallback, useState } from 'react'
 import { useWatch, type UseFormReturn } from 'react-hook-form'
 import { useTranslation } from 'react-i18next'
+import { toast } from 'sonner'
 
 import { Button } from '@/components/ui/button'
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card'
 import {
   Form,
   FormControl,
@@ -18,6 +26,8 @@ import {
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
 import { Switch } from '@/components/ui/switch'
+import { UserGroupPricingPanel } from '@/features/users/groups'
+import { tokenFuncGroupQueryKeys } from '@/lib/tokenfunc-groups'
 
 import {
   SettingsSwitchContent,
@@ -25,7 +35,6 @@ import {
 } from '../../components/settings-form-layout'
 import { SettingsPageActionsPortal } from '../../components/settings-page-context'
 import { safeNumberFieldProps } from '../../utils/numeric-field'
-import { GroupRatioForm } from '../group-ratio-form'
 import { ChannelGroupsEditor } from './channel-groups-editor'
 import type { ChannelGroupFormValues } from './lib/serialization'
 
@@ -34,21 +43,22 @@ export type GroupFormValues = ChannelGroupFormValues & {
   DefaultUseAutoGroup: boolean
 }
 
-type UpstreamGroupForm = ComponentProps<typeof GroupRatioForm>['form']
-
 type ChannelGroupsFormProps = {
   form: UseFormReturn<GroupFormValues>
   onSave: (values: GroupFormValues) => Promise<void>
   isSaving: boolean
 }
 
+const sectionCardClassName = 'min-w-0 shadow-none'
+const sectionHeaderClassName = 'gap-2 border-b'
+
 export const ChannelGroupsForm = memo(function ChannelGroupsForm(
   props: ChannelGroupsFormProps
 ) {
   const { t } = useTranslation()
+  const queryClient = useQueryClient()
   const form = props.form
   const values = useWatch({ control: form.control })
-  const [advanced, setAdvanced] = useState(false)
   const [autoOpen, setAutoOpen] = useState(false)
   const [rowsValid, setRowsValid] = useState(true)
 
@@ -59,51 +69,17 @@ export const ChannelGroupsForm = memo(function ChannelGroupsForm(
     [form]
   )
 
-  const modeSwitcher = (
-    <div className='flex flex-wrap items-center justify-between gap-3'>
-      <p className='text-muted-foreground text-sm'>
-        {advanced
-          ? t(
-              'Advanced editor exposes every upstream group option, including user group overrides.'
-            )
-          : t(
-              'Channel groups decide which channel pool a request uses and its base ratio.'
-            )}
-      </p>
-      <Button
-        type='button'
-        variant='outline'
-        size='sm'
-        onClick={() => setAdvanced((prev) => !prev)}
-      >
-        {advanced ? (
-          <>
-            <ListTree className='mr-2 h-4 w-4' aria-hidden='true' />
-            {t('Back to channel groups')}
-          </>
-        ) : (
-          <>
-            <Code2 className='mr-2 h-4 w-4' aria-hidden='true' />
-            {t('Advanced editor')}
-          </>
-        )}
-      </Button>
-    </div>
+  // 段一保存成功后让分组注册表缓存失效，段二的基准倍率 / 默认可见随之刷新
+  const onSave = props.onSave
+  const handleSave = useCallback(
+    async (formValues: GroupFormValues) => {
+      await onSave(formValues)
+      await queryClient.invalidateQueries({
+        queryKey: tokenFuncGroupQueryKeys.all,
+      })
+    },
+    [onSave, queryClient]
   )
-
-  if (advanced) {
-    return (
-      <div className='space-y-6'>
-        {modeSwitcher}
-        <GroupRatioForm
-          // 上游表单类型不含二开的 ChannelGroupsRegistry 字段，运行时是同一个 form 实例
-          form={form as unknown as UpstreamGroupForm}
-          onSave={() => props.onSave(form.getValues())}
-          isSaving={props.isSaving}
-        />
-      </div>
-    )
-  }
 
   const channelGroupValues: ChannelGroupFormValues = {
     GroupRatio: values.GroupRatio ?? '',
@@ -116,101 +92,113 @@ export const ChannelGroupsForm = memo(function ChannelGroupsForm(
   }
 
   return (
-    <div className='space-y-6'>
-      {modeSwitcher}
-
+    <div className='flex min-w-0 flex-col gap-6'>
       <Form {...form}>
         <SettingsPageActionsPortal>
           <Button
             type='button'
             size='sm'
             disabled={props.isSaving || !rowsValid}
-            onClick={form.handleSubmit(props.onSave, (errors) => {
+            onClick={form.handleSubmit(handleSave, (errors) => {
               if (errors.MaxTokenAutoGroups) {
                 setAutoOpen(true)
                 requestAnimationFrame(() => form.setFocus('MaxTokenAutoGroups'))
                 return
               }
-              // 其它字段的 JSON 错误只有高级编辑器能展示与修复
-              setAdvanced(true)
+              // 其它字段都由编辑器序列化生成，正常情况下不会出错；兜底提示而不是静默
+              toast.error(t('Fix invalid group settings before saving.'))
             })}
           >
             {props.isSaving ? t('Saving...') : t('Save group settings')}
           </Button>
         </SettingsPageActionsPortal>
 
-        <ChannelGroupsEditor
-          values={channelGroupValues}
-          onChange={handleFieldChange}
-          onValidityChange={setRowsValid}
-          autoOpen={autoOpen}
-          onAutoOpenChange={setAutoOpen}
-          defaultUseAutoGroupField={
-            <FormField
-              control={form.control}
-              name='DefaultUseAutoGroup'
-              render={({ field }) => (
-                <SettingsSwitchItem>
-                  <SettingsSwitchContent>
-                    <FormLabel>{t('Default to auto groups')}</FormLabel>
-                    <FormDescription>
-                      {t(
-                        'If default auto group is enabled, newly created tokens start with auto instead of an empty group.'
-                      )}
-                    </FormDescription>
-                  </SettingsSwitchContent>
-                  <FormControl>
-                    <Switch
-                      checked={field.value}
-                      onCheckedChange={field.onChange}
-                    />
-                  </FormControl>
-                </SettingsSwitchItem>
+        <Card className={sectionCardClassName}>
+          <CardHeader className={sectionHeaderClassName}>
+            <CardTitle>{t('Channel groups')}</CardTitle>
+            <CardDescription>
+              {t(
+                'Channel groups decide which channel pool a request uses and its base ratio.'
               )}
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <ChannelGroupsEditor
+              values={channelGroupValues}
+              onChange={handleFieldChange}
+              onValidityChange={setRowsValid}
+              autoOpen={autoOpen}
+              onAutoOpenChange={setAutoOpen}
+              defaultUseAutoGroupField={
+                <FormField
+                  control={form.control}
+                  name='DefaultUseAutoGroup'
+                  render={({ field }) => (
+                    <SettingsSwitchItem>
+                      <SettingsSwitchContent>
+                        <FormLabel>{t('Default to auto groups')}</FormLabel>
+                        <FormDescription>
+                          {t(
+                            'If default auto group is enabled, newly created tokens start with auto instead of an empty group.'
+                          )}
+                        </FormDescription>
+                      </SettingsSwitchContent>
+                      <FormControl>
+                        <Switch
+                          checked={field.value}
+                          onCheckedChange={field.onChange}
+                        />
+                      </FormControl>
+                    </SettingsSwitchItem>
+                  )}
+                />
+              }
+              maxTokenAutoGroupsField={
+                <FormField
+                  control={form.control}
+                  name='MaxTokenAutoGroups'
+                  render={({ field, fieldState }) => (
+                    <FormItem data-invalid={fieldState.invalid}>
+                      <FormLabel>
+                        {t('Maximum custom groups per token')}
+                      </FormLabel>
+                      <FormControl>
+                        <Input
+                          {...safeNumberFieldProps(field)}
+                          type='number'
+                          min={1}
+                          step={1}
+                          aria-invalid={fieldState.invalid}
+                        />
+                      </FormControl>
+                      <FormDescription>
+                        {t(
+                          'Limits only token-specific Auto snapshots. Global Auto inheritance remains unlimited.'
+                        )}
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              }
             />
-          }
-          maxTokenAutoGroupsField={
-            <FormField
-              control={form.control}
-              name='MaxTokenAutoGroups'
-              render={({ field, fieldState }) => (
-                <FormItem data-invalid={fieldState.invalid}>
-                  <FormLabel>{t('Maximum custom groups per token')}</FormLabel>
-                  <FormControl>
-                    <Input
-                      {...safeNumberFieldProps(field)}
-                      type='number'
-                      min={1}
-                      step={1}
-                      aria-invalid={fieldState.invalid}
-                    />
-                  </FormControl>
-                  <FormDescription>
-                    {t(
-                      'Limits only token-specific Auto snapshots. Global Auto inheritance remains unlimited.'
-                    )}
-                  </FormDescription>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          }
-        />
+          </CardContent>
+        </Card>
       </Form>
 
-      <p className='text-muted-foreground text-sm'>
-        {t(
-          'User groups and their differential pricing are managed under User management › User groups.'
-        )}{' '}
-        <Link
-          to='/users'
-          // 用户分组页签由用户管理页的改造加入 search 枚举，这里不依赖其类型
-          search={{ type: 'group' }}
-          className='text-primary underline underline-offset-4'
-        >
-          {t('Go to user groups')}
-        </Link>
-      </p>
+      <Card className={sectionCardClassName}>
+        <CardHeader className={sectionHeaderClassName}>
+          <CardTitle>{t('User group pricing')}</CardTitle>
+          <CardDescription>
+            {t(
+              'A user group decides which channel groups a user can see and at what ratio.'
+            )}
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <UserGroupPricingPanel />
+        </CardContent>
+      </Card>
     </div>
   )
 })

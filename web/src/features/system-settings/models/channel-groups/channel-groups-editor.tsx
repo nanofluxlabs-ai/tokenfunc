@@ -1,6 +1,6 @@
 // TokenFunc 二开：渠道分组编辑器（列表式）。
 // 行数据由上游 6 个分组 option + 注册表合成，每次编辑把差异字段写回表单；
-// 外部（高级编辑器 / 表单 reset）改动字段时按签名比对重建行。
+// 外部（表单 reset）改动字段时按签名比对重建行。
 import { useQuery } from '@tanstack/react-query'
 import { Plus } from 'lucide-react'
 import { Reorder } from 'motion/react'
@@ -33,6 +33,7 @@ import {
   type ChannelGroupKeyError,
   type ChannelGroupRow,
 } from './lib/serialization'
+import { rowOrderControlsWidthClassName } from './row-order-controls'
 
 /** 系统默认池，后端不允许删除 */
 const DEFAULT_GROUP_KEY = 'default'
@@ -60,7 +61,7 @@ export function ChannelGroupsEditor(props: ChannelGroupsEditorProps) {
     null
   )
 
-  // 表单字段被外部改动（高级编辑器 / reset）时重建行；自己写回的改动序列化后无差异，不重建
+  // 表单字段被外部改动（reset）时重建行；自己写回的改动序列化后无差异，不重建
   useEffect(() => {
     setRows((current) => {
       const diff = serializeChannelGroupRows(current, values)
@@ -186,13 +187,12 @@ export function ChannelGroupsEditor(props: ChannelGroupsEditorProps) {
     ).length
   }, [channelUsageQuery.data, pendingDelete])
 
-  const channelGroupKeys = useMemo(
+  // 自动分组候选：只保留 key 合法的行，附带基准倍率供行内徽章展示
+  const autoGroupCandidates = useMemo(
     () =>
       rows
-        .map((row) => row.key.trim())
-        .filter(
-          (key, index) => key !== '' && keyErrors.get(rows[index].id) === null
-        ),
+        .filter((row) => keyErrors.get(row.id) === null)
+        .map((row) => ({ key: row.key.trim(), ratio: row.ratio })),
     [rows, keyErrors]
   )
 
@@ -224,7 +224,6 @@ export function ChannelGroupsEditor(props: ChannelGroupsEditorProps) {
             className='hidden items-center gap-2 px-2 sm:flex'
             aria-hidden='true'
           >
-            <div className='w-[6.5rem] shrink-0' />
             <div className={channelGroupFieldGridClassName}>
               <span className={headerCellClassName}>{t('Group key')}</span>
               <span className={headerCellClassName}>{t('Name')}</span>
@@ -234,7 +233,7 @@ export function ChannelGroupsEditor(props: ChannelGroupsEditorProps) {
                 {t('Default visible')}
               </span>
             </div>
-            <div className='w-7 shrink-0' />
+            <div className={`${rowOrderControlsWidthClassName} shrink-0`} />
           </div>
           <Reorder.Group
             as='ol'
@@ -270,7 +269,7 @@ export function ChannelGroupsEditor(props: ChannelGroupsEditorProps) {
         open={props.autoOpen}
         onOpenChange={props.onAutoOpenChange}
         autoGroups={values.AutoGroups}
-        channelGroupKeys={channelGroupKeys}
+        channelGroups={autoGroupCandidates}
         onAutoGroupsChange={(json) => onChange('AutoGroups', json)}
         defaultUseAutoGroupField={props.defaultUseAutoGroupField}
         maxTokenAutoGroupsField={props.maxTokenAutoGroupsField}

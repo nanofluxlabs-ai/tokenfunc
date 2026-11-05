@@ -126,7 +126,7 @@ test('submitting the create drawer with an invalid key shows a validation error 
   await renderPanel()
 
   await userEvent.click(screen.getByRole('button', { name: 'Add user group' }))
-  await userEvent.type(screen.getByLabelText('Key'), 'Bad Key')
+  await userEvent.type(screen.getByLabelText('Group key'), 'Bad Key')
   await userEvent.type(screen.getByLabelText('Name'), 'Bad')
   await userEvent.click(screen.getByRole('button', { name: 'Save changes' }))
 
@@ -142,7 +142,7 @@ test('submitting the create drawer with valid data calls createUserGroup with th
   await renderPanel()
 
   await userEvent.click(screen.getByRole('button', { name: 'Add user group' }))
-  await userEvent.type(screen.getByLabelText('Key'), 'ent_pro')
+  await userEvent.type(screen.getByLabelText('Group key'), 'ent_pro')
   await userEvent.type(screen.getByLabelText('Name'), 'Enterprise pro')
   await userEvent.type(screen.getByLabelText('Description'), 'Top tier')
   await userEvent.click(screen.getByRole('button', { name: 'Save changes' }))
@@ -164,7 +164,7 @@ test('the key field is read-only when editing an existing group', async () => {
     within(rowOf('vip')).getByRole('button', { name: 'Edit' })
   )
 
-  const keyInput = await screen.findByLabelText('Key')
+  const keyInput = await screen.findByLabelText('Group key')
   expect(keyInput).toHaveValue('vip')
   expect(keyInput).toBeDisabled()
 })

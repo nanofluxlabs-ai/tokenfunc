@@ -178,7 +178,7 @@ export function UserGroupsPanel() {
         <TableHeader>
           <TableRow>
             <TableHead className='w-10' aria-label={t('Order')} />
-            <TableHead>{t('Key')}</TableHead>
+            <TableHead>{t('Group key')}</TableHead>
             <TableHead>{t('Name')}</TableHead>
             <TableHead>{t('Type')}</TableHead>
             <TableHead>{t('Description')}</TableHead>

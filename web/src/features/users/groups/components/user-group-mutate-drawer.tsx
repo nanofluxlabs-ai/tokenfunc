@@ -154,7 +154,7 @@ export function UserGroupMutateDrawer(props: UserGroupMutateDrawerProps) {
                 name='key'
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>{t('Key')}</FormLabel>
+                    <FormLabel>{t('Group key')}</FormLabel>
                     <FormControl>
                       <Input
                         {...field}

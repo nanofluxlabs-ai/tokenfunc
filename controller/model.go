@@ -204,7 +204,8 @@ func getModelListGroups(c *gin.Context) (modelListGroups, error) {
 		}, nil
 	}
 
-	group := userGroup
+	// TokenFunc：令牌分组留空时用户分组不一定是渠道分组，按可见渠道分组取默认，与 relay 口径一致
+	group := service.ResolveDefaultUsingGroup(userGroup)
 	if tokenGroup != "" {
 		group = tokenGroup
 	}

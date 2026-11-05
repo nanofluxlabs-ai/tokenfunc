@@ -360,6 +360,12 @@ func InitResources() error {
 		}
 	}
 	model.InitOptionMap()
+	// TokenFunc：用户分组 / 渠道分组注册表首次启动从存量数据播种
+	if common.IsMasterNode {
+		if err := model.SeedTokenFuncGroupRegistries(); err != nil {
+			common.SysError(common.LogText("failed to seed tokenfunc group registries: %s", err.Error()))
+		}
+	}
 
 	// 清理旧的磁盘缓存文件
 	common.CleanupOldCacheFiles()

@@ -27,6 +27,7 @@ import (
 	"github.com/QuantumNous/new-api/service"
 	"github.com/QuantumNous/new-api/setting"
 	"github.com/QuantumNous/new-api/setting/config"
+	"github.com/QuantumNous/new-api/setting/ratio_setting"
 	"github.com/alicebob/miniredis/v2"
 	"github.com/gin-gonic/gin"
 	"github.com/go-redis/redis/v8"
@@ -164,6 +165,15 @@ func TestResponsesWSRequestRunnerRefreshesBillingContextAndCleansBody(t *testing
 	require.NoError(t, model.DB.Model(token).Updates(map[string]any{
 		"remain_quota": 2, "model_limits_enabled": true, "model_limits": "gpt-5.1",
 	}).Error)
+	// TokenFunc：令牌分组留空时按可见渠道分组解析，updated 需先登记为可选渠道分组才会被原样使用
+	previousRatios := ratio_setting.GroupRatio2JSONString()
+	previousUsable := setting.UserUsableGroups2JSONString()
+	require.NoError(t, ratio_setting.UpdateGroupRatioByJSONString(`{"default":1,"updated":1}`))
+	require.NoError(t, setting.UpdateUserUsableGroupsByJSONString(`{"default":"Default","updated":"Updated"}`))
+	t.Cleanup(func() {
+		require.NoError(t, ratio_setting.UpdateGroupRatioByJSONString(previousRatios))
+		require.NoError(t, setting.UpdateUserUsableGroupsByJSONString(previousUsable))
+	})
 	require.NoError(t, model.DB.Model(user).Updates(map[string]any{
 		"group": "updated", "setting": `{"billing_preference":"wallet_only"}`,
 	}).Error)

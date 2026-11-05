@@ -268,8 +268,8 @@ export function TokenMutateSheet(props: TokenMutateSheetProps) {
     () =>
       (options.data?.groups ?? []).map((item) => ({
         value: item.value,
-        label: item.value,
-        desc: item.desc ? translateServerText(t, item.desc) : item.value,
+        label: item.label ? translateServerText(t, item.label) : item.value,
+        desc: item.value,
         ratio: item.ratio,
       })),
     [options.data, t]

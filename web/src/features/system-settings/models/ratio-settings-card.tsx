@@ -42,7 +42,7 @@ import { SettingsPageTitleStatusPortal } from '../components/settings-page-conte
 import { SettingsSection } from '../components/settings-section'
 import { useUpdateOption } from '../hooks/use-update-option'
 import { positiveIntegerSchema } from '../utils/numeric-field'
-import { GroupRatioForm } from './group-ratio-form'
+import { ChannelGroupsForm } from './channel-groups/channel-groups-form'
 import { ModelRatioForm } from './model-ratio-form'
 import { ToolPriceSettings } from './tool-price-settings'
 import { UpstreamRatioSync } from './upstream-ratio-sync'
@@ -145,6 +145,8 @@ const createGroupSchema = (t: Translate) =>
     MaxTokenAutoGroups: positiveIntegerSchema(t('Enter a positive integer')),
     DefaultUseAutoGroup: z.boolean(),
     GroupSpecialUsableGroup: createJsonStringField(t),
+    // TokenFunc 二开：渠道分组名称与排序注册表
+    ChannelGroupsRegistry: createJsonStringField(t),
   })
 
 type ModelFormValues = z.infer<ReturnType<typeof createModelSchema>>
@@ -252,6 +254,9 @@ export function RatioSettingsCard({
     GroupSpecialUsableGroup: normalizeJsonString(
       groupDefaults.GroupSpecialUsableGroup
     ),
+    ChannelGroupsRegistry: normalizeJsonString(
+      groupDefaults.ChannelGroupsRegistry
+    ),
   })
   const modelSchema = useMemo(() => createModelSchema(t), [t])
   const groupSchema = useMemo(() => createGroupSchema(t), [t])
@@ -289,6 +294,9 @@ export function RatioSettingsCard({
       AutoGroups: formatJsonForTextarea(groupDefaults.AutoGroups),
       GroupSpecialUsableGroup: formatJsonForTextarea(
         groupDefaults.GroupSpecialUsableGroup
+      ),
+      ChannelGroupsRegistry: formatJsonForTextarea(
+        groupDefaults.ChannelGroupsRegistry
       ),
     },
   })
@@ -342,6 +350,9 @@ export function RatioSettingsCard({
       GroupSpecialUsableGroup: normalizeJsonString(
         groupDefaults.GroupSpecialUsableGroup
       ),
+      ChannelGroupsRegistry: normalizeJsonString(
+        groupDefaults.ChannelGroupsRegistry
+      ),
     }
 
     groupForm.reset({
@@ -353,6 +364,9 @@ export function RatioSettingsCard({
       AutoGroups: formatJsonForTextarea(groupDefaults.AutoGroups),
       GroupSpecialUsableGroup: formatJsonForTextarea(
         groupDefaults.GroupSpecialUsableGroup
+      ),
+      ChannelGroupsRegistry: formatJsonForTextarea(
+        groupDefaults.ChannelGroupsRegistry
       ),
     })
   }, [groupDefaults, groupForm])
@@ -420,12 +434,16 @@ export function RatioSettingsCard({
         GroupSpecialUsableGroup: normalizeJsonString(
           values.GroupSpecialUsableGroup
         ),
+        ChannelGroupsRegistry: normalizeJsonString(
+          values.ChannelGroupsRegistry
+        ),
       }
 
       // Map form field names to API keys (most are 1:1, except GroupSpecialUsableGroup)
       const apiKeyMap: Record<string, string> = {
         GroupSpecialUsableGroup:
           'group_ratio_setting.group_special_usable_group',
+        ChannelGroupsRegistry: 'tokenfunc_group_setting.channel_groups',
       }
 
       const updates = (
@@ -510,7 +528,7 @@ export function RatioSettingsCard({
     }
     if (tab === 'groups') {
       return (
-        <GroupRatioForm
+        <ChannelGroupsForm
           form={groupForm}
           onSave={saveGroupRatios}
           isSaving={updateOption.isPending}

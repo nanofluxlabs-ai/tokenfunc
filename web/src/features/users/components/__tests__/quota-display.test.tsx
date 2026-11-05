@@ -65,7 +65,16 @@ await i18n.init({
   initAsync: false,
 })
 
+// 列定义会读用户分组注册表（useQuery），夹具自带 QueryClient
 function QuotaTable(props: { remaining: number; used: number }) {
+  return (
+    <QueryClientProvider client={new QueryClient()}>
+      <QuotaColumnsTable {...props} />
+    </QueryClientProvider>
+  )
+}
+
+function QuotaColumnsTable(props: { remaining: number; used: number }) {
   const columns = useUsersColumns().filter((column) =>
     ['quota', 'used_quota'].includes(
       column.id ?? ('accessorKey' in column ? String(column.accessorKey) : '')
@@ -282,13 +291,26 @@ async function renderUsersList(emptyInvitation = false) {
       },
     },
   }
-  const get = vi
-    .spyOn(api, 'get')
-    .mockImplementation(async (url) =>
-      url === '/api/group/'
-        ? { data: { success: true, data: ['default'] } }
-        : usersResponse
-    )
+  const get = vi.spyOn(api, 'get').mockImplementation(async (url) =>
+    url === '/api/tokenfunc/groups/user'
+      ? {
+          data: {
+            success: true,
+            data: [
+              {
+                key: 'default',
+                label: 'default',
+                description: '',
+                kind: 'individual',
+                order: 0,
+                user_count: 0,
+                override_count: 0,
+              },
+            ],
+          },
+        }
+      : usersResponse
+  )
   const root = createRootRoute()
   const auth = createRoute({ getParentRoute: () => root, id: '_authenticated' })
   const users = createRoute({

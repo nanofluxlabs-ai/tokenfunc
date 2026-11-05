@@ -21,6 +21,22 @@ const apiMock = vi.hoisted(() => ({
 }))
 vi.mock('../../api', () => apiMock)
 
+// 企业主账号分组下拉读 TokenFunc 用户分组注册表（企业档位 + default）
+const groupsMock = vi.hoisted(() => ({ listUserGroups: vi.fn() }))
+vi.mock('@/lib/tokenfunc-groups', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@/lib/tokenfunc-groups')>()),
+  listUserGroups: groupsMock.listUserGroups,
+}))
+const userGroupFixture = (key: string, label: string, order: number) => ({
+  key,
+  label,
+  description: '',
+  kind: 'enterprise',
+  order,
+  user_count: 0,
+  override_count: 0,
+})
+
 const searchUsersMock = vi.hoisted(() => vi.fn())
 vi.mock('@/features/users/api', () => ({ searchUsers: searchUsersMock }))
 
@@ -174,11 +190,11 @@ async function expandSection(title: string) {
 }
 
 beforeEach(() => {
-  apiMock.listEnterpriseGroupOptions.mockResolvedValue({
+  groupsMock.listUserGroups.mockResolvedValue({
     success: true,
     data: [
-      { group: 'default', ratio: 1 },
-      { group: 'vip', ratio: 0.8 },
+      { ...userGroupFixture('default', 'default', 0), kind: 'individual' },
+      userGroupFixture('vip', 'VIP', 1),
     ],
   })
   apiMock.updateEnterprise.mockResolvedValue({ success: true })
@@ -591,7 +607,7 @@ test('upgrading picks a personal user, defaults the group to theirs and omits an
     expect.objectContaining({ status: '1', user_type: 'personal' })
   )
   await waitFor(() =>
-    expect(screen.getByLabelText('Group')).toHaveValue('vip · 0.8×')
+    expect(screen.getByLabelText('Group')).toHaveValue('VIP (vip)')
   )
   await userEvent.type(screen.getByLabelText('Enterprise Name'), 'Alice Co')
   await save()
@@ -609,11 +625,11 @@ describe('editing group and billing together while the list refreshes', () => {
   })
 
   beforeEach(() => {
-    apiMock.listEnterpriseGroupOptions.mockResolvedValue({
+    groupsMock.listUserGroups.mockResolvedValue({
       success: true,
       data: [
-        { group: 'vip', ratio: 0.8 },
-        { group: 'svip', ratio: 0.6 },
+        userGroupFixture('vip', 'vip', 0),
+        userGroupFixture('svip', 'svip', 1),
       ],
     })
   })

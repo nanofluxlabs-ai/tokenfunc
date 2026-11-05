@@ -164,7 +164,15 @@ export interface TokenMutatePayload {
 
 export interface TokenOptions {
   owner_group: string
-  groups: { value: string; desc: string; ratio: number }[]
+  groups: {
+    value: string
+    desc: string
+    ratio: number
+    label?: string
+    order?: number
+  }[]
+  /** 不选分组时实际使用的渠道分组（TokenFunc） */
+  default_group?: string
   /** 各分组启用的模型；空字符串键 = 不选分组时（按主账号分组路由） */
   models_by_group: Record<string, string[]>
   limit: number

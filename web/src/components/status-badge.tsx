@@ -192,7 +192,7 @@ export function StatusBadge({
         textColorMap[computedVariant],
         pulse && 'animate-pulse',
         copyable &&
-          'cursor-copy hover:brightness-95 active:scale-95 dark:hover:brightness-110',
+          'cursor-pointer hover:brightness-95 active:scale-95 dark:hover:brightness-110',
         className
       )}
       onClick={handleClick}

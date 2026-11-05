@@ -234,6 +234,35 @@ export async function handleUpdateChannelField(
 }
 
 /**
+ * TokenFunc：行内修改单个渠道的分组（逗号分隔多值），至少保留一个
+ */
+export async function handleUpdateChannelGroups(
+  id: number,
+  groups: string[],
+  queryClient?: QueryClient
+): Promise<boolean> {
+  const cleaned = [
+    ...new Set(groups.map((group) => group.trim()).filter(Boolean)),
+  ]
+  if (cleaned.length === 0) {
+    toast.error(i18next.t('Keep at least one group'))
+    return false
+  }
+  try {
+    const response = await updateChannel(id, { group: cleaned.join(',') })
+    if (response.success) {
+      toast.success(i18next.t('Groups updated'))
+      queryClient?.invalidateQueries({ queryKey: channelsQueryKeys.lists() })
+      return true
+    }
+    handleServerError(response, i18next.t(ERROR_MESSAGES.UPDATE_FAILED))
+  } catch (error) {
+    handleServerError(error, i18next.t(ERROR_MESSAGES.UPDATE_FAILED))
+  }
+  return false
+}
+
+/**
  * Update a specific field for all channels with a tag
  */
 export async function handleUpdateTagField(

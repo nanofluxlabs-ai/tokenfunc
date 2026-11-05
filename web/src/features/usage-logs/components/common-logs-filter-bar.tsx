@@ -16,7 +16,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import { useQueryClient, useIsFetching, useQuery } from '@tanstack/react-query'
+import { useQueryClient, useIsFetching } from '@tanstack/react-query'
 import { useNavigate, getRouteApi } from '@tanstack/react-router'
 import type { Table } from '@tanstack/react-table'
 import { Eye, EyeOff } from 'lucide-react'
@@ -38,10 +38,12 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
-import { getGroups } from '@/features/users/api'
 import { useMediaQuery } from '@/hooks'
-import { getUserGroups } from '@/lib/api'
-import { requireServerSuccess } from '@/lib/server-error-message'
+import {
+  useChannelGroupOptions,
+  useSelfChannelGroupOptions,
+  userGroupOptionLabel,
+} from '@/hooks/use-group-options'
 
 import { LOG_TYPE_ALL_VALUE, LOG_TYPE_FILTERS } from '../constants'
 import { buildSearchParams } from '../lib/filter'
@@ -126,24 +128,18 @@ export function CommonLogsFilterBar<TData>(
   const { isAdminView: isAdmin } = useLogsViewScope()
   const { sensitiveVisible, setSensitiveVisible } = useUsageLogsContext()
   const fetchingLogs = useIsFetching({ queryKey: ['logs'] })
-  const { data: adminGroups } = useQuery({
-    queryKey: ['groups'],
-    queryFn: async () => requireServerSuccess(await getGroups()),
-    enabled: isAdmin,
-  })
-  const { data: userGroups } = useQuery({
-    queryKey: ['user-groups'],
-    queryFn: async () => requireServerSuccess(await getUserGroups()),
-    enabled: !isAdmin,
-  })
+  // 日志按渠道分组（logs.group）筛：管理员用注册表全量，普通用户用自己可选的；都按后台排序并显示名称
+  const adminGroups = useChannelGroupOptions({ enabled: isAdmin })
+  const selfGroups = useSelfChannelGroupOptions({ enabled: !isAdmin })
   const groupOptions = useMemo(() => {
-    const groups = isAdmin
-      ? (adminGroups?.data ?? [])
-      : Object.keys(userGroups?.data ?? {})
+    const groups = isAdmin ? adminGroups.options : selfGroups.options
     return groups
-      .filter((group) => group !== 'auto')
-      .map((group) => ({ label: group, value: group }))
-  }, [isAdmin, adminGroups, userGroups])
+      .filter((group) => !group.auto)
+      .map((group) => ({
+        label: userGroupOptionLabel(group),
+        value: group.value,
+      }))
+  }, [isAdmin, adminGroups.options, selfGroups.options])
 
   const searchState = useMemo<CommonLogDraft>(() => {
     const { start, end } = getDefaultTimeRange()

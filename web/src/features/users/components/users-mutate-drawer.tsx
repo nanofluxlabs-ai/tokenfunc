@@ -64,6 +64,10 @@ import {
 } from '@/components/ui/sheet'
 import { Textarea } from '@/components/ui/textarea'
 import {
+  useUserGroupOptions,
+  userGroupOptionLabel,
+} from '@/hooks/use-group-options'
+import {
   ADMIN_PERMISSION_ACTIONS,
   ADMIN_PERMISSION_RESOURCES,
   EMPTY_PERMISSION_CATALOG,
@@ -80,13 +84,7 @@ import { AuthOperationError } from '@/lib/secure-verification'
 import { requireServerSuccess } from '@/lib/server-error-message'
 import { useAuthStore } from '@/stores/auth-store'
 
-import {
-  createUser,
-  updateUser,
-  getUser,
-  getGroups,
-  getPermissionCatalog,
-} from '../api'
+import { createUser, updateUser, getUser, getPermissionCatalog } from '../api'
 import { BINDING_FIELDS, ERROR_MESSAGES, SUCCESS_MESSAGES } from '../constants'
 import {
   userFormSchema,
@@ -120,14 +118,8 @@ export function UsersMutateDrawer({
   // routine edits of an administrator do not require step-up verification.
   const loadedPermissions = useRef<AdminPermissionMatrix | undefined>(undefined)
 
-  // Fetch groups
-  const { data: groupsData } = useQuery({
-    queryKey: ['groups'],
-    queryFn: async () => requireServerSuccess(await getGroups()),
-    staleTime: 5 * 60 * 1000,
-  })
-
-  const groups = groupsData?.data || []
+  // 用户分组注册表（TokenFunc）：下拉显示名称，括注 key
+  const { options: userGroupOptions } = useUserGroupOptions()
 
   // Permission catalog is owned by the backend; fetched once and reused.
   const { data: permissionCatalog = EMPTY_PERMISSION_CATALOG } = useQuery({
@@ -423,9 +415,9 @@ export function UsersMutateDrawer({
                         <FormLabel>{t('Group')}</FormLabel>
                         <FormControl>
                           <Combobox
-                            options={groups.map((group) => ({
-                              value: group,
-                              label: group,
+                            options={userGroupOptions.map((option) => ({
+                              value: option.value,
+                              label: userGroupOptionLabel(option),
                             }))}
                             onValueChange={field.onChange}
                             value={field.value}

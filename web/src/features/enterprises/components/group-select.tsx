@@ -1,10 +1,10 @@
-import { useQuery } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 
 import { Combobox } from '@/components/ui/combobox'
-import { requireServerSuccess } from '@/lib/server-error-message'
-
-import { listEnterpriseGroupOptions } from '../api'
+import {
+  useUserGroupOptions,
+  userGroupOptionLabel,
+} from '@/hooks/use-group-options'
 
 type GroupSelectProps = {
   value: string
@@ -16,18 +16,22 @@ type GroupSelectProps = {
   'aria-invalid'?: boolean
 }
 
-/** 企业主账号分组：选项来自管理员可分配的分组，显示为「vip · 0.8×」 */
+/** 企业主账号分组：用户分组注册表里的企业档位加 default，显示名称并括注 key */
 export function GroupSelect(props: GroupSelectProps) {
   const { t } = useTranslation()
-  const groups = useQuery({
-    queryKey: ['admin-enterprise-group-options'],
-    queryFn: async () =>
-      requireServerSuccess(await listEnterpriseGroupOptions()).data ?? [],
-  })
-  const options = (groups.data ?? []).map((option) => ({
-    value: option.group,
-    label: `${option.group} · ${option.ratio}×`,
-  }))
+  const { options: userGroupOptions } = useUserGroupOptions()
+  const options = userGroupOptions
+    .filter(
+      (option) => option.kind === 'enterprise' || option.key === 'default'
+    )
+    .map((option) => ({
+      value: option.value,
+      label: userGroupOptionLabel(option),
+    }))
+  // 企业当前分组已不在候选里时仍保留，避免下拉显示空白
+  if (props.value && !options.some((option) => option.value === props.value)) {
+    options.push({ value: props.value, label: props.value })
+  }
 
   return (
     <Combobox

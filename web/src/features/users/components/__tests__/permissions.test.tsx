@@ -71,8 +71,23 @@ function renderPermissions(viewerRole: number, allowed?: boolean) {
         },
       }
     }
-    if (url === '/api/group/') {
-      return { data: { success: true, data: ['default'] } }
+    if (url === '/api/tokenfunc/groups/user') {
+      return {
+        data: {
+          success: true,
+          data: [
+            {
+              key: 'default',
+              label: 'default',
+              description: '',
+              kind: 'individual',
+              order: 0,
+              user_count: 0,
+              override_count: 0,
+            },
+          ],
+        },
+      }
     }
     if (url === '/api/verify/methods') {
       return {

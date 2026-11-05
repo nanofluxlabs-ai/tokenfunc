@@ -160,6 +160,7 @@ export function ModelConsumptionPanel(props: { range: DayRange }) {
           placeholder={t('Username')}
         />
         <GroupFilterSelect
+          kind='channel'
           value={draft.group}
           onChange={(group) => setDraft({ ...draft, group })}
           className='col-span-2 w-full sm:w-[160px]'

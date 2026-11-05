@@ -18,6 +18,7 @@ For commercial licensing, please contact support@quantumnous.com
 */
 import { api } from '@/lib/api'
 import { requireServerSuccess } from '@/lib/server-error-message'
+import { listSelfChannelGroups } from '@/lib/tokenfunc-groups'
 
 import { API_ENDPOINTS } from './constants'
 import type {
@@ -63,26 +64,14 @@ export async function getUserModels(group: string): Promise<ModelOption[]> {
 
 /**
  * Get user groups
+ * TokenFunc：改读按后台排序的渠道分组接口；label 显示名称，desc 放 key
  */
 export async function getUserGroups(): Promise<GroupOption[]> {
-  const res = await api.get(API_ENDPOINTS.USER_GROUPS)
-  const { data } = res
-  requireServerSuccess(data)
-
-  if (!data.success || !data.data) {
-    return []
-  }
-
-  const groupData = data.data as Record<
-    string,
-    { desc: string; ratio: number | string }
-  >
-
-  // label is for button display (name only); desc is for dropdown content
-  return Object.entries(groupData).map(([group, info]) => ({
-    label: group,
-    value: group,
-    ratio: info.ratio,
-    desc: info.desc,
+  const data = requireServerSuccess(await listSelfChannelGroups())
+  return (data.data?.groups ?? []).map((group) => ({
+    label: group.label || group.key,
+    value: group.key,
+    ratio: group.auto ? 'auto' : (group.ratio ?? 1),
+    desc: group.key,
   }))
 }

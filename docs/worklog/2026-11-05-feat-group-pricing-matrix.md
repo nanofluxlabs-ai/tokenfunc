@@ -25,7 +25,12 @@
 - 企业二开：主账号分组校验改为「已登记的用户分组」；`group-options` 返回企业档位 + default；企业密钥不选分组时按默认渠道分组解析，可选分组按排序输出并带 `label`。
 
 ### 前端
-（进行中）
+- 共享契约：`web/src/lib/tokenfunc-groups.ts`（接口封装与类型）、`web/src/hooks/use-group-options.ts`（`useUserGroupOptions` / `useChannelGroupOptions` / `useSelfChannelGroupOptions`，选项按后台排序，名称与 key 不同时括注 key）。
+- 系统设置 › 模型 › 分组定价：只管渠道分组（`system-settings/models/channel-groups/`），上游 `GroupRatioForm` / `GroupRatioVisualEditor` 原文件不改，降级为「高级编辑器」；新增表单字段 `ChannelGroupsRegistry` 映射 option `tokenfunc_group_setting.channel_groups`。
+- 用户管理 › 第三个 Tab「用户分组」（`users/groups/`）：注册表列表（拖拽排序、default 锁定、有用户禁删）、新增 / 编辑抽屉、定价抽屉（可见 + 倍率，留空即基准）。
+- 下拉换语义：用户编辑 / 用户列表筛选 / 企业主账号 / 订阅升级降级 / 财务用户消耗 → 用户分组；渠道编辑 / 财务模型消费 / 使用日志筛选 → 渠道分组；令牌分组 / 企业密钥 / 游乐场 → 登录用户可选渠道分组（`/groups/self`）。`GroupFilterSelect` 加 `kind` 区分两张表。
+- 列表展示：用户列表分组列显示名称悬浮 key（`user-group-badge.tsx`，查询放单元格内避免列重建）；渠道列表分组列换成 `channel-group-cell.tsx`，单个渠道可在弹层里改分组（至少保留一个，`handleUpdateChannelGroups`），Tag 聚合行只读；可复制徽章光标由 `cursor-copy` 改为手型。
+- 测试同步：mock 旧 `/api/group/`、`/api/user/self/groups` 的用例改为新接口形状；用户列测试补 `QueryClientProvider`；新增 `group-filter-select.test.tsx`、`channel-group-cell.test.tsx`。
 
 ## 验证
 

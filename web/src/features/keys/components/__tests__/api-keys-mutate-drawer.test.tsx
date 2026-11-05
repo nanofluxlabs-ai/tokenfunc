@@ -56,14 +56,36 @@ function installApiFixtures(createdPayloads: Array<Record<string, unknown>>) {
         return { data: { data: { default_use_auto_group: true } } }
       case '/api/user/models':
         return { data: { success: true, data: [] } }
-      case '/api/user/self/groups':
+      case '/api/tokenfunc/groups/self':
         return {
           data: {
             success: true,
             data: {
-              auto: { desc: 'Automatic routing', ratio: 'auto' },
-              default: { desc: 'Standard access', ratio: 1 },
-              vip: { desc: 'Priority access', ratio: 2 },
+              user_group: 'default',
+              default_group: 'default',
+              groups: [
+                {
+                  key: 'default',
+                  label: 'default',
+                  ratio: 1,
+                  order: 0,
+                  auto: false,
+                },
+                {
+                  key: 'vip',
+                  label: 'vip',
+                  ratio: 2,
+                  order: 1,
+                  auto: false,
+                },
+                {
+                  key: 'auto',
+                  label: 'auto',
+                  ratio: null,
+                  order: 0,
+                  auto: true,
+                },
+              ],
             },
           },
         }
@@ -106,7 +128,7 @@ async function renderCreateDrawer(): Promise<void> {
     {
       success: true,
       data: {
-        auto: { desc: 'Automatic routing', ratio: 'auto' },
+        auto: { desc: 'auto', ratio: 'auto' },
         default: { desc: 'Standard access', ratio: 1 },
         vip: { desc: 'Priority access', ratio: 2 },
       },
@@ -251,7 +273,7 @@ describe('API keys mutate drawer Auto group integration', () => {
     if (!addGroupTrigger) {
       throw new Error('Expected Auto group order combobox')
     }
-    selectComboboxOption(addGroupTrigger, 'Priority access')
+    selectComboboxOption(addGroupTrigger, 'vip')
 
     expect(
       document.querySelector('button[aria-label="Remove vip"]')
@@ -262,9 +284,9 @@ describe('API keys mutate drawer Auto group integration', () => {
     expect(findButton('Restore global Auto', true).disabled).toBe(false)
 
     const groupTrigger = getControlByLabel('Group')
-    selectComboboxOption(groupTrigger, 'Standard access')
+    selectComboboxOption(groupTrigger, 'default')
     expect(document.querySelector('button[aria-label="Remove vip"]')).toBe(null)
-    selectComboboxOption(groupTrigger, 'Automatic routing')
+    selectComboboxOption(groupTrigger, 'auto')
 
     expect(
       document.querySelector('button[aria-label="Remove vip"]')

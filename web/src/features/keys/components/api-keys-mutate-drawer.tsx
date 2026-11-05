@@ -63,14 +63,12 @@ import {
 import { Switch } from '@/components/ui/switch'
 import { Textarea } from '@/components/ui/textarea'
 import { RelatedPolicyLink } from '@/features/system-settings/request-policies/related-policy-link'
+import { useSelfChannelGroupOptions } from '@/hooks/use-group-options'
 import { useStatus } from '@/hooks/use-status'
-import { getUserModels, getUserGroups } from '@/lib/api'
+import { getUserModels } from '@/lib/api'
 import { getCurrencyDisplay, getCurrencyLabel } from '@/lib/currency'
 import { handleServerError } from '@/lib/handle-server-error'
-import {
-  requireServerSuccess,
-  translateServerText,
-} from '@/lib/server-error-message'
+import { requireServerSuccess } from '@/lib/server-error-message'
 import { cn } from '@/lib/utils'
 
 import {
@@ -127,16 +125,12 @@ export function ApiKeysMutateDrawer({
   })
 
   // Fetch groups
+  // 可选渠道分组（TokenFunc）：按后台排序，显示名称、括注 key
   const {
-    data: groupsData,
+    options: selfGroupOptions,
     isFetched: groupsFetched,
     isFetching: groupsFetching,
-  } = useQuery({
-    queryKey: ['user-groups'],
-    queryFn: async () => requireServerSuccess(await getUserGroups()),
-    enabled: open,
-    staleTime: 0,
-  })
+  } = useSelfChannelGroupOptions({ enabled: open, staleTime: 0 })
 
   const {
     data: apiKeyData,
@@ -164,13 +158,13 @@ export function ApiKeysMutateDrawer({
   const models = modelsData?.data || []
   const groups = useMemo<ApiKeyGroupOption[]>(
     () =>
-      Object.entries(groupsData?.data || {}).map(([key, info]) => ({
-        value: key,
-        label: key,
-        desc: info.desc ? translateServerText(t, info.desc) : key,
-        ratio: info.ratio,
+      selfGroupOptions.map((option) => ({
+        value: option.key,
+        label: option.label,
+        desc: option.key,
+        ratio: option.auto ? 'auto' : (option.ratio ?? undefined),
       })),
-    [groupsData, t]
+    [selfGroupOptions]
   )
   const backendHasAuto = groups.some((g) => g.value === 'auto')
   const availableAutoGroupNames = useMemo(

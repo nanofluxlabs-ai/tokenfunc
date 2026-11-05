@@ -93,7 +93,8 @@ func TestGetUserGroupPricingMatchesBillingAndVisibilityLookups(t *testing.T) {
 	for _, row := range rows {
 		byKey[row.ChannelGroup] = row
 	}
-	assert.Equal(t, []string{"ent_pool", "default", "gptpro"}, []string{rows[0].ChannelGroup, rows[1].ChannelGroup, rows[2].ChannelGroup})
+	// 可见的在前（按该用户分组顺序，未配时按全局顺序），不可见的在后
+	assert.Equal(t, []string{"ent_pool", "gptpro", "default"}, []string{rows[0].ChannelGroup, rows[1].ChannelGroup, rows[2].ChannelGroup})
 
 	assert.True(t, byKey["ent_pool"].Visible)
 	assert.False(t, byKey["ent_pool"].DefaultVisible)
@@ -153,8 +154,8 @@ func TestSaveUserGroupPricingOnlyTouchesThatGroupSlice(t *testing.T) {
 	ratio := func(v float64) *float64 { return &v }
 	err := SaveUserGroupPricing("ent_std", []UserGroupPricingInput{
 		{ChannelGroup: "default", Visible: false},
-		{ChannelGroup: "gptpro", Visible: true, Ratio: ratio(0.95)},
 		{ChannelGroup: "ent_pool", Visible: true, Ratio: ratio(1.5)}, // 与基准相同，不记为覆盖
+		{ChannelGroup: "gptpro", Visible: true, Ratio: ratio(0.95)},
 	})
 	require.NoError(t, err)
 
@@ -166,6 +167,25 @@ func TestSaveUserGroupPricingOnlyTouchesThatGroupSlice(t *testing.T) {
 	assert.Equal(t, map[string]string{"-:default": "", "+:ent_pool": "Acme 专属池"}, special)
 	assert.Equal(t, 0.95, GetUserGroupRatio("ent_std", "gptpro"))
 	assert.Equal(t, "ent_pool", ResolveDefaultUsingGroup("ent_std"))
+
+	// 可见行的先后顺序就是该用户分组自己的渠道分组顺序：下拉、留空默认、定价表都跟着变
+	require.NoError(t, SaveUserGroupPricing("ent_std", []UserGroupPricingInput{
+		{ChannelGroup: "gptpro", Visible: true, Ratio: ratio(0.95)},
+		{ChannelGroup: "ent_pool", Visible: true},
+		{ChannelGroup: "default", Visible: false},
+	}))
+	meta, ok := setting.GetUserGroupMeta("ent_std")
+	require.True(t, ok)
+	assert.Equal(t, []string{"gptpro", "ent_pool"}, meta.ChannelOrder)
+	assert.Equal(t, "企业标准", meta.Label, "顺序写回不丢其它字段")
+	options := ListUserSelectableChannelGroups("ent_std")
+	assert.Equal(t, []string{"gptpro", "ent_pool"}, []string{options[0].Key, options[1].Key})
+	assert.Equal(t, "gptpro", ResolveDefaultUsingGroup("ent_std"))
+	rows := GetUserGroupPricing("ent_std")
+	assert.Equal(t, []string{"gptpro", "ent_pool", "default"}, []string{rows[0].ChannelGroup, rows[1].ChannelGroup, rows[2].ChannelGroup})
+	assert.False(t, rows[2].Visible)
+	// 其它用户分组不受影响，仍按全局顺序
+	assert.Equal(t, "default", ResolveDefaultUsingGroup("ghost"))
 
 	// 全部回到默认：切片被整体删除
 	require.NoError(t, SaveUserGroupPricing("ent_std", []UserGroupPricingInput{

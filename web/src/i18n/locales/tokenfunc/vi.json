@@ -1603,6 +1603,8 @@
     "Visible for {{group}}": "Hiển thị {{group}}",
     "User group pricing": "Định giá nhóm người dùng",
     "Fix invalid group settings before saving.": "Hãy sửa các cài đặt nhóm không hợp lệ trước khi lưu.",
-    "Add, delete or reorder user groups under User management › User groups.": "Thêm, xóa hoặc sắp xếp nhóm người dùng tại Quản lý người dùng › Nhóm người dùng."
+    "Add, delete or reorder user groups under User management › User groups.": "Thêm, xóa hoặc sắp xếp nhóm người dùng tại Quản lý người dùng › Nhóm người dùng.",
+    "The order here is the order users of this group see in the token group list; an empty ratio inherits the base ratio of the channel group.": "Thứ tự ở đây là thứ tự người dùng của nhóm thấy trong danh sách nhóm của token; hệ số để trống sẽ kế thừa hệ số cơ sở của nhóm kênh.",
+    "All channel groups are already listed": "Tất cả nhóm kênh đã có trong danh sách"
   }
 }

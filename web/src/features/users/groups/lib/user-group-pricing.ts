@@ -1,5 +1,6 @@
 // TokenFunc 二开：用户分组定价表的行视图与倍率解析，定价表组件与保存 hook 共用。
-// 口径是「基准价 + 覆盖」：每行只记录可见与倍率覆盖，倍率留空 = 继承渠道分组的基准倍率。
+// 口径是「基准价 + 覆盖」：每行只记录可见与倍率覆盖，倍率留空 = 继承渠道分组的基准倍率；
+// 数组顺序也是数据：可见行在前、按用户分组自己的顺序，不可见行在后。
 import type { UserGroupPricingRow } from '@/lib/tokenfunc-groups'
 
 /** 一行的编辑态：服务端数据 + 倍率输入原文（提交时再转数字） */
@@ -30,9 +31,4 @@ export function isRatioInvalid(row: PricingRowView): boolean {
     row.ratioText.trim() !== '' &&
     parseRatioText(row.ratioText) === null
   )
-}
-
-/** 与基准不同：可见性翻转或填了倍率 */
-export function differsFromBase(row: PricingRowView): boolean {
-  return row.visible !== row.default_visible || row.ratioText.trim() !== ''
 }

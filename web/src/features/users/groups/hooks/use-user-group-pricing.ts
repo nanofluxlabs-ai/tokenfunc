@@ -45,12 +45,14 @@ export function useUserGroupPricing(
     [query.data]
   )
   const rows = draft?.base === base ? draft.rows : base
+  // 顺序也是数据：可见行的先后就是用户在令牌下拉里看到的顺序，位置变了同样算改动
   const isDirty =
     rows !== base &&
     rows.some((row, index) => {
       const origin = base[index]
       return (
         origin === undefined ||
+        origin.channel_group !== row.channel_group ||
         origin.visible !== row.visible ||
         origin.ratioText !== row.ratioText
       )
@@ -59,7 +61,7 @@ export function useUserGroupPricing(
   const setRows = (next: PricingRowView[]) => setDraft({ base, rows: next })
   const reset = () => setDraft(null)
 
-  /** 提交当前表的全部行（后端按全量切片处理）；成功返回 true */
+  /** 提交当前表的全部行（可见行按当前顺序在前，后端据此存顺序）；成功返回 true */
   const save = async (): Promise<boolean> => {
     if (groupKey === '') return false
     if (rows.some(isRatioInvalid)) {

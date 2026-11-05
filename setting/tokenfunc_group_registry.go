@@ -47,6 +47,9 @@ type UserGroupMeta struct {
 	Description string `json:"description"`
 	Kind        string `json:"kind"`
 	Order       int    `json:"order"`
+	// ChannelOrder 该用户分组自己的可用渠道分组顺序（key 列表）：决定其用户在令牌下拉里看到的顺序，
+	// 以及令牌分组留空时默认取哪个。未列出的可见渠道分组按全局顺序排在后面；列表里不可见或已删的 key 忽略。
+	ChannelOrder []string `json:"channel_order,omitempty"`
 }
 
 // ChannelGroupMeta 渠道分组的展示信息；key 以 GroupRatio 为准，这里只存名称与排序
@@ -121,7 +124,50 @@ func NormalizeUserGroupMeta(key string, meta UserGroupMeta) (UserGroupMeta, erro
 	if meta.Kind != UserGroupKindIndividual && meta.Kind != UserGroupKindEnterprise {
 		return meta, ErrUserGroupInvalidKind
 	}
+	meta.ChannelOrder = normalizeChannelOrder(meta.ChannelOrder)
 	return meta, nil
+}
+
+// normalizeChannelOrder 去空格、去重、去空项
+func normalizeChannelOrder(keys []string) []string {
+	if len(keys) == 0 {
+		return nil
+	}
+	seen := make(map[string]struct{}, len(keys))
+	out := make([]string, 0, len(keys))
+	for _, key := range keys {
+		key = strings.TrimSpace(key)
+		if key == "" {
+			continue
+		}
+		if _, dup := seen[key]; dup {
+			continue
+		}
+		seen[key] = struct{}{}
+		out = append(out, key)
+	}
+	return out
+}
+
+// UserGroupChannelRank 某用户分组视角下渠道分组的排序依据：先按该用户分组自己的顺序，未列出的按全局顺序、key
+func UserGroupChannelRank(userGroup, channelGroup string) (int, int, string) {
+	own := int(^uint(0) >> 1)
+	if meta, ok := GetUserGroupMeta(userGroup); ok {
+		for index, key := range meta.ChannelOrder {
+			if key == channelGroup {
+				own = index
+				break
+			}
+		}
+	}
+	return own, ChannelGroupOrder(channelGroup), channelGroup
+}
+
+// CompareChannelGroupsFor 按某用户分组的视角比较两个渠道分组 key
+func CompareChannelGroupsFor(userGroup, a, b string) int {
+	ownA, globalA, keyA := UserGroupChannelRank(userGroup, a)
+	ownB, globalB, keyB := UserGroupChannelRank(userGroup, b)
+	return cmp.Or(cmp.Compare(ownA, ownB), cmp.Compare(globalA, globalB), strings.Compare(keyA, keyB))
 }
 
 // defaultUserGroupMeta 注册表里没有 default 时合成的一条；描述是英文源文本，由 web 控制台翻译

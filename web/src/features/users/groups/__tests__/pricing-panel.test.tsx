@@ -95,7 +95,7 @@ async function renderPanel() {
   })
   render(<RouterProvider router={router} />)
   await router.load()
-  await screen.findByRole('switch', { name: 'Visible for Default' })
+  await screen.findByRole('spinbutton', { name: 'Ratio override for Default' })
 }
 
 function groupList() {
@@ -132,11 +132,11 @@ test('the first user group is selected by default and its pricing rows are loade
     'true'
   )
   expect(apiMock.getUserGroupPricing).toHaveBeenCalledWith('default')
+  expect(ratioInput('Premium')).toBeInTheDocument()
   expect(
-    screen.getByRole('switch', { name: 'Visible for Premium' })
-  ).toBeInTheDocument()
-  expect(
-    screen.queryByRole('switch', { name: 'Visible for Enterprise pool' })
+    screen.queryByRole('spinbutton', {
+      name: 'Ratio override for Enterprise pool',
+    })
   ).not.toBeInTheDocument()
 })
 
@@ -148,7 +148,9 @@ test('clicking another user group loads that group’s pricing rows', async () =
   )
 
   expect(
-    await screen.findByRole('switch', { name: 'Visible for Enterprise pool' })
+    await screen.findByRole('spinbutton', {
+      name: 'Ratio override for Enterprise pool',
+    })
   ).toBeInTheDocument()
   expect(apiMock.getUserGroupPricing).toHaveBeenCalledWith('ent_std')
   expect(
@@ -173,6 +175,22 @@ test('the save button stays disabled until a ratio changes, then submits only th
     { channel_group: 'default', visible: true, ratio: null },
     { channel_group: 'premium', visible: true, ratio: 0.9 },
   ])
+})
+
+test('reordering a row alone enables saving and submits the rows in the new order', async () => {
+  await renderPanel()
+
+  await userEvent.click(screen.getByRole('button', { name: 'Move Premium up' }))
+  const saveButton = screen.getByRole('button', { name: 'Save' })
+  expect(saveButton).toBeEnabled()
+  await userEvent.click(saveButton)
+
+  await waitFor(() =>
+    expect(apiMock.saveUserGroupPricing).toHaveBeenCalledWith('default', [
+      { channel_group: 'premium', visible: true, ratio: null },
+      { channel_group: 'default', visible: true, ratio: null },
+    ])
+  )
 })
 
 test('switching groups with unsaved changes asks for confirmation and keeps the current group on cancel', async () => {
@@ -208,7 +226,9 @@ test('confirming the discard dialog switches to the other group and drops the ed
   )
 
   expect(
-    await screen.findByRole('switch', { name: 'Visible for Enterprise pool' })
+    await screen.findByRole('spinbutton', {
+      name: 'Ratio override for Enterprise pool',
+    })
   ).toBeInTheDocument()
   expect(apiMock.saveUserGroupPricing).not.toHaveBeenCalled()
   expect(screen.getByRole('button', { name: 'Save' })).toBeDisabled()

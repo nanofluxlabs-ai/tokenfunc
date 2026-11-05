@@ -1,6 +1,6 @@
 // TokenFunc 二开：系统设置 › 分组定价 里的「用户分组定价」面板。
 // 左列列出用户分组（手机端换成顶部下拉），右侧是选中分组的渠道分组定价表；
-// 新增 / 删除 / 排序用户分组仍在用户管理 › 用户分组 页签里做，这里只配定价。
+// 新增 / 删除 / 排序用户分组仍在用户管理 › 用户分组 页签里做，这里只配可用渠道分组的顺序与倍率。
 import { useQuery } from '@tanstack/react-query'
 import { Link } from '@tanstack/react-router'
 import { Users } from 'lucide-react'
@@ -185,7 +185,7 @@ export function UserGroupPricingPanel(props: UserGroupPricingPanelProps) {
           </h3>
           <p className='text-muted-foreground text-sm'>
             {t(
-              'Leave the ratio empty to inherit the base ratio of the channel group; hidden channel groups are not offered to users of this group.'
+              'The order here is the order users of this group see in the token group list; an empty ratio inherits the base ratio of the channel group.'
             )}{' '}
             {t(
               'Add, delete or reorder user groups under User management › User groups.'
@@ -202,7 +202,7 @@ export function UserGroupPricingPanel(props: UserGroupPricingPanelProps) {
         {pricing.isLoading ? (
           <LoadingState size='sm' />
         ) : (
-          // 换分组时重挂载，清掉表内的筛选与搜索
+          // 换分组时重挂载，避免上一组的拖拽状态串过来
           <UserGroupPricingTable
             key={groupKey}
             rows={pricing.rows}

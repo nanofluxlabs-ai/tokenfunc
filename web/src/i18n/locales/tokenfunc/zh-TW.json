@@ -1603,6 +1603,8 @@
     "Visible for {{group}}": "{{group}} 是否可見",
     "User group pricing": "使用者分組定價",
     "Fix invalid group settings before saving.": "請先修正無效的分組設定再儲存。",
-    "Add, delete or reorder user groups under User management › User groups.": "新增、刪除、排序使用者分組請到 使用者管理 › 使用者分組。"
+    "Add, delete or reorder user groups under User management › User groups.": "新增、刪除、排序使用者分組請到 使用者管理 › 使用者分組。",
+    "The order here is the order users of this group see in the token group list; an empty ratio inherits the base ratio of the channel group.": "這裡的順序就是該分組使用者在權杖分組下拉裡看到的順序；倍率留空沿用通道分組的基準價。",
+    "All channel groups are already listed": "所有通道分組都已在清單中"
   }
 }

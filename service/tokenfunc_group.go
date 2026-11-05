@@ -10,6 +10,7 @@ import (
 	"errors"
 	"fmt"
 	"math"
+	"slices"
 	"strings"
 
 	"github.com/QuantumNous/new-api/common"
@@ -37,7 +38,8 @@ type ChannelGroupOption struct {
 	Order int     `json:"order"`
 }
 
-// ListUserSelectableChannelGroups 用户分组可选（可见且在 GroupRatio 里）的渠道分组，按 order、key 排序
+// ListUserSelectableChannelGroups 用户分组可选（可见且在 GroupRatio 里）的渠道分组，
+// 按该用户分组自己的顺序排列，未列出的按全局 order、key 排在后面
 func ListUserSelectableChannelGroups(userGroup string) []ChannelGroupOption {
 	usable := GetUserUsableGroups(userGroup)
 	options := make([]ChannelGroupOption, 0, len(usable))
@@ -51,6 +53,12 @@ func ListUserSelectableChannelGroups(userGroup string) []ChannelGroupOption {
 			Ratio: GetUserGroupRatio(userGroup, entry.Key),
 			Order: entry.Order,
 		})
+	}
+	slices.SortStableFunc(options, func(a, b ChannelGroupOption) int {
+		return setting.CompareChannelGroupsFor(userGroup, a.Key, b.Key)
+	})
+	for index := range options {
+		options[index].Order = index
 	}
 	return options
 }
@@ -81,7 +89,8 @@ type UserGroupPricingRow struct {
 	Locked bool `json:"locked"`
 }
 
-// GetUserGroupPricing 合成某用户分组的渠道分组定价表，口径与计费、鉴权完全一致
+// GetUserGroupPricing 合成某用户分组的渠道分组定价表，口径与计费、鉴权完全一致。
+// 顺序：可见的按该用户分组自己的顺序在前，不可见的按全局顺序在后。
 func GetUserGroupPricing(userGroup string) []UserGroupPricingRow {
 	usable := GetUserUsableGroups(userGroup)
 	defaults := setting.GetUserUsableGroupsCopy()
@@ -104,6 +113,18 @@ func GetUserGroupPricing(userGroup string) []UserGroupPricingRow {
 		}
 		rows = append(rows, row)
 	}
+	slices.SortStableFunc(rows, func(a, b UserGroupPricingRow) int {
+		if a.Visible != b.Visible {
+			if a.Visible {
+				return -1
+			}
+			return 1
+		}
+		if !a.Visible {
+			return setting.CompareChannelGroups(a.ChannelGroup, b.ChannelGroup)
+		}
+		return setting.CompareChannelGroupsFor(userGroup, a.ChannelGroup, b.ChannelGroup)
+	})
 	return rows
 }
 
@@ -116,6 +137,7 @@ type UserGroupPricingInput struct {
 
 // SaveUserGroupPricing 把定价表反算成相对默认可见的 +:/-: 差异与倍率覆盖，只改该用户分组的切片；
 // 未出现在 inputs 里的渠道分组视为继承默认。与基准价相同的倍率不记为覆盖。
+// inputs 里可见行的先后顺序即该用户分组的渠道分组顺序，一并写进注册表。
 func SaveUserGroupPricing(userGroup string, inputs []UserGroupPricingInput) error {
 	if !setting.IsRegisteredUserGroup(userGroup) {
 		return setting.ErrUserGroupNotFound
@@ -124,11 +146,15 @@ func SaveUserGroupPricing(userGroup string, inputs []UserGroupPricingInput) erro
 	defaults := setting.GetUserUsableGroupsCopy()
 	rowSpecial := make(map[string]string)
 	rowRatios := make(map[string]float64)
+	channelOrder := make([]string, 0, len(inputs))
 	for _, input := range inputs {
 		key := strings.TrimSpace(input.ChannelGroup)
 		base, ok := ratios[key]
 		if !ok {
 			return fmt.Errorf("%w: %s", ErrChannelGroupUnknown, key)
+		}
+		if input.Visible {
+			channelOrder = append(channelOrder, key)
 		}
 		_, defaultVisible := defaults[key]
 		if input.Visible != defaultVisible && key != userGroup {
@@ -161,9 +187,14 @@ func SaveUserGroupPricing(userGroup string, inputs []UserGroupPricingInput) erro
 	} else {
 		matrix[userGroup] = rowRatios
 	}
+	groups := setting.UserGroupsSnapshot()
+	meta := groups[userGroup]
+	meta.ChannelOrder = channelOrder
+	groups[userGroup] = meta
 	return writeGroupOptions(map[string]any{
 		groupGroupRatioOptionKey:    matrix,
 		specialUsableGroupOptionKey: special,
+		setting.UserGroupsOptionKey: groups,
 	})
 }
 
@@ -213,6 +244,7 @@ func UpdateUserGroup(key string, meta setting.UserGroupMeta) error {
 		return err
 	}
 	meta.Order = current.Order
+	meta.ChannelOrder = current.ChannelOrder
 	groups[key] = meta
 	return writeUserGroups(groups)
 }

@@ -67,7 +67,7 @@ export function UserGroupPricingDrawer(props: UserGroupPricingDrawerProps) {
           </SheetTitle>
           <SheetDescription>
             {t(
-              'Leave the ratio empty to inherit the base ratio of the channel group; hidden channel groups are not offered to users of this group.'
+              'The order here is the order users of this group see in the token group list; an empty ratio inherits the base ratio of the channel group.'
             )}
           </SheetDescription>
         </SheetHeader>
@@ -75,7 +75,7 @@ export function UserGroupPricingDrawer(props: UserGroupPricingDrawerProps) {
           {pricing.isLoading ? (
             <LoadingState size='sm' />
           ) : (
-            // 换分组时重挂载，清掉表内的筛选与搜索
+            // 换分组时重挂载，避免上一组的拖拽状态串过来
             <UserGroupPricingTable
               key={groupKey}
               rows={pricing.rows}

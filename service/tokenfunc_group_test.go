@@ -236,3 +236,53 @@ func TestUserGroupLifecycleCascadesAndGuards(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, int64(1), counts["ent_acme"])
 }
+
+func TestMigrateExplicitGroupVisibilityKeepsEffectiveVisibility(t *testing.T) {
+	setupTokenFuncGroupPostgres(t)
+	setupGroupPricingState(t)
+	require.NoError(t, setting.UpdateUserUsableGroupsByJSONString(`{"default":"Default","gptpro":"GPT Pro","auto":"Auto"}`))
+
+	keysOf := func(userGroup string) []string {
+		options := ListUserSelectableChannelGroups(userGroup)
+		keys := make([]string, 0, len(options))
+		for _, option := range options {
+			keys = append(keys, option.Key)
+		}
+		return keys
+	}
+	before := map[string][]string{}
+	for _, userGroup := range []string{"default", "ent_std", "lonely"} {
+		before[userGroup] = keysOf(userGroup)
+	}
+
+	require.NoError(t, MigrateExplicitGroupVisibility())
+
+	// 基线只剩 auto，其余可见性全部落到每个用户分组自己的 +: 列表
+	assert.Equal(t, map[string]string{"auto": "Auto"}, setting.GetUserUsableGroupsCopy())
+	special := ratio_setting.GetGroupRatioSetting().GroupSpecialUsableGroup
+	defaultRules, ok := special.Get("default")
+	require.True(t, ok)
+	assert.Equal(t, map[string]string{"+:gptpro": "GPT 高速池"}, defaultRules, "同名渠道分组靠上游规则可见，不写进列表")
+	entRules, ok := special.Get("ent_std")
+	require.True(t, ok)
+	assert.Equal(t, map[string]string{"+:ent_pool": "Acme 专属池", "+:gptpro": "GPT 高速池"}, entRules)
+	_, hasLonely := special.Get("lonely")
+	assert.False(t, hasLonely)
+
+	// 迁移前后每个用户分组看到的渠道分组与顺序完全一致
+	for userGroup, keys := range before {
+		assert.Equal(t, keys, keysOf(userGroup), userGroup)
+	}
+	meta, _ := setting.GetUserGroupMeta("ent_std")
+	assert.Equal(t, []string{"ent_pool", "gptpro"}, meta.ChannelOrder)
+	assert.Equal(t, "ent_pool", ResolveDefaultUsingGroup("ent_std"))
+
+	// 新建渠道分组不再自动对任何用户分组可见
+	require.NoError(t, ratio_setting.UpdateGroupRatioByJSONString(`{"default":1,"gptpro":1,"ent_pool":1.5,"newpool":1}`))
+	assert.NotContains(t, keysOf("default"), "newpool")
+	assert.NotContains(t, keysOf("ent_std"), "newpool")
+
+	// 再跑一次是空操作
+	require.NoError(t, MigrateExplicitGroupVisibility())
+	assert.Equal(t, map[string]string{"auto": "Auto"}, setting.GetUserUsableGroupsCopy())
+}

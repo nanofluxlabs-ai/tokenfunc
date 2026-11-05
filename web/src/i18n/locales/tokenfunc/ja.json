@@ -1552,7 +1552,6 @@
     "Add channel group": "チャネルグループを追加",
     "Channel groups": "チャネルグループ",
     "New channel group": "新しいチャネルグループ",
-    "Default visible": "デフォルトで表示",
     "Group key is required": "グループキーを入力してください",
     "Use lowercase letters, digits, underscore or hyphen": "小文字、数字、アンダースコア、ハイフンのみ使用できます",
     "Duplicate group key": "グループキーが重複しています",

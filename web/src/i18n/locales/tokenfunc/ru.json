@@ -1552,7 +1552,6 @@
     "Add channel group": "Добавить группу каналов",
     "Channel groups": "Группы каналов",
     "New channel group": "Новая группа каналов",
-    "Default visible": "Видна по умолчанию",
     "Group key is required": "Укажите ключ группы",
     "Use lowercase letters, digits, underscore or hyphen": "Используйте строчные буквы, цифры, подчёркивание или дефис",
     "Duplicate group key": "Ключ группы уже используется",

@@ -1,7 +1,9 @@
 // TokenFunc 二开：渠道分组页的纯函数。
 // 把上游 6 个分组 option + 二开注册表 合成为可编辑的行，再把行写回各字段。
-// key 集合以上游 GroupRatio ∪ UserUsableGroups ∪ TopupGroupRatio 为准，
+// key 集合以上游 GroupRatio ∪ TopupGroupRatio 为准，
 // 注册表只提供名称与排序（注册表里残留、但已不在上游 option 中的 key 不再复活）。
+// 可见性改为显式模型后，UserUsableGroups 不再由本页维护：读行时只作名称回退，
+// 写回时原样保留（迁移后它只可能剩下上游用来暴露 auto 的项），唯一例外是删除分组时移除同名 key。
 
 export type ChannelGroupFormValues = {
   GroupRatio: string
@@ -22,7 +24,6 @@ export type ChannelGroupRow = {
   ratio: string
   /** 充值倍率，空串表示未配置 */
   topupRatio: string
-  defaultVisible: boolean
   isNew: boolean
 }
 
@@ -91,18 +92,11 @@ export function validateChannelGroupKey(
   return null
 }
 
-/** 上游三个 option 的 key 并集，顺序为首次出现顺序 */
+/** 上游两个倍率 option 的 key 并集，顺序为首次出现顺序 */
 function collectExistingKeys(values: ChannelGroupFormValues): string[] {
   const ratioMap = parseObject<unknown>(values.GroupRatio)
-  const usableMap = parseObject<unknown>(values.UserUsableGroups)
   const topupMap = parseObject<unknown>(values.TopupGroupRatio)
-  return [
-    ...new Set([
-      ...Object.keys(ratioMap),
-      ...Object.keys(usableMap),
-      ...Object.keys(topupMap),
-    ]),
-  ]
+  return [...new Set([...Object.keys(ratioMap), ...Object.keys(topupMap)])]
 }
 
 export function buildChannelGroupRows(
@@ -130,7 +124,6 @@ export function buildChannelGroupRows(
         label: registeredLabel || usableDescription || key,
         ratio: String(normalizeRatio(ratioMap[key])),
         topupRatio: Object.hasOwn(topupMap, key) ? String(topupMap[key]) : '',
-        defaultVisible: Object.hasOwn(usableMap, key),
         isNew: false,
       } satisfies ChannelGroupRow,
       order,
@@ -160,9 +153,9 @@ export function collectValidRows(rows: ChannelGroupRow[]): ChannelGroupRow[] {
 
 /**
  * 把行写回表单字段，只返回与当前值不同的字段。
- * - GroupRatio / TopupGroupRatio / UserUsableGroups 保留原有 key 顺序，新 key 追加在后；
- * - 注册表按显示顺序重排 order 为 0..n-1；
- * - 被删除的分组级联清理 AutoGroups、GroupGroupRatio 内层与 GroupSpecialUsableGroup 的 +:/-: 条目。
+ * - GroupRatio / TopupGroupRatio 保留原有 key 顺序，新 key 追加在后；
+ * - 名称只写注册表，注册表按显示顺序重排 order 为 0..n-1；
+ * - 被删除的分组级联清理 UserUsableGroups、AutoGroups、GroupGroupRatio 内层与 GroupSpecialUsableGroup 的 +:/-: 条目。
  */
 export function serializeChannelGroupRows(
   rows: ChannelGroupRow[],
@@ -181,15 +174,11 @@ export function serializeChannelGroupRows(
 
   const groupRatio: Record<string, number> = {}
   const topupGroupRatio: Record<string, number> = {}
-  const userUsableGroups: Record<string, string> = {}
   for (const row of orderedRows) {
     groupRatio[row.key] = normalizeRatio(row.ratio)
     const topup = row.topupRatio.trim()
     if (topup !== '' && Number.isFinite(Number(topup))) {
       topupGroupRatio[row.key] = Number(topup)
-    }
-    if (row.defaultVisible) {
-      userUsableGroups[row.key] = row.label.trim() || row.key
     }
   }
 
@@ -214,13 +203,20 @@ export function serializeChannelGroupRows(
 
   assignIfChanged('GroupRatio', groupRatio)
   assignIfChanged('TopupGroupRatio', topupGroupRatio)
-  assignIfChanged('UserUsableGroups', userUsableGroups)
   assignIfChanged('ChannelGroupsRegistry', registry)
 
   const removedKeys = existingKeys.filter((key) => !rowKeys.has(key))
   if (removedKeys.length === 0) return changes
 
   const removed = new Set(removedKeys)
+  assignIfChanged(
+    'UserUsableGroups',
+    Object.fromEntries(
+      Object.entries(parseObject<unknown>(values.UserUsableGroups)).filter(
+        ([key]) => !removed.has(key)
+      )
+    )
+  )
   assignIfChanged(
     'AutoGroups',
     parseStringArray(values.AutoGroups).filter((key) => !removed.has(key))

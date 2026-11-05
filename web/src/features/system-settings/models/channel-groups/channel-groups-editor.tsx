@@ -139,7 +139,6 @@ export function ChannelGroupsEditor(props: ChannelGroupsEditorProps) {
         label: '',
         ratio: '1',
         topupRatio: '',
-        defaultVisible: true,
         isNew: true,
       },
     ])
@@ -229,9 +228,6 @@ export function ChannelGroupsEditor(props: ChannelGroupsEditorProps) {
               <span className={headerCellClassName}>{t('Name')}</span>
               <span className={headerCellClassName}>{t('Ratio')}</span>
               <span className={headerCellClassName}>{t('Top-up ratio')}</span>
-              <span className={`${headerCellClassName} text-center`}>
-                {t('Default visible')}
-              </span>
             </div>
             <div className={`${rowOrderControlsWidthClassName} shrink-0`} />
           </div>

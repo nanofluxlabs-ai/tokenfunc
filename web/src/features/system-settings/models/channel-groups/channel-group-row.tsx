@@ -1,5 +1,5 @@
 // TokenFunc 二开：渠道分组列表里的一行。
-// 桌面端为一行网格：key · 名称 · 基准倍率 · 充值倍率 · 默认可见 · 操作组（上 / 下 / 把手 / 删除）；
+// 桌面端为一行网格：key · 名称 · 基准倍率 · 充值倍率 · 操作组（上 / 下 / 把手 / 删除）；
 // 手机端（<sm）字段纵排成卡片，每个字段显示自己的标签，操作组放在卡片底部。
 import { Reorder, useDragControls } from 'motion/react'
 import { useId } from 'react'
@@ -7,14 +7,13 @@ import { useTranslation } from 'react-i18next'
 
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Switch } from '@/components/ui/switch'
 
 import type { ChannelGroupKeyError, ChannelGroupRow } from './lib/serialization'
 import { RowOrderControls } from './row-order-controls'
 
 /** 字段区的网格列定义，表头与每一行共用，保证对齐 */
 export const channelGroupFieldGridClassName =
-  'grid min-w-0 flex-1 grid-cols-1 gap-2 sm:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)_6rem_6rem_5rem] sm:items-center'
+  'grid min-w-0 flex-1 grid-cols-1 gap-2 sm:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)_6rem_6rem] sm:items-center'
 
 type ChannelGroupRowItemProps = {
   row: ChannelGroupRow
@@ -143,19 +142,6 @@ export function ChannelGroupRowItem(props: ChannelGroupRowItemProps) {
             placeholder={t('Not set')}
             onChange={(event) =>
               props.onUpdate(row.id, { topupRatio: event.target.value })
-            }
-          />
-        </div>
-
-        <div className='flex min-w-0 items-center justify-between gap-2 sm:h-8 sm:justify-center'>
-          <Label htmlFor={`${baseId}-visible`} className={mobileLabelClassName}>
-            {t('Default visible')}
-          </Label>
-          <Switch
-            id={`${baseId}-visible`}
-            checked={row.defaultVisible}
-            onCheckedChange={(checked) =>
-              props.onUpdate(row.id, { defaultVisible: checked })
             }
           />
         </div>

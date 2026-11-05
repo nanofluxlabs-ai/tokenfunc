@@ -35,19 +35,22 @@ describe('buildChannelGroupRows', () => {
     ])
   })
 
-  it('reads ratio, top-up ratio and default visibility from the upstream options', () => {
+  it('reads ratio and top-up ratio from the upstream options', () => {
     const rows = buildChannelGroupRows(baseValues)
     expect(rows[0]).toMatchObject({
       ratio: '0.9',
       topupRatio: '1.2',
-      defaultVisible: true,
       isNew: false,
     })
-    expect(rows[2]).toMatchObject({
-      ratio: '2',
-      topupRatio: '',
-      defaultVisible: false,
+    expect(rows[2]).toMatchObject({ ratio: '2', topupRatio: '' })
+  })
+
+  it('does not list a key that only exists in UserUsableGroups such as auto', () => {
+    const rows = buildChannelGroupRows({
+      ...baseValues,
+      UserUsableGroups: '{"auto":"Auto","default":"Default group"}',
     })
+    expect(rows.map((row) => row.key)).toEqual(['gptpro', 'default', 'legacy'])
   })
 
   it('does not resurrect a registry key that no longer exists in GroupRatio', () => {
@@ -73,17 +76,10 @@ describe('buildChannelGroupRows', () => {
 })
 
 describe('serializeChannelGroupRows', () => {
-  it('syncs the registered name into UserUsableGroups and completes the registry when rows are unchanged', () => {
+  it('completes the registry only when rows are unchanged', () => {
     const rows = buildChannelGroupRows(baseValues)
     const changes = serializeChannelGroupRows(rows, baseValues)
-    expect(Object.keys(changes).sort()).toEqual([
-      'ChannelGroupsRegistry',
-      'UserUsableGroups',
-    ])
-    expect(JSON.parse(changes.UserUsableGroups ?? '')).toEqual({
-      default: 'Default group',
-      gptpro: 'GPT fast pool',
-    })
+    expect(Object.keys(changes)).toEqual(['ChannelGroupsRegistry'])
     expect(JSON.parse(changes.ChannelGroupsRegistry ?? '')).toEqual({
       gptpro: { label: 'GPT fast pool', order: 0 },
       default: { label: 'Default group', order: 1 },
@@ -102,18 +98,24 @@ describe('serializeChannelGroupRows', () => {
     ).toEqual({})
   })
 
-  it('writes the name into UserUsableGroups only for default visible groups', () => {
-    const rows = buildChannelGroupRows(baseValues).map((row) =>
-      row.key === 'gptpro'
-        ? { ...row, defaultVisible: false, label: 'Renamed' }
-        : row
+  it('writes a renamed group only into the registry and leaves UserUsableGroups untouched', () => {
+    const values = {
+      ...baseValues,
+      UserUsableGroups: '{"auto":"Auto","gptpro":"GPT pool"}',
+    }
+    const rows = buildChannelGroupRows(values).map((row) =>
+      row.key === 'gptpro' ? { ...row, label: 'Renamed', ratio: '0.5' } : row
     )
-    const changes = serializeChannelGroupRows(rows, baseValues)
-    expect(JSON.parse(changes.UserUsableGroups ?? '')).toEqual({
-      default: 'Default group',
+    const changes = serializeChannelGroupRows(rows, values)
+    expect(Object.keys(changes).sort()).toEqual([
+      'ChannelGroupsRegistry',
+      'GroupRatio',
+    ])
+    expect(JSON.parse(changes.ChannelGroupsRegistry ?? '').gptpro).toEqual({
+      label: 'Renamed',
+      order: 0,
     })
-    expect(changes.GroupRatio).toBeUndefined()
-    expect(changes.AutoGroups).toBeUndefined()
+    expect(changes.UserUsableGroups).toBeUndefined()
   })
 
   it('keeps the existing key order of GroupRatio after a drag reorder and renumbers the registry', () => {
@@ -137,7 +139,6 @@ describe('serializeChannelGroupRows', () => {
         label: '  ',
         ratio: '1.5',
         topupRatio: '',
-        defaultVisible: true,
         isNew: true,
       },
     ]
@@ -149,9 +150,10 @@ describe('serializeChannelGroupRows', () => {
       'claude-pool',
     ])
     expect(JSON.parse(changes.GroupRatio ?? '')['claude-pool']).toBe(1.5)
-    expect(JSON.parse(changes.UserUsableGroups ?? '')['claude-pool']).toBe(
-      'claude-pool'
-    )
+    expect(
+      JSON.parse(changes.ChannelGroupsRegistry ?? '')['claude-pool']
+    ).toEqual({ label: 'claude-pool', order: 3 })
+    expect(changes.UserUsableGroups).toBeUndefined()
     expect(changes.TopupGroupRatio).toBeUndefined()
   })
 
@@ -164,7 +166,6 @@ describe('serializeChannelGroupRows', () => {
         label: '',
         ratio: '1',
         topupRatio: '',
-        defaultVisible: true,
         isNew: true,
       },
       {
@@ -173,7 +174,6 @@ describe('serializeChannelGroupRows', () => {
         label: '',
         ratio: '1',
         topupRatio: '',
-        defaultVisible: true,
         isNew: true,
       },
       {
@@ -182,22 +182,18 @@ describe('serializeChannelGroupRows', () => {
         label: 'dup',
         ratio: '3',
         topupRatio: '',
-        defaultVisible: true,
         isNew: true,
       },
     ]
     const changes = serializeChannelGroupRows(rows, baseValues)
     expect(changes.GroupRatio).toBeUndefined()
-    expect(Object.keys(JSON.parse(changes.UserUsableGroups ?? '{}'))).toEqual([
-      'default',
-      'gptpro',
-    ])
+    expect(changes.UserUsableGroups).toBeUndefined()
     expect(
       Object.keys(JSON.parse(changes.ChannelGroupsRegistry ?? ''))
     ).toEqual(['gptpro', 'default', 'legacy'])
   })
 
-  it('cascades a deletion into AutoGroups, GroupGroupRatio and GroupSpecialUsableGroup', () => {
+  it('cascades a deletion into UserUsableGroups, AutoGroups, GroupGroupRatio and GroupSpecialUsableGroup', () => {
     const rows = buildChannelGroupRows(baseValues).filter(
       (row) => row.key !== 'gptpro'
     )

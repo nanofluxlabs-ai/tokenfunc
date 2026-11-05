@@ -113,8 +113,8 @@ describe('channel groups editor', () => {
       within(rowByKey('vip')).getByRole('spinbutton', { name: 'Top-up ratio' })
     ).toHaveValue(1.2)
     expect(
-      within(rowByKey('vip')).getByRole('switch', { name: 'Default visible' })
-    ).toBeChecked()
+      within(rowByKey('vip')).queryByRole('switch')
+    ).not.toBeInTheDocument()
     expect(
       within(rowByKey('default')).getByRole('button', {
         name: 'Remove default',
@@ -157,34 +157,11 @@ describe('channel groups editor', () => {
       vip: 0.8,
       'claude-pool': 1,
     })
-    expect(JSON.parse(saved.UserUsableGroups)['claude-pool']).toBe(
-      'claude-pool'
-    )
+    expect(saved.UserUsableGroups).toBe(defaults.UserUsableGroups)
     expect(JSON.parse(saved.ChannelGroupsRegistry)['claude-pool']).toEqual({
       label: 'claude-pool',
       order: 2,
     })
-  })
-
-  it('removes a group from UserUsableGroups when default visibility is switched off', async () => {
-    const user = userEvent.setup()
-    const onSave = vi.fn(async (_values: GroupFormValues) => {})
-    render(<Fixture onSave={onSave} />)
-
-    const toggle = within(rowByKey('vip')).getByRole('switch', {
-      name: 'Default visible',
-    })
-    await user.click(toggle)
-    expect(toggle).not.toBeChecked()
-    await user.click(
-      screen.getByRole('button', { name: 'Save group settings' })
-    )
-    await waitFor(() => expect(onSave).toHaveBeenCalled())
-    const saved = onSave.mock.calls[0][0]
-    expect(JSON.parse(saved.UserUsableGroups)).toEqual({
-      default: 'Standard access',
-    })
-    expect(JSON.parse(saved.GroupRatio)).toEqual({ default: 1, vip: 0.8 })
   })
 
   it('asks for confirmation with the channel usage count and cascades the deletion', async () => {
@@ -232,6 +209,9 @@ describe('channel groups editor', () => {
     const saved = onSave.mock.calls[0][0]
     expect(JSON.parse(saved.GroupRatio)).toEqual({ default: 1 })
     expect(JSON.parse(saved.TopupGroupRatio)).toEqual({})
+    expect(JSON.parse(saved.UserUsableGroups)).toEqual({
+      default: 'Standard access',
+    })
     expect(JSON.parse(saved.AutoGroups)).toEqual(['default'])
     expect(JSON.parse(saved.GroupGroupRatio)).toEqual({ ent_std: {} })
     expect(JSON.parse(saved.GroupSpecialUsableGroup)).toEqual({ ent_std: {} })

@@ -92,7 +92,7 @@ export const ChannelGroupsForm = memo(function ChannelGroupsForm(
   }
 
   return (
-    <div className='flex min-w-0 flex-col gap-6'>
+    <div className='flex min-w-0 flex-col gap-6 pb-6'>
       <Form {...form}>
         <SettingsPageActionsPortal>
           <Button

@@ -1552,7 +1552,6 @@
     "Add channel group": "Ajouter un groupe de canaux",
     "Channel groups": "Groupes de canaux",
     "New channel group": "Nouveau groupe de canaux",
-    "Default visible": "Visible par défaut",
     "Group key is required": "La clé du groupe est obligatoire",
     "Use lowercase letters, digits, underscore or hyphen": "Utilisez des minuscules, des chiffres, un tiret bas ou un tiret",
     "Duplicate group key": "Clé de groupe en double",

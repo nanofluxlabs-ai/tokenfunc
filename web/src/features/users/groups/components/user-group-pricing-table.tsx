@@ -1,12 +1,11 @@
 // TokenFunc 二开：某个用户分组自己的「可用渠道分组」有序列表，纯展示组件。
 // 定价抽屉（用户管理 › 用户分组）与系统设置 › 分组定价 的面板共用。
 // rows 是完整数组（可见在前、不可见在后）：可见行按顺序列出可排序、改倍率、移除；
-// 不可见行是下方「添加渠道分组」的候选，选中后追加到可见列表末尾。
+// 不可见行是「添加渠道分组」弹窗（AddChannelGroupButton）的候选，由调用方把按钮放在标题区。
 import { Reorder, useDragControls } from 'motion/react'
 import { useId, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 
-import { Combobox } from '@/components/ui/combobox'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import {
@@ -179,20 +178,6 @@ export function UserGroupPricingTable(props: UserGroupPricingTableProps) {
     )
   }
 
-  const handleAdd = (key: string | null) => {
-    const target = hiddenRows.find((row) => row.channel_group === key)
-    if (!target) return
-    emit(
-      [...visibleRows, { ...target, visible: true }],
-      hiddenRows.filter((row) => row.channel_group !== key)
-    )
-  }
-
-  const candidates = hiddenRows.map((row) => ({
-    value: row.channel_group,
-    label: labelOf(row),
-    description: `${row.channel_group} · ${row.base_ratio}x`,
-  }))
   const headerCellClassName = 'text-muted-foreground text-xs font-medium'
 
   return (
@@ -239,21 +224,6 @@ export function UserGroupPricingTable(props: UserGroupPricingTableProps) {
           </Reorder.Group>
         </div>
       )}
-      <div className='flex flex-col gap-1 sm:max-w-80'>
-        <Combobox
-          options={candidates}
-          value=''
-          onValueChange={handleAdd}
-          disabled={disabled || candidates.length === 0}
-          aria-label={t('Add channel group')}
-          placeholder={
-            candidates.length === 0
-              ? t('All channel groups are already listed')
-              : t('Add channel group')
-          }
-          emptyText={t('No matching channel groups')}
-        />
-      </div>
     </div>
   )
 }

@@ -61,6 +61,8 @@ type UserGroupMutateDrawerProps = {
   open: boolean
   onOpenChange: (open: boolean) => void
   currentRow?: UserGroupItem
+  /** 新建成功后回调新分组的 key；定价面板用它自动选中新分组 */
+  onCreated?: (key: string) => void
 }
 
 export function UserGroupMutateDrawer(props: UserGroupMutateDrawerProps) {
@@ -119,6 +121,7 @@ export function UserGroupMutateDrawer(props: UserGroupMutateDrawerProps) {
         currentRow ? t('User group updated') : t('User group created')
       )
       props.onOpenChange(false)
+      if (!currentRow) props.onCreated?.(values.key)
       void queryClient.invalidateQueries({
         queryKey: tokenFuncGroupQueryKeys.all,
       })

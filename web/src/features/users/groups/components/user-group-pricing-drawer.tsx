@@ -23,6 +23,7 @@ import { translateServerText } from '@/lib/server-error-message'
 import type { UserGroupItem } from '@/lib/tokenfunc-groups'
 
 import { useUserGroupPricing } from '../hooks/use-user-group-pricing'
+import { AddChannelGroupButton } from './user-group-pricing-add-dialog'
 import { UserGroupPricingTable } from './user-group-pricing-table'
 
 type UserGroupPricingDrawerProps = {
@@ -72,6 +73,13 @@ export function UserGroupPricingDrawer(props: UserGroupPricingDrawerProps) {
           </SheetDescription>
         </SheetHeader>
         <div className={sideDrawerFormClassName('gap-4')}>
+          <div className='flex justify-end'>
+            <AddChannelGroupButton
+              rows={pricing.rows}
+              onChange={pricing.setRows}
+              disabled={pricing.isLoading || pricing.isSaving}
+            />
+          </div>
           {pricing.isLoading ? (
             <LoadingState size='sm' />
           ) : (

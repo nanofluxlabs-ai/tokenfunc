@@ -1,9 +1,8 @@
 // TokenFunc 二开：系统设置 › 分组定价 里的「用户分组定价」面板。
 // 左列列出用户分组（手机端换成顶部下拉），右侧是选中分组的渠道分组定价表；
-// 新增 / 删除 / 排序用户分组仍在用户管理 › 用户分组 页签里做，这里只配可用渠道分组的顺序与倍率。
+// 左列可直接新建用户分组（复用用户管理页的抽屉）；删除 / 排序用户分组仍在用户管理 › 用户分组 页签里做。
 import { useQuery } from '@tanstack/react-query'
-import { Link } from '@tanstack/react-router'
-import { Users } from 'lucide-react'
+import { Plus, Users } from 'lucide-react'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
@@ -33,6 +32,8 @@ import {
 import { cn } from '@/lib/utils'
 
 import { useUserGroupPricing } from '../hooks/use-user-group-pricing'
+import { UserGroupMutateDrawer } from './user-group-mutate-drawer'
+import { AddChannelGroupButton } from './user-group-pricing-add-dialog'
 import { UserGroupPricingTable } from './user-group-pricing-table'
 import { UserGroupKindBadge } from './user-group-row'
 
@@ -57,7 +58,9 @@ export function UserGroupPricingPanel(props: UserGroupPricingPanelProps) {
   const pricing = useUserGroupPricing(groupKey)
   // 有未保存改动时切换分组先确认，这里记住想切去的分组
   const [pendingKey, setPendingKey] = useState<string | null>(null)
+  const [createOpen, setCreateOpen] = useState(false)
 
+  // 新建分组成功后也走同一条切换路径：当前有未保存改动时同样先确认
   const choose = (key: string) => {
     if (key === groupKey) return
     if (pricing.isDirty) {
@@ -78,19 +81,43 @@ export function UserGroupPricingPanel(props: UserGroupPricingPanelProps) {
   const labelOf = (group: UserGroupItem) =>
     translateServerText(t, group.label) || group.key
 
+  const createDrawer = (
+    <UserGroupMutateDrawer
+      open={createOpen}
+      onOpenChange={setCreateOpen}
+      onCreated={choose}
+    />
+  )
+  const addUserGroupButton = (
+    <Button
+      type='button'
+      size='sm'
+      variant='outline'
+      className='shrink-0'
+      onClick={() => setCreateOpen(true)}
+    >
+      <Plus className='size-4' aria-hidden='true' />
+      {t('Add user group')}
+    </Button>
+  )
+
   if (query.isLoading) {
     return <LoadingState className={props.className} />
   }
   if (groups.length === 0 || !selected) {
     return (
-      <EmptyState
-        className={props.className}
-        icon={Users}
-        title={t('No user groups yet')}
-        description={t(
-          'Create a user group to offer different channel groups and prices.'
-        )}
-      />
+      <>
+        <EmptyState
+          className={props.className}
+          icon={Users}
+          title={t('No user groups yet')}
+          description={t(
+            'Create a user group to offer different channel groups and prices.'
+          )}
+          action={addUserGroupButton}
+        />
+        {createDrawer}
+      </>
     )
   }
 
@@ -100,61 +127,72 @@ export function UserGroupPricingPanel(props: UserGroupPricingPanelProps) {
   }))
 
   const groupPicker = isMobile ? (
-    <Select
-      items={selectItems}
-      value={groupKey}
-      onValueChange={(value) => value !== null && choose(value)}
-    >
-      <SelectTrigger className='w-full' aria-label={t('User group')}>
-        <SelectValue />
-      </SelectTrigger>
-      <SelectContent alignItemWithTrigger={false}>
-        <SelectGroup>
-          {selectItems.map((item) => (
-            <SelectItem key={item.value} value={item.value}>
-              {item.label}
-            </SelectItem>
-          ))}
-        </SelectGroup>
-      </SelectContent>
-    </Select>
+    <div className='flex items-center gap-2'>
+      <Select
+        items={selectItems}
+        value={groupKey}
+        onValueChange={(value) => value !== null && choose(value)}
+      >
+        <SelectTrigger className='min-w-0 flex-1' aria-label={t('User group')}>
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent alignItemWithTrigger={false}>
+          <SelectGroup>
+            {selectItems.map((item) => (
+              <SelectItem key={item.value} value={item.value}>
+                {item.label}
+              </SelectItem>
+            ))}
+          </SelectGroup>
+        </SelectContent>
+      </Select>
+      {addUserGroupButton}
+    </div>
   ) : (
-    <ul className='flex flex-col gap-1' aria-label={t('User groups')}>
-      {groups.map((group) => {
-        const isSelected = group.key === groupKey
-        return (
-          <li key={group.key}>
-            <button
-              type='button'
-              aria-current={isSelected || undefined}
-              onClick={() => choose(group.key)}
-              className={cn(
-                'hover:bg-muted/60 flex w-full items-start gap-2 rounded-lg border border-transparent px-3 py-2 text-left text-sm transition-colors',
-                isSelected && 'bg-muted border-border'
-              )}
-            >
-              <span className='flex min-w-0 flex-1 flex-col gap-0.5'>
-                <span className='flex min-w-0 flex-wrap items-center gap-2'>
-                  <span className='truncate font-medium'>{labelOf(group)}</span>
-                  <UserGroupKindBadge kind={group.kind} />
+    <div className='flex min-w-0 flex-col gap-2'>
+      <div className='flex items-center justify-between gap-2 px-3'>
+        <h3 className='text-base font-semibold'>{t('User groups')}</h3>
+        {addUserGroupButton}
+      </div>
+      <ul className='flex flex-col gap-1' aria-label={t('User groups')}>
+        {groups.map((group) => {
+          const isSelected = group.key === groupKey
+          return (
+            <li key={group.key}>
+              <button
+                type='button'
+                aria-current={isSelected || undefined}
+                onClick={() => choose(group.key)}
+                className={cn(
+                  'hover:bg-muted/60 flex w-full items-start gap-2 rounded-lg border border-transparent px-3 py-2 text-left text-sm transition-colors',
+                  isSelected && 'bg-muted border-border'
+                )}
+              >
+                <span className='flex min-w-0 flex-1 flex-col gap-0.5'>
+                  <span className='flex min-w-0 flex-wrap items-center gap-2'>
+                    <span className='truncate font-medium'>
+                      {labelOf(group)}
+                    </span>
+                    <UserGroupKindBadge kind={group.kind} />
+                  </span>
+                  <code className='text-muted-foreground truncate font-mono text-xs'>
+                    {group.key}
+                  </code>
                 </span>
-                <code className='text-muted-foreground truncate font-mono text-xs'>
-                  {group.key}
-                </code>
-              </span>
-              {group.override_count > 0 && (
-                <StatusBadge
-                  label={String(group.override_count)}
-                  variant='info'
-                  copyable={false}
-                  title={t('Pricing differences')}
-                />
-              )}
-            </button>
-          </li>
-        )
-      })}
-    </ul>
+                {group.override_count > 0 && (
+                  <StatusBadge
+                    label={String(group.override_count)}
+                    variant='info'
+                    copyable={false}
+                    title={t('Pricing differences')}
+                  />
+                )}
+              </button>
+            </li>
+          )
+        })}
+      </ul>
+    </div>
   )
 
   return (
@@ -170,33 +208,31 @@ export function UserGroupPricingPanel(props: UserGroupPricingPanelProps) {
         aria-labelledby='user-group-pricing-title'
       >
         <div className='flex flex-col gap-1'>
-          <h3
-            id='user-group-pricing-title'
-            className='flex min-w-0 flex-wrap items-center gap-2 text-base font-semibold'
-          >
-            <span>
-              {t('Channel group pricing of {{name}}', {
-                name: labelOf(selected),
-              })}
-            </span>
-            <span className='text-muted-foreground font-mono text-sm font-normal'>
-              {selected.key}
-            </span>
-          </h3>
+          <div className='flex items-start justify-between gap-2'>
+            <h3
+              id='user-group-pricing-title'
+              className='flex min-w-0 flex-wrap items-center gap-2 text-base font-semibold'
+            >
+              <span>
+                {t('Channel group pricing of {{name}}', {
+                  name: labelOf(selected),
+                })}
+              </span>
+              <span className='text-muted-foreground font-mono text-sm font-normal'>
+                {selected.key}
+              </span>
+            </h3>
+            <AddChannelGroupButton
+              className='shrink-0'
+              rows={pricing.rows}
+              onChange={pricing.setRows}
+              disabled={pricing.isLoading || pricing.isSaving}
+            />
+          </div>
           <p className='text-muted-foreground text-sm'>
             {t(
               'The order here is the order users of this group see in the token group list; an empty ratio inherits the base ratio of the channel group.'
-            )}{' '}
-            {t(
-              'Add, delete or reorder user groups under User management › User groups.'
-            )}{' '}
-            <Link
-              to='/users'
-              search={{ type: 'group' }}
-              className='text-primary underline underline-offset-4'
-            >
-              {t('Go to user groups')}
-            </Link>
+            )}
           </p>
         </div>
         {pricing.isLoading ? (
@@ -228,6 +264,7 @@ export function UserGroupPricingPanel(props: UserGroupPricingPanelProps) {
         confirmText={t('Discard changes')}
         handleConfirm={discardAndSwitch}
       />
+      {createDrawer}
     </div>
   )
 }

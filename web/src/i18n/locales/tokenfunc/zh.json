@@ -1603,8 +1603,9 @@
     "Visible for {{group}}": "{{group}} 是否可见",
     "User group pricing": "用户分组定价",
     "Fix invalid group settings before saving.": "请先修正无效的分组设置再保存。",
-    "Add, delete or reorder user groups under User management › User groups.": "新增、删除、排序用户分组请到 用户管理 › 用户分组。",
     "The order here is the order users of this group see in the token group list; an empty ratio inherits the base ratio of the channel group.": "这里的顺序就是该分组用户在令牌分组下拉里看到的顺序；倍率留空沿用渠道分组的基准价。",
-    "All channel groups are already listed": "所有渠道分组都已在列表中"
+    "All channel groups are already listed": "所有渠道分组都已在列表中",
+    "Select a channel group": "请选择渠道分组",
+    "Pick a channel group to offer to this user group. Leave the ratio empty to use its base ratio.": "选择要开放给该用户分组的渠道分组；倍率留空则沿用其基准价。"
   }
 }

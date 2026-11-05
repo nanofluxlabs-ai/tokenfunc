@@ -107,18 +107,39 @@ function listedGroups(): string[] {
     )
 }
 
-/** 打开「添加渠道分组」候选列表；选项的可访问名称含 key 与基准倍率说明，用前缀匹配 */
+/** 打开「添加渠道分组」弹窗并展开候选；选项的可访问名称含 key 与基准倍率说明，用前缀匹配 */
 async function openCandidates() {
   await userEvent.click(
-    screen.getByRole('combobox', { name: 'Add channel group' })
+    screen.getByRole('button', { name: 'Add channel group' })
+  )
+  const dialog = await screen.findByRole('dialog', {
+    name: 'Add channel group',
+  })
+  await userEvent.click(
+    within(dialog).getByRole('combobox', { name: 'Channel group' })
   )
   await userEvent.keyboard('{ArrowDown}')
+  return dialog
 }
 
-async function pickCandidate(label: string) {
-  await openCandidates()
+/** 走完整个弹窗：选候选 → 填倍率（可留空）→ 点「添加」 */
+async function addCandidate(label: string, ratio = '') {
+  const dialog = await openCandidates()
   await userEvent.click(
     await screen.findByRole('option', { name: new RegExp(`^${label}`) })
+  )
+  if (ratio !== '') {
+    await userEvent.type(
+      within(dialog).getByRole('spinbutton', { name: 'Ratio' }),
+      ratio
+    )
+  }
+  await userEvent.click(within(dialog).getByRole('button', { name: 'Add' }))
+  // 抽屉本身也是 dialog，只等「添加渠道分组」这一个关掉
+  await waitFor(() =>
+    expect(
+      screen.queryByRole('dialog', { name: 'Add channel group' })
+    ).not.toBeInTheDocument()
   )
 }
 
@@ -147,12 +168,13 @@ test('lists only the visible channel groups in the order returned by the API', a
   ).not.toBeInTheDocument()
 })
 
-test('adding a candidate appends it to the end of the list and submits it as visible', async () => {
+test('adding a candidate with ratio 0.9 through the dialog appends it to the end and submits it as visible with that ratio', async () => {
   await renderDrawer()
 
-  await pickCandidate('Hidden pool')
+  await addCandidate('Hidden pool', '0.9')
 
   expect(listedGroups()).toEqual(['Default', 'VIP', 'Premium', 'Hidden pool'])
+  expect(ratioInput('Hidden pool')).toHaveValue(0.9)
   const rows = await save()
   expect(rows.map((row) => row.channel_group)).toEqual([
     'default',
@@ -163,8 +185,41 @@ test('adding a candidate appends it to the end of the list and submits it as vis
   expect(rows[3]).toEqual({
     channel_group: 'hidden_pool',
     visible: true,
+    ratio: 0.9,
+  })
+})
+
+test('adding a candidate with an empty ratio submits null so the base ratio is used', async () => {
+  await renderDrawer()
+
+  await addCandidate('Hidden pool')
+
+  expect(ratioInput('Hidden pool')).toHaveAttribute('placeholder', '2')
+  const rows = await save()
+  expect(rows[3]).toEqual({
+    channel_group: 'hidden_pool',
+    visible: true,
     ratio: null,
   })
+})
+
+test('confirming the dialog without picking a channel group shows an error and adds nothing', async () => {
+  await renderDrawer()
+
+  await userEvent.click(
+    screen.getByRole('button', { name: 'Add channel group' })
+  )
+  const dialog = await screen.findByRole('dialog', {
+    name: 'Add channel group',
+  })
+  await userEvent.click(within(dialog).getByRole('button', { name: 'Add' }))
+
+  expect(within(dialog).getByRole('alert')).toHaveTextContent(
+    'Select a channel group'
+  )
+  // 弹窗开着时抽屉内容对可访问树不可见，先取消再看列表
+  await userEvent.click(within(dialog).getByRole('button', { name: 'Cancel' }))
+  expect(listedGroups()).toEqual(['Default', 'VIP', 'Premium'])
 })
 
 test('removing a row returns it to the candidates and submits it as hidden with a null ratio', async () => {
@@ -173,9 +228,10 @@ test('removing a row returns it to the candidates and submits it as hidden with 
   await userEvent.click(screen.getByRole('button', { name: 'Remove Premium' }))
 
   expect(listedGroups()).toEqual(['Default', 'VIP'])
-  await openCandidates()
+  const dialog = await openCandidates()
   expect(await screen.findByRole('option', { name: /^Premium/ })).toBeVisible()
   await userEvent.keyboard('{Escape}')
+  await userEvent.click(within(dialog).getByRole('button', { name: 'Cancel' }))
 
   const rows = await save()
   expect(rows.find((row) => row.channel_group === 'premium')).toEqual({
@@ -238,7 +294,7 @@ test('typing 0.9 into the ratio input submits ratio 0.9 for that row', async () 
   })
 })
 
-test('the add combobox is disabled when every channel group is already listed', async () => {
+test('the add button is disabled when every channel group is already listed', async () => {
   apiMock.getUserGroupPricing.mockResolvedValue({
     success: true,
     data: ROWS.slice(0, 3),
@@ -246,6 +302,6 @@ test('the add combobox is disabled when every channel group is already listed', 
   await renderDrawer()
 
   expect(
-    screen.getByRole('combobox', { name: 'Add channel group' })
+    screen.getByRole('button', { name: 'Add channel group' })
   ).toBeDisabled()
 })

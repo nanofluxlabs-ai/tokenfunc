@@ -15,6 +15,7 @@ import { UserGroupPricingPanel } from '..'
 
 const apiMock = vi.hoisted(() => ({
   listUserGroups: vi.fn(),
+  createUserGroup: vi.fn(),
   getUserGroupPricing: vi.fn(),
   saveUserGroupPricing: vi.fn(),
 }))
@@ -211,6 +212,39 @@ test('switching groups with unsaved changes asks for confirmation and keeps the 
     'true'
   )
   expect(ratioInput('Premium')).toHaveValue(2)
+})
+
+test('creating a user group from the left column calls createUserGroup and selects the new group', async () => {
+  const created = makeGroup({ key: 'new_tier', label: 'New tier', order: 2 })
+  apiMock.createUserGroup.mockImplementation(async () => {
+    // 创建成功后列表接口才会带上新分组
+    apiMock.listUserGroups.mockResolvedValue({
+      success: true,
+      data: [...GROUPS, created],
+    })
+    return { success: true }
+  })
+  await renderPanel()
+
+  await userEvent.click(screen.getByRole('button', { name: 'Add user group' }))
+  await userEvent.type(await screen.findByLabelText('Group key'), 'new_tier')
+  await userEvent.type(screen.getByLabelText('Name'), 'New tier')
+  await userEvent.click(screen.getByRole('button', { name: 'Save changes' }))
+
+  await waitFor(() =>
+    expect(apiMock.createUserGroup).toHaveBeenCalledWith({
+      key: 'new_tier',
+      label: 'New tier',
+      kind: 'individual',
+      description: '',
+    })
+  )
+  expect(
+    await groupList().findByRole('button', { name: /New tier/ })
+  ).toHaveAttribute('aria-current', 'true')
+  await waitFor(() =>
+    expect(apiMock.getUserGroupPricing).toHaveBeenCalledWith('new_tier')
+  )
 })
 
 test('confirming the discard dialog switches to the other group and drops the edits', async () => {

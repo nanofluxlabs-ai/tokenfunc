@@ -1603,8 +1603,9 @@
     "Visible for {{group}}": "Visible for {{group}}",
     "User group pricing": "User group pricing",
     "Fix invalid group settings before saving.": "Fix invalid group settings before saving.",
-    "Add, delete or reorder user groups under User management › User groups.": "Add, delete or reorder user groups under User management › User groups.",
     "The order here is the order users of this group see in the token group list; an empty ratio inherits the base ratio of the channel group.": "The order here is the order users of this group see in the token group list; an empty ratio inherits the base ratio of the channel group.",
-    "All channel groups are already listed": "All channel groups are already listed"
+    "All channel groups are already listed": "All channel groups are already listed",
+    "Select a channel group": "Select a channel group",
+    "Pick a channel group to offer to this user group. Leave the ratio empty to use its base ratio.": "Pick a channel group to offer to this user group. Leave the ratio empty to use its base ratio."
   }
 }

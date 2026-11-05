@@ -1603,8 +1603,9 @@
     "Visible for {{group}}": "{{group}} を表示",
     "User group pricing": "ユーザーグループ価格",
     "Fix invalid group settings before saving.": "保存する前に無効なグループ設定を修正してください。",
-    "Add, delete or reorder user groups under User management › User groups.": "ユーザーグループの追加・削除・並べ替えは ユーザー管理 › ユーザーグループ で行います。",
     "The order here is the order users of this group see in the token group list; an empty ratio inherits the base ratio of the channel group.": "ここでの並び順は、このグループのユーザーがトークンのグループ選択で見る順序です。倍率を空にするとチャネルグループの基準倍率を引き継ぎます。",
-    "All channel groups are already listed": "すべてのチャネルグループが既に一覧にあります"
+    "All channel groups are already listed": "すべてのチャネルグループが既に一覧にあります",
+    "Select a channel group": "チャネルグループを選択してください",
+    "Pick a channel group to offer to this user group. Leave the ratio empty to use its base ratio.": "このユーザーグループに提供するチャネルグループを選びます。倍率を空にすると基準倍率を使います。"
   }
 }

@@ -1603,8 +1603,9 @@
     "Visible for {{group}}": "Видимость {{group}}",
     "User group pricing": "Цены для групп пользователей",
     "Fix invalid group settings before saving.": "Исправьте недопустимые настройки групп перед сохранением.",
-    "Add, delete or reorder user groups under User management › User groups.": "Добавление, удаление и сортировка групп пользователей выполняются в разделе Управление пользователями › Группы пользователей.",
     "The order here is the order users of this group see in the token group list; an empty ratio inherits the base ratio of the channel group.": "Порядок здесь — это порядок, который пользователи группы видят в списке групп токена; пустой коэффициент наследует базовый коэффициент группы каналов.",
-    "All channel groups are already listed": "Все группы каналов уже в списке"
+    "All channel groups are already listed": "Все группы каналов уже в списке",
+    "Select a channel group": "Выберите группу каналов",
+    "Pick a channel group to offer to this user group. Leave the ratio empty to use its base ratio.": "Выберите группу каналов, которую нужно открыть этой группе пользователей. Пустой коэффициент означает базовый."
   }
 }

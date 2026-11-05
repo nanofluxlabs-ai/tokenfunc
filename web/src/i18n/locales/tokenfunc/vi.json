@@ -1575,7 +1575,6 @@
     "Edit user group": "Sửa nhóm người dùng",
     "Effective": "Áp dụng",
     "Enter group name": "Nhập tên nhóm",
-    "Failed to save the group order": "Lưu thứ tự nhóm thất bại",
     "Hidden by default": "Mặc định ẩn",
     "Key is required": "Vui lòng nhập key",
     "Leave the ratio empty to inherit the base ratio of the channel group; hidden channel groups are not offered to users of this group.": "Để trống hệ số để kế thừa hệ số cơ sở của nhóm kênh; nhóm kênh bị ẩn sẽ không được cung cấp cho người dùng của nhóm này.",

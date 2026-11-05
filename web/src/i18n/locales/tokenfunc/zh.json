@@ -1575,7 +1575,6 @@
     "Edit user group": "编辑用户分组",
     "Effective": "最终",
     "Enter group name": "输入分组名称",
-    "Failed to save the group order": "分组排序保存失败",
     "Hidden by default": "默认不可见",
     "Key is required": "请输入 key",
     "Leave the ratio empty to inherit the base ratio of the channel group; hidden channel groups are not offered to users of this group.": "倍率留空即沿用渠道分组的基准倍率；不可见的渠道分组不会提供给该分组的用户。",

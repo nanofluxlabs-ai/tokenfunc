@@ -1575,7 +1575,6 @@
     "Edit user group": "Изменить группу пользователей",
     "Effective": "Итог",
     "Enter group name": "Введите название группы",
-    "Failed to save the group order": "Не удалось сохранить порядок групп",
     "Hidden by default": "По умолчанию скрыта",
     "Key is required": "Укажите ключ",
     "Leave the ratio empty to inherit the base ratio of the channel group; hidden channel groups are not offered to users of this group.": "Оставьте коэффициент пустым, чтобы наследовать базовый коэффициент группы каналов; скрытые группы каналов не предлагаются пользователям этой группы.",

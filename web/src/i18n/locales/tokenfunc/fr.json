@@ -1575,7 +1575,6 @@
     "Edit user group": "Modifier le groupe d'utilisateurs",
     "Effective": "Effectif",
     "Enter group name": "Saisir le nom du groupe",
-    "Failed to save the group order": "Échec de l'enregistrement de l'ordre des groupes",
     "Hidden by default": "Masqué par défaut",
     "Key is required": "La clé est obligatoire",
     "Leave the ratio empty to inherit the base ratio of the channel group; hidden channel groups are not offered to users of this group.": "Laissez le coefficient vide pour hériter du coefficient de base du groupe de canaux ; les groupes de canaux masqués ne sont pas proposés aux utilisateurs de ce groupe.",

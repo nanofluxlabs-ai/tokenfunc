@@ -1575,7 +1575,6 @@
     "Edit user group": "ユーザーグループを編集",
     "Effective": "適用値",
     "Enter group name": "グループ名を入力",
-    "Failed to save the group order": "グループの並び順を保存できませんでした",
     "Hidden by default": "既定で非表示",
     "Key is required": "キーを入力してください",
     "Leave the ratio empty to inherit the base ratio of the channel group; hidden channel groups are not offered to users of this group.": "倍率を空にするとチャネルグループの基準倍率を引き継ぎます。非表示のチャネルグループはこのグループのユーザーには提供されません。",

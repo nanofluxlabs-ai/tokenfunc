@@ -1,11 +1,9 @@
 // TokenFunc 二开：用户分组列表的一行。桌面渲染为表格行，手机渲染为卡片；
-// 两种布局共用操作区：定价 / 编辑 / 删除 / 拖拽把手 从左到右固定四格，default 没有删除就留同尺寸占位，保证各行图标对齐。
-import { Drag01Icon } from '@hugeicons/core-free-icons'
-import { HugeiconsIcon } from '@hugeicons/react'
+// 两种布局共用操作区：定价 / 编辑 / 删除 固定三格，default 没有删除就留同尺寸占位，保证各行图标对齐。
+// 用户分组数量少，列表不提供排序，顺序按后台 order（创建先后）。
 import { Link } from '@tanstack/react-router'
 import { Coins, Pencil, Trash2 } from 'lucide-react'
-import { Reorder, useDragControls } from 'motion/react'
-import type { KeyboardEvent, PointerEvent, ReactNode } from 'react'
+import type { ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { StatusBadge } from '@/components/status-badge'
@@ -24,12 +22,7 @@ export const DEFAULT_USER_GROUP_KEY = 'default'
 
 type UserGroupRowProps = {
   group: UserGroupItem
-  index: number
-  count: number
   layout: 'table' | 'card'
-  onMove: (index: number, direction: 'up' | 'down') => void
-  /** 松开拖拽把手后由父组件决定是否提交新顺序 */
-  onDragEnd: () => void
   onEdit: (group: UserGroupItem) => void
   onPricing: (group: UserGroupItem) => void
   onDelete: (group: UserGroupItem) => void
@@ -71,40 +64,10 @@ export function UserGroupKindBadge(props: { kind: UserGroupItem['kind'] }) {
 
 export function UserGroupRow(props: UserGroupRowProps) {
   const { t } = useTranslation()
-  const dragControls = useDragControls()
   const group = props.group
   const label = translateServerText(t, group.label) || group.key
   const isDefault = group.key === DEFAULT_USER_GROUP_KEY
   const hasUsers = group.user_count > 0
-
-  const handleDragStart = (event: PointerEvent<HTMLButtonElement>) => {
-    dragControls.start(event)
-  }
-  const handleDragKeyDown = (event: KeyboardEvent<HTMLButtonElement>) => {
-    if (event.key === 'ArrowUp') {
-      event.preventDefault()
-      props.onMove(props.index, 'up')
-    }
-    if (event.key === 'ArrowDown') {
-      event.preventDefault()
-      props.onMove(props.index, 'down')
-    }
-  }
-
-  const dragHandle = (
-    <Button
-      type='button'
-      variant='ghost'
-      size='icon-sm'
-      className='text-muted-foreground cursor-grab touch-none active:cursor-grabbing'
-      aria-label={t('Drag {{group}} to reorder', { group: group.key })}
-      title={t('Drag {{group}} to reorder', { group: group.key })}
-      onPointerDown={handleDragStart}
-      onKeyDown={handleDragKeyDown}
-    >
-      <HugeiconsIcon icon={Drag01Icon} strokeWidth={2} aria-hidden='true' />
-    </Button>
-  )
 
   const kindBadge = <UserGroupKindBadge kind={group.kind} />
 
@@ -177,7 +140,6 @@ export function UserGroupRow(props: UserGroupRowProps) {
           </TooltipContent>
         </Tooltip>
       )}
-      {dragHandle}
     </div>
   )
 
@@ -191,15 +153,7 @@ export function UserGroupRow(props: UserGroupRowProps) {
 
   if (props.layout === 'card') {
     return (
-      <Reorder.Item
-        as='li'
-        value={group.key}
-        dragListener={false}
-        dragMomentum={false}
-        dragControls={dragControls}
-        onDragEnd={props.onDragEnd}
-        className='bg-background flex flex-col gap-3 rounded-lg border p-3'
-      >
+      <li className='bg-background flex flex-col gap-3 rounded-lg border p-3'>
         <div className='flex items-start gap-2'>
           <div className='flex min-w-0 flex-1 flex-col gap-1'>
             <div className='flex min-w-0 flex-wrap items-center gap-2'>
@@ -227,20 +181,12 @@ export function UserGroupRow(props: UserGroupRowProps) {
           </span>
           {actions}
         </div>
-      </Reorder.Item>
+      </li>
     )
   }
 
   return (
-    <Reorder.Item
-      as='tr'
-      value={group.key}
-      dragListener={false}
-      dragMomentum={false}
-      dragControls={dragControls}
-      onDragEnd={props.onDragEnd}
-      className='bg-background border-b transition-colors last:border-0 hover:[background-color:color-mix(in_oklch,var(--muted)_50%,var(--background))]'
-    >
+    <tr className='bg-background border-b transition-colors last:border-0 hover:[background-color:color-mix(in_oklch,var(--muted)_50%,var(--background))]'>
       <TableCell className='max-w-48'>
         <code className='block truncate font-mono text-xs' title={group.key}>
           {group.key}
@@ -260,6 +206,6 @@ export function UserGroupRow(props: UserGroupRowProps) {
       </TableCell>
       <TableCell className='text-right'>{overrideCell}</TableCell>
       <TableCell>{actions}</TableCell>
-    </Reorder.Item>
+    </tr>
   )
 }

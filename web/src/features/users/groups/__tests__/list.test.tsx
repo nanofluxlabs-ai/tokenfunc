@@ -120,17 +120,16 @@ test('the default row renders an invisible delete placeholder so every row has t
   const placeholder = within(rowOf('default')).getByTestId('delete-placeholder')
   expect(placeholder).toHaveAttribute('aria-hidden', 'true')
   expect(placeholder).toHaveClass('invisible')
-  // 操作区 = 定价 / 编辑 / 删除（或占位）/ 拖拽把手；把手在最右
+  // 操作区 = 定价 / 编辑 / 删除（或占位）三格，列表不提供排序
   const actionsOf = (key: string) =>
     within(rowOf(key)).getByRole('button', { name: 'Pricing' })
       .parentElement as HTMLElement
   for (const key of ['default', 'vip', 'ent_std']) {
-    const actions = actionsOf(key)
-    expect(actions.children).toHaveLength(4)
-    expect(actions.lastElementChild).toHaveAccessibleName(
-      `Drag ${key} to reorder`
-    )
+    expect(actionsOf(key).children).toHaveLength(3)
   }
+  expect(
+    screen.queryByRole('button', { name: /to reorder/ })
+  ).not.toBeInTheDocument()
 })
 
 test('the pricing differences column shows the override count or a dash', async () => {

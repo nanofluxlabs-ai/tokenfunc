@@ -1,8 +1,8 @@
-// TokenFunc 二开：用户管理第三个页签「用户分组」——注册表列表、拖拽排序、删除确认与两个抽屉。
+// TokenFunc 二开：用户管理第三个页签「用户分组」——注册表列表、删除确认与两个抽屉。
+// 用户分组数量少，不做排序，按后台 order 展示。
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { Plus, Users } from 'lucide-react'
-import { Reorder } from 'motion/react'
-import { useMemo, useRef, useState } from 'react'
+import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 
@@ -18,7 +18,6 @@ import { requireServerSuccess } from '@/lib/server-error-message'
 import {
   deleteUserGroup,
   listUserGroups,
-  reorderUserGroups,
   tokenFuncGroupQueryKeys,
   type UserGroupItem,
 } from '@/lib/tokenfunc-groups'
@@ -45,13 +44,6 @@ export function UserGroupsPrimaryButtons() {
   )
 }
 
-function sameOrder(a: UserGroupItem[], b: UserGroupItem[]) {
-  return (
-    a.length === b.length &&
-    a.every((item, index) => item.key === b[index]?.key)
-  )
-}
-
 export function UserGroupsPanel() {
   const { t } = useTranslation()
   const queryClient = useQueryClient()
@@ -63,47 +55,7 @@ export function UserGroupsPanel() {
     queryKey: tokenFuncGroupQueryKeys.user,
     queryFn: async () => requireServerSuccess(await listUserGroups()),
   })
-  const serverItems = useMemo(() => query.data?.data ?? [], [query.data])
-  // 拖拽中的临时顺序；提交成功（列表已刷新）或失败（回滚）后都清掉，回到服务端顺序
-  const [draftOrder, setDraftOrder] = useState<UserGroupItem[] | null>(null)
-  const items = draftOrder ?? serverItems
-  const itemsRef = useRef(items)
-  itemsRef.current = items
-
-  const commitOrder = async (ordered: UserGroupItem[]) => {
-    if (sameOrder(ordered, serverItems)) {
-      setDraftOrder(null)
-      return
-    }
-    try {
-      requireServerSuccess(
-        await reorderUserGroups(ordered.map((item) => item.key))
-      )
-      await queryClient.invalidateQueries({
-        queryKey: tokenFuncGroupQueryKeys.all,
-      })
-    } catch (error) {
-      handleServerError(error, t('Failed to save the group order'))
-    } finally {
-      setDraftOrder(null)
-    }
-  }
-
-  const handleReorder = (keys: string[]) => {
-    const byKey = new Map(items.map((item) => [item.key, item]))
-    const next = keys.flatMap((key) => byKey.get(key) ?? [])
-    setDraftOrder(next)
-  }
-
-  const handleMove = (index: number, direction: 'up' | 'down') => {
-    const target = direction === 'up' ? index - 1 : index + 1
-    if (target < 0 || target >= items.length) return
-    const next = [...items]
-    const [moved] = next.splice(index, 1)
-    next.splice(target, 0, moved)
-    setDraftOrder(next)
-    void commitOrder(next)
-  }
+  const items = query.data?.data ?? []
 
   const openDialog =
     (dialog: 'update' | 'pricing' | 'delete') => (group: UserGroupItem) => {
@@ -132,15 +84,11 @@ export function UserGroupsPanel() {
     }
   }
 
-  const renderRow = (group: UserGroupItem, index: number) => (
+  const renderRow = (group: UserGroupItem) => (
     <UserGroupRow
       key={group.key}
       group={group}
-      index={index}
-      count={items.length}
       layout={isMobile ? 'card' : 'table'}
-      onMove={handleMove}
-      onDragEnd={() => void commitOrder(itemsRef.current)}
       onEdit={openDialog('update')}
       onPricing={openDialog('pricing')}
       onDelete={openDialog('delete')}
@@ -161,17 +109,7 @@ export function UserGroupsPanel() {
       />
     )
   } else if (isMobile) {
-    content = (
-      <Reorder.Group
-        as='ul'
-        axis='y'
-        values={items.map((item) => item.key)}
-        onReorder={handleReorder}
-        className='flex flex-col gap-2'
-      >
-        {items.map(renderRow)}
-      </Reorder.Group>
-    )
+    content = <ul className='flex flex-col gap-2'>{items.map(renderRow)}</ul>
   } else {
     content = (
       <StaticDataTable>
@@ -188,15 +126,7 @@ export function UserGroupsPanel() {
             <TableHead className='text-right'>{t('Actions')}</TableHead>
           </TableRow>
         </TableHeader>
-        <Reorder.Group
-          as='tbody'
-          axis='y'
-          values={items.map((item) => item.key)}
-          onReorder={handleReorder}
-          className='[&>tr]:h-15'
-        >
-          {items.map(renderRow)}
-        </Reorder.Group>
+        <tbody className='[&>tr]:h-15'>{items.map(renderRow)}</tbody>
       </StaticDataTable>
     )
   }

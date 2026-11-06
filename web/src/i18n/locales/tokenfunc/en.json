@@ -1106,7 +1106,6 @@
     "Edit API Key": "Edit API Key",
     "Expiring soon": "Expiring soon",
     "Filter by status": "Filter by status",
-    "Follow enterprise group": "Follow enterprise group",
     "Group, model allowlist and IP whitelist. Leave empty for no restriction.": "Group, model allowlist and IP whitelist. Leave empty for no restriction.",
     "Handover text": "Handover text",
     "Last used": "Last used",
@@ -1602,9 +1601,10 @@
     "Visible for {{group}}": "Visible for {{group}}",
     "User group pricing": "User group pricing",
     "Fix invalid group settings before saving.": "Fix invalid group settings before saving.",
-    "The order here is the order users of this group see in the token group list; an empty ratio inherits the base ratio of the channel group.": "The order here is the order users of this group see in the token group list; an empty ratio inherits the base ratio of the channel group.",
     "All channel groups are already listed": "All channel groups are already listed",
     "Select a channel group": "Select a channel group",
-    "Pick a channel group to offer to this user group. Leave the ratio empty to use its base ratio.": "Pick a channel group to offer to this user group. Leave the ratio empty to use its base ratio."
+    "Pick a channel group to offer to this user group. Leave the ratio empty to use its base ratio.": "Pick a channel group to offer to this user group. Leave the ratio empty to use its base ratio.",
+    "Auto (by group priority)": "Auto (by group priority)",
+    "The order here is what users of this group see in the token group list; tokens of an enterprise tier that leave the group empty try these groups in this order for the requested model; an empty ratio inherits the base ratio of the channel group.": "The order here is what users of this group see in the token group list; tokens of an enterprise tier that leave the group empty try these groups in this order for the requested model; an empty ratio inherits the base ratio of the channel group."
   }
 }

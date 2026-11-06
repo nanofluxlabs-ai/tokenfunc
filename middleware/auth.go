@@ -643,15 +643,25 @@ func TokenAuth() func(c *gin.Context) {
 				}
 			}
 			userGroup = tokenGroup
-		} else {
-			// TokenFunc：令牌分组留空时，用户分组可能不是渠道分组（如企业档位），按可见渠道分组的排序取默认
-			userGroup = service.ResolveDefaultUsingGroup(userGroup)
+		}
+		// TokenFunc：令牌分组留空时，用户分组可能不是渠道分组（如企业档位）。
+		// 候选多于一个时借用上游 auto 机制，按该用户分组自己的渠道分组顺序找第一个有该模型的分组
+		var usingGroupCandidates []string
+		if tokenGroup == "" {
+			usingGroupCandidates = service.ResolveUsingGroupCandidates(userGroup)
+			userGroup = usingGroupCandidates[0]
+			if len(usingGroupCandidates) > 1 {
+				userGroup = "auto"
+			}
 		}
 		common.SetContextKey(c, constant.ContextKeyUsingGroup, userGroup)
 
 		err = SetupContextForToken(c, token, parts...)
 		if err != nil {
 			return
+		}
+		if len(usingGroupCandidates) > 1 {
+			common.SetContextKey(c, constant.ContextKeyTokenAutoGroups, usingGroupCandidates)
 		}
 		c.Next()
 	}

@@ -12,10 +12,14 @@ import (
 	"time"
 
 	"github.com/QuantumNous/new-api/common"
+	"github.com/QuantumNous/new-api/constant"
 	"github.com/QuantumNous/new-api/i18n"
 	"github.com/QuantumNous/new-api/model"
 	"github.com/QuantumNous/new-api/service"
 	"github.com/QuantumNous/new-api/service/authz"
+	"github.com/QuantumNous/new-api/setting"
+	"github.com/QuantumNous/new-api/setting/config"
+	"github.com/QuantumNous/new-api/setting/ratio_setting"
 	"github.com/gin-gonic/gin"
 	"github.com/glebarez/sqlite"
 	"github.com/golang-jwt/jwt/v5"
@@ -542,6 +546,91 @@ func TestTokenAuthDistinguishesTokenStateMessages(t *testing.T) {
 	TokenAuth()(c)
 	assert.True(t, c.IsAborted())
 	assert.Contains(t, recorder.Body.String(), "Token quota is exhausted")
+}
+
+// 令牌分组留空：企业档位（用户分组不是渠道分组）借用 auto 机制按自己的渠道分组顺序选；
+// 用户分组本身是渠道分组的普通用户仍只走自己分组
+func TestTokenAuthEmptyGroupFollowsUserGroupCandidates(t *testing.T) {
+	require.NoError(t, i18n.Init())
+	previousDB := model.DB
+	previousLogDB := model.LOG_DB
+	previousType := common.MainDatabaseType()
+	previousRedis := common.RedisEnabled
+	db, err := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{})
+	require.NoError(t, err)
+	require.NoError(t, db.AutoMigrate(&model.User{}, &model.Token{}, &model.Option{}))
+	model.DB = db
+	model.LOG_DB = db
+	common.SetMainDatabaseType(common.DatabaseTypeSQLite)
+	common.RedisEnabled = false
+	t.Setenv("LOG_SQL_DSN", "")
+	require.NoError(t, model.InitLogDB())
+	previousRatio := ratio_setting.GroupRatio2JSONString()
+	previousUsable := setting.UserUsableGroups2JSONString()
+	groupCfg := config.GlobalConfig.Get("group_ratio_setting")
+	registryCfg := config.GlobalConfig.Get("tokenfunc_group_setting")
+	require.NotNil(t, groupCfg)
+	require.NotNil(t, registryCfg)
+	previousSpecial := ratio_setting.GetGroupRatioSetting().GroupSpecialUsableGroup.MarshalJSONString()
+	t.Cleanup(func() {
+		model.DB = previousDB
+		model.LOG_DB = previousLogDB
+		common.SetMainDatabaseType(previousType)
+		common.RedisEnabled = previousRedis
+		_ = ratio_setting.UpdateGroupRatioByJSONString(previousRatio)
+		_ = setting.UpdateUserUsableGroupsByJSONString(previousUsable)
+		_ = config.UpdateConfigFromMap(groupCfg, map[string]string{"group_special_usable_group": previousSpecial})
+		_ = config.UpdateConfigFromMap(registryCfg, map[string]string{"user_groups": "{}", "channel_groups": "{}"})
+	})
+	require.NoError(t, ratio_setting.UpdateGroupRatioByJSONString(`{"default":1,"gptpro":1,"claudepro":1}`))
+	require.NoError(t, setting.UpdateUserUsableGroupsByJSONString(`{"default":"Default"}`))
+	require.NoError(t, config.UpdateConfigFromMap(groupCfg, map[string]string{
+		"group_special_usable_group": `{"ddjs":{"-:default":"","+:gptpro":"","+:claudepro":""}}`,
+	}))
+	require.NoError(t, config.UpdateConfigFromMap(registryCfg, map[string]string{
+		"user_groups":    `{"ddjs":{"label":"多点计算","kind":"enterprise","order":1,"channel_order":["claudepro","gptpro"]}}`,
+		"channel_groups": `{"default":{"label":"默认","order":0},"gptpro":{"label":"GPT","order":1},"claudepro":{"label":"Claude","order":2}}`,
+	}))
+
+	enterpriseOwner := &model.User{Username: "ddjs-owner", Password: "placeholder", Role: common.RoleCommonUser, Status: common.UserStatusEnabled, Group: "ddjs", AuthVersion: 1, AffCode: "ddjs-own"}
+	require.NoError(t, db.Create(enterpriseOwner).Error)
+	plainUser := &model.User{Username: "plain-user", Password: "placeholder", Role: common.RoleCommonUser, Status: common.UserStatusEnabled, Group: "default", AuthVersion: 1, AffCode: "plain-usr"}
+	require.NoError(t, db.Create(plainUser).Error)
+	for _, token := range []*model.Token{
+		{UserId: enterpriseOwner.Id, Name: "ent-auto", Key: "entautogroupkey0", Status: common.TokenStatusEnabled, ExpiredTime: -1, UnlimitedQuota: true, CreatedTime: 1, AccessedTime: 1},
+		{UserId: enterpriseOwner.Id, Name: "ent-pinned", Key: "entpinnedgroupkey", Status: common.TokenStatusEnabled, ExpiredTime: -1, UnlimitedQuota: true, Group: "gptpro", CreatedTime: 1, AccessedTime: 1},
+		{UserId: plainUser.Id, Name: "plain-empty", Key: "plainemptygroupkey", Status: common.TokenStatusEnabled, ExpiredTime: -1, UnlimitedQuota: true, CreatedTime: 1, AccessedTime: 1},
+	} {
+		require.NoError(t, db.Create(token).Error)
+	}
+
+	for _, tc := range []struct {
+		name           string
+		key            string
+		wantUsingGroup string
+		wantAutoGroups []string
+	}{
+		{"enterprise tier empty group goes auto over its own channel order", "sk-entautogroupkey0", "auto", []string{"claudepro", "gptpro"}},
+		{"enterprise tier explicit group stays pinned", "sk-entpinnedgroupkey", "gptpro", nil},
+		{"user group that is a channel group stays on itself", "sk-plainemptygroupkey", "default", nil},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			recorder := httptest.NewRecorder()
+			c, _ := gin.CreateTestContext(recorder)
+			c.Request = httptest.NewRequest(http.MethodPost, "/v1/chat/completions", nil)
+			c.Request.Header.Set("Authorization", "Bearer "+tc.key)
+			TokenAuth()(c)
+			require.False(t, c.IsAborted(), recorder.Body.String())
+			assert.Equal(t, tc.wantUsingGroup, common.GetContextKeyString(c, constant.ContextKeyUsingGroup))
+			autoGroups, _ := common.GetContextKey(c, constant.ContextKeyTokenAutoGroups)
+			if tc.wantAutoGroups == nil {
+				assert.Nil(t, autoGroups)
+				return
+			}
+			assert.Equal(t, tc.wantAutoGroups, autoGroups)
+			assert.Equal(t, tc.wantAutoGroups, service.GetRequestAutoGroups(c, "ddjs"), "分发器按 auto 读到的候选顺序")
+		})
+	}
 }
 
 func TestAPIKeyFromWebSocketSubprotocol(t *testing.T) {

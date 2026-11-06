@@ -171,9 +171,9 @@ export interface TokenOptions {
     label?: string
     order?: number
   }[]
-  /** 不选分组时实际使用的渠道分组（TokenFunc） */
-  default_group?: string
-  /** 各分组启用的模型；空字符串键 = 不选分组时（按主账号分组路由） */
+  /** 不选分组 = 自动时按顺序尝试的渠道分组（TokenFunc） */
+  auto_groups?: string[]
+  /** 各分组启用的模型；空字符串键 = 自动（auto_groups 的并集） */
   models_by_group: Record<string, string[]>
   limit: number
   total: number

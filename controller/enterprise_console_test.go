@@ -503,6 +503,7 @@ func TestEnterpriseConsoleTokenManagement(t *testing.T) {
 	code, body := call("GET", "/api/enterprise/tokens/options", ownerToken, "")
 	require.Equal(t, http.StatusOK, code)
 	assert.Equal(t, "default", dataOf(body)["owner_group"])
+	assert.Equal(t, []any{"default"}, dataOf(body)["auto_groups"])
 	assert.Contains(t, dataOf(body)["models_by_group"].(map[string]any)[""], "gpt-4o")
 
 	// 校验：非法 CIDR、越权分组、模型不在分组、持有人不属团队

@@ -1106,7 +1106,6 @@
     "Edit API Key": "Sửa API key",
     "Expiring soon": "Sắp hết hạn",
     "Filter by status": "Lọc theo trạng thái",
-    "Follow enterprise group": "Theo nhóm doanh nghiệp",
     "Group, model allowlist and IP whitelist. Leave empty for no restriction.": "Nhóm, danh sách mô hình cho phép và danh sách IP. Để trống nghĩa là không hạn chế.",
     "Handover text": "Nội dung bàn giao",
     "Last used": "Dùng lần cuối",
@@ -1602,9 +1601,10 @@
     "Visible for {{group}}": "Hiển thị {{group}}",
     "User group pricing": "Định giá nhóm người dùng",
     "Fix invalid group settings before saving.": "Hãy sửa các cài đặt nhóm không hợp lệ trước khi lưu.",
-    "The order here is the order users of this group see in the token group list; an empty ratio inherits the base ratio of the channel group.": "Thứ tự ở đây là thứ tự người dùng của nhóm thấy trong danh sách nhóm của token; hệ số để trống sẽ kế thừa hệ số cơ sở của nhóm kênh.",
     "All channel groups are already listed": "Tất cả nhóm kênh đã có trong danh sách",
     "Select a channel group": "Chọn nhóm kênh",
-    "Pick a channel group to offer to this user group. Leave the ratio empty to use its base ratio.": "Chọn nhóm kênh để mở cho nhóm người dùng này. Để trống hệ số thì dùng hệ số cơ sở."
+    "Pick a channel group to offer to this user group. Leave the ratio empty to use its base ratio.": "Chọn nhóm kênh để mở cho nhóm người dùng này. Để trống hệ số thì dùng hệ số cơ sở.",
+    "Auto (by group priority)": "Tự động (theo thứ tự ưu tiên nhóm)",
+    "The order here is what users of this group see in the token group list; tokens of an enterprise tier that leave the group empty try these groups in this order for the requested model; an empty ratio inherits the base ratio of the channel group.": "Thứ tự ở đây là thứ tự người dùng của nhóm này thấy trong danh sách nhóm của token; token của bậc doanh nghiệp để trống nhóm sẽ thử các nhóm này theo thứ tự để tìm mô hình được yêu cầu; hệ số để trống sẽ kế thừa hệ số cơ sở của nhóm kênh."
   }
 }

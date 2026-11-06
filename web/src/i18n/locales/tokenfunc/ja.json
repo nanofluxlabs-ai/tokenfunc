@@ -1106,7 +1106,6 @@
     "Edit API Key": "API キーを編集",
     "Expiring soon": "まもなく期限切れ",
     "Filter by status": "状態で絞り込み",
-    "Follow enterprise group": "企業のグループに従う",
     "Group, model allowlist and IP whitelist. Leave empty for no restriction.": "グループ、モデル許可リスト、IP ホワイトリスト。空欄は制限なし。",
     "Handover text": "引き渡し文",
     "Last used": "最終使用",
@@ -1602,9 +1601,10 @@
     "Visible for {{group}}": "{{group}} を表示",
     "User group pricing": "ユーザーグループ価格",
     "Fix invalid group settings before saving.": "保存する前に無効なグループ設定を修正してください。",
-    "The order here is the order users of this group see in the token group list; an empty ratio inherits the base ratio of the channel group.": "ここでの並び順は、このグループのユーザーがトークンのグループ選択で見る順序です。倍率を空にするとチャネルグループの基準倍率を引き継ぎます。",
     "All channel groups are already listed": "すべてのチャネルグループが既に一覧にあります",
     "Select a channel group": "チャネルグループを選択してください",
-    "Pick a channel group to offer to this user group. Leave the ratio empty to use its base ratio.": "このユーザーグループに提供するチャネルグループを選びます。倍率を空にすると基準倍率を使います。"
+    "Pick a channel group to offer to this user group. Leave the ratio empty to use its base ratio.": "このユーザーグループに提供するチャネルグループを選びます。倍率を空にすると基準倍率を使います。",
+    "Auto (by group priority)": "自動（グループ優先順位順）",
+    "The order here is what users of this group see in the token group list; tokens of an enterprise tier that leave the group empty try these groups in this order for the requested model; an empty ratio inherits the base ratio of the channel group.": "ここでの順序は、このグループのユーザーがトークンのグループ一覧で見る順序です。企業ティアのトークンでグループを空にした場合、要求されたモデルを持つチャネルグループをこの順序で探します。倍率が空の場合はチャネルグループの基準倍率を継承します。"
   }
 }

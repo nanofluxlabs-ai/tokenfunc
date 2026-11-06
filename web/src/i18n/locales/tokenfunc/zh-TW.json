@@ -1106,7 +1106,6 @@
     "Edit API Key": "編輯金鑰",
     "Expiring soon": "即將過期",
     "Filter by status": "依狀態篩選",
-    "Follow enterprise group": "跟隨企業分組",
     "Group, model allowlist and IP whitelist. Leave empty for no restriction.": "分組、模型白名單與 IP 白名單，留空表示不限制。",
     "Handover text": "交付文案",
     "Last used": "最近使用",
@@ -1602,9 +1601,10 @@
     "Visible for {{group}}": "{{group}} 是否可見",
     "User group pricing": "使用者分組定價",
     "Fix invalid group settings before saving.": "請先修正無效的分組設定再儲存。",
-    "The order here is the order users of this group see in the token group list; an empty ratio inherits the base ratio of the channel group.": "這裡的順序就是該分組使用者在權杖分組下拉裡看到的順序；倍率留空沿用通道分組的基準價。",
     "All channel groups are already listed": "所有通道分組都已在清單中",
     "Select a channel group": "請選擇通道分組",
-    "Pick a channel group to offer to this user group. Leave the ratio empty to use its base ratio.": "選擇要開放給該使用者分組的通道分組；倍率留空則沿用其基準價。"
+    "Pick a channel group to offer to this user group. Leave the ratio empty to use its base ratio.": "選擇要開放給該使用者分組的通道分組；倍率留空則沿用其基準價。",
+    "Auto (by group priority)": "自動（按分組優先級）",
+    "The order here is what users of this group see in the token group list; tokens of an enterprise tier that leave the group empty try these groups in this order for the requested model; an empty ratio inherits the base ratio of the channel group.": "這裡的順序就是該分組使用者在令牌分組下拉裡看到的順序；企業檔位的令牌分組留空時，按此順序找第一個有該模型的渠道分組；倍率留空沿用渠道分組的基準價。"
   }
 }

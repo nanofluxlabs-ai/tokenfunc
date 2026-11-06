@@ -134,7 +134,7 @@ function RestrictionsCell(props: { row: EnterpriseToken }) {
     ? props.row.allow_ips.split('\n').filter((line) => line.trim()).length
     : 0
   const parts = [
-    props.row.group || t('Follow enterprise group'),
+    props.row.group || t('Auto (by group priority)'),
     models > 0 ? t('{{count}} models', { count: models }) : t('All models'),
     ips > 0 ? t('{{count}} IPs', { count: ips }) : null,
   ].filter(Boolean)

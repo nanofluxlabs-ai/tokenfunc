@@ -67,13 +67,26 @@ func ListUserSelectableChannelGroups(userGroup string) []ChannelGroupOption {
 // 用户分组本身就是可选渠道分组（如 default）时取自己，与上游行为一致；
 // 否则取该用户分组可见渠道分组里排序第一的；都没有时原样返回，让后续环节按「分组无渠道」报错。
 func ResolveDefaultUsingGroup(userGroup string) string {
+	return ResolveUsingGroupCandidates(userGroup)[0]
+}
+
+// ResolveUsingGroupCandidates 令牌分组留空时按顺序尝试的渠道分组：
+//   - 用户分组本身是可选渠道分组（如 default）：只走自己，不自动跨到别的分组，避免被动按更高倍率计费；
+//   - 用户分组不是渠道分组（企业档位）：该用户分组可用的全部渠道分组，按它自己的排序；
+//   - 没有任何可见渠道分组：原样返回用户分组，让分发器报无可用渠道。
+func ResolveUsingGroupCandidates(userGroup string) []string {
 	if IsUserSelectableGroup(userGroup, userGroup) {
-		return userGroup
+		return []string{userGroup}
 	}
-	if options := ListUserSelectableChannelGroups(userGroup); len(options) > 0 {
-		return options[0].Key
+	options := ListUserSelectableChannelGroups(userGroup)
+	if len(options) == 0 {
+		return []string{userGroup}
 	}
-	return userGroup
+	candidates := make([]string, 0, len(options))
+	for _, option := range options {
+		candidates = append(candidates, option.Key)
+	}
+	return candidates
 }
 
 // UserGroupPricingRow 某用户分组视角下的一个渠道分组

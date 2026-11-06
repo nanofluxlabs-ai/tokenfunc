@@ -147,15 +147,15 @@ func validateEnterpriseTokenRequest(c *gin.Context, enterprise *model.Enterprise
 		limits = append(limits, name)
 	}
 	if len(limits) > 0 {
-		effectiveGroup := policy.group
-		if effectiveGroup == "" {
-			// 不选分组时按主账号分组解析默认渠道分组（企业档位本身不是渠道分组）
-			effectiveGroup = service.ResolveDefaultUsingGroup(ownerGroup)
+		effectiveGroups := []string{policy.group}
+		if policy.group == "" {
+			// 不选分组 = 自动：按主账号分组可用的渠道分组顺序选，白名单取这些分组的并集
+			effectiveGroups = service.ResolveUsingGroupCandidates(ownerGroup)
 		}
-		allowed := service.GetGroupsEnabledModels([]string{effectiveGroup})
+		allowed := service.GetGroupsEnabledModels(effectiveGroups)
 		for _, name := range limits {
 			if !slices.Contains(allowed, name) {
-				common.ApiErrorMsg(c, "model is not available in group "+effectiveGroup+": "+name)
+				common.ApiErrorMsg(c, "model is not available in group "+strings.Join(effectiveGroups, ",")+": "+name)
 				return nil, false
 			}
 		}
@@ -193,7 +193,7 @@ func GetEnterpriseTokenOptions(c *gin.Context) {
 		common.ApiError(c, err)
 		return
 	}
-	// 可选渠道分组按后台排序；不选分组时走主账号分组解析出的默认渠道分组
+	// 可选渠道分组按后台排序；不选分组 = 自动，按主账号分组可用的渠道分组顺序找第一个有该模型的
 	options := service.ListUserSelectableChannelGroups(ownerGroup)
 	groups := make([]gin.H, 0, len(options))
 	modelsByGroup := map[string][]string{}
@@ -201,8 +201,8 @@ func GetEnterpriseTokenOptions(c *gin.Context) {
 		groups = append(groups, gin.H{"value": option.Key, "desc": option.Label, "label": option.Label, "ratio": option.Ratio, "order": option.Order})
 		modelsByGroup[option.Key] = service.GetGroupsEnabledModels([]string{option.Key})
 	}
-	defaultGroup := service.ResolveDefaultUsingGroup(ownerGroup)
-	modelsByGroup[""] = service.GetGroupsEnabledModels([]string{defaultGroup})
+	autoGroups := service.ResolveUsingGroupCandidates(ownerGroup)
+	modelsByGroup[""] = service.GetGroupsEnabledModels(autoGroups)
 	total, err := model.CountUserTokens(enterprise.UserId)
 	if err != nil {
 		common.ApiError(c, err)
@@ -210,7 +210,7 @@ func GetEnterpriseTokenOptions(c *gin.Context) {
 	}
 	common.ApiSuccess(c, gin.H{
 		"owner_group":     ownerGroup,
-		"default_group":   defaultGroup,
+		"auto_groups":     autoGroups,
 		"groups":          groups,
 		"models_by_group": modelsByGroup,
 		"limit":           enterpriseTokenLimit(enterprise),

@@ -1106,7 +1106,6 @@
     "Edit API Key": "Modifier la clé API",
     "Expiring soon": "Expire bientôt",
     "Filter by status": "Filtrer par statut",
-    "Follow enterprise group": "Suivre le groupe de l'entreprise",
     "Group, model allowlist and IP whitelist. Leave empty for no restriction.": "Groupe, liste de modèles autorisés et liste blanche d'IP. Vide = aucune restriction.",
     "Handover text": "Texte de remise",
     "Last used": "Dernière utilisation",
@@ -1602,9 +1601,10 @@
     "Visible for {{group}}": "Visibilité de {{group}}",
     "User group pricing": "Tarification des groupes d'utilisateurs",
     "Fix invalid group settings before saving.": "Corrigez les paramètres de groupe invalides avant d'enregistrer.",
-    "The order here is the order users of this group see in the token group list; an empty ratio inherits the base ratio of the channel group.": "L'ordre ici est celui que les utilisateurs de ce groupe voient dans la liste des groupes du jeton ; un coefficient vide hérite du coefficient de base du groupe de canaux.",
     "All channel groups are already listed": "Tous les groupes de canaux sont déjà listés",
     "Select a channel group": "Sélectionnez un groupe de canaux",
-    "Pick a channel group to offer to this user group. Leave the ratio empty to use its base ratio.": "Choisissez un groupe de canaux à proposer à ce groupe d'utilisateurs. Laissez le coefficient vide pour utiliser son coefficient de base."
+    "Pick a channel group to offer to this user group. Leave the ratio empty to use its base ratio.": "Choisissez un groupe de canaux à proposer à ce groupe d'utilisateurs. Laissez le coefficient vide pour utiliser son coefficient de base.",
+    "Auto (by group priority)": "Auto (par priorité de groupe)",
+    "The order here is what users of this group see in the token group list; tokens of an enterprise tier that leave the group empty try these groups in this order for the requested model; an empty ratio inherits the base ratio of the channel group.": "Cet ordre est celui que les utilisateurs de ce groupe voient dans la liste des groupes du jeton ; les jetons d'un palier entreprise sans groupe essaient ces groupes dans cet ordre pour le modèle demandé ; un ratio vide hérite du ratio de base du groupe de canaux."
   }
 }

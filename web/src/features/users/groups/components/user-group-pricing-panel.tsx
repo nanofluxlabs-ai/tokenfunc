@@ -231,7 +231,7 @@ export function UserGroupPricingPanel(props: UserGroupPricingPanelProps) {
           </div>
           <p className='text-muted-foreground text-sm'>
             {t(
-              'The order here is the order users of this group see in the token group list; an empty ratio inherits the base ratio of the channel group.'
+              'The order here is what users of this group see in the token group list; tokens of an enterprise tier that leave the group empty try these groups in this order for the requested model; an empty ratio inherits the base ratio of the channel group.'
             )}
           </p>
         </div>

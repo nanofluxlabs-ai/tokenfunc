@@ -1106,7 +1106,6 @@
     "Edit API Key": "Изменить API-ключ",
     "Expiring soon": "Скоро истекает",
     "Filter by status": "Фильтр по статусу",
-    "Follow enterprise group": "Как у предприятия",
     "Group, model allowlist and IP whitelist. Leave empty for no restriction.": "Группа, список моделей и белый список IP. Пусто = без ограничений.",
     "Handover text": "Текст для передачи",
     "Last used": "Последнее использование",
@@ -1602,9 +1601,10 @@
     "Visible for {{group}}": "Видимость {{group}}",
     "User group pricing": "Цены для групп пользователей",
     "Fix invalid group settings before saving.": "Исправьте недопустимые настройки групп перед сохранением.",
-    "The order here is the order users of this group see in the token group list; an empty ratio inherits the base ratio of the channel group.": "Порядок здесь — это порядок, который пользователи группы видят в списке групп токена; пустой коэффициент наследует базовый коэффициент группы каналов.",
     "All channel groups are already listed": "Все группы каналов уже в списке",
     "Select a channel group": "Выберите группу каналов",
-    "Pick a channel group to offer to this user group. Leave the ratio empty to use its base ratio.": "Выберите группу каналов, которую нужно открыть этой группе пользователей. Пустой коэффициент означает базовый."
+    "Pick a channel group to offer to this user group. Leave the ratio empty to use its base ratio.": "Выберите группу каналов, которую нужно открыть этой группе пользователей. Пустой коэффициент означает базовый.",
+    "Auto (by group priority)": "Авто (по приоритету групп)",
+    "The order here is what users of this group see in the token group list; tokens of an enterprise tier that leave the group empty try these groups in this order for the requested model; an empty ratio inherits the base ratio of the channel group.": "Этот порядок видят пользователи группы в списке групп токена; токены корпоративного тарифа без группы перебирают эти группы в этом порядке для запрошенной модели; пустой коэффициент наследует базовый коэффициент группы каналов."
   }
 }

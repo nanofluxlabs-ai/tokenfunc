@@ -282,6 +282,10 @@ export function TokenMutateSheet(props: TokenMutateSheetProps) {
       })),
     [options.data, group]
   )
+  // 自动 = 按这个顺序找第一个有该模型的渠道分组
+  const autoGroupsDesc = (options.data?.auto_groups ?? [])
+    .map((key) => groupOptions.find((item) => item.value === key)?.label ?? key)
+    .join(' → ')
 
   const setExpiry = (preset: ExpiryPreset) => {
     if (preset.months === 0 && preset.days === 0 && preset.hours === 0) {
@@ -647,8 +651,8 @@ export function TokenMutateSheet(props: TokenMutateSheetProps) {
                           options={[
                             {
                               value: '',
-                              label: t('Follow enterprise group'),
-                              desc: options.data?.owner_group,
+                              label: t('Auto (by group priority)'),
+                              desc: autoGroupsDesc,
                             },
                             ...groupOptions,
                           ]}
@@ -658,7 +662,7 @@ export function TokenMutateSheet(props: TokenMutateSheetProps) {
                             // 分组变了，模型白名单按新分组重选
                             form.setValue('model_limits', [])
                           }}
-                          placeholder={t('Follow enterprise group')}
+                          placeholder={t('Auto (by group priority)')}
                         />
                       </FormControl>
                       <FormMessage />

@@ -70,6 +70,26 @@ func TestResolveDefaultUsingGroup(t *testing.T) {
 	}
 }
 
+func TestResolveUsingGroupCandidates(t *testing.T) {
+	setupGroupPricingState(t)
+
+	cases := []struct {
+		name      string
+		userGroup string
+		want      []string
+	}{
+		{"用户分组本身是渠道分组时只走自己，不跨分组", "default", []string{"default"}},
+		{"企业档位按自己的渠道分组顺序列出全部候选", "ent_std", []string{"ent_pool", "gptpro"}},
+		{"未登记的用户分组按默认可见集合与全局顺序", "ghost", []string{"default", "gptpro"}},
+		{"没有任何可见渠道分组时原样返回", "lonely", []string{"lonely"}},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			assert.Equal(t, tc.want, ResolveUsingGroupCandidates(tc.userGroup))
+		})
+	}
+}
+
 func TestListUserSelectableChannelGroupsFollowsRegistryOrder(t *testing.T) {
 	setupGroupPricingState(t)
 

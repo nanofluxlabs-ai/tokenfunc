@@ -3,7 +3,7 @@
 - 日期：2026-11-06
 - 分支：main（直接提交）
 - PR：
-- 关键 commit：54d07af93
+- 关键 commit：cb65afebe
 
 ## 背景
 

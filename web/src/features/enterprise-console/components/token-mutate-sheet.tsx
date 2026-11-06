@@ -59,7 +59,7 @@ import {
   updateEnterpriseToken,
 } from '../api'
 import { useEnterpriseSelf } from '../hooks/use-enterprise-self'
-import { useTeamOptions } from '../hooks/use-team-options'
+import { useDefaultTeamId, useTeamOptions } from '../hooks/use-team-options'
 import { buildKeyHandoverText } from '../lib/key-handover'
 import { isTeamScoped } from '../lib/member-roles'
 import {
@@ -151,6 +151,7 @@ export function TokenMutateSheet(props: TokenMutateSheetProps) {
   const actor = enterprise?.actor
   const teamScoped = isTeamScoped(actor)
   const teamOptions = useTeamOptions()
+  const defaultTeamId = useDefaultTeamId()
   const { status: siteStatus } = useStatus()
   const isUpdate = Boolean(props.token)
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -233,11 +234,13 @@ export function TokenMutateSheet(props: TokenMutateSheetProps) {
     const quota = quotaModeOf(token)
     form.reset({
       name: token?.name ?? props.member?.name ?? '',
+      // 0 = 没指定团队：主账号视角落到默认团队（后端对 0 也是这么解析的）
       team_id:
-        token?.team_id ??
-        props.member?.team_id ??
-        props.defaultTeamId ??
-        actorTeamId,
+        (token?.team_id ??
+          props.member?.team_id ??
+          props.defaultTeamId ??
+          actorTeamId) ||
+        defaultTeamId,
       member_id: token?.member_id ?? props.member?.id ?? 0,
       quota_mode: quota.mode,
       quota_dollars:
@@ -261,6 +264,7 @@ export function TokenMutateSheet(props: TokenMutateSheetProps) {
     props.member,
     props.defaultTeamId,
     actorTeamId,
+    defaultTeamId,
     form,
   ])
 
@@ -468,7 +472,6 @@ export function TokenMutateSheet(props: TokenMutateSheetProps) {
                             form.setValue('member_id', 0)
                           }}
                           options={teamOptions}
-                          noneLabel={t('Default team')}
                           aria-label={t('Team')}
                         />
                       </FormItem>

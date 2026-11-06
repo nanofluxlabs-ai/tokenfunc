@@ -4,7 +4,6 @@ import { useQueryClient } from '@tanstack/react-query'
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
-import { BadgeListCell } from '@/components/data-table'
 import { GroupBadge } from '@/components/group-badge'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -48,19 +47,23 @@ export function ChannelGroupCell(props: ChannelGroupCellProps) {
     if (open) setDraft(parseGroupsList(props.channel.group as string))
   }, [open, props.channel.group])
 
-  const badges = (
-    <BadgeListCell
-      items={groups.map((group) => (
-        <GroupBadge
-          key={group}
-          group={group}
-          label={props.maskedLabel ?? labelByKey.get(group)}
-          title={props.maskedLabel ? undefined : group}
-          size='sm'
-        />
-      ))}
-    />
-  )
+  // 分组竖排、一行一个、全部展示：渠道常带 3 个以上分组，横排折叠成 +N 看不全
+  const badges =
+    groups.length === 0 ? (
+      <span className='text-muted-foreground text-xs'>-</span>
+    ) : (
+      <div className='flex min-w-0 flex-col items-start gap-1'>
+        {groups.map((group) => (
+          <GroupBadge
+            key={group}
+            group={group}
+            label={props.maskedLabel ?? labelByKey.get(group)}
+            title={props.maskedLabel ? undefined : group}
+            size='sm'
+          />
+        ))}
+      </div>
+    )
 
   if (!editable) {
     return badges

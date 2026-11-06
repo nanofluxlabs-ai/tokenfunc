@@ -31,7 +31,11 @@ vi.mock('../../hooks/use-enterprise-self', () => ({
   }),
 }))
 vi.mock('../../hooks/use-team-options', () => ({
-  useTeamOptions: () => [{ value: 6, label: 'Research' }],
+  useTeamOptions: () => [
+    { value: 1, label: 'Default team' },
+    { value: 6, label: 'Research' },
+  ],
+  useDefaultTeamId: () => 1,
   useTeams: () => ({ data: [] }),
 }))
 vi.mock('@/hooks/use-status', () => ({

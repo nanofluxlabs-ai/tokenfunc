@@ -22,7 +22,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { handleServerError } from '@/lib/handle-server-error'
 
 import { createMember, updateMember } from '../api'
-import { useTeamOptions } from '../hooks/use-team-options'
+import { useDefaultTeamId, useTeamOptions } from '../hooks/use-team-options'
 import type { Member } from '../types'
 import { EntitySelect } from './entity-select'
 
@@ -41,6 +41,7 @@ export function MemberDialog(props: MemberDialogProps) {
   const { t } = useTranslation()
   const [isSubmitting, setIsSubmitting] = useState(false)
   const teamOptions = useTeamOptions()
+  const defaultTeamId = useDefaultTeamId()
   const schema = useMemo(
     () =>
       z.object({
@@ -81,11 +82,11 @@ export function MemberDialog(props: MemberDialogProps) {
       name: member?.name ?? '',
       email: member?.email ?? '',
       employee_no: member?.employee_no ?? '',
-      team_id: member?.team_id ?? props.defaultTeamId ?? 0,
+      team_id: (member?.team_id ?? props.defaultTeamId ?? 0) || defaultTeamId,
       active: member ? member.status === 'active' : true,
       remark: member?.remark ?? '',
     })
-  }, [props.open, props.member, props.defaultTeamId, form])
+  }, [props.open, props.member, props.defaultTeamId, defaultTeamId, form])
 
   const onSubmit = async (values: Values) => {
     setIsSubmitting(true)
@@ -188,7 +189,6 @@ export function MemberDialog(props: MemberDialogProps) {
                     value={field.value}
                     onChange={field.onChange}
                     options={teamOptions}
-                    noneLabel={t('Default team')}
                     aria-label={t('Team')}
                   />
                   {props.member && props.member.token_count > 0 && (

@@ -13,8 +13,8 @@ type EntitySelectProps = {
   value: number
   onChange: (value: number) => void
   options: EntityOption[]
-  /** 值为 0 的"无"选项文案 */
-  noneLabel: string
+  /** 值为 0 的"无"选项文案；不传则没有"无"选项（如团队：默认团队本身就在列表里） */
+  noneLabel?: string
   id?: string
   'aria-label'?: string
 }
@@ -22,7 +22,9 @@ type EntitySelectProps = {
 /** 部门 / 员工 / 项目等实体的下拉选择，0 表示不选 */
 export function EntitySelect(props: EntitySelectProps) {
   const items = [
-    { value: '0', label: props.noneLabel },
+    ...(props.noneLabel === undefined
+      ? []
+      : [{ value: '0', label: props.noneLabel }]),
     ...props.options.map((option) => ({
       value: String(option.value),
       label: option.label,
@@ -43,7 +45,9 @@ export function EntitySelect(props: EntitySelectProps) {
       </SelectTrigger>
       <SelectContent alignItemWithTrigger={false}>
         <SelectGroup>
-          <SelectItem value='0'>{props.noneLabel}</SelectItem>
+          {props.noneLabel !== undefined && (
+            <SelectItem value='0'>{props.noneLabel}</SelectItem>
+          )}
           {props.options.map((option) => (
             <SelectItem
               key={option.value}

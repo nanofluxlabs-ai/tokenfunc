@@ -79,7 +79,13 @@ async function searchEntriesFor(role: number, sidebarModulesAdmin = '') {
   vi.spyOn(api, 'get').mockResolvedValue({
     data: { success: true, data: null },
   })
-  useAuthStore.getState().auth.setUser({ id: 1, username: 'alice', role })
+  // 后端对管理员总会返回权限矩阵；这里给默认的渠道读权限，否则渠道页会按无权限从菜单隐藏
+  useAuthStore.getState().auth.setUser({
+    id: 1,
+    username: 'alice',
+    role,
+    permissions: { admin_permissions: { channel: { read: true } } },
+  })
   const client = new QueryClient({
     defaultOptions: { queries: { retry: false } },
   })

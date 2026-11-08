@@ -21,6 +21,7 @@ import z from 'zod'
 
 import { Channels } from '@/features/channels'
 import { ROLE } from '@/lib/roles'
+import { canAccessRoute } from '@/lib/tokenfunc-route-permissions'
 import { useAuthStore } from '@/stores/auth-store'
 
 const channelsSearchSchema = z.object({
@@ -42,6 +43,8 @@ export const Route = createFileRoute('/_authenticated/channels/')({
         to: '/403',
       })
     }
+    // TokenFunc 二开：没有 channel.read 不进页面，免得一加载就请求被拒、弹「权限不足」
+    if (!canAccessRoute(auth.user, '/channels')) throw redirect({ to: '/403' })
   },
   validateSearch: channelsSearchSchema,
   component: Channels,

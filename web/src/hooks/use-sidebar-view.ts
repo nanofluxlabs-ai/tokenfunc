@@ -30,6 +30,7 @@ import {
 import { usePromoterSelf } from '@/features/promoter-center/hooks/use-promoter-self'
 import { canSeeAuditMenu } from '@/features/usage-logs/audit/lib/tokenfunc-audit-access'
 import { ROLE } from '@/lib/roles'
+import { filterNavGroupsByRoutePermission } from '@/lib/tokenfunc-route-permissions'
 import { useAuthStore } from '@/stores/auth-store'
 
 import { useSidebarConfig } from './use-sidebar-config'
@@ -60,7 +61,8 @@ const AUDIT_LOGS_URL = '/usage-logs/audit'
 export function useSidebarView(): ResolvedSidebarView {
   const { t } = useTranslation()
   const pathname = useLocation({ select: (l) => l.pathname })
-  const userRole = useAuthStore((s) => s.auth.user?.role)
+  const user = useAuthStore((s) => s.auth.user)
+  const userRole = user?.role
   const rootSidebarData = useSidebarData()
   const configFilteredRoot = useSidebarConfig(rootSidebarData.navGroups)
   const enterprise = useEnterpriseSelf().data
@@ -80,7 +82,8 @@ export function useSidebarView(): ResolvedSidebarView {
   const rootNavGroups = useMemo<NavGroup[]>(() => {
     const role = userRole ?? ROLE.GUEST
     const isAdmin = role >= ROLE.ADMIN
-    return configFilteredRoot
+    // TokenFunc 二开：无权进入的页面（如没有 channel.read 的渠道页）不出现在菜单里
+    return filterNavGroupsByRoutePermission(configFilteredRoot, user)
       .filter((group) => (group.id === 'admin' ? isAdmin : true))
       .filter((group) =>
         group.id === 'enterprise' ? isEnterpriseMember : true
@@ -106,6 +109,7 @@ export function useSidebarView(): ResolvedSidebarView {
       })
   }, [
     configFilteredRoot,
+    user,
     userRole,
     isEnterpriseMember,
     canSeeEnterpriseFinance,

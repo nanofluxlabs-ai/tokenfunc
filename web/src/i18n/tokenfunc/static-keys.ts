@@ -3,7 +3,7 @@
 export const TOKENFUNC_STATIC_I18N_KEYS = [
   // Admin permission matrix: group_pricing resource (labels come from service/authz/resources_tokenfunc_group.go)
   'View group pricing',
-  "View user groups, channel groups, and each user group's pricing.",
+  "Open the user groups tab and view each user group's channel group pricing.",
   'Manage user groups',
   'Create user groups and edit their names, types, and order.',
   'Edit group pricing',

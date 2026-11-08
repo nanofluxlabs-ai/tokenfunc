@@ -1555,7 +1555,7 @@
     "View group pricing": "グループ料金を表示",
     "Manage user groups": "ユーザーグループを管理",
     "Edit group pricing": "グループ料金を編集",
-    "View user groups, channel groups, and each user group's pricing.": "ユーザーグループ、チャネルグループ、各ユーザーグループの料金を表示します。",
+    "Open the user groups tab and view each user group's channel group pricing.": "「ユーザーグループ」タブを開き、各ユーザーグループのチャネルグループ料金を表示します。",
     "Create user groups and edit their names, types, and order.": "ユーザーグループを作成し、名前・種類・並び順を編集します。",
     "Change which channel groups a user group can use and at what ratio, and delete user groups.": "ユーザーグループが使えるチャネルグループと倍率を変更し、ユーザーグループを削除します。",
     "You can view this pricing only. Ask a root administrator for the permission to edit group pricing.": "この料金は閲覧のみ可能です。編集するにはルート管理者に「グループ料金を編集」権限を依頼してください。",

@@ -1555,7 +1555,7 @@
     "View group pricing": "View group pricing",
     "Manage user groups": "Manage user groups",
     "Edit group pricing": "Edit group pricing",
-    "View user groups, channel groups, and each user group's pricing.": "View user groups, channel groups, and each user group's pricing.",
+    "Open the user groups tab and view each user group's channel group pricing.": "Open the user groups tab and view each user group's channel group pricing.",
     "Create user groups and edit their names, types, and order.": "Create user groups and edit their names, types, and order.",
     "Change which channel groups a user group can use and at what ratio, and delete user groups.": "Change which channel groups a user group can use and at what ratio, and delete user groups.",
     "You can view this pricing only. Ask a root administrator for the permission to edit group pricing.": "You can view this pricing only. Ask a root administrator for the permission to edit group pricing.",

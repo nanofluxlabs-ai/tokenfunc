@@ -11,12 +11,13 @@ import (
 )
 
 // registerTokenFuncGroupRoutes 用户分组 / 渠道分组注册表与用户分组定价（TokenFunc 二开）。
-// 管理员接口按 group_pricing 权限逐项控制；会改计费的（定价、删除用户分组）需要 price。
+// 两张分组列表是全站分组下拉的字典（用户列表、渠道编辑、日志与财务筛选都要用），管理员即可读，不受 group_pricing 控制；
+// 其余管理接口按 group_pricing 权限逐项控制，会改计费的（定价、删除用户分组）需要 price。
 func registerTokenFuncGroupRoutes(apiRouter *gin.RouterGroup) {
 	adminRoute := apiRouter.Group("/tokenfunc/groups", middleware.AdminAuth())
+	adminRoute.GET("/channel", controller.ListTokenFuncChannelGroups)
+	adminRoute.GET("/user", controller.ListTokenFuncUserGroups)
 	for _, route := range []permissionRoute{
-		{method: http.MethodGet, path: "/channel", permission: authz.GroupPricingRead, handler: controller.ListTokenFuncChannelGroups},
-		{method: http.MethodGet, path: "/user", permission: authz.GroupPricingRead, handler: controller.ListTokenFuncUserGroups},
 		{method: http.MethodGet, path: "/user/:key/pricing", permission: authz.GroupPricingRead, handler: controller.GetTokenFuncUserGroupPricing},
 		{method: http.MethodPost, path: "/user", permission: authz.GroupPricingManage, handler: controller.CreateTokenFuncUserGroup},
 		{method: http.MethodPut, path: "/user-order", permission: authz.GroupPricingManage, handler: controller.ReorderTokenFuncUserGroups},

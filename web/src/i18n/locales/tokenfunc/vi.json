@@ -1555,7 +1555,7 @@
     "View group pricing": "Xem giá theo nhóm",
     "Manage user groups": "Quản lý nhóm người dùng",
     "Edit group pricing": "Sửa giá theo nhóm",
-    "View user groups, channel groups, and each user group's pricing.": "Xem nhóm người dùng, nhóm kênh và giá của từng nhóm người dùng.",
+    "Open the user groups tab and view each user group's channel group pricing.": "Mở thẻ nhóm người dùng và xem giá nhóm kênh của từng nhóm người dùng.",
     "Create user groups and edit their names, types, and order.": "Tạo nhóm người dùng và sửa tên, loại, thứ tự.",
     "Change which channel groups a user group can use and at what ratio, and delete user groups.": "Thay đổi nhóm kênh mà nhóm người dùng được dùng và hệ số, đồng thời xóa nhóm người dùng.",
     "You can view this pricing only. Ask a root administrator for the permission to edit group pricing.": "Bạn chỉ có thể xem giá này. Hãy nhờ quản trị viên gốc cấp quyền sửa giá theo nhóm.",

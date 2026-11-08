@@ -1555,7 +1555,7 @@
     "View group pricing": "Voir la tarification des groupes",
     "Manage user groups": "Gérer les groupes d'utilisateurs",
     "Edit group pricing": "Modifier la tarification des groupes",
-    "View user groups, channel groups, and each user group's pricing.": "Voir les groupes d'utilisateurs, les groupes de canaux et la tarification de chaque groupe d'utilisateurs.",
+    "Open the user groups tab and view each user group's channel group pricing.": "Ouvrir l'onglet des groupes d'utilisateurs et voir la tarification des groupes de canaux de chaque groupe.",
     "Create user groups and edit their names, types, and order.": "Créer des groupes d'utilisateurs et modifier leur nom, leur type et leur ordre.",
     "Change which channel groups a user group can use and at what ratio, and delete user groups.": "Modifier les groupes de canaux qu'un groupe d'utilisateurs peut utiliser et leur ratio, et supprimer des groupes d'utilisateurs.",
     "You can view this pricing only. Ask a root administrator for the permission to edit group pricing.": "Vous pouvez uniquement consulter cette tarification. Demandez à un administrateur principal l'autorisation de la modifier.",

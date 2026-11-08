@@ -1555,7 +1555,7 @@
     "View group pricing": "Просмотр цен групп",
     "Manage user groups": "Управление группами пользователей",
     "Edit group pricing": "Изменять цены групп",
-    "View user groups, channel groups, and each user group's pricing.": "Просмотр групп пользователей, групп каналов и цен каждой группы пользователей.",
+    "Open the user groups tab and view each user group's channel group pricing.": "Открывать вкладку групп пользователей и просматривать цены групп каналов для каждой группы.",
     "Create user groups and edit their names, types, and order.": "Создавать группы пользователей и изменять их названия, типы и порядок.",
     "Change which channel groups a user group can use and at what ratio, and delete user groups.": "Изменять доступные группе пользователей группы каналов и их коэффициенты, а также удалять группы пользователей.",
     "You can view this pricing only. Ask a root administrator for the permission to edit group pricing.": "Вы можете только просматривать эти цены. Попросите главного администратора выдать право на изменение цен групп.",

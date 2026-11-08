@@ -1555,7 +1555,7 @@
     "View group pricing": "查看分组定价",
     "Manage user groups": "管理用户分组",
     "Edit group pricing": "修改分组定价",
-    "View user groups, channel groups, and each user group's pricing.": "查看用户分组、渠道分组及各用户分组的定价。",
+    "Open the user groups tab and view each user group's channel group pricing.": "打开「用户分组」页签，查看各用户分组的渠道分组定价。",
     "Create user groups and edit their names, types, and order.": "新建用户分组，修改其名称、类型与排序。",
     "Change which channel groups a user group can use and at what ratio, and delete user groups.": "修改用户分组可用的渠道分组及倍率，并可删除用户分组。",
     "You can view this pricing only. Ask a root administrator for the permission to edit group pricing.": "你只能查看此定价。如需修改，请联系超级管理员开通「修改分组定价」权限。",

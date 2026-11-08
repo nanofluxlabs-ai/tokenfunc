@@ -9,8 +9,10 @@ package service
 import (
 	"errors"
 	"fmt"
+	"maps"
 	"math"
 	"slices"
+	"strconv"
 	"strings"
 
 	"github.com/QuantumNous/new-api/common"
@@ -28,6 +30,9 @@ var (
 	ErrUserGroupInUse          = errors.New("user group still has users")
 	ErrChannelGroupUnknown     = errors.New("unknown channel group")
 	ErrChannelGroupRatioFormat = errors.New("channel group ratio must be a non-negative number")
+	// 统一保存只接受分组定价页自己的 option
+	ErrGroupSettingKeyNotAllowed = errors.New("option is not a group setting")
+	ErrGroupSettingInvalid       = errors.New("invalid group setting")
 )
 
 // ChannelGroupOption 某用户分组可选的渠道分组，已按后台排序
@@ -152,27 +157,68 @@ type UserGroupPricingInput struct {
 // 未出现在 inputs 里的渠道分组视为继承默认。与基准价相同的倍率不记为覆盖。
 // inputs 里可见行的先后顺序即该用户分组的渠道分组顺序，一并写进注册表。
 func SaveUserGroupPricing(userGroup string, inputs []UserGroupPricingInput) error {
-	if !setting.IsRegisteredUserGroup(userGroup) {
-		return setting.ErrUserGroupNotFound
+	state := currentGroupOptionState()
+	values, err := state.applyUserGroupPricing(userGroup, inputs)
+	if err != nil {
+		return err
 	}
-	ratios := ratio_setting.GetGroupRatioCopy()
-	defaults := setting.GetUserUsableGroupsCopy()
+	return writeGroupOptions(values)
+}
+
+// groupOptionState 分组相关 option 的一份可修改快照。
+// 统一保存时先把本次提交的段一配置叠上去，再在其上算定价，保证两段基于同一份数据、一次落库。
+type groupOptionState struct {
+	ratios   map[string]float64                  // GroupRatio：渠道分组 → 基准倍率
+	defaults map[string]string                   // UserUsableGroups：默认可见的渠道分组
+	channels map[string]setting.ChannelGroupMeta // 渠道分组注册表（名称、排序）
+	special  map[string]map[string]string        // group_special_usable_group
+	matrix   map[string]map[string]float64       // GroupGroupRatio
+	groups   map[string]setting.UserGroupMeta    // 用户分组注册表
+}
+
+func currentGroupOptionState() groupOptionState {
+	return groupOptionState{
+		ratios:   ratio_setting.GetGroupRatioCopy(),
+		defaults: setting.GetUserUsableGroupsCopy(),
+		channels: setting.ChannelGroupsSnapshot(),
+		special:  ratio_setting.GetGroupRatioSetting().GroupSpecialUsableGroup.ReadAll(),
+		matrix:   ratio_setting.GetGroupGroupRatioCopy(),
+		groups:   setting.UserGroupsSnapshot(),
+	}
+}
+
+// channelGroupLabel 与 setting.ChannelGroupLabel 同口径，但读的是这份快照
+func (state groupOptionState) channelGroupLabel(key string) string {
+	if meta, ok := state.channels[key]; ok && strings.TrimSpace(meta.Label) != "" {
+		return meta.Label
+	}
+	if label, ok := state.defaults[key]; ok {
+		return label
+	}
+	return key
+}
+
+// applyUserGroupPricing 在快照上改写该用户分组的切片，返回需要落库的 option 新值
+func (state groupOptionState) applyUserGroupPricing(userGroup string, inputs []UserGroupPricingInput) (map[string]any, error) {
+	if _, ok := state.groups[userGroup]; !ok {
+		return nil, setting.ErrUserGroupNotFound
+	}
 	rowSpecial := make(map[string]string)
 	rowRatios := make(map[string]float64)
 	channelOrder := make([]string, 0, len(inputs))
 	for _, input := range inputs {
 		key := strings.TrimSpace(input.ChannelGroup)
-		base, ok := ratios[key]
+		base, ok := state.ratios[key]
 		if !ok {
-			return fmt.Errorf("%w: %s", ErrChannelGroupUnknown, key)
+			return nil, fmt.Errorf("%w: %s", ErrChannelGroupUnknown, key)
 		}
 		if input.Visible {
 			channelOrder = append(channelOrder, key)
 		}
-		_, defaultVisible := defaults[key]
+		_, defaultVisible := state.defaults[key]
 		if input.Visible != defaultVisible && key != userGroup {
 			if input.Visible {
-				rowSpecial["+:"+key] = setting.ChannelGroupLabel(key)
+				rowSpecial["+:"+key] = state.channelGroupLabel(key)
 			} else {
 				rowSpecial["-:"+key] = ""
 			}
@@ -182,33 +228,121 @@ func SaveUserGroupPricing(userGroup string, inputs []UserGroupPricingInput) erro
 		}
 		ratio := *input.Ratio
 		if ratio < 0 || math.IsNaN(ratio) || math.IsInf(ratio, 0) {
-			return fmt.Errorf("%w: %s", ErrChannelGroupRatioFormat, key)
+			return nil, fmt.Errorf("%w: %s", ErrChannelGroupRatioFormat, key)
 		}
 		if ratio != base {
 			rowRatios[key] = ratio
 		}
 	}
-	special := ratio_setting.GetGroupRatioSetting().GroupSpecialUsableGroup.ReadAll()
-	matrix := ratio_setting.GetGroupGroupRatioCopy()
 	if len(rowSpecial) == 0 {
-		delete(special, userGroup)
+		delete(state.special, userGroup)
 	} else {
-		special[userGroup] = rowSpecial
+		state.special[userGroup] = rowSpecial
 	}
 	if len(rowRatios) == 0 {
-		delete(matrix, userGroup)
+		delete(state.matrix, userGroup)
 	} else {
-		matrix[userGroup] = rowRatios
+		state.matrix[userGroup] = rowRatios
 	}
-	groups := setting.UserGroupsSnapshot()
-	meta := groups[userGroup]
+	meta := state.groups[userGroup]
 	meta.ChannelOrder = channelOrder
-	groups[userGroup] = meta
-	return writeGroupOptions(map[string]any{
-		groupGroupRatioOptionKey:    matrix,
-		specialUsableGroupOptionKey: special,
-		setting.UserGroupsOptionKey: groups,
-	})
+	state.groups[userGroup] = meta
+	return map[string]any{
+		groupGroupRatioOptionKey:    state.matrix,
+		specialUsableGroupOptionKey: state.special,
+		setting.UserGroupsOptionKey: state.groups,
+	}, nil
+}
+
+// UserGroupPricingSave 统一保存里附带的某个用户分组定价表
+type UserGroupPricingSave struct {
+	Group string                  `json:"group"`
+	Rows  []UserGroupPricingInput `json:"rows"`
+}
+
+// SaveGroupSettings 分组定价页的统一保存：段一的分组 option 与段二某用户分组的定价表一次校验、一个事务落库。
+// options 只能是分组定价页自己的 key；定价表在「当前值 + 本次 options」之上计算，
+// 因此本次删掉的渠道分组若仍被定价表引用，整次保存失败，什么都不写。
+func SaveGroupSettings(options map[string]string, pricing *UserGroupPricingSave) error {
+	state := currentGroupOptionState()
+	for key, value := range options {
+		if err := state.overlayGroupOption(key, value); err != nil {
+			return err
+		}
+	}
+	values := make(map[string]string, len(options)+3)
+	maps.Copy(values, options)
+	if pricing != nil {
+		pricingValues, err := state.applyUserGroupPricing(pricing.Group, pricing.Rows)
+		if err != nil {
+			return err
+		}
+		for key, value := range pricingValues {
+			data, err := common.Marshal(value)
+			if err != nil {
+				return err
+			}
+			values[key] = string(data)
+		}
+	}
+	return model.UpdateOptionsBulk(values)
+}
+
+// overlayGroupOption 校验一个提交的 option，并把会影响定价计算的值叠到快照上。
+// 先全部解析一遍，避免事务提交后刷新内存时才发现格式错误。
+func (state *groupOptionState) overlayGroupOption(key string, value string) error {
+	invalid := func(err error) error { return fmt.Errorf("%w: %s: %v", ErrGroupSettingInvalid, key, err) }
+	switch key {
+	case "GroupRatio":
+		if err := ratio_setting.CheckGroupRatio(value); err != nil {
+			return invalid(err)
+		}
+		state.ratios = map[string]float64{}
+		if err := common.UnmarshalJsonStr(value, &state.ratios); err != nil {
+			return invalid(err)
+		}
+	case "UserUsableGroups":
+		state.defaults = map[string]string{}
+		if err := common.UnmarshalJsonStr(value, &state.defaults); err != nil {
+			return invalid(err)
+		}
+	case groupGroupRatioOptionKey:
+		state.matrix = map[string]map[string]float64{}
+		if err := common.UnmarshalJsonStr(value, &state.matrix); err != nil {
+			return invalid(err)
+		}
+	case specialUsableGroupOptionKey:
+		state.special = map[string]map[string]string{}
+		if err := common.UnmarshalJsonStr(value, &state.special); err != nil {
+			return invalid(err)
+		}
+	case setting.ChannelGroupsOptionKey:
+		state.channels = map[string]setting.ChannelGroupMeta{}
+		if err := common.UnmarshalJsonStr(value, &state.channels); err != nil {
+			return invalid(err)
+		}
+	case "TopupGroupRatio":
+		var ratios map[string]float64
+		if err := common.UnmarshalJsonStr(value, &ratios); err != nil {
+			return invalid(err)
+		}
+	case "AutoGroups":
+		var groups []string
+		if err := common.UnmarshalJsonStr(value, &groups); err != nil {
+			return invalid(err)
+		}
+	case "MaxTokenAutoGroups":
+		if limit, err := strconv.Atoi(value); err != nil || limit < 1 {
+			return invalid(errors.New("must be a positive integer"))
+		}
+	case "DefaultUseAutoGroup":
+		if _, err := strconv.ParseBool(value); err != nil {
+			return invalid(err)
+		}
+	default:
+		return fmt.Errorf("%w: %s", ErrGroupSettingKeyNotAllowed, key)
+	}
+	return nil
 }
 
 // UserGroupOverrideCount 某用户分组与基准不同的格数（倍率覆盖 + 可见差异），列表页展示用

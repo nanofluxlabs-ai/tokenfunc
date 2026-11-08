@@ -162,6 +162,23 @@ func SaveTokenFuncUserGroupPricing(c *gin.Context) {
 	common.ApiSuccess(c, service.GetUserGroupPricing(c.Param("key")))
 }
 
+// SaveTokenFuncGroupSettings 系统设置 › 分组定价 的统一保存：分组 option 与某用户分组的定价表一个事务落库
+func SaveTokenFuncGroupSettings(c *gin.Context) {
+	var req struct {
+		Options     map[string]string             `json:"options"`
+		UserPricing *service.UserGroupPricingSave `json:"user_pricing"`
+	}
+	if err := common.DecodeJson(c.Request.Body, &req); err != nil {
+		common.ApiErrorMsg(c, "invalid request body")
+		return
+	}
+	if err := service.SaveGroupSettings(req.Options, req.UserPricing); err != nil {
+		respondUserGroupError(c, err)
+		return
+	}
+	common.ApiSuccess(c, nil)
+}
+
 // selfChannelGroupItem 登录用户可选的渠道分组；auto 不带倍率
 type selfChannelGroupItem struct {
 	Key   string   `json:"key"`
@@ -204,7 +221,9 @@ func respondUserGroupError(c *gin.Context, err error) {
 		errors.Is(err, setting.ErrUserGroupInvalidKind),
 		errors.Is(err, service.ErrUserGroupInUse),
 		errors.Is(err, service.ErrChannelGroupUnknown),
-		errors.Is(err, service.ErrChannelGroupRatioFormat):
+		errors.Is(err, service.ErrChannelGroupRatioFormat),
+		errors.Is(err, service.ErrGroupSettingKeyNotAllowed),
+		errors.Is(err, service.ErrGroupSettingInvalid):
 		common.ApiErrorMsg(c, strings.TrimSpace(err.Error()))
 	default:
 		common.ApiError(c, err)

@@ -223,6 +223,71 @@ func TestSaveUserGroupPricingOnlyTouchesThatGroupSlice(t *testing.T) {
 	assert.ErrorIs(t, SaveUserGroupPricing("ghost", nil), setting.ErrUserGroupNotFound)
 }
 
+func TestSaveGroupSettingsCommitsOptionsAndPricingTogether(t *testing.T) {
+	setupTokenFuncGroupPostgres(t)
+	setupGroupPricingState(t)
+	ratio := func(v float64) *float64 { return &v }
+	storedOption := func(key string) string {
+		var option model.Option
+		if err := model.DB.Where("key = ?", key).First(&option).Error; err != nil {
+			return ""
+		}
+		return option.Value
+	}
+
+	// 段一新增渠道分组 gptmax，段二同一次把它开放给 ent_std：定价基于本次提交的 GroupRatio 计算
+	require.NoError(t, SaveGroupSettings(map[string]string{
+		"GroupRatio":                   `{"default":1,"gptpro":1,"ent_pool":1.5,"gptmax":2}`,
+		setting.ChannelGroupsOptionKey: `{"ent_pool":{"label":"Acme 专属池","order":0},"default":{"label":"默认池","order":1},"gptpro":{"label":"GPT 高速池","order":2},"gptmax":{"label":"GPT 旗舰池","order":3}}`,
+		"DefaultUseAutoGroup":          "true",
+	}, &UserGroupPricingSave{Group: "ent_std", Rows: []UserGroupPricingInput{
+		{ChannelGroup: "gptmax", Visible: true, Ratio: ratio(1.8)},
+		{ChannelGroup: "ent_pool", Visible: true},
+		{ChannelGroup: "default", Visible: false},
+		{ChannelGroup: "gptpro", Visible: false},
+	}}))
+	assert.Equal(t, 2.0, ratio_setting.GetGroupRatio("gptmax"))
+	assert.Equal(t, 1.8, GetUserGroupRatio("ent_std", "gptmax"))
+	special, ok := ratio_setting.GetGroupRatioSetting().GroupSpecialUsableGroup.Get("ent_std")
+	require.True(t, ok)
+	assert.Equal(t, map[string]string{"-:default": "", "-:gptpro": "", "+:ent_pool": "Acme 专属池", "+:gptmax": "GPT 旗舰池"}, special)
+	assert.Equal(t, "gptmax", ResolveDefaultUsingGroup("ent_std"))
+	assert.Equal(t, "true", storedOption("DefaultUseAutoGroup"))
+	assert.Contains(t, storedOption(groupGroupRatioOptionKey), `"gptmax":1.8`)
+
+	cases := []struct {
+		name    string
+		options map[string]string
+		pricing *UserGroupPricingSave
+		wantErr error
+	}{
+		{
+			name:    "定价引用了本次删掉的渠道分组",
+			options: map[string]string{"GroupRatio": `{"default":1,"gptpro":1,"ent_pool":1.5}`},
+			pricing: &UserGroupPricingSave{Group: "ent_std", Rows: []UserGroupPricingInput{{ChannelGroup: "gptmax", Visible: true}}},
+			wantErr: ErrChannelGroupUnknown,
+		},
+		{
+			name:    "分组定价页之外的 option",
+			options: map[string]string{"GroupRatio": `{"default":1}`, "QuotaForNewUser": "100"},
+			wantErr: ErrGroupSettingKeyNotAllowed,
+		},
+		{
+			name:    "格式错误的 option",
+			options: map[string]string{"GroupRatio": `{"default":1}`, "MaxTokenAutoGroups": "0"},
+			wantErr: ErrGroupSettingInvalid,
+		},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			before := storedOption("GroupRatio")
+			assert.ErrorIs(t, SaveGroupSettings(tc.options, tc.pricing), tc.wantErr)
+			assert.Equal(t, before, storedOption("GroupRatio"), "失败时什么都不写")
+			assert.Equal(t, 2.0, ratio_setting.GetGroupRatio("gptmax"), "内存同样不变")
+		})
+	}
+}
+
 func TestUserGroupLifecycleCascadesAndGuards(t *testing.T) {
 	setupTokenFuncGroupPostgres(t)
 	setupGroupPricingState(t)

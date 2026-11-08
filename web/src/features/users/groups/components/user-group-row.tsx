@@ -1,5 +1,6 @@
 // TokenFunc 二开：用户分组列表的一行。桌面渲染为表格行，手机渲染为卡片；
 // 两种布局共用操作区：定价 / 编辑 / 删除 固定三格，default 没有删除就留同尺寸占位，保证各行图标对齐。
+// 没有 group_pricing.manage 时编辑置灰，没有 price 时删除置灰（删除会级联清掉该组定价）；定价按钮始终可点，无 price 时抽屉只读。
 // 用户分组数量少，列表不提供排序，顺序按后台 order（创建先后）。
 import { Link } from '@tanstack/react-router'
 import { Coins, Pencil, Trash2 } from 'lucide-react'
@@ -23,6 +24,8 @@ export const DEFAULT_USER_GROUP_KEY = 'default'
 type UserGroupRowProps = {
   group: UserGroupItem
   layout: 'table' | 'card'
+  canManage: boolean
+  canPrice: boolean
   onEdit: (group: UserGroupItem) => void
   onPricing: (group: UserGroupItem) => void
   onDelete: (group: UserGroupItem) => void
@@ -71,6 +74,13 @@ export function UserGroupRow(props: UserGroupRowProps) {
 
   const kindBadge = <UserGroupKindBadge kind={group.kind} />
 
+  let deleteHint = t('Delete')
+  if (!props.canPrice) {
+    deleteHint = t('No permission to perform this action')
+  } else if (hasUsers) {
+    deleteHint = t('Move its users to another group before deleting')
+  }
+
   const overrideCell =
     group.override_count > 0 ? (
       <span className='font-mono tabular-nums'>{group.override_count}</span>
@@ -101,6 +111,7 @@ export function UserGroupRow(props: UserGroupRowProps) {
             <Button
               variant='ghost'
               size='icon-sm'
+              disabled={!props.canManage}
               onClick={() => props.onEdit(group)}
               aria-label={t('Edit')}
             />
@@ -108,7 +119,11 @@ export function UserGroupRow(props: UserGroupRowProps) {
         >
           <Pencil />
         </TooltipTrigger>
-        <TooltipContent>{t('Edit')}</TooltipContent>
+        <TooltipContent>
+          {props.canManage
+            ? t('Edit')
+            : t('No permission to perform this action')}
+        </TooltipContent>
       </Tooltip>
       {/* default 是上游的保底分组，根本没有删除入口，用不可见占位保持对齐；有用户的分组先迁走用户才能删 */}
       {isDefault ? (
@@ -124,7 +139,7 @@ export function UserGroupRow(props: UserGroupRowProps) {
               <Button
                 variant='ghost'
                 size='icon-sm'
-                disabled={hasUsers}
+                disabled={hasUsers || !props.canPrice}
                 onClick={() => props.onDelete(group)}
                 aria-label={t('Delete')}
                 className='text-destructive hover:text-destructive'
@@ -133,11 +148,7 @@ export function UserGroupRow(props: UserGroupRowProps) {
           >
             <Trash2 />
           </TooltipTrigger>
-          <TooltipContent>
-            {hasUsers
-              ? t('Move its users to another group before deleting')
-              : t('Delete')}
-          </TooltipContent>
+          <TooltipContent>{deleteHint}</TooltipContent>
         </Tooltip>
       )}
     </div>

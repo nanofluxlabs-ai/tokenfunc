@@ -132,7 +132,7 @@ export const ChannelGroupsForm = memo(function ChannelGroupsForm(
               toast.error(t('Fix invalid group settings before saving.'))
             })}
           >
-            {props.isSaving ? t('Saving...') : t('Save')}
+            {props.isSaving ? t('Saving...') : t('Save pricing')}
           </Button>
         </SettingsPageActionsPortal>
 

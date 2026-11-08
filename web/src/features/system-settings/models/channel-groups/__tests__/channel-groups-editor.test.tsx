@@ -154,7 +154,7 @@ describe('channel groups editor', () => {
     render(<Fixture onSave={onSave} />)
 
     await user.click(screen.getByRole('button', { name: 'Add channel group' }))
-    const save = screen.getByRole('button', { name: 'Save' })
+    const save = screen.getByRole('button', { name: 'Save pricing' })
     const keyInput = screen.getByRole('textbox', { name: 'Group key' })
     expect(keyInput).toHaveAttribute('aria-invalid', 'true')
     expect(screen.getByRole('alert')).toHaveTextContent(
@@ -228,7 +228,7 @@ describe('channel groups editor', () => {
       )
     ).toHaveLength(1)
 
-    await user.click(screen.getByRole('button', { name: 'Save' }))
+    await user.click(screen.getByRole('button', { name: 'Save pricing' }))
     await waitFor(() => expect(onSave).toHaveBeenCalled())
     const saved = onSave.mock.calls[0][0]
     expect(JSON.parse(saved.GroupRatio)).toEqual({ default: 1 })
@@ -283,7 +283,7 @@ describe('channel groups editor', () => {
     const list = screen.getByRole('list', { name: 'Channel groups' })
     expect(within(list).getAllByRole('listitem')[0]).toHaveTextContent('vip')
 
-    await user.click(screen.getByRole('button', { name: 'Save' }))
+    await user.click(screen.getByRole('button', { name: 'Save pricing' }))
     await waitFor(() => expect(onSave).toHaveBeenCalled())
     const saved = onSave.mock.calls[0][0]
     expect(JSON.parse(saved.ChannelGroupsRegistry)).toEqual({
@@ -299,7 +299,9 @@ describe('channel groups editor', () => {
   it('mounts the user group pricing panel below the channel groups with a single save button', () => {
     render(<Fixture />)
 
-    expect(screen.getAllByRole('button', { name: 'Save' })).toHaveLength(1)
+    expect(
+      screen.getAllByRole('button', { name: 'Save pricing' })
+    ).toHaveLength(1)
     expect(
       screen.queryByRole('button', { name: 'Advanced editor' })
     ).not.toBeInTheDocument()
@@ -316,7 +318,7 @@ describe('channel groups editor', () => {
     const invalidate = vi.spyOn(client, 'invalidateQueries')
     render(<Fixture />)
 
-    await user.click(screen.getByRole('button', { name: 'Save' }))
+    await user.click(screen.getByRole('button', { name: 'Save pricing' }))
     await waitFor(() =>
       expect(invalidate).toHaveBeenCalledWith({
         queryKey: ['tokenfunc-groups'],
@@ -334,7 +336,7 @@ describe('channel groups editor', () => {
     const onSave = vi.fn<SaveHandler>(async () => true)
     render(<Fixture onSave={onSave} />)
 
-    await user.click(screen.getByRole('button', { name: 'Save' }))
+    await user.click(screen.getByRole('button', { name: 'Save pricing' }))
 
     await waitFor(() => expect(pricingDraft.reset).toHaveBeenCalled())
     expect(onSave).toHaveBeenCalledTimes(1)
@@ -349,7 +351,7 @@ describe('channel groups editor', () => {
     const onSave = vi.fn<SaveHandler>(async () => true)
     render(<Fixture onSave={onSave} />)
 
-    await user.click(screen.getByRole('button', { name: 'Save' }))
+    await user.click(screen.getByRole('button', { name: 'Save pricing' }))
 
     await waitFor(() => expect(onSave).toHaveBeenCalledTimes(1))
     expect(onSave.mock.calls[0][1]).toBeUndefined()
@@ -362,7 +364,7 @@ describe('channel groups editor', () => {
     const onSave = vi.fn<SaveHandler>(async () => true)
     render(<Fixture onSave={onSave} />)
 
-    await user.click(screen.getByRole('button', { name: 'Save' }))
+    await user.click(screen.getByRole('button', { name: 'Save pricing' }))
 
     expect(onSave).not.toHaveBeenCalled()
     expect(pricingDraft.reset).not.toHaveBeenCalled()
@@ -374,7 +376,7 @@ describe('channel groups editor', () => {
     const onSave = vi.fn<SaveHandler>(async () => false)
     render(<Fixture onSave={onSave} />)
 
-    await user.click(screen.getByRole('button', { name: 'Save' }))
+    await user.click(screen.getByRole('button', { name: 'Save pricing' }))
 
     await waitFor(() => expect(onSave).toHaveBeenCalledTimes(1))
     expect(pricingDraft.reset).not.toHaveBeenCalled()

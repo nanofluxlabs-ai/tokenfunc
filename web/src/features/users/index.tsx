@@ -37,6 +37,7 @@ import {
   UserGroupsPanel,
   UserGroupsPrimaryButtons,
   UserGroupsProvider,
+  useGroupPricingAccess,
 } from './groups'
 
 const route = getRouteApi('/_authenticated/users/')
@@ -63,7 +64,11 @@ function UsersContent() {
   const { t } = useTranslation()
   const { open, setOpen, currentRow } = useUsers()
   const navigate = route.useNavigate()
-  const userType: UsersTabType = route.useSearch().type ?? 'personal'
+  // 没有 group_pricing.read 的管理员看不到「用户分组」页签，直链进来也回落到个人用户
+  const canReadGroups = useGroupPricingAccess().canRead
+  const requestedType: UsersTabType = route.useSearch().type ?? 'personal'
+  const userType: UsersTabType =
+    requestedType === 'group' && !canReadGroups ? 'personal' : requestedType
   const view = TAB_VIEWS[userType]
 
   return (
@@ -89,7 +94,9 @@ function UsersContent() {
                 <TabsTrigger value='enterprise'>
                   {t('Enterprise Users')}
                 </TabsTrigger>
-                <TabsTrigger value='group'>{t('User groups')}</TabsTrigger>
+                {canReadGroups && (
+                  <TabsTrigger value='group'>{t('User groups')}</TabsTrigger>
+                )}
               </TabsList>
             </Tabs>
             <div className='min-h-0 flex-1'>{view.content}</div>

@@ -30,6 +30,8 @@ type UserGroupPricingDrawerProps = {
   open: boolean
   onOpenChange: (open: boolean) => void
   group?: UserGroupItem
+  /** 没有 group_pricing.price 时只读：可查看，不能配置渠道分组、调整、保存 */
+  readOnly?: boolean
 }
 
 export function UserGroupPricingDrawer(props: UserGroupPricingDrawerProps) {
@@ -73,13 +75,21 @@ export function UserGroupPricingDrawer(props: UserGroupPricingDrawerProps) {
           </SheetDescription>
         </SheetHeader>
         <div className={sideDrawerFormClassName('gap-4')}>
-          <div className='flex justify-end'>
-            <AddChannelGroupButton
-              rows={pricing.rows}
-              onChange={pricing.setRows}
-              disabled={pricing.isLoading || pricing.isSaving}
-            />
-          </div>
+          {props.readOnly ? (
+            <p className='text-muted-foreground text-sm'>
+              {t(
+                'You can view this pricing only. Ask a root administrator for the permission to edit group pricing.'
+              )}
+            </p>
+          ) : (
+            <div className='flex justify-end'>
+              <AddChannelGroupButton
+                rows={pricing.rows}
+                onChange={pricing.setRows}
+                disabled={pricing.isLoading || pricing.isSaving}
+              />
+            </div>
+          )}
           {pricing.isLoading ? (
             <LoadingState size='sm' />
           ) : (
@@ -88,21 +98,23 @@ export function UserGroupPricingDrawer(props: UserGroupPricingDrawerProps) {
               key={groupKey}
               rows={pricing.rows}
               onChange={pricing.setRows}
-              disabled={pricing.isSaving}
+              disabled={props.readOnly || pricing.isSaving}
             />
           )}
         </div>
         <SheetFooter className={sideDrawerFooterClassName()}>
           <SheetClose render={<Button variant='outline' />}>
-            {t('Cancel')}
+            {props.readOnly ? t('Close') : t('Cancel')}
           </SheetClose>
-          <Button
-            type='button'
-            onClick={() => void onSave()}
-            disabled={pricing.isSaving || pricing.isLoading || !group}
-          >
-            {pricing.isSaving ? t('Saving...') : t('Save changes')}
-          </Button>
+          {!props.readOnly && (
+            <Button
+              type='button'
+              onClick={() => void onSave()}
+              disabled={pricing.isSaving || pricing.isLoading || !group}
+            >
+              {pricing.isSaving ? t('Saving...') : t('Save changes')}
+            </Button>
+          )}
         </SheetFooter>
       </SheetContent>
     </Sheet>

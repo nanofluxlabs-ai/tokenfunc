@@ -22,6 +22,7 @@ import {
   type UserGroupItem,
 } from '@/lib/tokenfunc-groups'
 
+import { useGroupPricingAccess } from '../hooks/use-group-pricing-access'
 import { UserGroupMutateDrawer } from './user-group-mutate-drawer'
 import { UserGroupPricingDrawer } from './user-group-pricing-drawer'
 import { UserGroupRow } from './user-group-row'
@@ -30,6 +31,7 @@ import { useUserGroups } from './user-groups-provider'
 export function UserGroupsPrimaryButtons() {
   const { t } = useTranslation()
   const { setOpen, setCurrentRow } = useUserGroups()
+  if (!useGroupPricingAccess().canManage) return null
   return (
     <Button
       size='sm'
@@ -49,6 +51,7 @@ export function UserGroupsPanel() {
   const queryClient = useQueryClient()
   const { open, setOpen, currentRow, setCurrentRow } = useUserGroups()
   const isMobile = useMediaQuery('(max-width: 640px)')
+  const access = useGroupPricingAccess()
   const [isDeleting, setIsDeleting] = useState(false)
 
   const query = useQuery({
@@ -89,6 +92,8 @@ export function UserGroupsPanel() {
       key={group.key}
       group={group}
       layout={isMobile ? 'card' : 'table'}
+      canManage={access.canManage}
+      canPrice={access.canPrice}
       onEdit={openDialog('update')}
       onPricing={openDialog('pricing')}
       onDelete={openDialog('delete')}
@@ -143,6 +148,7 @@ export function UserGroupsPanel() {
         open={open === 'pricing'}
         onOpenChange={(isOpen) => !isOpen && setOpen(null)}
         group={open === 'pricing' ? currentRow || undefined : undefined}
+        readOnly={!access.canPrice}
       />
       <ConfirmDialog
         open={open === 'delete'}

@@ -75,6 +75,17 @@ export type UserGroupPayload = {
   kind: UserGroupKind
 }
 
+/** 后端 casbin 资源 group_pricing（service/authz/resources_tokenfunc_group.go）；Root 恒有全部权限 */
+export const GROUP_PRICING_PERMISSION = {
+  RESOURCE: 'group_pricing',
+  /** 查看分组与定价，管理员默认有 */
+  READ: 'read',
+  /** 新建用户分组、改名称 / 类型 / 排序，管理员默认有 */
+  MANAGE: 'manage',
+  /** 改定价与可见性、删除用户分组，默认只有 Root，可逐人开放 */
+  PRICE: 'price',
+} as const
+
 const BASE = '/api/tokenfunc/groups'
 
 export async function listChannelGroups(): Promise<

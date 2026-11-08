@@ -10,3 +10,4 @@ export {
   UserGroupsProvider,
   useUserGroups,
 } from './components/user-groups-provider'
+export { useGroupPricingAccess } from './hooks/use-group-pricing-access'

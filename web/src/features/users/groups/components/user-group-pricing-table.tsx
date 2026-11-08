@@ -118,6 +118,7 @@ function PricingRowItem(props: PricingRowItemProps) {
         dragControls={dragControls}
         onMove={props.onMove}
         onRemove={() => props.onRemove(row)}
+        disabled={props.disabled}
         removeDisabled={props.disabled || row.locked}
         removeTitle={
           row.locked ? t('Always visible to its own user group') : undefined

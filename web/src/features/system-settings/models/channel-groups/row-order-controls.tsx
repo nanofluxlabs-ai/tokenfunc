@@ -28,6 +28,8 @@ type RowOrderControlsProps = {
   onMove: (index: number, direction: 'up' | 'down') => void
   onRemove: () => void
   removeDisabled?: boolean
+  /** 整行只读：上移 / 下移 / 拖动一并禁用（移除另由 removeDisabled 控制） */
+  disabled?: boolean
   /** 禁用移除时的提示；未传则与可访问名称相同 */
   removeTitle?: string
   /** 移除图标：渠道分组用垃圾桶（真正删除），自动分组用叉号（仅移出列表） */
@@ -64,7 +66,7 @@ export function RowOrderControls(props: RowOrderControlsProps) {
         type='button'
         variant='ghost'
         size='icon-sm'
-        disabled={props.index === 0}
+        disabled={props.disabled || props.index === 0}
         aria-label={t('Move {{group}} up', { group: name })}
         onClick={() => props.onMove(props.index, 'up')}
       >
@@ -78,7 +80,7 @@ export function RowOrderControls(props: RowOrderControlsProps) {
         type='button'
         variant='ghost'
         size='icon-sm'
-        disabled={props.index === props.count - 1}
+        disabled={props.disabled || props.index === props.count - 1}
         aria-label={t('Move {{group}} down', { group: name })}
         onClick={() => props.onMove(props.index, 'down')}
       >
@@ -93,6 +95,7 @@ export function RowOrderControls(props: RowOrderControlsProps) {
         variant='ghost'
         size='icon-sm'
         className='text-muted-foreground cursor-grab touch-none active:cursor-grabbing'
+        disabled={props.disabled}
         aria-label={t('Drag {{group}} to reorder', { group: name })}
         title={t('Drag {{group}} to reorder', { group: name })}
         onPointerDown={handleDragStart}

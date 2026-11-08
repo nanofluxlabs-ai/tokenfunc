@@ -9,7 +9,9 @@ import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, expect, test, vi } from 'vitest'
 
+import { ROLE } from '@/lib/roles'
 import type { UserGroupItem } from '@/lib/tokenfunc-groups'
+import { useAuthStore } from '@/stores/auth-store'
 
 import {
   UserGroupsPanel,
@@ -91,13 +93,29 @@ function rowOf(key: string): HTMLElement {
   return row
 }
 
+/** 以管理员身份登录；groupPricing 是 group_pricing 资源上的逐项授权 */
+function loginAsAdmin(groupPricing: Record<string, boolean>) {
+  useAuthStore.getState().auth.setUser({
+    id: 7,
+    username: 'operator',
+    role: ROLE.ADMIN,
+    permissions: { admin_permissions: { group_pricing: groupPricing } },
+  })
+}
+
 beforeEach(() => {
+  useAuthStore.getState().auth.setUser({
+    id: 1,
+    username: 'root',
+    role: ROLE.SUPER_ADMIN,
+  })
   apiMock.listUserGroups.mockResolvedValue({ success: true, data: GROUPS })
   apiMock.createUserGroup.mockResolvedValue({ success: true })
 })
 
 afterEach(() => {
   for (const mock of Object.values(apiMock)) mock.mockReset()
+  useAuthStore.getState().auth.setUser(null)
 })
 
 test('the default group has no delete button and a group with users has a disabled one', async () => {
@@ -189,4 +207,47 @@ test('the key field is read-only when editing an existing group', async () => {
   const keyInput = await screen.findByLabelText('Group key')
   expect(keyInput).toHaveValue('vip')
   expect(keyInput).toBeDisabled()
+})
+
+test('an admin without the price permission cannot delete and sees the pricing drawer read-only', async () => {
+  loginAsAdmin({ read: true, manage: true, price: false })
+  apiMock.getUserGroupPricing.mockResolvedValue({ success: true, data: [] })
+  await renderPanel()
+
+  expect(
+    within(rowOf('ent_std')).getByRole('button', { name: 'Delete' })
+  ).toBeDisabled()
+  expect(
+    within(rowOf('ent_std')).getByRole('button', { name: 'Edit' })
+  ).toBeEnabled()
+  expect(
+    screen.getByRole('button', { name: 'Create user group' })
+  ).toBeInTheDocument()
+
+  await userEvent.click(
+    within(rowOf('ent_std')).getByRole('button', { name: 'Pricing' })
+  )
+  expect(
+    await screen.findByText(
+      'You can view this pricing only. Ask a root administrator for the permission to edit group pricing.'
+    )
+  ).toBeInTheDocument()
+  expect(
+    screen.queryByRole('button', { name: 'Save changes' })
+  ).not.toBeInTheDocument()
+  expect(
+    screen.queryByRole('button', { name: 'Configure channel group' })
+  ).not.toBeInTheDocument()
+})
+
+test('an admin without the manage permission cannot create or edit user groups', async () => {
+  loginAsAdmin({ read: true, manage: false, price: false })
+  await renderPanel()
+
+  expect(
+    screen.queryByRole('button', { name: 'Create user group' })
+  ).not.toBeInTheDocument()
+  expect(
+    within(rowOf('vip')).getByRole('button', { name: 'Edit' })
+  ).toBeDisabled()
 })

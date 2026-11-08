@@ -1,6 +1,14 @@
 // tokenfunc 二开的静态翻译 key 登记（动态 labelKey、文档中心注册表驱动的标题/描述等），
 // 与上游 static-keys.ts 分离，避免上游同步冲突。本文件仅作登记，无运行时引用。
 export const TOKENFUNC_STATIC_I18N_KEYS = [
+  // Admin permission matrix: group_pricing resource (labels come from service/authz/resources_tokenfunc_group.go)
+  'View group pricing',
+  "View user groups, channel groups, and each user group's pricing.",
+  'Manage user groups',
+  'Create user groups and edit their names, types, and order.',
+  'Edit group pricing',
+  'Change which channel groups a user group can use and at what ratio, and delete user groups.',
+
   // Manual top-up payment methods (dynamic labelKey)
   'Bank transfer',
   'Gift',

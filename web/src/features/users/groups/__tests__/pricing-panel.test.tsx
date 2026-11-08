@@ -11,7 +11,7 @@ import { afterEach, beforeEach, expect, test, vi } from 'vitest'
 
 import type { UserGroupItem, UserGroupPricingRow } from '@/lib/tokenfunc-groups'
 
-import { UserGroupPricingPanel } from '..'
+import { UserGroupPricingPanel, useUserGroupPricingPanel } from '..'
 
 const apiMock = vi.hoisted(() => ({
   listUserGroups: vi.fn(),
@@ -78,6 +78,25 @@ const PRICING: Record<string, UserGroupPricingRow[]> = {
   ],
 }
 
+const submitDraft = vi.fn()
+
+/** 最小页面壳：像系统设置页一样持有面板状态，「Save」只读取草稿交给统一保存 */
+function PanelHost() {
+  const state = useUserGroupPricingPanel()
+  return (
+    <>
+      <button
+        type='button'
+        disabled={!state.pricing.isDirty}
+        onClick={() => submitDraft(state.groupKey, state.pricing.toInputs())}
+      >
+        Save
+      </button>
+      <UserGroupPricingPanel state={state} />
+    </>
+  )
+}
+
 async function renderPanel() {
   const client = new QueryClient({
     defaultOptions: { queries: { retry: false } },
@@ -86,7 +105,7 @@ async function renderPanel() {
   const rootRoute = createRootRoute({
     component: () => (
       <QueryClientProvider client={client}>
-        <UserGroupPricingPanel />
+        <PanelHost />
       </QueryClientProvider>
     ),
   })
@@ -123,6 +142,7 @@ beforeEach(() => {
 
 afterEach(() => {
   for (const mock of Object.values(apiMock)) mock.mockReset()
+  submitDraft.mockReset()
 })
 
 test('the first user group is selected by default and its pricing rows are loaded', async () => {
@@ -160,7 +180,7 @@ test('clicking another user group loads that group’s pricing rows', async () =
   expect(ratioInput('Enterprise pool')).toHaveValue(0.7)
 })
 
-test('the save button stays disabled until a ratio changes, then submits only the selected group’s rows', async () => {
+test('the panel has no save button of its own and the draft becomes dirty once a ratio changes', async () => {
   await renderPanel()
   const saveButton = screen.getByRole('button', { name: 'Save' })
   expect(saveButton).toBeDisabled()
@@ -169,16 +189,15 @@ test('the save button stays disabled until a ratio changes, then submits only th
   expect(saveButton).toBeEnabled()
   await userEvent.click(saveButton)
 
-  await waitFor(() =>
-    expect(apiMock.saveUserGroupPricing).toHaveBeenCalledTimes(1)
-  )
-  expect(apiMock.saveUserGroupPricing).toHaveBeenCalledWith('default', [
+  expect(screen.getAllByRole('button', { name: 'Save' })).toHaveLength(1)
+  expect(submitDraft).toHaveBeenCalledWith('default', [
     { channel_group: 'default', visible: true, ratio: null },
     { channel_group: 'premium', visible: true, ratio: 0.9 },
   ])
+  expect(apiMock.saveUserGroupPricing).not.toHaveBeenCalled()
 })
 
-test('reordering a row alone enables saving and submits the rows in the new order', async () => {
+test('reordering a row alone marks the draft dirty with the rows in the new order', async () => {
   await renderPanel()
 
   await userEvent.click(screen.getByRole('button', { name: 'Move Premium up' }))
@@ -186,12 +205,10 @@ test('reordering a row alone enables saving and submits the rows in the new orde
   expect(saveButton).toBeEnabled()
   await userEvent.click(saveButton)
 
-  await waitFor(() =>
-    expect(apiMock.saveUserGroupPricing).toHaveBeenCalledWith('default', [
-      { channel_group: 'premium', visible: true, ratio: null },
-      { channel_group: 'default', visible: true, ratio: null },
-    ])
-  )
+  expect(submitDraft).toHaveBeenCalledWith('default', [
+    { channel_group: 'premium', visible: true, ratio: null },
+    { channel_group: 'default', visible: true, ratio: null },
+  ])
 })
 
 test('switching groups with unsaved changes asks for confirmation and keeps the current group on cancel', async () => {
@@ -226,7 +243,9 @@ test('creating a user group from the left column calls createUserGroup and selec
   })
   await renderPanel()
 
-  await userEvent.click(screen.getByRole('button', { name: 'Add user group' }))
+  await userEvent.click(
+    screen.getByRole('button', { name: 'Create user group' })
+  )
   await userEvent.type(await screen.findByLabelText('Group key'), 'new_tier')
   await userEvent.type(screen.getByLabelText('Name'), 'New tier')
   await userEvent.click(screen.getByRole('button', { name: 'Save changes' }))

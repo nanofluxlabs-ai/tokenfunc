@@ -1,7 +1,7 @@
 // TokenFunc 二开：系统设置 › 分组定价 里的「用户分组定价」面板。
 // 左列列出用户分组（手机端换成顶部下拉），右侧是选中分组的渠道分组定价表；
-// 左列可直接新建用户分组（复用用户管理页的抽屉）；删除 / 排序用户分组仍在用户管理 › 用户分组 页签里做。
-import { useQuery } from '@tanstack/react-query'
+// 左列可直接新建用户分组（复用用户管理页的抽屉，实时保存）；删除 / 排序用户分组仍在用户管理 › 用户分组 页签里做。
+// 定价草稿由 useUserGroupPricingPanel 持有，交给页面右上角的「保存」与段一一起提交。
 import { Plus, Users } from 'lucide-react'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -20,63 +20,34 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { useMediaQuery } from '@/hooks'
-import {
-  requireServerSuccess,
-  translateServerText,
-} from '@/lib/server-error-message'
-import {
-  listUserGroups,
-  tokenFuncGroupQueryKeys,
-  type UserGroupItem,
-} from '@/lib/tokenfunc-groups'
+import { translateServerText } from '@/lib/server-error-message'
+import type { UserGroupItem } from '@/lib/tokenfunc-groups'
 import { cn } from '@/lib/utils'
 
-import { useUserGroupPricing } from '../hooks/use-user-group-pricing'
+import type { UserGroupPricingPanelState } from '../hooks/use-user-group-pricing-panel'
 import { UserGroupMutateDrawer } from './user-group-mutate-drawer'
 import { AddChannelGroupButton } from './user-group-pricing-add-dialog'
 import { UserGroupPricingTable } from './user-group-pricing-table'
 import { UserGroupKindBadge } from './user-group-row'
 
 type UserGroupPricingPanelProps = {
+  state: UserGroupPricingPanelState
+  /** 页面正在统一保存时锁住表格与配置按钮 */
+  disabled?: boolean
   className?: string
 }
 
 export function UserGroupPricingPanel(props: UserGroupPricingPanelProps) {
   const { t } = useTranslation()
   const isMobile = useMediaQuery('(max-width: 767px)')
-  const query = useQuery({
-    queryKey: tokenFuncGroupQueryKeys.user,
-    queryFn: async () => requireServerSuccess(await listUserGroups()),
-  })
-  const groups = query.data?.data ?? []
-
-  // 没选过或选中的分组已被删除时回落到第一项
-  const [selectedKey, setSelectedKey] = useState<string | null>(null)
-  const selected =
-    groups.find((group) => group.key === selectedKey) ?? groups[0]
-  const groupKey = selected?.key ?? ''
-  const pricing = useUserGroupPricing(groupKey)
-  // 有未保存改动时切换分组先确认，这里记住想切去的分组
-  const [pendingKey, setPendingKey] = useState<string | null>(null)
+  const state = props.state
+  const groups = state.groups
+  const selected = state.selected
+  const groupKey = state.groupKey
+  const pricing = state.pricing
+  const choose = state.choose
+  const locked = props.disabled || pricing.isSaving
   const [createOpen, setCreateOpen] = useState(false)
-
-  // 新建分组成功后也走同一条切换路径：当前有未保存改动时同样先确认
-  const choose = (key: string) => {
-    if (key === groupKey) return
-    if (pricing.isDirty) {
-      setPendingKey(key)
-      return
-    }
-    setSelectedKey(key)
-  }
-
-  const discardAndSwitch = () => {
-    if (pendingKey !== null) {
-      pricing.reset()
-      setSelectedKey(pendingKey)
-    }
-    setPendingKey(null)
-  }
 
   const labelOf = (group: UserGroupItem) =>
     translateServerText(t, group.label) || group.key
@@ -97,11 +68,11 @@ export function UserGroupPricingPanel(props: UserGroupPricingPanelProps) {
       onClick={() => setCreateOpen(true)}
     >
       <Plus className='size-4' aria-hidden='true' />
-      {t('Add user group')}
+      {t('Create user group')}
     </Button>
   )
 
-  if (query.isLoading) {
+  if (state.isLoading) {
     return <LoadingState className={props.className} />
   }
   if (groups.length === 0 || !selected) {
@@ -226,7 +197,7 @@ export function UserGroupPricingPanel(props: UserGroupPricingPanelProps) {
               className='shrink-0'
               rows={pricing.rows}
               onChange={pricing.setRows}
-              disabled={pricing.isLoading || pricing.isSaving}
+              disabled={pricing.isLoading || locked}
             />
           </div>
           <p className='text-muted-foreground text-sm'>
@@ -243,26 +214,17 @@ export function UserGroupPricingPanel(props: UserGroupPricingPanelProps) {
             key={groupKey}
             rows={pricing.rows}
             onChange={pricing.setRows}
-            disabled={pricing.isSaving}
+            disabled={locked}
           />
         )}
-        <div className='flex justify-end'>
-          <Button
-            type='button'
-            onClick={() => void pricing.save()}
-            disabled={!pricing.isDirty || pricing.isSaving || pricing.isLoading}
-          >
-            {pricing.isSaving ? t('Saving...') : t('Save')}
-          </Button>
-        </div>
       </section>
       <ConfirmDialog
-        open={pendingKey !== null}
-        onOpenChange={(open) => !open && setPendingKey(null)}
+        open={state.pendingKey !== null}
+        onOpenChange={(open) => !open && state.cancelSwitch()}
         title={t('Discard unsaved changes?')}
         desc={t('Your changes have not been saved.')}
         confirmText={t('Discard changes')}
-        handleConfirm={discardAndSwitch}
+        handleConfirm={state.discardAndSwitch}
       />
       {createDrawer}
     </div>

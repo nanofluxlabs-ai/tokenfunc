@@ -17,7 +17,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 For commercial licensing, please contact support@quantumnous.com
 */
 import { zodResolver } from '@hookform/resolvers/zod'
-import { useMutation } from '@tanstack/react-query'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { useTranslation } from 'react-i18next'
@@ -37,6 +37,11 @@ import {
 } from '@/features/model-pricing/api'
 import { pricingOptions } from '@/features/model-pricing/pricing'
 import { handleServerError } from '@/lib/handle-server-error'
+import { requireServerSuccess } from '@/lib/server-error-message'
+import {
+  saveGroupSettings,
+  type GroupSettingsPayload,
+} from '@/lib/tokenfunc-groups'
 
 import { SettingsPageTitleStatusPortal } from '../components/settings-page-context'
 import { SettingsSection } from '../components/settings-section'
@@ -175,6 +180,7 @@ export function RatioSettingsCard({
 }: RatioSettingsCardProps) {
   const { t } = useTranslation()
   const updateOption = useUpdateOption()
+  const queryClient = useQueryClient()
   const [confirmOpen, setConfirmOpen] = useState(false)
 
   const pricingQuery = useModelPricing()
@@ -421,8 +427,18 @@ export function RatioSettingsCard({
     [t, updateOption, pricingBaseline, savePricing, pricingQuery]
   )
 
+  // TokenFunc 二开：分组定价页的段一 option 与段二定价表走同一个接口，后端一个事务落库
+  const saveGroupSettingsMutation = useMutation({
+    mutationFn: async (payload: GroupSettingsPayload) =>
+      requireServerSuccess(await saveGroupSettings(payload)),
+    meta: { errorToast: false },
+  })
+  const saveGroupSettingsAsync = saveGroupSettingsMutation.mutateAsync
   const saveGroupRatios = useCallback(
-    async (values: GroupFormValues) => {
+    async (
+      values: GroupFormValues,
+      userPricing?: GroupSettingsPayload['user_pricing']
+    ): Promise<boolean> => {
       const normalized = {
         GroupRatio: normalizeJsonString(values.GroupRatio),
         TopupGroupRatio: normalizeJsonString(values.TopupGroupRatio),
@@ -446,20 +462,34 @@ export function RatioSettingsCard({
         ChannelGroupsRegistry: 'tokenfunc_group_setting.channel_groups',
       }
 
-      const updates = (
-        Object.keys(normalized) as Array<keyof typeof normalized>
-      ).filter(
-        (key) => normalized[key] !== groupNormalizedDefaults.current[key]
-      )
-
-      for (const key of updates) {
-        const apiKey = apiKeyMap[key] || key
-        await updateOption.mutateAsync({ key: apiKey, value: normalized[key] })
+      const options: Record<string, string> = {}
+      for (const key of Object.keys(normalized) as Array<
+        keyof typeof normalized
+      >) {
+        if (normalized[key] !== groupNormalizedDefaults.current[key]) {
+          options[apiKeyMap[key] || key] = String(normalized[key])
+        }
+      }
+      if (Object.keys(options).length === 0 && !userPricing) {
+        toast.info(t('No changes to save'))
+        return false
       }
 
+      try {
+        await saveGroupSettingsAsync({
+          options,
+          user_pricing: userPricing,
+        })
+      } catch (error) {
+        handleServerError(error, t('Failed to update setting'))
+        return false
+      }
       groupNormalizedDefaults.current = normalized
+      await queryClient.invalidateQueries({ queryKey: ['system-options'] })
+      toast.success(t('Setting updated successfully'))
+      return true
     },
-    [updateOption]
+    [t, saveGroupSettingsAsync, queryClient]
   )
 
   const handleResetRatios = useCallback(() => {
@@ -531,7 +561,7 @@ export function RatioSettingsCard({
         <ChannelGroupsForm
           form={groupForm}
           onSave={saveGroupRatios}
-          isSaving={updateOption.isPending}
+          isSaving={saveGroupSettingsMutation.isPending}
         />
       )
     }

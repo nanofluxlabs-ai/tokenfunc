@@ -133,6 +133,20 @@ export async function saveUserGroupPricing(
   return res.data
 }
 
+/** 分组定价页的统一保存：分组 option 与某用户分组的定价表，后端一个事务落库 */
+export type GroupSettingsPayload = {
+  /** 段一改动的 option，值统一为字符串（与 /api/option 一致） */
+  options: Record<string, string>
+  user_pricing?: { group: string; rows: UserGroupPricingInput[] }
+}
+
+export async function saveGroupSettings(
+  payload: GroupSettingsPayload
+): Promise<ApiEnvelope<null>> {
+  const res = await api.put(`${BASE}/settings`, payload)
+  return res.data
+}
+
 export async function listSelfChannelGroups(): Promise<
   ApiEnvelope<SelfChannelGroups>
 > {

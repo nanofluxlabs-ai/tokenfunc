@@ -39,7 +39,7 @@ export function UserGroupsPrimaryButtons() {
       }}
     >
       <Plus className='h-4 w-4' />
-      {t('Add user group')}
+      {t('Create user group')}
     </Button>
   )
 }

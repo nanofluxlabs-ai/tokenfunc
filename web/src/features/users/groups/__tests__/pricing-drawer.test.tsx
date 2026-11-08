@@ -110,10 +110,10 @@ function listedGroups(): string[] {
 /** 打开「添加渠道分组」弹窗并展开候选；选项的可访问名称含 key 与基准倍率说明，用前缀匹配 */
 async function openCandidates() {
   await userEvent.click(
-    screen.getByRole('button', { name: 'Add channel group' })
+    screen.getByRole('button', { name: 'Configure channel group' })
   )
   const dialog = await screen.findByRole('dialog', {
-    name: 'Add channel group',
+    name: 'Configure channel group',
   })
   await userEvent.click(
     within(dialog).getByRole('combobox', { name: 'Channel group' })
@@ -138,7 +138,7 @@ async function addCandidate(label: string, ratio = '') {
   // 抽屉本身也是 dialog，只等「添加渠道分组」这一个关掉
   await waitFor(() =>
     expect(
-      screen.queryByRole('dialog', { name: 'Add channel group' })
+      screen.queryByRole('dialog', { name: 'Configure channel group' })
     ).not.toBeInTheDocument()
   )
 }
@@ -207,10 +207,10 @@ test('confirming the dialog without picking a channel group shows an error and a
   await renderDrawer()
 
   await userEvent.click(
-    screen.getByRole('button', { name: 'Add channel group' })
+    screen.getByRole('button', { name: 'Configure channel group' })
   )
   const dialog = await screen.findByRole('dialog', {
-    name: 'Add channel group',
+    name: 'Configure channel group',
   })
   await userEvent.click(within(dialog).getByRole('button', { name: 'Add' }))
 
@@ -302,6 +302,6 @@ test('the add button is disabled when every channel group is already listed', as
   await renderDrawer()
 
   expect(
-    screen.getByRole('button', { name: 'Add channel group' })
+    screen.getByRole('button', { name: 'Configure channel group' })
   ).toBeDisabled()
 })

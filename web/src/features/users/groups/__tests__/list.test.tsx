@@ -143,7 +143,9 @@ test('the pricing differences column shows the override count or a dash', async 
 test('submitting the create drawer with an invalid key shows a validation error and does not call the API', async () => {
   await renderPanel()
 
-  await userEvent.click(screen.getByRole('button', { name: 'Add user group' }))
+  await userEvent.click(
+    screen.getByRole('button', { name: 'Create user group' })
+  )
   await userEvent.type(screen.getByLabelText('Group key'), 'Bad Key')
   await userEvent.type(screen.getByLabelText('Name'), 'Bad')
   await userEvent.click(screen.getByRole('button', { name: 'Save changes' }))
@@ -159,7 +161,9 @@ test('submitting the create drawer with an invalid key shows a validation error 
 test('submitting the create drawer with valid data calls createUserGroup with the form values', async () => {
   await renderPanel()
 
-  await userEvent.click(screen.getByRole('button', { name: 'Add user group' }))
+  await userEvent.click(
+    screen.getByRole('button', { name: 'Create user group' })
+  )
   await userEvent.type(screen.getByLabelText('Group key'), 'ent_pro')
   await userEvent.type(screen.getByLabelText('Name'), 'Enterprise pro')
   await userEvent.type(screen.getByLabelText('Description'), 'Top tier')

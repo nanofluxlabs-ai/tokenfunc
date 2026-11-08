@@ -58,21 +58,27 @@ export function useUserGroupPricing(
       )
     })
 
+  const isValid = !rows.some(isRatioInvalid)
+
   const setRows = (next: PricingRowView[]) => setDraft({ base, rows: next })
   const reset = () => setDraft(null)
 
-  /** 提交当前表的全部行（可见行按当前顺序在前，后端据此存顺序）；成功返回 true */
-  const save = async (): Promise<boolean> => {
-    if (groupKey === '') return false
-    if (rows.some(isRatioInvalid)) {
-      toast.error(t('Ratio must be a number of 0 or more'))
-      return false
-    }
-    const payload: UserGroupPricingInput[] = rows.map((row) => ({
+  /** 当前表的全部行（可见行按当前顺序在前，后端据此存顺序） */
+  const toInputs = (): UserGroupPricingInput[] =>
+    rows.map((row) => ({
       channel_group: row.channel_group,
       visible: row.visible,
       ratio: row.visible ? parseRatioText(row.ratioText) : null,
     }))
+
+  /** 单独提交这一个用户分组的定价表（用户管理页的定价抽屉）；成功返回 true */
+  const save = async (): Promise<boolean> => {
+    if (groupKey === '') return false
+    if (!isValid) {
+      toast.error(t('Ratio must be a number of 0 or more'))
+      return false
+    }
+    const payload = toInputs()
     setIsSaving(true)
     try {
       const result = await saveUserGroupPricing(groupKey, payload)
@@ -107,6 +113,8 @@ export function useUserGroupPricing(
     setRows,
     reset,
     isDirty,
+    isValid,
+    toInputs,
     isLoading: query.isLoading,
     isSaving,
     save,

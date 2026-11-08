@@ -1,7 +1,7 @@
 // TokenFunc 二开：某个用户分组自己的「可用渠道分组」有序列表，纯展示组件。
 // 定价抽屉（用户管理 › 用户分组）与系统设置 › 分组定价 的面板共用。
 // rows 是完整数组（可见在前、不可见在后）：可见行按顺序列出可排序、改倍率、移除；
-// 不可见行是「添加渠道分组」弹窗（AddChannelGroupButton）的候选，由调用方把按钮放在标题区。
+// 不可见行是「配置渠道分组」弹窗（AddChannelGroupButton）的候选，由调用方把按钮放在标题区。
 import { Reorder, useDragControls } from 'motion/react'
 import { useId, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'

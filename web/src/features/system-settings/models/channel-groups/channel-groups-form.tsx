@@ -1,6 +1,6 @@
 // TokenFunc 二开：系统设置 › 模型 › 分组定价 Tab 的内容。
-// 自上而下两段：渠道分组（本表单，右上角「保存分组设置」只管这一段）、
-// 用户分组定价（用户管理模块的面板，自带保存，这里只做挂载）。
+// 自上而下两段：渠道分组（本表单）、用户分组定价（用户管理模块的面板）。
+// 两段的改动都由右上角「保存」一次提交、后端一个事务落库；只有新建用户分组是实时保存。
 import { useQueryClient } from '@tanstack/react-query'
 import { memo, useCallback, useState } from 'react'
 import { useWatch, type UseFormReturn } from 'react-hook-form'
@@ -26,8 +26,14 @@ import {
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
 import { Switch } from '@/components/ui/switch'
-import { UserGroupPricingPanel } from '@/features/users/groups'
-import { tokenFuncGroupQueryKeys } from '@/lib/tokenfunc-groups'
+import {
+  UserGroupPricingPanel,
+  useUserGroupPricingPanel,
+} from '@/features/users/groups'
+import {
+  tokenFuncGroupQueryKeys,
+  type GroupSettingsPayload,
+} from '@/lib/tokenfunc-groups'
 
 import {
   SettingsSwitchContent,
@@ -45,7 +51,11 @@ export type GroupFormValues = ChannelGroupFormValues & {
 
 type ChannelGroupsFormProps = {
   form: UseFormReturn<GroupFormValues>
-  onSave: (values: GroupFormValues) => Promise<void>
+  /** 成功返回 true；userPricing 为段二当前选中用户分组的定价草稿（有改动时才带） */
+  onSave: (
+    values: GroupFormValues,
+    userPricing?: GroupSettingsPayload['user_pricing']
+  ) => Promise<boolean>
   isSaving: boolean
 }
 
@@ -69,16 +79,29 @@ export const ChannelGroupsForm = memo(function ChannelGroupsForm(
     [form]
   )
 
-  // 段一保存成功后让分组注册表缓存失效，段二的基准倍率 / 默认可见随之刷新
+  const pricingPanel = useUserGroupPricingPanel()
+  const pricing = pricingPanel.pricing
+  const pricingGroup = pricingPanel.groupKey
+
+  // 保存成功后让分组注册表与定价缓存失效，段二的基准倍率 / 定价表随之刷新，草稿作废
   const onSave = props.onSave
   const handleSave = useCallback(
     async (formValues: GroupFormValues) => {
-      await onSave(formValues)
+      if (!pricing.isValid) {
+        toast.error(t('Ratio must be a number of 0 or more'))
+        return
+      }
+      const userPricing = pricing.isDirty
+        ? { group: pricingGroup, rows: pricing.toInputs() }
+        : undefined
+      const saved = await onSave(formValues, userPricing)
+      if (!saved) return
       await queryClient.invalidateQueries({
         queryKey: tokenFuncGroupQueryKeys.all,
       })
+      pricing.reset()
     },
-    [onSave, queryClient]
+    [onSave, queryClient, pricing, pricingGroup, t]
   )
 
   const channelGroupValues: ChannelGroupFormValues = {
@@ -98,7 +121,7 @@ export const ChannelGroupsForm = memo(function ChannelGroupsForm(
           <Button
             type='button'
             size='sm'
-            disabled={props.isSaving || !rowsValid}
+            disabled={props.isSaving || !rowsValid || pricing.isLoading}
             onClick={form.handleSubmit(handleSave, (errors) => {
               if (errors.MaxTokenAutoGroups) {
                 setAutoOpen(true)
@@ -109,7 +132,7 @@ export const ChannelGroupsForm = memo(function ChannelGroupsForm(
               toast.error(t('Fix invalid group settings before saving.'))
             })}
           >
-            {props.isSaving ? t('Saving...') : t('Save group settings')}
+            {props.isSaving ? t('Saving...') : t('Save')}
           </Button>
         </SettingsPageActionsPortal>
 
@@ -196,7 +219,10 @@ export const ChannelGroupsForm = memo(function ChannelGroupsForm(
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <UserGroupPricingPanel />
+          <UserGroupPricingPanel
+            state={pricingPanel}
+            disabled={props.isSaving}
+          />
         </CardContent>
       </Card>
     </div>

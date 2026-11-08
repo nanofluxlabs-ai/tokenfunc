@@ -1,6 +1,6 @@
-// TokenFunc 二开：「添加渠道分组」按钮 + 弹窗。
+// TokenFunc 二开：「配置渠道分组」按钮 + 弹窗：从已有渠道分组里挑一个配给当前用户分组。
 // 候选 = 定价草稿里当前不可见的渠道分组；确认后把该行置为可见、带上填写的倍率追加到草稿末尾，
-// 不立即保存，仍由面板 / 抽屉底部的「保存」统一提交。定价面板与定价抽屉共用。
+// 不立即保存：系统设置页由右上角「保存」统一提交，定价抽屉由抽屉底部「保存」提交。
 import { Plus } from 'lucide-react'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -76,7 +76,7 @@ export function AddChannelGroupButton(props: AddChannelGroupButtonProps) {
       onClick={() => handleOpenChange(true)}
     >
       <Plus className='size-4' aria-hidden='true' />
-      {t('Add channel group')}
+      {t('Configure channel group')}
     </Button>
   )
 
@@ -97,7 +97,7 @@ export function AddChannelGroupButton(props: AddChannelGroupButtonProps) {
       <Dialog
         open={open}
         onOpenChange={handleOpenChange}
-        title={t('Add channel group')}
+        title={t('Configure channel group')}
         description={t(
           'Pick a channel group to offer to this user group. Leave the ratio empty to use its base ratio.'
         )}

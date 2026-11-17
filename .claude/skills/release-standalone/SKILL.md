@@ -126,7 +126,8 @@ options:
 每一步失败立即停止，不跳过：
 
 ```bash
-cd /Users/yangxin/Documents/code/projects/ai/tokenfunc
+cd "$(git rev-parse --show-toplevel)"
+git remote get-url origin | grep -Eq 'nanofluxlabs-ai/tokenfunc(\.git)?$' || { echo '不在 tokenfunc 仓库内，停止'; exit 1; }
 git branch --show-current          # 必须是 main，否则询问用户
 git fetch origin && git pull --ff-only origin main
 git fetch --tags                   # 本地 tag 可能落后，不拉会推错版本号

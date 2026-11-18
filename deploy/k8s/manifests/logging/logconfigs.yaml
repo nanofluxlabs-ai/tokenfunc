@@ -1,0 +1,101 @@
+# TKE 日志采集规则（CLS 日志集 tokenfunc-prod，东京，保留 7 天）。
+# 前提：集群已开启日志采集（TKE 控制台 → 运维中心 → 日志采集，或 tccli tke InstallLogAgent），否则没有 LogConfig CRD。
+# JSON 日志解析失败的行（panic 堆栈、标准库 log、nginx error log）不丢弃，原文放进 LogParseFailure 字段。
+# 索引字段定义见工作区根仓库 docs/runbooks/cls-logging.md；改字段时两边一起改。
+---
+# 网关 master + slave
+apiVersion: cls.cloud.tencent.com/v1
+kind: LogConfig
+metadata:
+  name: tokenfunc-api
+spec:
+  clsDetail:
+    topicId: edc20cbe-f2c4-4e87-bf23-1bb9b8a76294
+    logType: json_log
+    extractRule:
+      unMatchUpload: "true"
+      unMatchedKey: LogParseFailure
+  inputDetail:
+    type: container_stdout
+    containerStdout:
+      namespace: tokenfunc
+      allContainers: false
+      includeLabels:
+        app: tokenfunc-api
+---
+# sub2api
+apiVersion: cls.cloud.tencent.com/v1
+kind: LogConfig
+metadata:
+  name: tokenfunc-sub2api
+spec:
+  clsDetail:
+    topicId: 1b665058-42f6-4552-96fb-b8e51f2110c7
+    logType: json_log
+    extractRule:
+      unMatchUpload: "true"
+      unMatchedKey: LogParseFailure
+  inputDetail:
+    type: container_stdout
+    containerStdout:
+      namespace: tokenfunc
+      allContainers: false
+      includeLabels:
+        app: tokenfunc-sub2api
+---
+# codex2api（Go 标准库纯文本日志，单行全文）
+apiVersion: cls.cloud.tencent.com/v1
+kind: LogConfig
+metadata:
+  name: tokenfunc-codex2api
+spec:
+  clsDetail:
+    topicId: 678c7ec6-772c-4cd4-8ea8-fc582a38517e
+    logType: minimalist_log
+  inputDetail:
+    type: container_stdout
+    containerStdout:
+      namespace: tokenfunc
+      allContainers: false
+      includeLabels:
+        app: tokenfunc-codex2api
+---
+# crs
+apiVersion: cls.cloud.tencent.com/v1
+kind: LogConfig
+metadata:
+  name: tokenfunc-crs
+spec:
+  clsDetail:
+    topicId: 39cc698d-76b0-4e21-87a1-3a429cf3b071
+    logType: json_log
+    extractRule:
+      unMatchUpload: "true"
+      unMatchedKey: LogParseFailure
+  inputDetail:
+    type: container_stdout
+    containerStdout:
+      namespace: tokenfunc
+      allContainers: false
+      includeLabels:
+        app: tokenfunc-crs
+---
+# ingress-nginx 访问日志（JSON）；error log 进 LogParseFailure
+apiVersion: cls.cloud.tencent.com/v1
+kind: LogConfig
+metadata:
+  name: ingress-nginx
+spec:
+  clsDetail:
+    topicId: 4bbdab62-7f1c-4fbf-b2e4-c25002042b3b
+    logType: json_log
+    extractRule:
+      unMatchUpload: "true"
+      unMatchedKey: LogParseFailure
+  inputDetail:
+    type: container_stdout
+    containerStdout:
+      namespace: ingress-nginx
+      allContainers: false
+      includeLabels:
+        app.kubernetes.io/component: controller

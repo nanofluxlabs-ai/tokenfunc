@@ -36,7 +36,6 @@ INGRESS_SET_ARGS=(
   --set "controller.config.use-gzip=true"
   # 客户端 keepalive 620s，必须低于 CLB 四层监听器空闲超时（900s）
   --set "controller.config.keep-alive=620"
-  --set 'controller.config.log-format-upstream=$remote_addr - $remote_user [$time_local] "$request" $status $body_bytes_sent "$http_referer" "$http_user_agent" $request_length $request_time [$proxy_upstream_name] [$proxy_alternative_upstream_name] $upstream_addr $upstream_response_length $upstream_response_time $upstream_header_time $upstream_status $req_id $host'
 )
 if [[ -n "$CLB_ID" ]]; then
   echo "    绑定已有 CLB：$CLB_ID"

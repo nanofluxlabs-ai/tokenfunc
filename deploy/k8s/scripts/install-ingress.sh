@@ -52,5 +52,5 @@ helm upgrade --install cert-manager jetstack/cert-manager -n cert-manager --crea
 kubectl rollout status deployment/cert-manager -n cert-manager --timeout=120s
 kubectl rollout status deployment/cert-manager-webhook -n cert-manager --timeout=120s
 
-echo "==> 完成。CLB 公网 IP（DNS 指向它）："
-kubectl get svc -n ingress-nginx ingress-nginx-controller -o jsonpath='{.status.loadBalancer.ingress[0].ip}{"\n"}'
+echo "==> 完成。CLB 地址（DNS 指向它；TKE 返回的是 CLB 域名，CNAME 到它或解析出 IP 后填 A 记录）："
+kubectl get svc -n ingress-nginx ingress-nginx-controller -o jsonpath='{.status.loadBalancer.ingress[0].ip}{.status.loadBalancer.ingress[0].hostname}{"\n"}'

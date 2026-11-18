@@ -13,13 +13,15 @@
 
 - `deploy/k8s/manifests/helm/` 新增 ingress-nginx、cert-manager 的 values：Pod 级显式关闭自动挂载，再手动挂同内容的 projected token 到标准路径（策略只检查"未声明且挂在标准路径"或"显式 true"）；关闭 ingress-nginx admission webhook（证书生成 Job 无法挂卷）和 cert-manager startupapicheck。
 - `install-ingress.sh`：固定 chart 版本（ingress-nginx 4.15.1、cert-manager v1.21.3），引入上述 values；`helm repo update` 只更新这两个仓库；开头打印目标 context。
+- cert-manager 的 runAsNonRoot 从 Pod 级挪到容器级：TKE 会给每个 Pod 注入以 root 运行的 initContainer `security-defense`（iptables 禁止 Pod 访问云元数据），Pod 级 runAsNonRoot 会连它一起拦住（报 `container's runAsUser breaks non-root policy`）。我们三个服务没设 securityContext，不受影响；以后给业务加 runAsNonRoot 也只能写在容器级。
+- `install-ingress.sh` 结尾改为打印 CLB 域名（TKE 的 LoadBalancer status 只有 hostname，没有 ip）。
 - 网关 master / slave Deployment 加 `automountServiceAccountToken: false`（业务不访问 apiserver）。codex2api、crs 仓库同步做了相同修改。
 
 ## 验证
 
 - `helm template` 渲染两个 chart：所有 Deployment / DaemonSet 的 Pod 级 `automountServiceAccountToken: false`，token 挂载在 `/var/run/secrets/kubernetes.io/serviceaccount`，无残留 Job。
 - `kubeconform -strict` 校验 4 个 Deployment 通过；`bash -n install-ingress.sh` 通过。
-- 集群实装结果见后续首次部署记录。
+- 2026-11-18 在 cls-jvs144fu 实装：ingress-nginx DaemonSet 3/3、cert-manager 三个 Deployment 均 Running，ClusterIssuer letsencrypt-prod Ready；`http://<CLB IP>/` 返回 ingress 默认 404。
 
 ## 遗留
 

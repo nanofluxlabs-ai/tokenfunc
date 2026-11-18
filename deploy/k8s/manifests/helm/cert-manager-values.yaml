@@ -1,8 +1,14 @@
 # cert-manager 的 Gatekeeper 兼容配置，原理同 ingress-nginx-values.yaml。
 # controller / webhook / cainjector 都要访问 apiserver，各自挂 projected token；startupapicheck 只是安装后自检，直接关掉。
+# TKE 会给每个 Pod 注入以 root 运行的 initContainer security-defense（禁止 Pod 访问云元数据），
+# Pod 级 runAsNonRoot 会连它一起拦住，所以把 runAsNonRoot 从 Pod 级挪到业务容器级（null 表示删除 chart 默认值）。
 crds:
   enabled: true
 automountServiceAccountToken: false
+securityContext: &podSecurityContext
+  runAsNonRoot: null
+containerSecurityContext: &containerSecurityContext
+  runAsNonRoot: true
 volumes: &apiAccessVolumes
   - name: kube-api-access
     projected:
@@ -27,10 +33,14 @@ volumeMounts: &apiAccessMounts
     readOnly: true
 webhook:
   automountServiceAccountToken: false
+  securityContext: *podSecurityContext
+  containerSecurityContext: *containerSecurityContext
   volumes: *apiAccessVolumes
   volumeMounts: *apiAccessMounts
 cainjector:
   automountServiceAccountToken: false
+  securityContext: *podSecurityContext
+  containerSecurityContext: *containerSecurityContext
   volumes: *apiAccessVolumes
   volumeMounts: *apiAccessMounts
 startupapicheck:

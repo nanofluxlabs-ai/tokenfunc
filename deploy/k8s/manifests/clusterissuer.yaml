@@ -13,3 +13,13 @@ spec:
     - http01:
         ingress:
           class: nginx
+          # TKE 给每个 Pod 注入 root 运行的 security-defense initContainer，solver Pod 默认的 Pod 级
+          # runAsNonRoot 会把它拦住；改为 Pod 级固定非 root uid（initContainer 自带容器级 runAsUser: 0，不受影响）
+          podTemplate:
+            spec:
+              securityContext:
+                runAsNonRoot: false
+                runAsUser: 65532
+                runAsGroup: 65532
+                seccompProfile:
+                  type: RuntimeDefault

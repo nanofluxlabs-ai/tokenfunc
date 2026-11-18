@@ -29,6 +29,8 @@ spec:
       - name: ghcr-secret
       # 必须 > SHUTDOWN_TIMEOUT_SECONDS(1800) + preStop(15)
       terminationGracePeriodSeconds: 1830
+      # 业务不访问 apiserver；集群 Gatekeeper 也禁止自动挂载 SA token
+      automountServiceAccountToken: false
       containers:
       - name: tokenfunc-api
         # 发版由 scripts/deploy.sh <tag> 用 kubectl set image 滚动；apply 本文件前先核对线上 tag，否则会意外回滚：

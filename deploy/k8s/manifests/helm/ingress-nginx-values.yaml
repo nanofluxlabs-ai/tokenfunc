@@ -1,0 +1,32 @@
+# ingress-nginx 的 Gatekeeper 兼容配置（install-ingress.sh 用 -f 引入，其余参数仍在脚本里 --set）。
+# TKE 集群默认启用 psp-automount-serviceaccount-token-pod：禁止 Pod 自动挂载 SA token。
+# 做法：显式关掉自动挂载，再把同样内容的 projected token 手动挂到标准路径，client-go 照常读取。
+serviceAccount:
+  automountServiceAccountToken: false
+controller:
+  extraVolumes:
+    - name: kube-api-access
+      projected:
+        defaultMode: 0444
+        sources:
+          - serviceAccountToken:
+              path: token
+              expirationSeconds: 3607
+          - configMap:
+              name: kube-root-ca.crt
+              items:
+                - key: ca.crt
+                  path: ca.crt
+          - downwardAPI:
+              items:
+                - path: namespace
+                  fieldRef:
+                    fieldPath: metadata.namespace
+  extraVolumeMounts:
+    - name: kube-api-access
+      mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+      readOnly: true
+  # 证书生成 Job（kube-webhook-certgen）不支持额外挂卷，过不了上面的策略，只能关掉 admission webhook。
+  # 代价：写错的 Ingress 不会在 apply 时被拒绝，要看 controller 日志。
+  admissionWebhooks:
+    enabled: false

@@ -2,13 +2,19 @@
 # 一键安装 / 修复 ingress-nginx + cert-manager（腾讯云 TKE，Service LoadBalancer 绑定已有 CLB）。
 # 用法：CLB_ID=lb-xxxxxxxx bash deploy/k8s/scripts/install-ingress.sh   （CLB_ID 留空则自动新建 CLB）
 # 幂等：helm upgrade --install，重跑即修复配置。
+# chart 版本固定；Gatekeeper（禁止自动挂载 SA token）兼容配置在 manifests/helm/*-values.yaml。
 set -euo pipefail
 CLB_ID="${CLB_ID:-}"
+INGRESS_NGINX_CHART_VERSION=4.15.1
+CERT_MANAGER_CHART_VERSION=v1.21.3
+VALUES_DIR="$(cd "$(dirname "$0")/../manifests/helm" && pwd)"
+
+echo "目标集群 context : $(kubectl config current-context)"
 
 echo "==> 添加 Helm 仓库"
 helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx >/dev/null
 helm repo add jetstack https://charts.jetstack.io >/dev/null
-helm repo update >/dev/null
+helm repo update ingress-nginx jetstack >/dev/null
 
 echo "==> 安装 ingress-nginx（DaemonSet，externalTrafficPolicy=Local 保留客户端 IP）"
 INGRESS_SET_ARGS=(
@@ -36,11 +42,13 @@ if [[ -n "$CLB_ID" ]]; then
   echo "    绑定已有 CLB：$CLB_ID"
   INGRESS_SET_ARGS+=(--set "controller.service.annotations.service\\.kubernetes\\.io/tke-existed-lbid=$CLB_ID")
 fi
-helm upgrade --install ingress-nginx ingress-nginx/ingress-nginx -n ingress-nginx --create-namespace "${INGRESS_SET_ARGS[@]}"
+helm upgrade --install ingress-nginx ingress-nginx/ingress-nginx -n ingress-nginx --create-namespace \
+  --version "$INGRESS_NGINX_CHART_VERSION" -f "$VALUES_DIR/ingress-nginx-values.yaml" "${INGRESS_SET_ARGS[@]}"
 kubectl rollout status daemonset/ingress-nginx-controller -n ingress-nginx --timeout=180s
 
 echo "==> 安装 cert-manager（含 CRD）"
-helm upgrade --install cert-manager jetstack/cert-manager -n cert-manager --create-namespace --set installCRDs=true
+helm upgrade --install cert-manager jetstack/cert-manager -n cert-manager --create-namespace \
+  --version "$CERT_MANAGER_CHART_VERSION" -f "$VALUES_DIR/cert-manager-values.yaml"
 kubectl rollout status deployment/cert-manager -n cert-manager --timeout=120s
 kubectl rollout status deployment/cert-manager-webhook -n cert-manager --timeout=120s
 

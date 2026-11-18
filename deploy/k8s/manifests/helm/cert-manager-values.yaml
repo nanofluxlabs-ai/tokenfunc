@@ -1,0 +1,37 @@
+# cert-manager 的 Gatekeeper 兼容配置，原理同 ingress-nginx-values.yaml。
+# controller / webhook / cainjector 都要访问 apiserver，各自挂 projected token；startupapicheck 只是安装后自检，直接关掉。
+crds:
+  enabled: true
+automountServiceAccountToken: false
+volumes: &apiAccessVolumes
+  - name: kube-api-access
+    projected:
+      defaultMode: 0444
+      sources:
+        - serviceAccountToken:
+            path: token
+            expirationSeconds: 3607
+        - configMap:
+            name: kube-root-ca.crt
+            items:
+              - key: ca.crt
+                path: ca.crt
+        - downwardAPI:
+            items:
+              - path: namespace
+                fieldRef:
+                  fieldPath: metadata.namespace
+volumeMounts: &apiAccessMounts
+  - name: kube-api-access
+    mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+    readOnly: true
+webhook:
+  automountServiceAccountToken: false
+  volumes: *apiAccessVolumes
+  volumeMounts: *apiAccessMounts
+cainjector:
+  automountServiceAccountToken: false
+  volumes: *apiAccessVolumes
+  volumeMounts: *apiAccessMounts
+startupapicheck:
+  enabled: false

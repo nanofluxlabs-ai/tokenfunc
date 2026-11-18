@@ -38,6 +38,8 @@ spec:
                   app: tokenfunc-api
                   role: slave
               topologyKey: kubernetes.io/hostname
+      # 业务不访问 apiserver；集群 Gatekeeper 也禁止自动挂载 SA token
+      automountServiceAccountToken: false
       containers:
       - name: tokenfunc-api
         # 同 master：apply 前核对线上 tag

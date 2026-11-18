@@ -41,4 +41,4 @@ if ! kubectl rollout status deploy/tokenfunc-api-slave -n "$NS" --timeout=300s; 
 fi
 echo "==> 就绪校验"
 kubectl -n "$NS" get pods -l app=tokenfunc-api -o wide
-echo "✓ 已滚动到 $IMAGE；对外验证：curl -fsS https://tokenfunc.com/api/status | jq .data.version"
+echo "✓ 已滚动到 ${IMAGE}；对外验证：curl -fsS https://tokenfunc.com/api/status | jq .data.version"

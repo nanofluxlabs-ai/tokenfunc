@@ -8,7 +8,8 @@ metadata:
     app: tokenfunc-api
     role: slave
 spec:
-  replicas: 2
+  # 固定 3 副本，每个节点一个（集群固定 3 台，不开 HPA）；容量核算见 docs/worklog/2026-11-18-chore-tke-resource-quota.md
+  replicas: 3
   selector:
     matchLabels:
       app: tokenfunc-api
@@ -55,6 +56,9 @@ spec:
         env:
         - name: NODE_TYPE
           value: "slave"
+        # 约为 memory limit 的 88%：GC 在 OOM kill 之前收紧
+        - name: GOMEMLIMIT
+          value: "1800MiB"
         - name: NODE_NAME
           valueFrom:
             fieldRef:
@@ -82,12 +86,15 @@ spec:
               command: ["/bin/sh", "-c", "sleep 15"]
         resources:
           requests:
-            memory: "256Mi"
-            cpu: "200m"
+            # 网关是全部流量入口：request 按常态高峰预留，节点内存紧张时不被优先驱逐。
+            # 800m 是「宕一台节点剩余 2 台仍装得下全部 Pod」的上限，再调大要先加节点
+            memory: "1Gi"
+            cpu: "800m"
           limits:
-            # 请求体全量入内存；按「maxSurge=1 时两个 slave 挤同一节点也不爆」倒推，节点规格变了要重算
+            # 请求体全量入内存（ingress 放行 200m）+ 流式连接缓冲；配合 GOMEMLIMIT 1800MiB
             memory: "2Gi"
-            cpu: "1000m"
+            # Go 1.25+ 按 CPU limit 设 GOMAXPROCS=2；突发时借用节点空闲 CPU
+            cpu: "2000m"
       volumes:
       - name: tmp
         emptyDir:

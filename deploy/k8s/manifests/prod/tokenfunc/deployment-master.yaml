@@ -47,6 +47,9 @@ spec:
         env:
         - name: NODE_TYPE
           value: "master"
+        # 约为 memory limit 的 88%
+        - name: GOMEMLIMIT
+          value: "900MiB"
         - name: NODE_NAME
           valueFrom:
             fieldRef:
@@ -75,8 +78,9 @@ spec:
               command: ["/bin/sh", "-c", "sleep 15"]
         resources:
           requests:
-            memory: "256Mi"
-            cpu: "100m"
+            # 不接 API 流量，跑定时任务与 logs 归档 / 预聚合
+            memory: "512Mi"
+            cpu: "250m"
           limits:
             memory: "1Gi"
             cpu: "1000m"

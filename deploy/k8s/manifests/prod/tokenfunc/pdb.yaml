@@ -1,0 +1,12 @@
+# 节点维护 / 驱逐时 3 个 slave 至少保留 2 个在线（master 单副本，不设 PDB）
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: tokenfunc-api-slave
+  namespace: tokenfunc
+spec:
+  minAvailable: 2
+  selector:
+    matchLabels:
+      app: tokenfunc-api
+      role: slave

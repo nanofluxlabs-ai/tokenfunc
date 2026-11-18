@@ -19,8 +19,8 @@ data:
   # 生产 HTTPS：Secure Cookie + 可信 Origin 白名单（逗号分隔，不支持通配符）
   SESSION_COOKIE_SECURE: "true"
   SESSION_COOKIE_TRUSTED_URL: "https://tokenfunc.com,https://www.tokenfunc.com"
-  # 留空 = 信任回环与私网网段（ingress-nginx 在集群内，Pod 网段属私网）并打印一条启动告警；要收紧就填 ingress-nginx 的 Pod CIDR
-  TRUSTED_PROXIES: ""
+  # 集群 VPC 网段（ingress-nginx Pod 在其中）；只信任它转发的 X-Forwarded-For
+  TRUSTED_PROXIES: "192.168.0.0/16"
   # 连接池（只列应用实际读取的键）
   SQL_MAX_OPEN_CONNS: "60"
   SQL_MAX_IDLE_CONNS: "20"
@@ -37,7 +37,7 @@ data:
   # 归档对象存储（腾讯云 COS 东京，S3 兼容）；桶名带 -APPID 后缀；密钥在 secret tokenfunc-api
   LOG_ARCHIVE_S3_ENDPOINT: "https://cos.ap-tokyo.myqcloud.com"
   LOG_ARCHIVE_S3_REGION: "ap-tokyo"
-  LOG_ARCHIVE_S3_BUCKET: "<bucket>-<appid>"
+  LOG_ARCHIVE_S3_BUCKET: "tokenfunc-1313535897"
   LOG_ARCHIVE_S3_PREFIX: "prod"
   LOG_ARCHIVE_S3_PATH_STYLE: "false"
   SITE_ASSET_PUBLIC_BASE_URL: "https://files.tokenfunc.com"

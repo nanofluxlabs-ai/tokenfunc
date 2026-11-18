@@ -73,7 +73,7 @@ tf_write_claude_settings() {
   mkdir -p "$dir"
   tf_backup "$file"
   export TF_FILE="$file" TF_BASE_URL TF_KEY TF_MODEL
-  local invalid="无法解析已有的 $file（不是合法 JSON），请修正后重试，或按文档手动把配置合并进 env"
+  local invalid="无法解析已有的 ${file}（不是合法 JSON），请修正后重试，或按文档手动把配置合并进 env"
   # 依次用 Node、macOS 自带 JXA、Python 合并 JSON；macOS 上 JXA 排在 Python 前，
   # 避免没装命令行工具时 /usr/bin/python3 弹出安装窗口
   if tf_have node; then
@@ -87,7 +87,7 @@ tf_write_claude_settings() {
     printf '{\n  "env": {\n    "ANTHROPIC_BASE_URL": "%s",\n    "ANTHROPIC_AUTH_TOKEN": "%s",\n    "ANTHROPIC_MODEL": "%s"\n  }\n}\n' \
       "$TF_BASE_URL" "$TF_KEY" "$TF_MODEL" >"$file"
   else
-    tf_die "未找到 node 或 python3，无法安全合并已有的 $file。请安装 python3 后重试，或按文档手动修改"
+    tf_die "未找到 node 或 python3，无法安全合并已有的 ${file}。请安装 python3 后重试，或按文档手动修改"
   fi
   unset TF_FILE
   chmod 600 "$file"
@@ -102,7 +102,7 @@ tf_ensure_tool claude 'curl -fsSL https://claude.ai/install.sh | bash' '@anthrop
 tf_write_claude_settings
 
 printf '\n'
-tf_info "配置完成：地址 $TF_BASE_URL，默认模型 $TF_MODEL"
+tf_info "配置完成：地址 ${TF_BASE_URL}，默认模型 $TF_MODEL"
 tf_info "在项目目录运行 claude，输入 /status 确认 Anthropic base URL 为 $TF_BASE_URL"
 if ! tf_have claude; then
   tf_warn "当前终端还找不到 claude 命令，请新开一个终端再运行"

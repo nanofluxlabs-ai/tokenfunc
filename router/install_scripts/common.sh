@@ -40,13 +40,13 @@ tf_fetch_models() {
   local response status body
   response="$(curl -sS --max-time 20 -w '\n%{http_code}' \
     -H "Authorization: Bearer $TF_KEY" "$TF_BASE_URL/v1/models")" ||
-    tf_die "无法连接 $TF_BASE_URL，请检查网络或代理"
+    tf_die "无法连接 ${TF_BASE_URL}，请检查网络或代理"
   status="${response##*$'\n'}"
   body="${response%$'\n'*}"
   case "$status" in
   200) ;;
-  401 | 403) tf_die "密钥无效或已停用（HTTP $status），请到 $TF_BASE_URL/keys 检查" ;;
-  *) tf_die "校验密钥失败（HTTP $status）" ;;
+  401 | 403) tf_die "密钥无效或已停用（HTTP ${status}），请到 $TF_BASE_URL/keys 检查" ;;
+  *) tf_die "校验密钥失败（HTTP ${status}）" ;;
   esac
   TF_MODELS="$(printf '%s' "$body" | grep -o '"id": *"[^"]*"' | sed 's/^"id": *"//; s/"$//' || true)"
   tf_info "密钥有效"

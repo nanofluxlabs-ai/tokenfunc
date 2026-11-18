@@ -24,7 +24,7 @@ if [ "$DRY" != 1 ]; then
 fi
 
 for s in "$M/ghcr-secret.yaml" "$M/prod/tokenfunc/secret.yaml"; do
-  [ -f "$s" ] || { echo "✗ 缺少 $s（git-ignored，先从同名 .example 复制并填值）"; exit 1; }
+  [ -f "$s" ] || { echo "✗ 缺少 ${s}（git-ignored，先从同名 .example 复制并填值）"; exit 1; }
 done
 if grep -q '<bucket>-<appid>' "$M/prod/tokenfunc/configmap.yaml"; then
   echo "✗ configmap.yaml 的 LOG_ARCHIVE_S3_BUCKET 还是占位符"; exit 1

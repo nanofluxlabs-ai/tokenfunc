@@ -83,7 +83,7 @@ alloc_slot() {
     printf '%s' "$n"
     return
   done
-  die "slot 已用完（上限 $MAX_SLOT），先 make wt-list 找孤儿并 make wt-clean NAME= 释放"
+  die "slot 已用完（上限 ${MAX_SLOT}），先 make wt-list 找孤儿并 make wt-clean NAME= 释放"
 }
 
 release_slot() {
@@ -186,7 +186,7 @@ cmd_clean() {
     release_slot "$name"
     echo "已释放 slot $slot"
   else
-    echo "注册表里没有 $name，无需释放 slot"
+    echo "注册表里没有 ${name}，无需释放 slot"
   fi
 }
 

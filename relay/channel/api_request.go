@@ -406,6 +406,7 @@ func DoWssRequest(a Adaptor, c *gin.Context, info *common.RelayInfo, requestBody
 		targetHeader.Set(key, value)
 	}
 	targetHeader.Set("Content-Type", c.Request.Header.Get("Content-Type"))
+	setGatewayRequestIDHeaders(c, targetHeader)
 	dialer := *websocket.DefaultDialer
 	if info.ChannelSetting.Proxy != "" {
 		proxyURL, _, proxyErr := common2.ParseProxyURLRuntime(info.ChannelSetting.Proxy)
@@ -448,6 +449,21 @@ func DoRequest(c *gin.Context, req *http.Request, info *common.RelayInfo) (*http
 	return doRequest(c, req, info)
 }
 
+// setGatewayRequestIDHeaders 把网关 request_id 透传给上游（TokenFunc 二开），号池日志与网关用同一个 ID 关联：
+// crs 读 X-TokenFunc-Request-Id，sub2api / codex2api 读 X-Request-ID。
+// 在渠道 header 覆盖之后写入，客户端经 passthrough 带来的同名头不会盖掉它。
+func setGatewayRequestIDHeaders(c *gin.Context, header http.Header) {
+	if c == nil || header == nil {
+		return
+	}
+	id := c.GetString(common2.RequestIdKey)
+	if id == "" {
+		return
+	}
+	header.Set(common2.RequestIdKey, id)
+	header.Set("X-Request-ID", id)
+}
+
 // keepUpstreamRedirectResponse stops net/http from following redirects while
 // returning the upstream 3xx response to the relay without an extra error.
 func keepUpstreamRedirectResponse(_ *http.Request, _ []*http.Request) error {
@@ -486,6 +502,7 @@ func doRequest(c *gin.Context, req *http.Request, info *common.RelayInfo) (*http
 	}
 
 	common2.SetContextKey(c, appconstant.ContextKeyUpstreamRequestOrigin, req.URL.Scheme+"://"+req.URL.Host)
+	setGatewayRequestIDHeaders(c, req.Header)
 	resp, err := relayClient.Do(req)
 	if err != nil {
 		logger.LogError(c, common2.LogText("do request failed: %s", err.Error()))

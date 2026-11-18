@@ -4,9 +4,12 @@ import (
 	"context"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
+	"github.com/QuantumNous/new-api/common"
 	relaycommon "github.com/QuantumNous/new-api/relay/common"
+	"github.com/QuantumNous/new-api/service"
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -23,6 +26,49 @@ func TestNewTaskAPIRequestInheritsClientCancellation(t *testing.T) {
 	cancel()
 
 	require.ErrorIs(t, upstream.Context().Err(), context.Canceled)
+}
+
+// 网关 request_id 覆盖客户端经 passthrough 带来的同名头，上游两处都收到网关 ID；没有 ID 时不动原头
+func TestDoRequestForwardsGatewayRequestID(t *testing.T) {
+	service.InitHttpClient()
+	gin.SetMode(gin.TestMode)
+
+	tests := []struct {
+		name          string
+		gatewayID     string
+		wantRequestID string
+		wantGatewayID string
+	}{
+		{name: "gateway id overrides client header", gatewayID: "20261118120000123456789abcd1234Ab12Cd34", wantRequestID: "20261118120000123456789abcd1234Ab12Cd34", wantGatewayID: "20261118120000123456789abcd1234Ab12Cd34"},
+		{name: "no gateway id keeps client header", gatewayID: "", wantRequestID: "client-request-id", wantGatewayID: ""},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			received := make(chan http.Header, 1)
+			upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				received <- r.Header.Clone()
+				w.WriteHeader(http.StatusOK)
+			}))
+			defer upstream.Close()
+
+			c, _ := gin.CreateTestContext(httptest.NewRecorder())
+			c.Request = httptest.NewRequest(http.MethodPost, "/v1/chat/completions", strings.NewReader("{}"))
+			if tt.gatewayID != "" {
+				c.Set(common.RequestIdKey, tt.gatewayID)
+			}
+			req, err := http.NewRequest(http.MethodPost, upstream.URL, strings.NewReader("{}"))
+			require.NoError(t, err)
+			req.Header.Set("X-Request-ID", "client-request-id")
+
+			resp, err := doRequest(c, req, &relaycommon.RelayInfo{ChannelMeta: &relaycommon.ChannelMeta{}})
+			require.NoError(t, err)
+			_ = resp.Body.Close()
+
+			got := <-received
+			assert.Equal(t, tt.wantRequestID, got.Get("X-Request-ID"))
+			assert.Equal(t, tt.wantGatewayID, got.Get(common.RequestIdKey))
+		})
+	}
 }
 
 func TestProcessHeaderOverride_ChannelTestSkipsPassthroughRules(t *testing.T) {

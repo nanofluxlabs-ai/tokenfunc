@@ -43,7 +43,7 @@ spec:
       includeLabels:
         app: tokenfunc-sub2api
 ---
-# codex2api（Go 标准库纯文本日志，单行全文）
+# codex2api（CODEX_LOG_FORMAT=json：标准库日志包成单行 JSON，每请求一条 event=usage）
 apiVersion: cls.cloud.tencent.com/v1
 kind: LogConfig
 metadata:
@@ -51,7 +51,10 @@ metadata:
 spec:
   clsDetail:
     topicId: 678c7ec6-772c-4cd4-8ea8-fc582a38517e
-    logType: minimalist_log
+    logType: json_log
+    extractRule:
+      unMatchUpload: "true"
+      unMatchedKey: LogParseFailure
   inputDetail:
     type: container_stdout
     containerStdout:

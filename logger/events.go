@@ -34,6 +34,8 @@ const (
 	EventBillingCommitted     = "billing_committed"
 	EventBillingRefundStarted = "billing_refund_started"
 	EventBillingRefundResult  = "billing_refund_result"
+	// 每条消费日志一行（TokenFunc 二开），CLS 按 channel_id / model 统计 token 与缓存命中
+	EventConsume = "consume"
 )
 
 // 字段名常量。CLS 索引字段统一命名。
@@ -129,9 +131,18 @@ const (
 	FieldQuotaConsumed    = "quota_consumed"
 	FieldPromptTokens     = "prompt_tokens"
 	FieldCompletionTokens = "completion_tokens"
-	FieldBillingStatus    = "billing_status"
-	FieldRefundStatus     = "refund_status"
-	FieldRefundReason     = "refund_reason"
+	FieldCacheTokens      = "cache_tokens"       // 缓存读
+	FieldCacheWriteTokens = "cache_write_tokens" // 缓存写（5m/1h 已合计）
+	// usage_semantic：anthropic 时 prompt_tokens 不含缓存读写，openai 时含缓存读，算命中率的分母不同
+	FieldUsageSemantic   = "usage_semantic"
+	FieldUseTimeSeconds  = "use_time_seconds"
+	FieldFirstResponseMs = "frt_ms"
+	FieldUpstreamModel   = "upstream_model"
+	FieldReasoningEffort = "reasoning_effort"
+	FieldUpstreamReqID   = "upstream_request_id"
+	FieldBillingStatus   = "billing_status"
+	FieldRefundStatus    = "refund_status"
+	FieldRefundReason    = "refund_reason"
 
 	// 同账号重试（盲区 3）
 	FieldSameChannelRetriesUsed = "same_channel_retries_used"

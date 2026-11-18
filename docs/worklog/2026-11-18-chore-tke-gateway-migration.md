@@ -1,4 +1,4 @@
-# 网关从单机迁入 TKE：清单对齐单机生产配置
+# 网关从单机迁入 TKE：清单对齐、切换执行与单机发版停用
 
 - 日期：2026-11-18
 - 分支：main
@@ -25,7 +25,19 @@
   - `LOG_ARCHIVE_S3_PREFIX`：单机是 `local`，清单是 `prod`，待用户决定。
 - 确认 v2026.11.08.1 已包含探针用的 `/api/health/live`、`/api/health/ready`，迁移可直接沿用线上版本。
 
+## 切换执行（2026-11-18）
+
+- 20:14:10 停单机 `tokenfunc-api` / `tokenfunc-sub2api`（restart=no）→ pg_dump（tokenfunc 4.98MB、sub2api 9.28MB）→ `kubectl cp` 进迁移 Pod → 清空演练数据后 pg_restore 到 TencentDB PG18。
+- 核对：两库逐表行数完全一致（tokenfunc 60 表 / 103,963 行，sub2api 101 表 / 151,666 行），118 个序列都不落后于 max(id)。
+- 起 sub2api ×3、网关 master ×1 + slave ×2（同版本 v2026.11.08.1），apply Ingress，旧机器 nginx 改为转发到新 CLB；约 20:18 恢复服务，停机约 4 分钟。
+- 冒烟：`/api/status`、`/api/health/ready`（db / redis 均 ok）、`/v1/models` 16 个模型；经 sub2api 渠道的 glm / kimi / MiniMax / gpt-5.6 chat 非流式 + 流式、kimi Anthropic Messages 均 200。
+- 网关里 sub2api 渠道的 base_url 是 `http://tokenfunc-sub2api:8080`，正好等于集群内 Service 短名，没有改库。
+- `LOG_ARCHIVE_S3_PREFIX` 用 `prod`。
+- `/release-standalone` 标记停用：描述加停用标记，正文开头加拦截，被调用时直接停止。Actions（deploy-ghcr.yml）只构建不部署，不会把单机容器拉起来。
+
 ## 遗留
 
-- `LOG_ARCHIVE_S3_PREFIX` 待定。
-- 切换执行结果补在本条目。
+- 单机容器只停不删，nginx 继续转发到新 CLB，保留到 2026-11-25 再下线（PG 里还有已下线的 prediroute 库，不要动）。
+- 网关尚未配置 codex2api / crs 渠道。
+- 在控制台给 TencentDB Redis 配内存告警（实例 1GB，noeviction）。
+- 切换时 glm 非流式出现过一次 000（连接中断），重试正常，ingress 日志无非 200，继续观察。

@@ -1,6 +1,7 @@
 ---
 name: release-standalone
 description: >-
+  【已停用 2026-11-18：生产已迁入 TKE（ns tokenfunc），发版改用 /release-tke；单机只保留到下线前作回滚兜底】
   一键发版 tokenfunc 到单机 docker 生产环境（ssh tokenfunc，/opt/tokenfunc，域名 tokenfunc.com）：
   前置检查 → 打 tag → GitHub Actions 构建镜像并 SSH 部署 → 健康验证 → 冒烟测试 → 部署后监控 → 发布报告。
   当用户要"发版 / 发布 / 部署 tokenfunc 到生产 / 打 tag 上线"时使用。tag 可选，缺省按 vYYYY.MM.DD.N 自动推算。
@@ -27,6 +28,10 @@ allowed-tools:
   - AskUserQuestion
   - ScheduleWakeup
 ---
+> **⛔ 已停用（2026-11-18）**：网关与 sub2api 已迁入 TKE 集群（ns tokenfunc），单机 `ssh tokenfunc` 上的容器已停止且 `restart=no`。
+> 在单机部署会让两边同时运行同一份数据（定时任务重复执行、sub2api refresh_token 轮转互相打死）。
+> 被调用时**直接停止**，提示用户改用 `/release-tke`；只有用户明确要求「回滚到单机」时才继续，且必须先把集群对应 Deployment 缩到 0。
+
 
 # tokenfunc 单机 docker 一键发版
 

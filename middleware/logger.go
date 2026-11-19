@@ -28,23 +28,20 @@ func SetUpLogger(server *gin.Engine) {
 	server.Use(redactTaskArtifactAccessQuery())
 	server.Use(func(c *gin.Context) {
 		start := time.Now()
-		// 与 gin 原 logger 一致：进入时取 path / query（此时任务产物的 access 参数已被上一中间件摘掉）
-		path := c.Request.URL.Path
-		escapedPath := c.Request.URL.EscapedPath()
-		raw := c.Request.URL.RawQuery
 
 		c.Next()
 
 		end := time.Now()
 		latency := end.Sub(start)
-		if raw != "" {
-			path = path + "?" + raw
-		}
+		// 与上游 #8098 一致：处理完再取 path / query，处理器从 query 里摘走的凭据（如 Gemini 的 ?key=）不进日志；
+		// 任务产物的 access 参数在上一中间件已摘掉
+		path := c.Request.URL.Path
+		escapedPath := c.Request.URL.EscapedPath()
+		raw := c.Request.URL.RawQuery
 		// OAuth callbacks carry one-time codes and state in the query string.
 		// Redact the log value only; the handler still needs the original query.
-		if strings.HasPrefix(path, "/api/oauth/") || strings.HasPrefix(path, "/oauth/") {
-			path, _, _ = strings.Cut(path, "?")
-		} else if raw != "" {
+		isOAuthCallback := strings.HasPrefix(path, "/api/oauth/") || strings.HasPrefix(path, "/oauth/")
+		if raw != "" && !isOAuthCallback {
 			// 上游 #7972：query 里的 key / token 等凭据脱敏后再记录（text / json 两种格式共用）
 			query, _ := url.ParseQuery(raw)
 			path = escapedPath + relaycommon.SanitizeURLForLog("?"+query.Encode())

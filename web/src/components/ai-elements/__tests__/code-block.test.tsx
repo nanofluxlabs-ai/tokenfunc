@@ -58,9 +58,10 @@ describe('CodeBlock', () => {
     // 0.75rem top puts the first line's center (0.75 + 0.75rem) level with
     // the copy button (top-2 + size-8/2 = 1.5rem); 1rem left keeps code off
     // the border when the line-number gutter is hidden.
+    // jsdom 30 起 computed style 把 rem 按 16px 根字号换算成 px
     const styles = getComputedStyle(content!)
-    expect(styles.paddingTop).toBe('0.75rem')
-    expect(styles.paddingLeft).toBe('1rem')
+    expect(styles.paddingTop).toBe('12px')
+    expect(styles.paddingLeft).toBe('16px')
   })
 })
 

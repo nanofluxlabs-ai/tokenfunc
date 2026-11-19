@@ -13,7 +13,8 @@ git rev-parse --verify --quiet "${REF}^{commit}" >/dev/null || { echo "找不到
 base=$(git merge-base "${BASE_BRANCH}" "${REF}")
 baseline=$(git describe --tags --match "${TAG_GLOB}" --abbrev=0 "${base}" 2>/dev/null || echo "(无 rc tag)")
 count=$(git rev-list --count "${base}..${REF}")
-first_date=$(git log --reverse --format=%ad --date=short "${base}..${REF}" | head -1)
+# 不用 head -1：pipefail 下 git log 输出超过管道缓冲会因 SIGPIPE 让整个脚本退出 141
+first_date=$(git log --reverse --format=%ad --date=short "${base}..${REF}" | awk 'NR==1')
 last_date=$(git log -1 --format=%ad --date=short "${REF}")
 
 # 二开热点：相对分叉点我们修改过的上游文件；上游也动了的就是潜在冲突面

@@ -6,7 +6,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/gin-gonic/gin"
 )
 
 // 系统日志的 JSON 信封（TokenFunc 二开，schema 与 tokensolo 对齐，便于复用 CLS 查询）。
@@ -79,22 +78,3 @@ func FlattenStack(stack string) string {
 	}
 	return flat
 }
-
-// dynamicLogWriter 每次写入时取当前的 gin writer，供 GORM / 标准库 log 这类
-// 在启动时就要拿到 io.Writer 的组件使用；日志文件滚动换 writer 后它们也不会写到旧 fd。
-// 调用方不得已持有 LogWriterMu，否则递归读锁在有写锁等待时会死锁。
-type dynamicLogWriter struct {
-	errorStream bool
-}
-
-func (w dynamicLogWriter) Write(p []byte) (int, error) {
-	LogWriterMu.RLock()
-	defer LogWriterMu.RUnlock()
-	if w.errorStream {
-		return gin.DefaultErrorWriter.Write(p)
-	}
-	return gin.DefaultWriter.Write(p)
-}
-
-func InfoLogWriter() io.Writer  { return dynamicLogWriter{} }
-func ErrorLogWriter() io.Writer { return dynamicLogWriter{errorStream: true} }

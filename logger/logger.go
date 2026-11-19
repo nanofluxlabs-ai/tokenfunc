@@ -70,7 +70,7 @@ func SetupLogger() {
 type stdlogJSONWriter struct{}
 
 func (stdlogJSONWriter) Write(p []byte) (int, error) {
-	common.WriteJSONLog(common.ErrorLogWriter(), common.LogEntry{
+	common.WriteJSONLog(common.ErrorLogWriter, common.LogEntry{
 		Level:     "warn",
 		Component: "stdlog",
 		Msg:       strings.TrimSpace(string(p)),

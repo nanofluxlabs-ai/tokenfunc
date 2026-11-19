@@ -95,7 +95,7 @@ ADD tokenkit/go.mod ./tokenkit/go.mod
 RUN go mod download
 COPY . .
 RUN { test -f web/dist/index.html || { echo "web/dist/index.html missing in build context" >&2; exit 1; }; } \
-    && go build -pgo="$(go list -m -f '{{.Dir}}' github.com/Calcium-Ion/moejs)/default.pgo" \
+    && go build -pgo="$(go list -m -f '{{.Dir}}' github.com/MoeForge/moejs)/default.pgo" \
        -ldflags "-s -w -X 'github.com/QuantumNous/new-api/common.Version=$(cat VERSION)'" -o tokenfunc
 
 FROM debian:bookworm-slim

@@ -43,7 +43,7 @@ import {
 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
-import type { NavGroup, SidebarData } from '@/components/layout/types'
+import type { NavGroup, SidebarBadges, SidebarData } from '@/components/layout/types'
 import { ROLE } from '@/lib/roles'
 
 /**
@@ -52,7 +52,7 @@ import { ROLE } from '@/lib/roles'
  * These are shown when the URL does not match any nested sidebar view
  * registered in `layout/lib/sidebar-view-registry.ts`.
  */
-export function useSidebarData(): SidebarData {
+export function useSidebarData(badges: SidebarBadges = {}): SidebarData {
   const { t } = useTranslation()
 
   // 日志三项：普通用户在「常规」组；企业账户隐藏常规组，改在企业组下面的「日志」组展示（见 use-sidebar-view）
@@ -283,8 +283,12 @@ export function useSidebarData(): SidebarData {
                 url: '/system-info',
               },
               {
-                title: t('Task Plugins'),
+                title: t('Plugins'),
                 url: '/task-plugins',
+              },
+              {
+                title: t('Request processing'),
+                url: '/request-processing',
               },
               {
                 title: t('Log Archive'),
@@ -299,6 +303,8 @@ export function useSidebarData(): SidebarData {
             activeUrls: ['/system-settings'],
             icon: Settings,
             requiredRole: ROLE.SUPER_ADMIN,
+            // Model pricing lives in System Settings.
+            badge: badges.modelPricing,
           },
         ],
       },

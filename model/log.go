@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/QuantumNous/new-api/common"
+	"github.com/QuantumNous/new-api/constant"
 	"github.com/QuantumNous/new-api/logger"
 	"github.com/QuantumNous/new-api/types"
 
@@ -341,6 +342,9 @@ func RecordConsumeLog(c *gin.Context, userId int, params RecordConsumeLogParams)
 	RecordEnterpriseUsageAsync(c, userId, params)
 	// 渠道消耗统计：小时桶 + 累计 + (日, 用户, 模型) 明细，与日志开关解耦（TokenFunc 二开）
 	recordChannelUsage(params.ChannelId, userId, params.ModelName, params.Quota, params.PromptTokens, params.CompletionTokens, params.Other)
+	// Request plugin report hooks read what the request settled, whether or
+	// not consume logs are kept.
+	common.SetContextKey(c, constant.ContextKeyConsumeLog, &params)
 	if !common.LogConsumeEnabled {
 		return
 	}

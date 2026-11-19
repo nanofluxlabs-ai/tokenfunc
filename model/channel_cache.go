@@ -24,7 +24,13 @@ var channelsIDM map[int]*Channel                     // all channels include dis
 var channel2advancedCustomConfig map[int]*kitdto.AdvancedCustomConfig
 var channelSyncLock sync.RWMutex
 
+// channelCacheReloadLock runs one channel cache reload at a time, so a reload
+// that read the database earlier never publishes over a later one.
+var channelCacheReloadLock sync.Mutex
+
 func InitChannelCache() {
+	channelCacheReloadLock.Lock()
+	defer channelCacheReloadLock.Unlock()
 	// 外部渠道暂停派发集合随渠道缓存一起刷新（多实例靠周期同步收敛）
 	ReloadChannelHealthStates()
 	if !common.MemoryCacheEnabled {

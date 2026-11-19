@@ -27,7 +27,7 @@ func newGormConfig(prepareStmt bool) *gorm.Config {
 	// json 模式走动态 writer：进统一 stderr / 日志文件，且滚动换 writer 后不会写到旧 fd
 	writer := io.Writer(os.Stdout)
 	if common.LogFormatJSON {
-		writer = common.ErrorLogWriter()
+		writer = common.ErrorLogWriter
 	}
 	return &gorm.Config{
 		PrepareStmt: prepareStmt,

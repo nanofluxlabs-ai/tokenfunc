@@ -2,6 +2,8 @@ package common
 
 import (
 	"fmt"
+	"io"
+	"net"
 	"os"
 	"sync"
 	"time"
@@ -13,6 +15,29 @@ import (
 // during log file rotation. Acquire RLock when reading/writing through the writers,
 // acquire Lock when swapping writers and closing old files.
 var LogWriterMu sync.RWMutex
+
+// LogWriter and ErrorLogWriter write to gin.DefaultWriter and
+// gin.DefaultErrorWriter as they are at write time. Middleware that keeps its
+// writer from startup, such as the gin access logger and panic recovery, must
+// use them: log rotation swaps the gin writers and closes the old log file.
+// TokenFunc 二开：GORM / JSON 日志也走这两个 writer；调用方不得已持有 LogWriterMu，否则递归读锁在有写锁等待时会死锁。
+var (
+	LogWriter      io.Writer = currentLogWriter{}
+	ErrorLogWriter io.Writer = currentLogWriter{errorStream: true}
+)
+
+type currentLogWriter struct {
+	errorStream bool
+}
+
+func (w currentLogWriter) Write(p []byte) (int, error) {
+	LogWriterMu.RLock()
+	defer LogWriterMu.RUnlock()
+	if w.errorStream {
+		return gin.DefaultErrorWriter.Write(p)
+	}
+	return gin.DefaultWriter.Write(p)
+}
 
 // 以下出口按 LogFormatJSON 分支：text 分支保持上游原有格式逐字节不变，json 分支走 WriteJSONLog
 
@@ -80,7 +105,7 @@ func LogPanic(requestID string, recovered any, stack []byte) {
 	})
 }
 
-func LogStartupSuccess(startTime time.Time, port string) {
+func LogStartupSuccess(startTime time.Time, host, port string) {
 	duration := time.Since(startTime)
 	durationMs := duration.Milliseconds()
 
@@ -89,7 +114,7 @@ func LogStartupSuccess(startTime time.Time, port string) {
 		if !SessionCookieSecure {
 			SysWarn("Refresh cookie is not secure and refresh/logout Origin validation is disabled. Please set SESSION_COOKIE_SECURE=true in production.")
 		}
-		SysLog(fmt.Sprintf("%s %s ready in %d ms, listening on :%s", SystemName, Version, durationMs, port))
+		SysLog(fmt.Sprintf("%s %s ready in %d ms, listening on %s", SystemName, Version, durationMs, net.JoinHostPort(host, port)))
 		return
 	}
 
@@ -110,6 +135,16 @@ func LogStartupSuccess(startTime time.Time, port string) {
 	fmt.Fprintf(gin.DefaultWriter, "\n")
 	fmt.Fprintf(gin.DefaultWriter, "  \033[32m%s %s\033[0m  %s\n", SystemName, Version, LogText("ready in %d ms", durationMs))
 	fmt.Fprintf(gin.DefaultWriter, "\n")
+
+	if ip := net.ParseIP(host); host != "" && !ip.IsUnspecified() {
+		label := LogText("Network:")
+		if ip.IsLoopback() {
+			label = LogText("Local:")
+		}
+		fmt.Fprintf(gin.DefaultWriter, "  ➜  \033[1m%-8s\033[0m http://%s/\n", label, net.JoinHostPort(host, port))
+		fmt.Fprintf(gin.DefaultWriter, "\n")
+		return
+	}
 
 	if !IsRunningInContainer() {
 		fmt.Fprintf(gin.DefaultWriter, "  ➜  \033[1m%-8s\033[0m http://localhost:%s/\n", LogText("Local:"), port)

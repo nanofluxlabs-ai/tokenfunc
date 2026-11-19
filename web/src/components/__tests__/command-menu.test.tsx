@@ -37,7 +37,12 @@ import { CommandMenu } from '../command-menu'
 import { Search } from '../search'
 
 const adminEntries = ['Channels', 'Models', 'Users', 'Redemption Codes']
-const superAdminEntries = ['System Info', 'Task Plugins', 'System Settings']
+const superAdminEntries = [
+  'System Info',
+  'Plugins',
+  'Request processing',
+  'System Settings',
+]
 
 // tokenfunc 把管理页收进分组（如「Channel Management」），搜索项文本是「分组  页面」，按页面名尾缀匹配
 function hasEntry(entries: string[], name: string) {
@@ -135,6 +140,15 @@ test('admins find admin pages in search but not super admin pages', async () => 
   for (const entry of superAdminEntries) {
     expect(hasEntry(entries, entry)).toBe(false)
   }
+})
+
+test('super admins find Request processing right after Plugins', async () => {
+  const entries = await searchEntriesFor(ROLE.SUPER_ADMIN)
+
+  expect(entries).toEqual(expect.arrayContaining(superAdminEntries))
+  expect(entries.indexOf('Request processing')).toBe(
+    entries.indexOf('Plugins') + 1
+  )
 })
 
 test('pages hidden in the sidebar settings stay out of search', async () => {

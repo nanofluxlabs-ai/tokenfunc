@@ -21,13 +21,18 @@ import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { resolveSidebarView } from '@/components/layout/lib/sidebar-view-registry'
-import type { NavGroup, ResolvedSidebarView } from '@/components/layout/types'
+import type {
+  NavGroup,
+  ResolvedSidebarView,
+  SidebarBadges,
+} from '@/components/layout/types'
 import { useEnterpriseSelf } from '@/features/enterprise-console/hooks/use-enterprise-self'
 import {
   actorAtLeast,
   isEnterpriseAccount,
 } from '@/features/enterprise-console/lib/member-roles'
 import { usePromoterSelf } from '@/features/promoter-center/hooks/use-promoter-self'
+import { useModelPricingIssueBadge } from '@/features/system-settings/models/pricing-issues'
 import { canSeeAuditMenu } from '@/features/usage-logs/audit/lib/tokenfunc-audit-access'
 import { ROLE } from '@/lib/roles'
 import { filterNavGroupsByRoutePermission } from '@/lib/tokenfunc-route-permissions'
@@ -63,7 +68,9 @@ export function useSidebarView(): ResolvedSidebarView {
   const pathname = useLocation({ select: (l) => l.pathname })
   const user = useAuthStore((s) => s.auth.user)
   const userRole = user?.role
-  const rootSidebarData = useSidebarData()
+  const modelPricingBadge = useModelPricingIssueBadge()
+  const badges: SidebarBadges = { modelPricing: modelPricingBadge }
+  const rootSidebarData = useSidebarData(badges)
   const configFilteredRoot = useSidebarConfig(rootSidebarData.navGroups)
   const enterprise = useEnterpriseSelf().data
   const isEnterpriseMember = Boolean(enterprise)
@@ -124,7 +131,7 @@ export function useSidebarView(): ResolvedSidebarView {
     return {
       key: view.id,
       view,
-      navGroups: view.getNavGroups(t),
+      navGroups: view.getNavGroups(t, badges),
     }
   }
 

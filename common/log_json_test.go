@@ -107,7 +107,7 @@ func TestLogPanicFlattensAndTruncatesStack(t *testing.T) {
 
 func TestDynamicLogWriterFollowsWriterSwap(t *testing.T) {
 	first, _ := captureLogWriters(t)
-	writer := InfoLogWriter()
+	writer := LogWriter
 	_, _ = writer.Write([]byte("one\n"))
 	second, _ := captureLogWriters(t)
 	_, _ = writer.Write([]byte("two\n"))

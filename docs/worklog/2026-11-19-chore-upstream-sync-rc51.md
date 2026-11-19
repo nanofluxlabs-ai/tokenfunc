@@ -2,12 +2,12 @@
 
 - 日期：2026-11-19
 - 分支：sync/upstream-v1.0.0-rc.51
-- PR：（待填）
+- PR：#77
 - 关键 commit：1a193ef0f（merge）、81f05eab9（适配）、29cac5fcf（评估脚本）
 
 ## 背景
 
-距上次同步 26 天、累积 rc.48 ~ rc.51 四个 rc。rc.51 含 3 个安全修复（zstd 解压炸弹、MaskSensitiveInfo 二次复杂度、vchart tooltip XSS）、两处少计费修复（非流式完成后客户端断开漏计、prompt_tokens_details 里的 cache_creation 漏计）、Redis 鉴权缓存自愈，以及插件体系大改（提供商插件 / 请求插件 / 市场 / 节点同步表）和 JSON 底层换 moego。
+距上次同步 26 天、累积 rc.48 ~ rc.51 四个 rc。rc.51 含 3 个安全修复（zstd 解压炸弹、MaskSensitiveInfo 二次复杂度、vchart tooltip XSS）、计费口径修复（prompt_tokens_details 里的 cache_creation_input_tokens 按缓存写入价计，此前按普通输入价）、Redis 鉴权缓存自愈，以及插件体系大改（提供商插件 / 请求插件 / 市场 / 节点同步表）和 JSON 底层换 moego。
 
 ## 变更
 

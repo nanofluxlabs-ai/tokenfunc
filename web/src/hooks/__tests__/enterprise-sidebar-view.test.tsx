@@ -34,6 +34,9 @@ vi.mock('@/features/enterprise-console/hooks/use-enterprise-self', () => ({
 vi.mock('@/features/promoter-center/hooks/use-promoter-self', () => ({
   usePromoterSelf: () => ({ data: null }),
 }))
+vi.mock('@/features/system-settings/models/pricing-issues', () => ({
+  useModelPricingIssueBadge: () => undefined,
+}))
 
 function urlsOf(groups: NavGroup[], id: string): string[] {
   return (groups.find((group) => group.id === id)?.items ?? []).map((item) =>

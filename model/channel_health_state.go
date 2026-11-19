@@ -189,6 +189,9 @@ func IsChannelDispatchPaused(channelId int) bool {
 
 // ReloadChannelHealthStates 从库重建暂停派发集合与推理待清除集合；随渠道缓存同步周期执行，多实例靠这个收敛
 func ReloadChannelHealthStates() {
+	if DB == nil {
+		return
+	}
 	var rows []*ChannelHealthState
 	err := DB.Table("channel_health_states").
 		Joins("JOIN channels ON channels.id = channel_health_states.channel_id AND channels.is_external = ?", true).

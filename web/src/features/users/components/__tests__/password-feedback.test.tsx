@@ -49,6 +49,10 @@ function renderDrawer(currentRow?: User) {
     if (url === '/api/group/') {
       return { data: { success: true, data: ['default'] } }
     }
+    // TokenFunc 用户分组注册表：分组下拉改读这个接口
+    if (url === '/api/tokenfunc/groups/user') {
+      return { data: { success: true, data: [] } }
+    }
     return { data: { success: true, data: target } }
   })
   const client = new QueryClient({

@@ -145,9 +145,12 @@ test('admins find admin pages in search but not super admin pages', async () => 
 test('super admins find Request processing right after Plugins', async () => {
   const entries = await searchEntriesFor(ROLE.SUPER_ADMIN)
 
-  expect(entries).toEqual(expect.arrayContaining(superAdminEntries))
-  expect(entries.indexOf('Request processing')).toBe(
-    entries.indexOf('Plugins') + 1
+  // tokenfunc 两项都在「Operations Center」分组下
+  for (const entry of superAdminEntries) {
+    expect(hasEntry(entries, entry)).toBe(true)
+  }
+  expect(entries.indexOf('Operations Center  Request processing')).toBe(
+    entries.indexOf('Operations Center  Plugins') + 1
   )
 })
 

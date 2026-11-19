@@ -71,6 +71,7 @@ describe('admin sidebar grouping', () => {
     expect(subUrls(operations)).toEqual([
       '/system-info',
       '/task-plugins',
+      '/request-processing',
       '/log-archive',
     ])
     expect(items[2]).toMatchObject({ url: '/finance/overview' })

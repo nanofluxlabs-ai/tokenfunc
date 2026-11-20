@@ -118,7 +118,7 @@ export function ChannelGroupRowItem(props: ChannelGroupRowItemProps) {
             htmlFor={`${baseId}-description`}
             className={mobileLabelClassName}
           >
-            {t('Description')}
+            {t('Group description')}
           </Label>
           <Input
             id={`${baseId}-description`}

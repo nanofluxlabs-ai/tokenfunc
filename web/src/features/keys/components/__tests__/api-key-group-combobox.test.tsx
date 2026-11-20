@@ -234,7 +234,7 @@ describe('API key group combobox layout', () => {
     expect(within(trigger).getByText('default')).toHaveClass('truncate')
   })
 
-  test('renders each option on one line with the desc as a hover title and the check after the ratio badge', () => {
+  test('renders each option on one line with the desc as a hover title and a right-aligned check slot after the ratio badge', () => {
     setReducedMotion(false)
     render(<Harness initialValue='default' />)
     fireEvent.click(getTrigger())
@@ -245,13 +245,19 @@ describe('API key group combobox layout', () => {
     expect(defaultOption).toHaveClass('items-center')
     const check = defaultOption.querySelector('svg.lucide-check')
     expect(check).not.toBe(null)
+    expect(check).toHaveAttribute('data-selected-mark', 'true')
+    expect(check).not.toHaveClass('invisible')
     expect(
       check?.previousElementSibling?.closest('[data-slot="badge"]')
     ).not.toBe(null)
 
+    // 未选中项的勾仍占位但不可见，保证各行倍率徽章对齐
     const vipOption = getCommandItem('vip')
     expect(vipOption).toHaveAttribute('title', 'Priority group')
     expect(vipOption).not.toHaveTextContent('Priority group')
-    expect(vipOption.querySelector('svg.lucide-check')).toBe(null)
+    const vipCheck = vipOption.querySelector('svg.lucide-check')
+    expect(vipCheck).not.toBe(null)
+    expect(vipCheck).toHaveClass('invisible')
+    expect(vipCheck).not.toHaveAttribute('data-selected-mark')
   })
 })

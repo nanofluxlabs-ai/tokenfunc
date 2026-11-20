@@ -136,7 +136,7 @@ describe('channel groups editor', () => {
       within(rowByKey('vip')).getByRole('textbox', { name: 'Name' })
     ).toHaveValue('Premium access')
     expect(
-      within(rowByKey('vip')).getByRole('textbox', { name: 'Description' })
+      within(rowByKey('vip')).getByRole('textbox', { name: 'Group description' })
     ).toHaveValue('')
     expect(
       within(rowByKey('vip')).getByRole('spinbutton', { name: 'Top-up ratio' })

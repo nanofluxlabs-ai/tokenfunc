@@ -75,7 +75,6 @@ import {
   createApiKey,
   updateApiKey,
   getApiKey,
-  getTokenAutoGroups,
 } from '../api'
 import { ERROR_MESSAGES, SUCCESS_MESSAGES } from '../constants'
 import {
@@ -91,7 +90,6 @@ import {
   type ApiKeyGroupOption,
 } from './api-key-group-combobox'
 import { useApiKeys } from './api-keys-provider'
-import { AutoGroupOrderEditor } from './auto-group-order-editor'
 
 type ApiKeyMutateDrawerProps = {
   open: boolean
@@ -144,17 +142,6 @@ export function ApiKeysMutateDrawer({
     staleTime: 0,
   })
 
-  const {
-    data: autoGroupsData,
-    isFetched: autoGroupsFetched,
-    isFetching: autoGroupsFetching,
-  } = useQuery({
-    queryKey: ['token-auto-groups'],
-    queryFn: async () => requireServerSuccess(await getTokenAutoGroups()),
-    enabled: open,
-    staleTime: 0,
-  })
-
   const models = modelsData?.data || []
   const groups = useMemo<ApiKeyGroupOption[]>(
     () =>
@@ -172,28 +159,9 @@ export function ApiKeysMutateDrawer({
     () => groups.filter((group) => group.value !== 'auto').map((g) => g.value),
     [groups]
   )
-  const globalAutoGroups = useMemo(() => {
-    const available = new Set(availableAutoGroupNames)
-    return (autoGroupsData?.data?.groups || []).filter((group) =>
-      available.has(group)
-    )
-  }, [autoGroupsData, availableAutoGroupNames])
-  const globalAutoGroupOptions = useMemo(() => {
-    const groupsByValue = new Map(groups.map((group) => [group.value, group]))
-    return globalAutoGroups.flatMap((group) => {
-      const option = groupsByValue.get(group)
-      return option ? [option] : []
-    })
-  }, [globalAutoGroups, groups])
-  const maxAutoGroups =
-    Number.isInteger(autoGroupsData?.data?.max_count) &&
-    Number(autoGroupsData?.data?.max_count) > 0
-      ? Number(autoGroupsData?.data?.max_count)
-      : 5
-  const schema = useMemo(
-    () => getApiKeyFormSchema(t, maxAutoGroups),
-    [t, maxAutoGroups]
-  )
+  // TokenFunc 二开：自动分组的顺序由后台按用户分组配置，密钥侧不再提供自定义顺序，
+  // 新建一律继承（auto_groups 为空）；已有密钥存过的自定义列表原样保留
+  const schema = useMemo(() => getApiKeyFormSchema(t), [t])
 
   const form = useForm<ApiKeyFormValues>({
     resolver: zodResolver(schema),
@@ -209,14 +177,7 @@ export function ApiKeysMutateDrawer({
       setInitializedTarget(null)
       return
     }
-    if (
-      !groupsFetched ||
-      groupsFetching ||
-      !autoGroupsFetched ||
-      autoGroupsFetching
-    ) {
-      return
-    }
+    if (!groupsFetched || groupsFetching) return
     if (isUpdate && (!apiKeyFetched || apiKeyFetching)) return
     if (!isUpdate && statusLoading) return
 
@@ -227,8 +188,7 @@ export function ApiKeysMutateDrawer({
         form.reset(
           transformApiKeyToFormDefaults(
             apiKeyData.data,
-            availableAutoGroupNames,
-            maxAutoGroups
+            availableAutoGroupNames
           )
         )
         setInitializedTarget(target)
@@ -249,13 +209,10 @@ export function ApiKeysMutateDrawer({
     backendHasAuto,
     groupsFetched,
     groupsFetching,
-    autoGroupsFetched,
-    autoGroupsFetching,
     apiKeyData,
     apiKeyFetched,
     apiKeyFetching,
     availableAutoGroupNames,
-    maxAutoGroups,
     initializedTarget,
   ])
 
@@ -362,7 +319,6 @@ export function ApiKeysMutateDrawer({
   const quotaPlaceholder = tokensOnly
     ? t('Enter quota in tokens')
     : t('Enter quota in {{currency}}', { currency: currencyLabel })
-  const autoGroupsMode = form.watch('auto_groups_mode')
   const unlimitedQuota = form.watch('unlimited_quota')
 
   return (
@@ -438,47 +394,6 @@ export function ApiKeysMutateDrawer({
                   </FormItem>
                 )}
               />
-
-              {selectedGroup === 'auto' && (
-                <FormField
-                  control={form.control}
-                  name='auto_groups'
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>{t('Auto group order')}</FormLabel>
-                      <FormDescription>
-                        {t(
-                          'Choose and order the groups this API key will try.'
-                        )}
-                      </FormDescription>
-                      <FormControl>
-                        <AutoGroupOrderEditor
-                          value={field.value}
-                          mode={autoGroupsMode}
-                          options={groups}
-                          globalOptions={globalAutoGroupOptions}
-                          maxCount={maxAutoGroups}
-                          onChange={(value) => {
-                            form.setValue('auto_groups_mode', value.mode, {
-                              shouldDirty: true,
-                              shouldValidate: false,
-                            })
-                            form.setValue(
-                              'auto_groups',
-                              value.groups.slice(0, maxAutoGroups),
-                              {
-                                shouldDirty: true,
-                                shouldValidate: true,
-                              }
-                            )
-                          }}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              )}
 
               {selectedGroup === 'auto' && (
                 <FormField

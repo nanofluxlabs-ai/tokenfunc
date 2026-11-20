@@ -227,7 +227,7 @@ export function ChannelGroupsEditor(props: ChannelGroupsEditorProps) {
             <div className={channelGroupFieldGridClassName}>
               <span className={headerCellClassName}>{t('Group key')}</span>
               <span className={headerCellClassName}>{t('Name')}</span>
-              <span className={headerCellClassName}>{t('Description')}</span>
+              <span className={headerCellClassName}>{t('Group description')}</span>
               <span className={headerCellClassName}>{t('Ratio')}</span>
               <span className={headerCellClassName}>{t('Top-up ratio')}</span>
             </div>

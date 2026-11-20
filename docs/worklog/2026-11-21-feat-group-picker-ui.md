@@ -15,6 +15,9 @@
 - 前端
   - `features/keys/components/api-key-group-combobox.tsx`：列表项单行 `[名称 · 倍率徽章 · ✓]`，去掉左侧勾占位，勾只在选中项且在徽章之后；不再渲染 desc 第二行，desc 挂 `title`；触发按钮同样去 desc。密钥抽屉与企业控制台令牌抽屉的 desc 改为 key（只做 hover）。
   - 游乐场 `features/playground/api.ts`、`components/model-group-selector*`：desc 不再回退为 key；没描述只有倍率时副标题显示 `Ratio: x`。
+  - 密钥抽屉去掉上游的「自动分组顺序」编辑器（`auto-group-order-editor.tsx` 及 `GET /api/token/auto-groups` 封装一并删除）：顺序由后台按用户分组配置，新建密钥一律继承（`auto_groups` 为空），已有密钥存过的自定义列表原样保留；「跨分组重试」开关保留。
+  - 下拉项的选中勾改为固定占位、未选中时 `invisible`，各行倍率徽章竖向对齐。
+  - 系统设置 › 渠道分组页的描述列改用独立 i18n key `Group description`（中文「描述」），不再借用全站的 `Description`（中文「说明信息」）。
   - `hooks/use-group-options.ts`：`userGroupOptionLabel` 只返回名称，新增 `userGroupOptionTitle`（key，与名称相同时为空）。
   - 共用组件：`components/ui/combobox-input.tsx`（LegacyComboboxInput）勾从左侧移到右侧、未选中不占位，选项支持 `title`；`components/ui/combobox.tsx`、`components/multi-select.tsx` 选项支持 `title`；`components/data-table/toolbar/faceted-filter.tsx` 的 `CommandItem` 补 `value` + `keywords`，去掉 key 后仍可按 key 搜索（顺手修了该文件 4 个既有 lint error，行为不变）。
   - 调用点改为名称 + `title=key`：使用日志筛选栏、用户抽屉、订阅抽屉、企业主账号分组、财务分组筛选、渠道新建 / 编辑抽屉（原手拼 `label (key)`）、用户表分组筛选；渠道列表弹层去掉名称后的灰色 key。

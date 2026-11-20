@@ -187,9 +187,15 @@ export function ApiKeyGroupCombobox({
                       isAuto={isAutoOption}
                       shouldReduceMotion={shouldReduceMotion}
                     />
-                    {value === option.value && (
-                      <Check aria-hidden='true' className='size-4 shrink-0' />
-                    )}
+                    {/* 勾始终占位，未选中时隐藏：各行的倍率徽章才能竖向对齐 */}
+                    <Check
+                      aria-hidden='true'
+                      data-selected-mark={value === option.value ? 'true' : undefined}
+                      className={cn(
+                        'size-4 shrink-0',
+                        value !== option.value && 'invisible'
+                      )}
+                    />
                   </CommandItem>
                 )
               })}

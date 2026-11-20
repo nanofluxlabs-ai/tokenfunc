@@ -43,15 +43,15 @@
 
 | qualifier | 含义 | 客户可见说法 |
 |---|---|---|
-| `coding` | 不可蒸：供应商只允许编程 / 对话用途，批量生成或数据蒸馏会被供应商封号 | 仅编程对话 |
-| `f5` | 池内含 Claude Fable 5.x，供应商报价更高 | 含 Fable 5 |
+| `coding` | 不可蒸：供应商只允许编程 / 对话用途，批量生成或数据蒸馏会被供应商封号 | 不可蒸 |
+| `f5` | 池内含 Claude Fable 5.x，供应商报价更高 | 含F5 |
 | `lite` | 特价低质量池，不承诺稳定性 | 特价 |
 
-未带 `coding` 的 Bedrock 分组默认"可蒸"：供应商允许批量生成 / 数据蒸馏用途。
+未带 `coding` 的 Bedrock 分组标 `可蒸`：供应商允许批量生成 / 数据蒸馏用途。
 
 ### 1.4 label 格式
 
-`【平台】模型族 · 限定词`。限定词写人话（"可批量蒸馏" / "仅编程对话" / "含 Fable 5"），不写"可蒸 / F5"这类内部黑话。注册表没有 description 字段，用途限制只能放在 label 里，所以 label 必须把限制说全。
+`【平台】模型族 · 限定词`，限定词按 `含F5 · 可蒸` 的顺序，整个 label 控制在 30 个字符内（含【】与分隔符），否则分组列表里展示不全。限定词用缩略语（`可蒸` / `不可蒸` / `含F5` / `特价`），含义以 1.3 表为准；需要向客户解释时引用本文，不往 label 里堆字。
 
 ---
 
@@ -65,16 +65,16 @@
 
 | order | key | label | 基准倍率 | 渠道类型 | 说明 |
 |---|---|---|---|---|---|
-| 0 | default | 【号池】综合 · GPT / Claude / 国产 | 1.0 | 59 / 1 / 14 | 号池并集，个人零配置可用 |
-| 1 | pool_gpt | 【号池】GPT · Codex 订阅 | 1.0 | 1 (codex2api) / 59 | 原 `gptpro` |
-| 2 | pool_claude | 【号池】Claude 订阅 | 1.0 | 14 (crs) / 59 | 原 `claudepro` |
-| 3 | pool_cn | 【号池】GLM · Kimi · MiniMax 订阅 | 1.0 | 59 | 新建，接收现挂在 gptpro 的 glm 与挂在 claudepro 的 kimi |
-| 10 | awsb_claude_coding | 【AWS Bedrock】Claude · 仅编程对话 | 1.0 | 14 / 1 | 不可蒸，不含 Fable 5；tokensolo `awsb_coding` |
-| 11 | awsb_claude | 【AWS Bedrock】Claude · 可批量蒸馏 | 1.3 | 14 / 1 | 不含 Fable 5；tokensolo `awszl` / `awsquan` |
-| 12 | awsb_claude_f5 | 【AWS Bedrock】Claude · 可批量蒸馏 · 含 Fable 5 | 1.4 | 14 / 1 | tokensolo `awsf5` |
-| 13 | awsb_claude_coding_f5 | 【AWS Bedrock】Claude · 仅编程对话 · 含 Fable 5 | 1.1 | 14 / 1 | 预留，暂无供应商，不建 |
+| 0 | default | 【号池】综合 | 1.0 | 59 / 1 / 14 | 号池并集，个人零配置可用 |
+| 1 | pool_gpt | 【号池】GPT | 1.0 | 1 (codex2api) / 59 | 原 `gptpro` |
+| 2 | pool_claude | 【号池】Claude | 1.0 | 14 (crs) / 59 | 原 `claudepro` |
+| 3 | pool_cn | 【号池】国产 | 1.0 | 59 | 新建，接收现挂在 gptpro 的 glm 与挂在 claudepro 的 kimi |
+| 10 | awsb_claude_coding | 【AWS Bedrock】Claude · 不可蒸 | 1.0 | 14 / 1 | 不可蒸，不含 Fable 5；tokensolo `awsb_coding` |
+| 11 | awsb_claude | 【AWS Bedrock】Claude · 可蒸 | 1.3 | 14 / 1 | 不含 Fable 5；tokensolo `awszl` / `awsquan` |
+| 12 | awsb_claude_f5 | 【AWS Bedrock】Claude · 含F5 · 可蒸 | 1.4 | 14 / 1 | tokensolo `awsf5` |
+| 13 | awsb_claude_coding_f5 | 【AWS Bedrock】Claude · 含F5 · 不可蒸 | 1.1 | 14 / 1 | 预留，暂无供应商，不建 |
 | 20 | azure_gpt | 【Azure】GPT | 1.1 | 3 | tokensolo `azgpt` |
-| 30 | vertex_gemini | 【Vertex AI】Gemini | 1.2 | 41 | tokensolo `gemini_quan` |
+| 30 | vertex_gemini | 【Vertex】Gemini | 1.2 | 41 | tokensolo `gemini_quan` |
 
 Bedrock 四格的关系：
 
@@ -93,14 +93,14 @@ Bedrock 四格的关系：
 | order | key | label | 基准倍率 | 渠道类型 | 对应 tokensolo |
 |---|---|---|---|---|---|
 | 21 | azure_claude | 【Azure】Claude | 1.3 | 3 | `azclaude` |
-| 40 | anthropic_claude | 【Anthropic API】Claude 全模型 | 1.4 | 14 | `anth_Guan` |
-| 41 | openai_gpt | 【OpenAI API】GPT | 1.1 | 1 | `gpt_oai` |
-| 50 | deepseek | 【DeepSeek API】DeepSeek | 1.0 | 43 | 生产 2026-10 曾有 DeepSeek 渠道 |
-| 51 | xai_grok | 【xAI API】Grok | 1.2 | 48 | `grok` |
-| 52 | moonshot_kimi | 【Moonshot API】Kimi | 1.3 | 25 | `kimi_guan` |
-| 53 | zhipu_glm | 【智谱 API】GLM | 1.0 | 16 | — |
-| 54 | minimax | 【MiniMax API】MiniMax | 1.0 | 35 | — |
-| 60 | pool_gpt_lite | 【号池 · 特价】GPT 4 折 | 0.4 | 59 | `gpttj`；只对企业用户分组可见 |
+| 40 | anthropic_claude | 【Anthropic】Claude | 1.4 | 14 | `anth_Guan` |
+| 41 | openai_gpt | 【OpenAI】GPT | 1.1 | 1 | `gpt_oai` |
+| 50 | deepseek | 【DeepSeek】 | 1.0 | 43 | 生产 2026-10 曾有 DeepSeek 渠道 |
+| 51 | xai_grok | 【xAI】Grok | 1.2 | 48 | `grok` |
+| 52 | moonshot_kimi | 【Moonshot】Kimi | 1.3 | 25 | `kimi_guan` |
+| 53 | zhipu_glm | 【智谱】GLM | 1.0 | 16 | — |
+| 54 | minimax | 【MiniMax】 | 1.0 | 35 | — |
+| 60 | pool_gpt_lite | 【号池】GPT 特价 | 0.4 | 59 | `gpttj`；只对企业用户分组可见 |
 | 70 | media_image | 【图像】GPT Image | 1.0 | 按供应商 | `gptimage` |
 | 71 | media_video | 【视频】Seedance | 1.0 | 按供应商 | `sd_gj` |
 
@@ -270,15 +270,15 @@ SELECT "group", count(*) FROM abilities GROUP BY 1;
 
 ```json
 {
-  "default":            {"label": "【号池】综合 · GPT / Claude / 国产",                    "order": 0},
-  "pool_gpt":           {"label": "【号池】GPT · Codex 订阅",                             "order": 1},
-  "pool_claude":        {"label": "【号池】Claude 订阅",                                  "order": 2},
-  "pool_cn":            {"label": "【号池】GLM · Kimi · MiniMax 订阅",                    "order": 3},
-  "awsb_claude_coding": {"label": "【AWS Bedrock】Claude · 仅编程对话",                   "order": 10},
-  "awsb_claude":        {"label": "【AWS Bedrock】Claude · 可批量蒸馏",                   "order": 11},
-  "awsb_claude_f5":     {"label": "【AWS Bedrock】Claude · 可批量蒸馏 · 含 Fable 5",      "order": 12},
-  "azure_gpt":          {"label": "【Azure】GPT",                                         "order": 20},
-  "vertex_gemini":      {"label": "【Vertex AI】Gemini",                                  "order": 30}
+  "default":            {"label": "【号池】综合", "order": 0},
+  "pool_gpt":           {"label": "【号池】GPT", "order": 1},
+  "pool_claude":        {"label": "【号池】Claude", "order": 2},
+  "pool_cn":            {"label": "【号池】国产", "order": 3},
+  "awsb_claude_coding": {"label": "【AWS Bedrock】Claude · 不可蒸", "order": 10},
+  "awsb_claude":        {"label": "【AWS Bedrock】Claude · 可蒸", "order": 11},
+  "awsb_claude_f5":     {"label": "【AWS Bedrock】Claude · 含F5 · 可蒸", "order": 12},
+  "azure_gpt":          {"label": "【Azure】GPT", "order": 20},
+  "vertex_gemini":      {"label": "【Vertex】Gemini", "order": 30}
 }
 ```
 

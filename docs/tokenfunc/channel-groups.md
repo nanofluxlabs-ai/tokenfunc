@@ -13,7 +13,7 @@
 |---|---|---|
 | D1 | **渠道分组 = 同一上游平台、同一成本档、同一用途约束的渠道集合**；拆分只因成本不同、用途 / 质量承诺不同、协议语义不同 | 分组的唯一作用是"走哪个池、按什么价"，其它维度都不该进分组 |
 | D2 | **客户差异一律走用户分组 × 覆盖倍率，绝不按客户 / 按价格建渠道分组** | tokensolo 的 `aws24` / `aws26` / `aws_linshi27` / `awsth32` 把客户和价格做成了渠道分组，渠道挂载与定价纠缠，后期无法清理 |
-| D3 | **没有启用渠道的分组不建**；本文列全量规划，生产只建有货的 | 空分组会出现在令牌下拉与模型广场，客户选了报"无可用渠道"（tokensolo `claudeguanss`） |
+| D3 | **渠道分组一次全建（注册表 + `GroupRatio`），可见性当上架开关**：没有启用渠道的分组不勾进任何用户分组的可见列表 | 不可见的分组不会出现在令牌下拉、模型广场和 `/v1/models`，但管理员渠道编辑能选到，供应商到货只需勾可见；避免空分组误导客户（tokensolo `claudeguanss`） |
 | D4 | **`default` = 号池渠道的并集**，每条号池渠道同时挂 `default` 与其专属 `pool_*`；云厂商 / 厂商 API 渠道不挂 `default` | 个人用户零配置可用；`default` 有明确定义，不再是垃圾桶（tokensolo `default` 池 51 条渠道 CC 与 GPT 混挂） |
 | D5 | **命名 `<platform>_<family>[_<qualifier>]`**，全小写下划线；key 不含客户名、价格、模型版本 | 可读、可 grep、与用户分组 key 正则 `^[a-z0-9][a-z0-9_-]{0,63}$` 一致 |
 | D6 | **`f5` 允许进 key，但它是供应商定价代际标签**：下一代模型出现时新建分组（如 `awsb_claude_f6`）并下线旧组，不改旧 key 语义 | 按模型代际命名必然过期（tokensolo `azgpt_6` / `azgptno6`），用"新建 + 下线"而不是"改含义"来处理 |
@@ -61,7 +61,7 @@
 
 ### 2.1 Phase 1
 
-有渠道当天即建。本次迁移只落 `default` / `pool_gpt` / `pool_claude` / `pool_cn`；`awsb_*` / `azure_gpt` / `vertex_gemini` 在供应商接入当天按本表建。
+全部分组在迁移时一次建好（注册表 + `GroupRatio`）；只有 `default` / `pool_gpt` / `pool_claude` / `pool_cn` 勾进用户分组的可见列表，`awsb_*` / `azure_gpt` / `vertex_gemini` 到货当天再勾可见（见 2.4）。
 
 | order | key | label | 基准倍率 | 渠道类型 | 说明 |
 |---|---|---|---|---|---|
@@ -104,7 +104,23 @@ Bedrock 四格的关系：
 | 70 | media_image | 【图像】GPT Image | 1.0 | 按供应商 | `gptimage` |
 | 71 | media_video | 【视频】Seedance | 1.0 | 按供应商 | `sd_gj` |
 
-### 2.3 成本参考
+### 2.3 可见性 = 上架开关
+
+上游 new-api 的规则是：分组在 `GroupRatio` 里但不在 `UserUsableGroups` 里，用户就看不到、选不到。二开（PR #76）把基线 `UserUsableGroups` 清空，改为每个用户分组显式勾选自己的可见列表（`group_special_usable_group` 的 `+:` 项），规则没有关掉，只是粒度从全局变成按用户分组。各入口对不可见分组的处理：
+
+| 入口 | 数据来源 | 不可见分组 |
+|---|---|---|
+| 令牌分组下拉 `GET /api/tokenfunc/groups/self` | `ListUserSelectableChannelGroups` | 不出现 |
+| 模型广场 `GET /api/pricing` 的 `usable_group` / `group_ratio` | `GetUserUsableGroups` | 不出现，模型也被过滤 |
+| `/v1/models`、企业留空令牌 auto 候选 | `ResolveUsingGroupCandidates` | 不进候选 |
+| 令牌保存时的分组校验 | `IsUserSelectableGroup` | 拒绝 |
+| 管理员渠道编辑的分组下拉 `GET /api/tokenfunc/groups/channel` | `ListChannelGroups` 全量注册表 | 出现，可以挂渠道 |
+
+例外：用户分组 key 与渠道分组 key 同名时永远可见（上游规则），只影响 `default`。
+
+上架流程：供应商到货 → 渠道管理挂到对应分组 → 分组定价页在 `default`（及签约企业）的可见列表里勾上该分组 → 保存。下架反过来：先取消勾选，再禁用渠道。
+
+### 2.4 成本参考
 
 tokensolo 2026-11-19 渠道快照里的成本倍率（人民币 / 官方价 $1）：
 
@@ -184,8 +200,8 @@ SELECT key, value FROM options WHERE key IN (
 
 ### 5.2 建新分组（系统设置 › 分组定价，Root）
 
-1. 渠道分组区新增 `pool_gpt` / `pool_claude` / `pool_cn`，倍率 1，label 与 order 按 2.1 表。
-2. 用户分组区：`ddjs` 勾选三个新池，倍率 0.5，顺序 gpt → claude → cn；`default` 勾选三个新池。
+1. 渠道分组区按 2.1 表一次新增全部 Phase 1 分组（`pool_gpt` / `pool_claude` / `pool_cn` / `awsb_claude_coding` / `awsb_claude` / `awsb_claude_f5` / `azure_gpt` / `vertex_gemini`），倍率、label、order 照表；`awsb_claude_coding_f5` 不建。
+2. 用户分组区：`ddjs` 只勾三个号池，倍率 0.5，顺序 gpt → claude → cn；`default` 只勾三个号池。`awsb_*` / `azure_gpt` / `vertex_gemini` 不勾，等到货。
 3. 一次保存。接口是 `PUT /api/tokenfunc/groups/settings`，一个事务落库。
 
 ### 5.3 改渠道分组字段（渠道管理）
@@ -229,47 +245,12 @@ SELECT "group", count(*) FROM abilities GROUP BY 1;
 - 用 ddjs 账号调 `GET /api/tokenfunc/groups/self`，`groups[]` 为三个新池，`default_group = pool_gpt`
 - ddjs 留空令牌各打一次 glm-5.3 与 gpt-5.6，日志里使用分组分别是 `pool_cn` / `pool_gpt`，倍率 0.5
 - default 用户令牌打 glm-5.3，使用分组 `default`，倍率 1
-- 模型广场以 default 用户查看，四个号池分组都在、无空分组
+- 模型广场以 default 用户查看，只有四个号池分组；`awsb_*` / `azure_gpt` / `vertex_gemini` 不出现
+- 渠道管理新建渠道的分组下拉能看到全部 9 个分组
 
 ### 5.7 附录：本次迁移后的 option 值
 
-`GroupRatio`：
-
-```json
-{"default": 1, "pool_gpt": 1, "pool_claude": 1, "pool_cn": 1}
-```
-
-`tokenfunc_group_setting.channel_groups`：
-
-```json
-{
-  "default":     {"label": "【号池】综合 · GPT / Claude / 国产", "order": 0},
-  "pool_gpt":    {"label": "【号池】GPT · Codex 订阅",          "order": 1},
-  "pool_claude": {"label": "【号池】Claude 订阅",               "order": 2},
-  "pool_cn":     {"label": "【号池】GLM · Kimi · MiniMax 订阅", "order": 3}
-}
-```
-
-`GroupGroupRatio`（只记与基准不同的覆盖）：
-
-```json
-{"ddjs": {"pool_gpt": 0.5, "pool_claude": 0.5, "pool_cn": 0.5}}
-```
-
-`group_ratio_setting.group_special_usable_group`（显式可见列表）：
-
-```json
-{
-  "default": ["+:pool_gpt", "+:pool_claude", "+:pool_cn"],
-  "ddjs":    ["+:pool_gpt", "+:pool_claude", "+:pool_cn"]
-}
-```
-
-`tokenfunc_group_setting.user_groups` 中 `ddjs.channel_order`：`["pool_gpt", "pool_claude", "pool_cn"]`。
-
-### 5.8 附录：Phase 1 全量 `GroupRatio`
-
-供应商接入时逐个加入，不要一次性全建（D3）。
+`GroupRatio`（Phase 1 全量）：
 
 ```json
 {
@@ -284,6 +265,39 @@ SELECT "group", count(*) FROM abilities GROUP BY 1;
   "vertex_gemini": 1.2
 }
 ```
+
+`tokenfunc_group_setting.channel_groups`：
+
+```json
+{
+  "default":            {"label": "【号池】综合 · GPT / Claude / 国产",                    "order": 0},
+  "pool_gpt":           {"label": "【号池】GPT · Codex 订阅",                             "order": 1},
+  "pool_claude":        {"label": "【号池】Claude 订阅",                                  "order": 2},
+  "pool_cn":            {"label": "【号池】GLM · Kimi · MiniMax 订阅",                    "order": 3},
+  "awsb_claude_coding": {"label": "【AWS Bedrock】Claude · 仅编程对话",                   "order": 10},
+  "awsb_claude":        {"label": "【AWS Bedrock】Claude · 可批量蒸馏",                   "order": 11},
+  "awsb_claude_f5":     {"label": "【AWS Bedrock】Claude · 可批量蒸馏 · 含 Fable 5",      "order": 12},
+  "azure_gpt":          {"label": "【Azure】GPT",                                         "order": 20},
+  "vertex_gemini":      {"label": "【Vertex AI】Gemini",                                  "order": 30}
+}
+```
+
+`GroupGroupRatio`（只记与基准不同的覆盖）：
+
+```json
+{"ddjs": {"pool_gpt": 0.5, "pool_claude": 0.5, "pool_cn": 0.5}}
+```
+
+`group_ratio_setting.group_special_usable_group`（显式可见列表，只勾有货的三个号池；`awsb_*` / `azure_gpt` / `vertex_gemini` 到货再加）：
+
+```json
+{
+  "default": ["+:pool_gpt", "+:pool_claude", "+:pool_cn"],
+  "ddjs":    ["+:pool_gpt", "+:pool_claude", "+:pool_cn"]
+}
+```
+
+`tokenfunc_group_setting.user_groups` 中 `ddjs.channel_order`：`["pool_gpt", "pool_claude", "pool_cn"]`。
 
 ---
 
@@ -310,7 +324,7 @@ D7 的后续代码项，本次不改。口径：来源逐组标注（厂商 API 
 ## 7. 遗留
 
 - `ChannelGroupMeta` 没有 description 字段，用途限制只能塞进 label；需要更长说明（如供应商封号条款原文）时加字段并在模型广场 / 令牌下拉展示，属代码项。
-- `awsb_claude_coding_f5` 暂无供应商，不建。
+- `awsb_claude_coding_f5` 暂无供应商，不建；其余无货分组已建但不可见，到货勾可见即可。
 - 报价单内置分组（`setting/quote_setting/config.go`）与本文分组是两套命名，Phase 2 对齐。
 - 企业勾选池数超过 `MaxTokenAutoGroups`（默认 5）时留空令牌被截断，需同步调大。
 - 第 6 节文案改动未执行，落地页仍写"官 Key 直连 / 无逆向接口"，与号池全员可见冲突，应在号池对个人用户开放前改完。

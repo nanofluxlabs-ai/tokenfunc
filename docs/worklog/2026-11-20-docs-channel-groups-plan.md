@@ -13,11 +13,13 @@
 
 - 新增 `docs/tokenfunc/channel-groups.md`：8 条决策、命名字典（platform / family / qualifier）、Phase 1 / Phase 2 渠道分组总表与基准倍率（沿用 tokensolo `default` 等级数值）、成本参考、用户分组矩阵、渠道挂载规则、`gptpro → pool_gpt` / `claudepro → pool_claude` / 拆出 `pool_cn` 的迁移步骤与校验 SQL、可直接贴后台的 option JSON、落地页文案改动清单。
 - 不改代码，不改生产配置。
+- 第二版（同日）：黑鹰指出上游的"分组不显示"能力；核实二开没有关掉它，只是把全局 `UserUsableGroups` 基线改成按用户分组显式勾选。据此把 D3 从"没货不建"改为"一次全建、可见性当上架开关"，新增 2.3 节列出各入口对不可见分组的处理，5.2 / 5.7 附录改为 Phase 1 全量建、可见列表只勾三个号池。
 
 ## 验证
 
 - 文档内 21 个分组 key 全部匹配 `^[a-z0-9][a-z0-9_-]{0,63}$`。
 - 5 段 JSON 附录 `jq` 可解析；迁移后 `GroupRatio` 与注册表 key 集合一致。
+- 可见性链路复核：`service/group.go` 的 `GetUserUsableGroups` / `IsUserSelectableGroup`、`service/tokenfunc_group.go` 的 `ListUserSelectableChannelGroups`、`controller/pricing.go` 的 `usable_group` 过滤、`controller/tokenfunc_group.go` 的 `/channel` 用全量 `ListChannelGroups`，渠道抽屉 `channel-mutate-drawer.tsx` 走 `use-group-options`。
 - 引用的代码位置复核存在：`service/tokenfunc_group.go` 的 `ResolveUsingGroupCandidates`、`router/channel-router.go` 的 `POST /fix`、`router/tokenfunc-group-router.go` 的 `PUT /settings`、`setting/auto_group.go` 的 `DefaultMaxTokenAutoGroups = 5`、落地页 / 登录页 / 关于页的英文源文案。
 - 第 5 节全部 SELECT 与 UPDATE 在本地 `dev` schema 跑过一遍（UPDATE 在事务内回滚），语法通过。
 

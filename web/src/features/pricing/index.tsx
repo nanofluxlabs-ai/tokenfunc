@@ -47,6 +47,7 @@ export function Pricing() {
     vendors,
     groupRatio,
     usableGroup,
+    groupDescriptions,
     endpointMap,
     autoGroups,
     isLoading,
@@ -217,6 +218,7 @@ export function Pricing() {
               vendors={vendors || []}
               groups={availableGroups}
               groupRatios={groupRatio}
+              groupDescriptions={groupDescriptions}
               tags={availableTags}
               models={models || []}
               hasActiveFilters={hasActiveFilters}
@@ -249,6 +251,7 @@ export function Pricing() {
                 vendors={vendors || []}
                 groups={availableGroups}
                 groupRatios={groupRatio}
+                groupDescriptions={groupDescriptions}
                 tags={availableTags}
                 models={models || []}
                 hasActiveFilters={hasActiveFilters}
@@ -269,6 +272,7 @@ export function Pricing() {
               model={selectedModel}
               groupRatio={groupRatio || {}}
               usableGroup={usableGroup || {}}
+              groupDescriptions={groupDescriptions}
               endpointMap={
                 (endpointMap as Record<
                   string,

@@ -125,7 +125,7 @@ export function ApiKeysMutateDrawer({
   })
 
   // Fetch groups
-  // 可选渠道分组（TokenFunc）：按后台排序，显示名称、括注 key
+  // 可选渠道分组（TokenFunc）：按后台排序，显示名称；副标题优先用后台填的描述，没填则显示 key
   const {
     options: selfGroupOptions,
     isFetched: groupsFetched,
@@ -161,7 +161,7 @@ export function ApiKeysMutateDrawer({
       selfGroupOptions.map((option) => ({
         value: option.key,
         label: option.label,
-        desc: option.key,
+        desc: option.description || option.key,
         ratio: option.auto ? 'auto' : (option.ratio ?? undefined),
       })),
     [selfGroupOptions]

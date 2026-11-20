@@ -73,6 +73,8 @@ export interface PricingToolbarProps {
   vendors: PricingVendor[]
   groups: string[]
   groupRatios?: Record<string, number>
+  /** TokenFunc：渠道分组 key → 用途说明 */
+  groupDescriptions?: Record<string, string>
   tags: string[]
   models: PricingModel[]
   hasActiveFilters: boolean
@@ -217,6 +219,7 @@ export function PricingToolbar(props: PricingToolbarProps) {
               vendors={props.vendors}
               groups={props.groups}
               groupRatios={props.groupRatios}
+              groupDescriptions={props.groupDescriptions}
               tags={props.tags}
               models={props.models}
               hasActiveFilters={props.hasActiveFilters}

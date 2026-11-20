@@ -27,6 +27,8 @@ export type UserGroupItem = {
 export type ChannelGroupItem = {
   key: string
   label: string
+  /** 用途说明，显示在用户选分组的下拉里；没填为空串 */
+  description: string
   order: number
   ratio: number
   topup_ratio: number
@@ -57,6 +59,8 @@ export type UserGroupPricingInput = {
 export type SelfChannelGroupItem = {
   key: string
   label: string
+  /** 用途说明；auto 项为空串 */
+  description: string
   ratio: number | null
   order: number
   auto: boolean

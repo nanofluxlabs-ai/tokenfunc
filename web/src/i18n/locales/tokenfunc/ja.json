@@ -730,6 +730,7 @@
     "Shared platform steady state": "共有プラットフォーム定常",
     "Short name": "短縮名",
     "Short name (discount input label)": "短縮名（割引入力欄のラベル）",
+    "Shown under the group name when users pick a group": "ユーザーがグループを選ぶときにグループ名の下に表示されます",
     "Show \"unit / exchange rate\" line in intro": "導入文に「単価単位 / 為替」行を表示",
     "Sign up free": "無料で登録",
     "Sign up to create an API key, then change one base_url to connect.": "登録して API キーを作成し、base_url を 1 行変えるだけで接続できます。",

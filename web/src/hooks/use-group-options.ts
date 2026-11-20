@@ -33,6 +33,8 @@ export type UserGroupOption = GroupOption & {
 }
 
 export type ChannelGroupOption = GroupOption & {
+  /** 用途说明，没填为空串 */
+  description: string
   ratio: number | null
   /** auto 是令牌的自动分组，不是真实的池 */
   auto: boolean
@@ -79,6 +81,7 @@ export function useChannelGroupOptions(options?: { enabled?: boolean }) {
         key: item.key,
         label: translateServerText(t, item.label),
         order: item.order,
+        description: item.description ?? '',
         ratio: item.ratio,
         auto: item.key === 'auto',
       })),
@@ -105,6 +108,7 @@ export function useSelfChannelGroupOptions(options?: {
         key: item.key,
         label: translateServerText(t, item.label),
         order: item.order,
+        description: item.description ?? '',
         ratio: item.ratio,
         auto: item.auto,
       })),

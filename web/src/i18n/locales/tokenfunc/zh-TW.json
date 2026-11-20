@@ -730,6 +730,7 @@
     "Shared platform steady state": "共享平台穩態",
     "Short name": "簡短名",
     "Short name (discount input label)": "簡短名（產生表單折扣輸入框標籤）",
+    "Shown under the group name when users pick a group": "顯示在使用者選分組時的分組名稱下方",
     "Show \"unit / exchange rate\" line in intro": "引導語顯示「單價單位 / 匯率」列",
     "Sign up free": "免费注册",
     "Sign up to create an API key, then change one base_url to connect.": "注册即可创建 API Key，改一行 base_url 完成接入。",

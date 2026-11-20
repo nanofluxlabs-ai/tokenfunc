@@ -169,6 +169,8 @@ export interface TokenOptions {
     desc: string
     ratio: number
     label?: string
+    /** 渠道分组说明，显示在名称下方；没填为空串 */
+    description?: string
     order?: number
   }[]
   /** 不选分组 = 自动时按顺序尝试的渠道分组（TokenFunc） */

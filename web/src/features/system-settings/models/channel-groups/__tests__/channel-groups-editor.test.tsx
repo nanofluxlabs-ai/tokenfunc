@@ -136,6 +136,9 @@ describe('channel groups editor', () => {
       within(rowByKey('vip')).getByRole('textbox', { name: 'Name' })
     ).toHaveValue('Premium access')
     expect(
+      within(rowByKey('vip')).getByRole('textbox', { name: 'Description' })
+    ).toHaveValue('')
+    expect(
       within(rowByKey('vip')).getByRole('spinbutton', { name: 'Top-up ratio' })
     ).toHaveValue(1.2)
     expect(
@@ -187,6 +190,7 @@ describe('channel groups editor', () => {
     expect(JSON.parse(saved.ChannelGroupsRegistry)['claude-pool']).toEqual({
       label: 'claude-pool',
       order: 2,
+      description: '',
     })
   })
 
@@ -240,7 +244,7 @@ describe('channel groups editor', () => {
     expect(JSON.parse(saved.GroupGroupRatio)).toEqual({ ent_std: {} })
     expect(JSON.parse(saved.GroupSpecialUsableGroup)).toEqual({ ent_std: {} })
     expect(JSON.parse(saved.ChannelGroupsRegistry)).toEqual({
-      default: { label: 'Standard access', order: 0 },
+      default: { label: 'Standard access', order: 0, description: '' },
     })
   })
 
@@ -287,8 +291,8 @@ describe('channel groups editor', () => {
     await waitFor(() => expect(onSave).toHaveBeenCalled())
     const saved = onSave.mock.calls[0][0]
     expect(JSON.parse(saved.ChannelGroupsRegistry)).toEqual({
-      vip: { label: 'Premium access', order: 0 },
-      default: { label: 'Standard access', order: 1 },
+      vip: { label: 'Premium access', order: 0, description: '' },
+      default: { label: 'Standard access', order: 1, description: '' },
     })
     expect(Object.keys(JSON.parse(saved.GroupRatio))).toEqual([
       'default',

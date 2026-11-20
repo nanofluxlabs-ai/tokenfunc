@@ -994,6 +994,8 @@ type GroupPricingSectionProps = {
   model: PricingModel
   groupRatio: Record<string, number>
   usableGroup: Record<string, { desc: string; ratio: number }>
+  /** TokenFunc：渠道分组 key → 后台填的用途说明 */
+  groupDescriptions?: Record<string, string>
   autoGroups: string[]
   priceRate: number
   usdExchangeRate: number
@@ -1223,7 +1225,14 @@ function ProviderGroupPricingSection(
             return (
               <div key={group} className='overflow-hidden rounded-lg border'>
                 <div className='bg-muted/20 flex items-center justify-between gap-3 border-b px-3 py-2'>
-                  <GroupBadge group={group} size='sm' />
+                  <span className='flex min-w-0 items-center gap-2'>
+                    <GroupBadge group={group} size='sm' />
+                    {props.groupDescriptions?.[group] && (
+                      <span className='text-muted-foreground truncate text-xs'>
+                        {props.groupDescriptions[group]}
+                      </span>
+                    )}
+                  </span>
                   <span className='text-muted-foreground font-mono text-xs'>
                     {ratio}x
                   </span>
@@ -1414,7 +1423,16 @@ function ProviderGroupPricingSection(
             header: t('Group'),
             className: thClass,
             cellClassName: 'py-2.5',
-            cell: (group) => <GroupBadge group={group} size='sm' />,
+            cell: (group) => (
+              <span className='flex min-w-0 flex-col gap-0.5'>
+                <GroupBadge group={group} size='sm' />
+                {props.groupDescriptions?.[group] && (
+                  <span className='text-muted-foreground text-xs'>
+                    {props.groupDescriptions[group]}
+                  </span>
+                )}
+              </span>
+            ),
           },
           {
             id: 'ratio',
@@ -1485,6 +1503,8 @@ export interface ModelDetailsContentProps {
   model: PricingModel
   groupRatio: Record<string, number>
   usableGroup: Record<string, { desc: string; ratio: number }>
+  /** TokenFunc：渠道分组 key → 后台填的用途说明 */
+  groupDescriptions?: Record<string, string>
   endpointMap: Record<string, { path?: string; method?: string }>
   autoGroups: string[]
   priceRate: number
@@ -1563,6 +1583,7 @@ export function ModelDetailsContent(props: ModelDetailsContentProps) {
               model={props.model}
               groupRatio={props.groupRatio}
               usableGroup={props.usableGroup}
+              groupDescriptions={props.groupDescriptions}
               autoGroups={props.autoGroups}
               priceRate={props.priceRate}
               usdExchangeRate={props.usdExchangeRate}
@@ -1632,6 +1653,7 @@ export function ModelDetails() {
     models,
     groupRatio,
     usableGroup,
+    groupDescriptions,
     endpointMap,
     autoGroups,
     isLoading,
@@ -1711,6 +1733,7 @@ export function ModelDetails() {
           model={model}
           groupRatio={groupRatio || {}}
           usableGroup={usableGroup || {}}
+          groupDescriptions={groupDescriptions}
           autoGroups={autoGroups || []}
           priceRate={priceRate ?? 1}
           usdExchangeRate={usdExchangeRate ?? 1}

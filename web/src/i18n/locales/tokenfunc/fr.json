@@ -730,6 +730,7 @@
     "Shared platform steady state": "Régime stable partagé",
     "Short name": "Nom court",
     "Short name (discount input label)": "Nom court (libellé du champ de remise)",
+    "Shown under the group name when users pick a group": "Affiché sous le nom du groupe lorsque les utilisateurs choisissent un groupe",
     "Show \"unit / exchange rate\" line in intro": "Afficher la ligne « unité / taux de change » dans l’introduction",
     "Sign up free": "Inscription gratuite",
     "Sign up to create an API key, then change one base_url to connect.": "Inscrivez-vous pour créer une clé API, puis changez une base_url pour vous connecter.",

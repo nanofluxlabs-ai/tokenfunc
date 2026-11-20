@@ -64,7 +64,7 @@ export async function getUserModels(group: string): Promise<ModelOption[]> {
 
 /**
  * Get user groups
- * TokenFunc：改读按后台排序的渠道分组接口；label 显示名称，desc 放 key
+ * TokenFunc：改读按后台排序的渠道分组接口；label 显示名称，desc 优先放后台描述，没填放 key
  */
 export async function getUserGroups(): Promise<GroupOption[]> {
   const data = requireServerSuccess(await listSelfChannelGroups())
@@ -72,6 +72,6 @@ export async function getUserGroups(): Promise<GroupOption[]> {
     label: group.label || group.key,
     value: group.key,
     ratio: group.auto ? 'auto' : (group.ratio ?? 1),
-    desc: group.key,
+    desc: group.description || group.key,
   }))
 }

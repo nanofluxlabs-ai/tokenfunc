@@ -20,6 +20,8 @@ export type ChannelGroupRow = {
   id: string
   key: string
   label: string
+  /** 用途说明，显示在用户选分组的下拉里；空串表示没填 */
+  description: string
   /** 基准倍率，保留字符串以容纳输入中的中间态 */
   ratio: string
   /** 充值倍率，空串表示未配置 */
@@ -29,7 +31,7 @@ export type ChannelGroupRow = {
 
 export type ChannelGroupKeyError = 'required' | 'pattern' | 'duplicate'
 
-type RegistryEntry = { label?: unknown; order?: unknown }
+type RegistryEntry = { label?: unknown; order?: unknown; description?: unknown }
 
 const KEY_PATTERN = /^[a-z0-9][a-z0-9_-]{0,63}$/
 
@@ -111,6 +113,10 @@ export function buildChannelGroupRows(
     const meta = registry[key]
     const registeredLabel =
       meta && typeof meta.label === 'string' ? meta.label.trim() : ''
+    const registeredDescription =
+      meta && typeof meta.description === 'string'
+        ? meta.description.trim()
+        : ''
     const usableDescription =
       typeof usableMap[key] === 'string' ? String(usableMap[key]).trim() : ''
     const order =
@@ -122,6 +128,7 @@ export function buildChannelGroupRows(
         id: key,
         key,
         label: registeredLabel || usableDescription || key,
+        description: registeredDescription,
         ratio: String(normalizeRatio(ratioMap[key])),
         topupRatio: Object.hasOwn(topupMap, key) ? String(topupMap[key]) : '',
         isNew: false,
@@ -154,7 +161,7 @@ export function collectValidRows(rows: ChannelGroupRow[]): ChannelGroupRow[] {
 /**
  * 把行写回表单字段，只返回与当前值不同的字段。
  * - GroupRatio / TopupGroupRatio 保留原有 key 顺序，新 key 追加在后；
- * - 名称只写注册表，注册表按显示顺序重排 order 为 0..n-1；
+ * - 名称与描述只写注册表，注册表按显示顺序重排 order 为 0..n-1；
  * - 被删除的分组级联清理 UserUsableGroups、AutoGroups、GroupGroupRatio 内层与 GroupSpecialUsableGroup 的 +:/-: 条目。
  */
 export function serializeChannelGroupRows(
@@ -182,9 +189,16 @@ export function serializeChannelGroupRows(
     }
   }
 
-  const registry: Record<string, { label: string; order: number }> = {}
+  const registry: Record<
+    string,
+    { label: string; order: number; description: string }
+  > = {}
   validRows.forEach((row, index) => {
-    registry[row.key] = { label: row.label.trim() || row.key, order: index }
+    registry[row.key] = {
+      label: row.label.trim() || row.key,
+      order: index,
+      description: row.description.trim(),
+    }
   })
 
   const changes: Partial<ChannelGroupFormValues> = {}

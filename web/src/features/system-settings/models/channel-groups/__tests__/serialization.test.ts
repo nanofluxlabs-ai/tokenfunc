@@ -17,7 +17,7 @@ const baseValues: ChannelGroupFormValues = {
   GroupSpecialUsableGroup:
     '{"ent_std":{"+:gptpro":"Pool","-:default":"","legacy":"x"},"vip":{"+:legacy":""}}',
   ChannelGroupsRegistry:
-    '{"gptpro":{"label":"GPT fast pool","order":0},"default":{"label":"","order":1}}',
+    '{"gptpro":{"label":"GPT fast pool","order":0,"description":" Fast lane "},"default":{"label":"","order":1}}',
 }
 
 describe('buildChannelGroupRows', () => {
@@ -33,6 +33,11 @@ describe('buildChannelGroupRows', () => {
       'Default group',
       'legacy',
     ])
+  })
+
+  it('reads the trimmed description from the registry and defaults it to an empty string', () => {
+    const rows = buildChannelGroupRows(baseValues)
+    expect(rows.map((row) => row.description)).toEqual(['Fast lane', '', ''])
   })
 
   it('reads ratio and top-up ratio from the upstream options', () => {
@@ -81,9 +86,9 @@ describe('serializeChannelGroupRows', () => {
     const changes = serializeChannelGroupRows(rows, baseValues)
     expect(Object.keys(changes)).toEqual(['ChannelGroupsRegistry'])
     expect(JSON.parse(changes.ChannelGroupsRegistry ?? '')).toEqual({
-      gptpro: { label: 'GPT fast pool', order: 0 },
-      default: { label: 'Default group', order: 1 },
-      legacy: { label: 'legacy', order: 2 },
+      gptpro: { label: 'GPT fast pool', order: 0, description: 'Fast lane' },
+      default: { label: 'Default group', order: 1, description: '' },
+      legacy: { label: 'legacy', order: 2, description: '' },
     })
   })
 
@@ -114,8 +119,24 @@ describe('serializeChannelGroupRows', () => {
     expect(JSON.parse(changes.ChannelGroupsRegistry ?? '').gptpro).toEqual({
       label: 'Renamed',
       order: 0,
+      description: 'Fast lane',
     })
     expect(changes.UserUsableGroups).toBeUndefined()
+  })
+
+  it('writes an edited description into the registry only and trims it', () => {
+    const rows = buildChannelGroupRows(baseValues).map((row) =>
+      row.key === 'default'
+        ? { ...row, description: '  Shared pool for everyone  ' }
+        : row
+    )
+    const changes = serializeChannelGroupRows(rows, baseValues)
+    expect(Object.keys(changes)).toEqual(['ChannelGroupsRegistry'])
+    expect(JSON.parse(changes.ChannelGroupsRegistry ?? '').default).toEqual({
+      label: 'Default group',
+      order: 1,
+      description: 'Shared pool for everyone',
+    })
   })
 
   it('keeps the existing key order of GroupRatio after a drag reorder and renumbers the registry', () => {
@@ -124,9 +145,9 @@ describe('serializeChannelGroupRows', () => {
     const changes = serializeChannelGroupRows(reordered, baseValues)
     expect(changes.GroupRatio).toBeUndefined()
     expect(JSON.parse(changes.ChannelGroupsRegistry ?? '')).toEqual({
-      legacy: { label: 'legacy', order: 0 },
-      gptpro: { label: 'GPT fast pool', order: 1 },
-      default: { label: 'Default group', order: 2 },
+      legacy: { label: 'legacy', order: 0, description: '' },
+      gptpro: { label: 'GPT fast pool', order: 1, description: 'Fast lane' },
+      default: { label: 'Default group', order: 2, description: '' },
     })
   })
 
@@ -137,6 +158,7 @@ describe('serializeChannelGroupRows', () => {
         id: 'new_1',
         key: 'claude-pool',
         label: '  ',
+        description: '',
         ratio: '1.5',
         topupRatio: '',
         isNew: true,
@@ -152,7 +174,7 @@ describe('serializeChannelGroupRows', () => {
     expect(JSON.parse(changes.GroupRatio ?? '')['claude-pool']).toBe(1.5)
     expect(
       JSON.parse(changes.ChannelGroupsRegistry ?? '')['claude-pool']
-    ).toEqual({ label: 'claude-pool', order: 3 })
+    ).toEqual({ label: 'claude-pool', order: 3, description: '' })
     expect(changes.UserUsableGroups).toBeUndefined()
     expect(changes.TopupGroupRatio).toBeUndefined()
   })
@@ -164,6 +186,7 @@ describe('serializeChannelGroupRows', () => {
         id: 'n1',
         key: '',
         label: '',
+        description: '',
         ratio: '1',
         topupRatio: '',
         isNew: true,
@@ -172,6 +195,7 @@ describe('serializeChannelGroupRows', () => {
         id: 'n2',
         key: 'Bad Key',
         label: '',
+        description: '',
         ratio: '1',
         topupRatio: '',
         isNew: true,
@@ -180,6 +204,7 @@ describe('serializeChannelGroupRows', () => {
         id: 'n3',
         key: 'gptpro',
         label: 'dup',
+        description: '',
         ratio: '3',
         topupRatio: '',
         isNew: true,
@@ -216,8 +241,8 @@ describe('serializeChannelGroupRows', () => {
       vip: { '+:legacy': '' },
     })
     expect(JSON.parse(changes.ChannelGroupsRegistry ?? '')).toEqual({
-      default: { label: 'Default group', order: 0 },
-      legacy: { label: 'legacy', order: 1 },
+      default: { label: 'Default group', order: 0, description: '' },
+      legacy: { label: 'legacy', order: 1, description: '' },
     })
   })
 

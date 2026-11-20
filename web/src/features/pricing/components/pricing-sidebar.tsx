@@ -46,6 +46,8 @@ type FilterOption = {
   count?: number
   suffix?: string
   icon?: ReactNode
+  /** 悬停提示里附带的说明（渠道分组的用途说明） */
+  description?: string
 }
 
 type FilterSectionProps = {
@@ -69,6 +71,8 @@ export interface PricingSidebarProps {
   vendors: PricingVendor[]
   groups: string[]
   groupRatios?: Record<string, number>
+  /** TokenFunc：渠道分组 key → 用途说明 */
+  groupDescriptions?: Record<string, string>
   tags: string[]
   models: PricingModel[]
   hasActiveFilters: boolean
@@ -97,7 +101,11 @@ function FilterChip(props: {
       onClick={props.onClick}
       aria-pressed={props.active}
       className='h-auto max-w-full gap-1.5 px-2 py-1 text-xs'
-      title={props.option.label}
+      title={
+        props.option.description
+          ? `${props.option.label} · ${props.option.description}`
+          : props.option.label
+      }
     >
       {props.option.icon && (
         <span className='shrink-0'>{props.option.icon}</span>
@@ -204,6 +212,7 @@ export const PricingSidebar = memo(function PricingSidebar(
       value: group,
       label: group,
       suffix: formatGroupRatio(props.groupRatios?.[group]),
+      description: props.groupDescriptions?.[group],
     })),
   ]
 

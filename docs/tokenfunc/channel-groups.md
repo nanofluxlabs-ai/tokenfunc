@@ -1,6 +1,6 @@
 # TokenFunc 渠道分组与定价倍率规划
 
-> 状态：v1 规划（2026-11-20），生产尚未执行第 5 节迁移
+> 状态：v1（2026-11-20），第 5 节迁移已于当日在生产执行完毕，执行记录见 5.9；第 6 节文案改动未做
 > 范围：渠道分组的命名规范、分组总表与基准倍率、用户分组矩阵、存量迁移步骤、落地页文案改动清单
 > 不在范围：充值汇率与毛利核算、报价单分组（见「7. 遗留」）、代码改动
 > 机制依据：分组定价功能（PR #76，`docs/worklog/2026-11-05-feat-group-pricing-matrix.md`）——渠道分组注册表 `tokenfunc_group_setting.channel_groups` 只存名称与排序，key 以 `GroupRatio` 为准；用户分组显式维护可见渠道分组列表与 `channel_order`，覆盖倍率写 `GroupGroupRatio`；计费链路不变
@@ -300,6 +300,24 @@ SELECT "group", count(*) FROM abilities GROUP BY 1;
 `tokenfunc_group_setting.user_groups` 中 `ddjs.channel_order`：`["pool_gpt", "pool_claude", "pool_cn"]`。
 
 ---
+
+### 5.9 执行记录（2026-11-20）
+
+生产实际状态与 5.3 的假设不同：迁移时渠道分组为 `default` / `gptpro` / `claudepro` / `gptfree`(0.3) / `gz_deepsek`，`gptpro` / `claudepro` 下已无渠道，8 条渠道除 #10（`default,gptfree`）、#2（`gz_deepsek`）外全在 `default`。按规范一并改名：
+
+| 旧 key | 新 key | 倍率 | 渠道 |
+|---|---|---|---|
+| gptpro | pool_gpt | 1 | #5 Codex Pro、#11 codex2api（禁用中） |
+| claudepro | pool_claude | 1 | #12 crs（禁用中） |
+| 新建 | pool_cn | 1 | #8 GLM、#4 Kimi、#6 MiniMax |
+| gptfree | pool_gpt_lite | 0.3 | #10 Codex 0.5x |
+| gz_deepsek | deepseek | 1 | #2 DeepSeek |
+
+- 通过 Root 令牌走接口执行，脚本与各步请求体在 `.tmp/group-migration-20261120/`（不入库）；顺序：snapshot → groups（新旧 key 并存）→ pricing → channels + `POST /channel/fix`（8/8）→ cleanup → verify。
+- 一次建全 Phase 1 的 11 个分组（含 `deepseek`、`pool_gpt_lite`），`awsb_*` / `azure_gpt` / `vertex_gemini` 不可见。
+- `default` 可见：default, pool_gpt, pool_claude, pool_cn, pool_gpt_lite；`ddjs` 可见：pool_gpt 0.5, deepseek 1, pool_claude 0.45, pool_cn 0.5（pool_cn 为新加，此前 ddjs 拿不到国产模型）。`vip` 用户分组（0 人）未动。
+- `TopupGroupRatio` 里的 `gptpro` 一并清掉。
+- 校验：渠道 / options 无旧 key；三个副本的分组列表均为 11 个；root（default 分组）的令牌分组接口返回 4 个新池名称，`default` 自身描述仍是上游占位 "User group"，待 `fix(group)` 135038735 发版后显示注册表名称；`/v1/models` 16 个与迁移前一致。ddjs 留空令牌的实打未做（无 ddjs 密钥）。
 
 ## 6. 落地页 / 文案改动清单
 

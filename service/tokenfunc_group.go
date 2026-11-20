@@ -157,6 +157,9 @@ type UserGroupPricingInput struct {
 // 未出现在 inputs 里的渠道分组视为继承默认。与基准价相同的倍率不记为覆盖。
 // inputs 里可见行的先后顺序即该用户分组的渠道分组顺序，一并写进注册表。
 func SaveUserGroupPricing(userGroup string, inputs []UserGroupPricingInput) error {
+	if err := reloadGroupOptions(); err != nil {
+		return err
+	}
 	state := currentGroupOptionState()
 	values, err := state.applyUserGroupPricing(userGroup, inputs)
 	if err != nil {
@@ -174,6 +177,23 @@ type groupOptionState struct {
 	special  map[string]map[string]string        // group_special_usable_group
 	matrix   map[string]map[string]float64       // GroupGroupRatio
 	groups   map[string]setting.UserGroupMeta    // 用户分组注册表
+}
+
+// groupOptionKeys 分组定价会整表写回的 option；写前统一从数据库重读（见 reloadGroupOptions）
+var groupOptionKeys = []string{
+	"GroupRatio",
+	"UserUsableGroups",
+	groupGroupRatioOptionKey,
+	specialUsableGroupOptionKey,
+	setting.ChannelGroupsOptionKey,
+	setting.UserGroupsOptionKey,
+}
+
+// reloadGroupOptions 写分组 option 前先把本副本内存对齐数据库。
+// 这几个 option 都是「读整表 → 改一个用户分组 → 写整表」，多副本下本副本内存最多落后数据库一个
+// SYNC_FREQUENCY 周期，不对齐就会把别的副本在这期间写的改动覆盖掉（生产 2026-11-20 实际发生）。
+func reloadGroupOptions() error {
+	return model.ReloadOptions(groupOptionKeys...)
 }
 
 func currentGroupOptionState() groupOptionState {
@@ -264,6 +284,9 @@ type UserGroupPricingSave struct {
 // options 只能是分组定价页自己的 key；定价表在「当前值 + 本次 options」之上计算，
 // 因此本次删掉的渠道分组若仍被定价表引用，整次保存失败，什么都不写。
 func SaveGroupSettings(options map[string]string, pricing *UserGroupPricingSave) error {
+	if err := reloadGroupOptions(); err != nil {
+		return err
+	}
 	state := currentGroupOptionState()
 	for key, value := range options {
 		if err := state.overlayGroupOption(key, value); err != nil {
@@ -363,6 +386,9 @@ func CreateUserGroup(key string, meta setting.UserGroupMeta) error {
 	if err := setting.ValidateUserGroupKey(key); err != nil {
 		return err
 	}
+	if err := reloadGroupOptions(); err != nil {
+		return err
+	}
 	groups := setting.UserGroupsSnapshot()
 	if _, exists := groups[key]; exists {
 		return setting.ErrUserGroupExists
@@ -381,6 +407,9 @@ func CreateUserGroup(key string, meta setting.UserGroupMeta) error {
 
 // UpdateUserGroup 修改名称 / 说明 / 类型，排序不变
 func UpdateUserGroup(key string, meta setting.UserGroupMeta) error {
+	if err := reloadGroupOptions(); err != nil {
+		return err
+	}
 	groups := setting.UserGroupsSnapshot()
 	current, ok := groups[key]
 	if !ok {
@@ -400,6 +429,9 @@ func UpdateUserGroup(key string, meta setting.UserGroupMeta) error {
 func DeleteUserGroup(key string) error {
 	if key == setting.DefaultGroupKey {
 		return setting.ErrUserGroupDefault
+	}
+	if err := reloadGroupOptions(); err != nil {
+		return err
 	}
 	groups := setting.UserGroupsSnapshot()
 	if _, ok := groups[key]; !ok {
@@ -426,6 +458,9 @@ func DeleteUserGroup(key string) error {
 
 // ReorderUserGroups 按给定顺序重排；未列出的分组保持相对顺序排在后面
 func ReorderUserGroups(keys []string) error {
+	if err := reloadGroupOptions(); err != nil {
+		return err
+	}
 	groups := setting.UserGroupsSnapshot()
 	order := 0
 	seen := make(map[string]struct{}, len(keys))

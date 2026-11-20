@@ -238,6 +238,41 @@ func TestSaveUserGroupPricingOnlyTouchesThatGroupSlice(t *testing.T) {
 	assert.ErrorIs(t, SaveUserGroupPricing("ghost", nil), setting.ErrUserGroupNotFound)
 }
 
+// 多副本：别的副本已把改动写进数据库、本副本内存还没同步时，本副本保存另一个用户分组不能把那份改动覆盖掉
+func TestSaveUserGroupPricingReloadsOtherReplicaWritesBeforeWriteback(t *testing.T) {
+	setupTokenFuncGroupPostgres(t)
+	setupGroupPricingState(t)
+	ratio := func(v float64) *float64 { return &v }
+	require.NoError(t, SaveUserGroupPricing("ent_std", []UserGroupPricingInput{
+		{ChannelGroup: "ent_pool", Visible: true, Ratio: ratio(1.2)},
+		{ChannelGroup: "default", Visible: false},
+	}))
+
+	// 模拟另一副本：直接改库给 lonely 开放 ent_pool 并写覆盖倍率，不碰本进程内存
+	writeOtherReplica := func(key string, value string) {
+		result := model.DB.Model(&model.Option{}).Where("key = ?", key).Update("value", value)
+		require.NoError(t, result.Error)
+		require.EqualValues(t, 1, result.RowsAffected)
+	}
+	writeOtherReplica(specialUsableGroupOptionKey, `{"ent_std":{"-:default":"","+:ent_pool":"Acme 专属池"},"lonely":{"-:default":"","+:ent_pool":"Acme 专属池"}}`)
+	writeOtherReplica(groupGroupRatioOptionKey, `{"ent_std":{"ent_pool":1.2},"lonely":{"ent_pool":1.1}}`)
+	_, staleVisible := GetUserUsableGroups("lonely")["ent_pool"]
+	require.False(t, staleVisible, "前置：本副本内存还是旧的")
+
+	require.NoError(t, SaveUserGroupPricing("ent_std", []UserGroupPricingInput{
+		{ChannelGroup: "ent_pool", Visible: true, Ratio: ratio(1.3)},
+		{ChannelGroup: "default", Visible: false},
+	}))
+
+	_, visible := GetUserUsableGroups("lonely")["ent_pool"]
+	assert.True(t, visible, "另一副本给 lonely 开放的 ent_pool 没被覆盖")
+	assert.Equal(t, 1.1, GetUserGroupRatio("lonely", "ent_pool"))
+	assert.Equal(t, 1.3, GetUserGroupRatio("ent_std", "ent_pool"), "本次改动照常生效")
+	var option model.Option
+	require.NoError(t, model.DB.Where("key = ?", specialUsableGroupOptionKey).First(&option).Error)
+	assert.Contains(t, option.Value, `"lonely":{`, "数据库里 lonely 的切片仍在")
+}
+
 func TestSaveGroupSettingsCommitsOptionsAndPricingTogether(t *testing.T) {
 	setupTokenFuncGroupPostgres(t)
 	setupGroupPricingState(t)

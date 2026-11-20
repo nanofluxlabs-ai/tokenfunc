@@ -230,6 +230,25 @@ func LoadOptionsFromDatabase() error {
 	return nil
 }
 
+// ReloadOptions 只从数据库重读给定 key 并刷新本进程内存。
+// 多副本部署时各副本按 SyncOptions 周期对齐数据库，期间本副本内存可能落后；
+// 「读整表 → 改一格 → 写整表」的 option 在写前先调用它，避免用旧内存覆盖别的副本刚写的值。
+func ReloadOptions(keys ...string) error {
+	if len(keys) == 0 {
+		return nil
+	}
+	var options []*Option
+	if err := DB.Where(map[string]any{"key": keys}).Find(&options).Error; err != nil {
+		return err
+	}
+	for _, option := range options {
+		if err := updateOptionMap(option.Key, option.Value); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 func SyncOptions(frequency int) {
 	for {
 		time.Sleep(time.Duration(frequency) * time.Second)

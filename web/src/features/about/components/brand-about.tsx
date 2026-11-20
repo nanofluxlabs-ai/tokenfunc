@@ -65,7 +65,7 @@ export function BrandAbout() {
             </h1>
             <p className='text-muted-foreground m-0 max-w-[640px] text-base leading-7 text-pretty md:text-lg md:leading-8'>
               {t(
-                'Built for enterprises: official direct access to Anthropic, OpenAI, Google and xAI. Smart routing with automatic failover, 99.95% availability, dedicated deployment on request, secure and stable.'
+                'Built for enterprises: Claude, GPT, Gemini and Grok from multiple sources, each channel group labeled with its upstream. Smart routing with automatic failover, 99.95% availability, dedicated deployment on request, secure and stable.'
               )}
             </p>
             <div className='flex flex-wrap gap-3'>

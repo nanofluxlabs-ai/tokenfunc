@@ -47,9 +47,9 @@ export const CAPABILITIES: Capability[] = [
     eyebrow: '02 · Fidelity',
     title: 'Real models, no substitution',
     description:
-      'Official API keys connect directly to each vendor. The model you request is the model that runs: no downgrade, no swap, and the upstream response is returned untouched.',
+      'Every channel group is labeled with its upstream source: vendor API, cloud platform or subscription pool. The model you request is the model that runs: no downgrade, no swap, and the upstream response is returned untouched.',
     points: [
-      'Official keys, no reverse-engineered endpoints',
+      'Source labeled per channel group, no silent substitution',
       'Run a model self-check from the console at any time',
     ],
   },

@@ -48,7 +48,7 @@ export function Hero(props: { registerEnabled: boolean }) {
             </span>
             <span>
               {t(
-                'OFFICIAL · direct access to the Claude / GPT / Gemini / Grok vendor channels'
+                'Vendor APIs · cloud platforms · subscription pools, with the source labeled per channel group'
               )}
             </span>
             <ChevronRight className='size-3.5 opacity-60' aria-hidden='true' />
@@ -89,7 +89,7 @@ export function Hero(props: { registerEnabled: boolean }) {
 
           <p className='text-muted-foreground m-0 mt-8 max-w-[640px] text-base leading-7 text-balance sm:text-lg sm:leading-8 md:mt-24 md:text-xl md:leading-9'>
             {t(
-              'Built for enterprises: official direct access to Anthropic, OpenAI, Google and xAI. Smart routing with automatic failover, 99.95% availability, dedicated deployment on request, secure and stable.'
+              'Built for enterprises: Claude, GPT, Gemini and Grok from multiple sources, each channel group labeled with its upstream. Smart routing with automatic failover, 99.95% availability, dedicated deployment on request, secure and stable.'
             )}
           </p>
 

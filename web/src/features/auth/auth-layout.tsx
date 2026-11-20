@@ -36,12 +36,12 @@ type AuthLayoutProps = {
 
 const SIGN_IN_STATS: { value: string; label: string }[] = [
   { value: '99.95%', label: 'Service SLA' },
-  { value: '500+', label: 'Official pool' },
+  { value: '500+', label: 'Subscription pool' },
   { value: '90%+', label: 'Cache hit rate' },
 ]
 
 const SIGN_UP_POINTS = [
-  'Official direct access, real models with no substitution',
+  'Transparent sourcing, real models with no substitution',
   '500+ account pool, stable supply',
   'Bodies never touch disk, secure and compliant',
 ]
@@ -131,7 +131,7 @@ function BrandAside(props: { variant: AuthLayoutVariant }) {
                 'Sign up to create an API key, then change one base_url to connect.'
               )
             : t(
-                'Official direct access to Claude / GPT / Gemini / Grok, billed per token, with stable supply for enterprises.'
+                'Claude / GPT / Gemini / Grok from vendor APIs, cloud platforms and subscription pools, billed per token, with stable supply for enterprises.'
               )}
         </p>
         <div

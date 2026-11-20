@@ -38,6 +38,13 @@ func GetUserUsableGroups(userGroup string) map[string]string {
 			groupsCopy[userGroup] = "User group"
 		}
 	}
+	// TokenFunc 二开：描述以渠道分组注册表的名称为准。UserUsableGroups 与 +: 差异里存的名称只是保存时的快照，
+	// 注册表改名后不会回写，模型广场与令牌分组接口若直接用快照会显示旧名。
+	for key := range groupsCopy {
+		if meta, ok := setting.GetChannelGroupMeta(key); ok && strings.TrimSpace(meta.Label) != "" {
+			groupsCopy[key] = meta.Label
+		}
+	}
 	return groupsCopy
 }
 

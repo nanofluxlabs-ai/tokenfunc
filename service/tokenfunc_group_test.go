@@ -135,6 +135,21 @@ func TestGetUserGroupPricingMatchesBillingAndVisibilityLookups(t *testing.T) {
 	}
 }
 
+// 夹具里 UserUsableGroups 的 gptpro 与 +:ent_pool 存的名称都是旧快照，注册表已改名；
+// 模型广场与令牌分组接口读的是这份 map 的描述，必须跟注册表走。
+func TestGetUserUsableGroupsDescFollowsChannelGroupRegistry(t *testing.T) {
+	setupGroupPricingState(t)
+
+	usable := GetUserUsableGroups("ent_std")
+
+	assert.Equal(t, "Acme 专属池", usable["ent_pool"])
+	assert.Equal(t, "GPT 高速池", usable["gptpro"])
+	// 用户分组本身不是渠道分组时保留上游占位描述
+	assert.Equal(t, "User group", usable["ent_std"])
+	_, hasDefault := usable["default"]
+	assert.False(t, hasDefault)
+}
+
 func setupTokenFuncGroupPostgres(t *testing.T) {
 	t.Helper()
 	dsn := os.Getenv("TEST_POSTGRES_DSN")

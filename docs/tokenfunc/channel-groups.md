@@ -17,7 +17,7 @@
 | D4 | **`default` = 号池渠道的并集**，每条号池渠道同时挂 `default` 与其专属 `pool_*`；云厂商 / 厂商 API 渠道不挂 `default` | 个人用户零配置可用；`default` 有明确定义，不再是垃圾桶（tokensolo `default` 池 51 条渠道 CC 与 GPT 混挂） |
 | D5 | **命名 `<platform>_<family>[_<qualifier>]`**，全小写下划线；key 不含客户名、价格、模型版本 | 可读、可 grep、与用户分组 key 正则 `^[a-z0-9][a-z0-9_-]{0,63}$` 一致 |
 | D6 | **`f5` 允许进 key，但它是供应商定价代际标签**：下一代模型出现时新建分组（如 `awsb_claude_f6`）并下线旧组，不改旧 key 语义 | 按模型代际命名必然过期（tokensolo `azgpt_6` / `azgptno6`），用"新建 + 下线"而不是"改含义"来处理 |
-| D7 | **号池对全部用户可见，label 诚实标注【官逆】**；落地页"官 Key 直连 / 无逆向接口"文案同步修改（本文只列清单） | 信任承诺是"不降级不替换、返回原始响应、来源透明"，不是"全部官 Key" |
+| D7 | **号池对全部用户可见，label 标注【订阅】**（订阅账号即官方订阅，与落地页「官方订阅号池」同口径；「官逆」只用于内部与供应商沟通）；落地页"官 Key 直连 / 无逆向接口"文案同步修改（本文只列清单） | 信任承诺是"不降级不替换、返回原始响应、来源透明"，不是"全部官 Key" |
 | D8 | **基准倍率沿用 tokensolo `default` 等级的数值** | 同一经营者、同一批供应商成本；上线前按汇率核一遍毛利即可 |
 
 ---
@@ -65,10 +65,10 @@
 
 | order | key | label | 基准倍率 | 渠道类型 | 说明 |
 |---|---|---|---|---|---|
-| 0 | default | 【官逆】综合 | 1.0 | 59 / 1 / 14 | 号池并集，个人零配置可用 |
-| 1 | pool_gpt | 【官逆】GPT | 1.0 | 1 (codex2api) / 59 | 原 `gptpro` |
-| 2 | pool_claude | 【官逆】Claude | 1.0 | 14 (crs) / 59 | 原 `claudepro` |
-| 3 | pool_cn | 【官逆】国产 | 1.0 | 59 | 新建，接收现挂在 gptpro 的 glm 与挂在 claudepro 的 kimi |
+| 0 | default | 【订阅】综合 | 1.0 | 59 / 1 / 14 | 号池并集，个人零配置可用 |
+| 1 | pool_gpt | 【订阅】GPT | 1.0 | 1 (codex2api) / 59 | 原 `gptpro` |
+| 2 | pool_claude | 【订阅】Claude | 1.0 | 14 (crs) / 59 | 原 `claudepro` |
+| 3 | pool_cn | 【订阅】国产 | 1.0 | 59 | 新建，接收现挂在 gptpro 的 glm 与挂在 claudepro 的 kimi |
 | 10 | awsb_claude_coding | 【AWS Bedrock】Claude · 不可蒸 | 1.0 | 14 / 1 | 不可蒸，不含 Fable 5；tokensolo `awsb_coding` |
 | 11 | awsb_claude | 【AWS Bedrock】Claude · 可蒸 | 1.3 | 14 / 1 | 不含 Fable 5；tokensolo `awszl` / `awsquan` |
 | 12 | awsb_claude_f5 | 【AWS Bedrock】Claude · 含F5 · 可蒸 | 1.4 | 14 / 1 | tokensolo `awsf5` |
@@ -100,7 +100,7 @@ Bedrock 四格的关系：
 | 52 | moonshot_kimi | 【Moonshot】Kimi | 1.3 | 25 | `kimi_guan` |
 | 53 | zhipu_glm | 【智谱】GLM | 1.0 | 16 | — |
 | 54 | minimax | 【MiniMax】 | 1.0 | 35 | — |
-| 60 | pool_gpt_lite | 【官逆】GPT 特价 | 0.4 | 59 | `gpttj`；只对企业用户分组可见 |
+| 60 | pool_gpt_lite | 【订阅】GPT 特价 | 0.4 | 59 | `gpttj`；只对企业用户分组可见 |
 | 70 | media_image | 【图像】GPT Image | 1.0 | 按供应商 | `gptimage` |
 | 71 | media_video | 【视频】Seedance | 1.0 | 按供应商 | `sd_gj` |
 
@@ -270,10 +270,10 @@ SELECT "group", count(*) FROM abilities GROUP BY 1;
 
 ```json
 {
-  "default":            {"label": "【官逆】综合", "order": 0},
-  "pool_gpt":           {"label": "【官逆】GPT", "order": 1},
-  "pool_claude":        {"label": "【官逆】Claude", "order": 2},
-  "pool_cn":            {"label": "【官逆】国产", "order": 3},
+  "default":            {"label": "【订阅】综合", "order": 0},
+  "pool_gpt":           {"label": "【订阅】GPT", "order": 1},
+  "pool_claude":        {"label": "【订阅】Claude", "order": 2},
+  "pool_cn":            {"label": "【订阅】国产", "order": 3},
   "awsb_claude_coding": {"label": "【AWS Bedrock】Claude · 不可蒸", "order": 10},
   "awsb_claude":        {"label": "【AWS Bedrock】Claude · 可蒸", "order": 11},
   "awsb_claude_f5":     {"label": "【AWS Bedrock】Claude · 含F5 · 可蒸", "order": 12},

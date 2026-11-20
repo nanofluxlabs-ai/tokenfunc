@@ -292,6 +292,7 @@ export function SignUpForm({
               <PasswordStrength
                 id='sign-up-password-strength'
                 value={passwordValue}
+                hideHints
               />
               <FormMessage />
             </FormItem>

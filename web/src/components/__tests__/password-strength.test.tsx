@@ -220,6 +220,22 @@ describe('password strength feedback', () => {
     ).toHaveAttribute('aria-valuenow', '0')
   })
 
+  test('hides the requirement and suggestion lists when hideHints is set but keeps the meter and status', () => {
+    render(<PasswordStrength value='Ab1!' hideHints />)
+
+    expect(screen.queryByText('Password requirement')).not.toBeInTheDocument()
+    expect(
+      screen.queryByText('For a stronger password')
+    ).not.toBeInTheDocument()
+    expect(screen.queryByText('15 or more characters')).not.toBeInTheDocument()
+    expect(
+      screen.getByRole('meter', { name: 'Password strength' })
+    ).toBeInTheDocument()
+    expect(
+      screen.getByText('Password requirements not met')
+    ).toBeInTheDocument()
+  })
+
   test('shows how many characters a short password still needs', () => {
     render(<PasswordStrength value='Ab1!' />)
 

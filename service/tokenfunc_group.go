@@ -7,6 +7,7 @@ package service
 // 本文件只把这几个 option 合成一张「某用户分组看到的渠道分组表」，以及把表反算回差异写回 option。
 
 import (
+	"cmp"
 	"errors"
 	"fmt"
 	"maps"
@@ -37,10 +38,11 @@ var (
 
 // ChannelGroupOption 某用户分组可选的渠道分组，已按后台排序
 type ChannelGroupOption struct {
-	Key   string  `json:"key"`
-	Label string  `json:"label"`
-	Ratio float64 `json:"ratio"`
-	Order int     `json:"order"`
+	Key         string  `json:"key"`
+	Label       string  `json:"label"`
+	Description string  `json:"description"`
+	Ratio       float64 `json:"ratio"`
+	Order       int     `json:"order"`
 }
 
 // ListUserSelectableChannelGroups 用户分组可选（可见且在 GroupRatio 里）的渠道分组，
@@ -53,10 +55,11 @@ func ListUserSelectableChannelGroups(userGroup string) []ChannelGroupOption {
 			continue
 		}
 		options = append(options, ChannelGroupOption{
-			Key:   entry.Key,
-			Label: entry.Label,
-			Ratio: GetUserGroupRatio(userGroup, entry.Key),
-			Order: entry.Order,
+			Key:         entry.Key,
+			Label:       entry.Label,
+			Description: entry.Description,
+			Ratio:       GetUserGroupRatio(userGroup, entry.Key),
+			Order:       entry.Order,
 		})
 	}
 	slices.SortStableFunc(options, func(a, b ChannelGroupOption) int {
@@ -157,15 +160,13 @@ type UserGroupPricingInput struct {
 // 未出现在 inputs 里的渠道分组视为继承默认。与基准价相同的倍率不记为覆盖。
 // inputs 里可见行的先后顺序即该用户分组的渠道分组顺序，一并写进注册表。
 func SaveUserGroupPricing(userGroup string, inputs []UserGroupPricingInput) error {
-	if err := reloadGroupOptions(); err != nil {
-		return err
-	}
-	state := currentGroupOptionState()
-	values, err := state.applyUserGroupPricing(userGroup, inputs)
-	if err != nil {
-		return err
-	}
-	return writeGroupOptions(values)
+	return mutateGroupOptions(func(state *groupOptionState) (map[string]string, error) {
+		values, err := state.applyUserGroupPricing(userGroup, inputs)
+		if err != nil {
+			return nil, err
+		}
+		return encodeGroupOptions(values)
+	})
 }
 
 // groupOptionState 分组相关 option 的一份可修改快照。
@@ -179,7 +180,7 @@ type groupOptionState struct {
 	groups   map[string]setting.UserGroupMeta    // 用户分组注册表
 }
 
-// groupOptionKeys 分组定价会整表写回的 option；写前统一从数据库重读（见 reloadGroupOptions）
+// groupOptionKeys 分组定价会整表写回的 option，写时在事务里一起锁住（见 mutateGroupOptions）
 var groupOptionKeys = []string{
 	"GroupRatio",
 	"UserUsableGroups",
@@ -189,13 +190,27 @@ var groupOptionKeys = []string{
 	setting.UserGroupsOptionKey,
 }
 
-// reloadGroupOptions 写分组 option 前先把本副本内存对齐数据库。
+// mutateGroupOptions 分组 option 的统一写入口：事务里锁住 groupOptionKeys、用数据库里的最新值建快照，
+// 交给 fn 修改并返回要写回的 option，与 fn 同一事务提交。
 // 这几个 option 都是「读整表 → 改一个用户分组 → 写整表」，多副本下本副本内存最多落后数据库一个
-// SYNC_FREQUENCY 周期，不对齐就会把别的副本在这期间写的改动覆盖掉（生产 2026-11-20 实际发生）。
-func reloadGroupOptions() error {
-	return model.ReloadOptions(groupOptionKeys...)
+// SYNC_FREQUENCY 周期；不以数据库值为准就会把别的副本刚写的改动覆盖掉（生产 2026-11-20 实际发生）。
+func mutateGroupOptions(fn func(state *groupOptionState) (map[string]string, error)) error {
+	return model.MutateOptionsInTransaction(groupOptionKeys, func(current map[string]string) (map[string]string, error) {
+		state := currentGroupOptionState()
+		for _, key := range groupOptionKeys {
+			value, ok := current[key]
+			if !ok {
+				continue
+			}
+			if err := state.applyStoredGroupOption(key, value); err != nil {
+				return nil, err
+			}
+		}
+		return fn(&state)
+	})
 }
 
+// currentGroupOptionState 本进程内存里的快照；mutateGroupOptions 会再用数据库值覆盖一遍
 func currentGroupOptionState() groupOptionState {
 	return groupOptionState{
 		ratios:   ratio_setting.GetGroupRatioCopy(),
@@ -284,31 +299,54 @@ type UserGroupPricingSave struct {
 // options 只能是分组定价页自己的 key；定价表在「当前值 + 本次 options」之上计算，
 // 因此本次删掉的渠道分组若仍被定价表引用，整次保存失败，什么都不写。
 func SaveGroupSettings(options map[string]string, pricing *UserGroupPricingSave) error {
-	if err := reloadGroupOptions(); err != nil {
-		return err
-	}
-	state := currentGroupOptionState()
-	for key, value := range options {
-		if err := state.overlayGroupOption(key, value); err != nil {
-			return err
+	return mutateGroupOptions(func(state *groupOptionState) (map[string]string, error) {
+		for key, value := range options {
+			if err := state.overlayGroupOption(key, value); err != nil {
+				return nil, err
+			}
 		}
-	}
-	values := make(map[string]string, len(options)+3)
-	maps.Copy(values, options)
-	if pricing != nil {
+		values := make(map[string]string, len(options)+3)
+		maps.Copy(values, options)
+		if _, ok := options[setting.ChannelGroupsOptionKey]; ok {
+			// 注册表按规范化后的值落库（去空格），不是客户端原文
+			registry, err := setting.ChannelGroupsJSON(state.channels)
+			if err != nil {
+				return nil, err
+			}
+			values[setting.ChannelGroupsOptionKey] = registry
+		}
+		if pricing == nil {
+			return values, nil
+		}
 		pricingValues, err := state.applyUserGroupPricing(pricing.Group, pricing.Rows)
 		if err != nil {
-			return err
+			return nil, err
 		}
-		for key, value := range pricingValues {
-			data, err := common.Marshal(value)
-			if err != nil {
-				return err
-			}
-			values[key] = string(data)
+		encoded, err := encodeGroupOptions(pricingValues)
+		if err != nil {
+			return nil, err
 		}
+		maps.Copy(values, encoded)
+		return values, nil
+	})
+}
+
+// applyStoredGroupOption 把数据库里的 option 值叠到快照上：与 overlayGroupOption 同一套解析，
+// 多一个只允许来自数据库的用户分组注册表
+func (state *groupOptionState) applyStoredGroupOption(key string, value string) error {
+	if key != setting.UserGroupsOptionKey {
+		return state.overlayGroupOption(key, value)
 	}
-	return model.UpdateOptionsBulk(values)
+	groups := map[string]setting.UserGroupMeta{}
+	if err := common.UnmarshalJsonStr(value, &groups); err != nil {
+		return fmt.Errorf("%w: %s: %v", ErrGroupSettingInvalid, key, err)
+	}
+	if _, ok := groups[setting.DefaultGroupKey]; !ok {
+		// 与 setting.UserGroupsSnapshot 一致：default 恒存在
+		groups[setting.DefaultGroupKey] = state.groups[setting.DefaultGroupKey]
+	}
+	state.groups = groups
+	return nil
 }
 
 // overlayGroupOption 校验一个提交的 option，并把会影响定价计算的值叠到快照上。
@@ -343,6 +381,13 @@ func (state *groupOptionState) overlayGroupOption(key string, value string) erro
 		state.channels = map[string]setting.ChannelGroupMeta{}
 		if err := common.UnmarshalJsonStr(value, &state.channels); err != nil {
 			return invalid(err)
+		}
+		for groupKey, meta := range state.channels {
+			normalized, err := setting.NormalizeChannelGroupMeta(meta)
+			if err != nil {
+				return invalid(fmt.Errorf("%s: %w", groupKey, err))
+			}
+			state.channels[groupKey] = normalized
 		}
 	case "TopupGroupRatio":
 		var ratios map[string]float64
@@ -386,56 +431,45 @@ func CreateUserGroup(key string, meta setting.UserGroupMeta) error {
 	if err := setting.ValidateUserGroupKey(key); err != nil {
 		return err
 	}
-	if err := reloadGroupOptions(); err != nil {
-		return err
-	}
-	groups := setting.UserGroupsSnapshot()
-	if _, exists := groups[key]; exists {
-		return setting.ErrUserGroupExists
-	}
 	meta, err := setting.NormalizeUserGroupMeta(key, meta)
 	if err != nil {
 		return err
 	}
-	meta.Order = 0
-	for _, existing := range groups {
-		meta.Order = max(meta.Order, existing.Order+1)
-	}
-	groups[key] = meta
-	return writeUserGroups(groups)
+	return mutateGroupOptions(func(state *groupOptionState) (map[string]string, error) {
+		if _, exists := state.groups[key]; exists {
+			return nil, setting.ErrUserGroupExists
+		}
+		meta.Order = 0
+		for _, existing := range state.groups {
+			meta.Order = max(meta.Order, existing.Order+1)
+		}
+		state.groups[key] = meta
+		return encodeGroupOptions(map[string]any{setting.UserGroupsOptionKey: state.groups})
+	})
 }
 
 // UpdateUserGroup 修改名称 / 说明 / 类型，排序不变
 func UpdateUserGroup(key string, meta setting.UserGroupMeta) error {
-	if err := reloadGroupOptions(); err != nil {
-		return err
-	}
-	groups := setting.UserGroupsSnapshot()
-	current, ok := groups[key]
-	if !ok {
-		return setting.ErrUserGroupNotFound
-	}
 	meta, err := setting.NormalizeUserGroupMeta(key, meta)
 	if err != nil {
 		return err
 	}
-	meta.Order = current.Order
-	meta.ChannelOrder = current.ChannelOrder
-	groups[key] = meta
-	return writeUserGroups(groups)
+	return mutateGroupOptions(func(state *groupOptionState) (map[string]string, error) {
+		current, ok := state.groups[key]
+		if !ok {
+			return nil, setting.ErrUserGroupNotFound
+		}
+		meta.Order = current.Order
+		meta.ChannelOrder = current.ChannelOrder
+		state.groups[key] = meta
+		return encodeGroupOptions(map[string]any{setting.UserGroupsOptionKey: state.groups})
+	})
 }
 
 // DeleteUserGroup 删除用户分组并级联清掉它的倍率覆盖与可见差异；default 与仍有用户的分组拒删
 func DeleteUserGroup(key string) error {
 	if key == setting.DefaultGroupKey {
 		return setting.ErrUserGroupDefault
-	}
-	if err := reloadGroupOptions(); err != nil {
-		return err
-	}
-	groups := setting.UserGroupsSnapshot()
-	if _, ok := groups[key]; !ok {
-		return setting.ErrUserGroupNotFound
 	}
 	counts, err := model.CountUsersByGroup()
 	if err != nil {
@@ -444,64 +478,78 @@ func DeleteUserGroup(key string) error {
 	if counts[key] > 0 {
 		return ErrUserGroupInUse
 	}
-	delete(groups, key)
-	special := ratio_setting.GetGroupRatioSetting().GroupSpecialUsableGroup.ReadAll()
-	delete(special, key)
-	matrix := ratio_setting.GetGroupGroupRatioCopy()
-	delete(matrix, key)
-	return writeGroupOptions(map[string]any{
-		setting.UserGroupsOptionKey: groups,
-		groupGroupRatioOptionKey:    matrix,
-		specialUsableGroupOptionKey: special,
+	return mutateGroupOptions(func(state *groupOptionState) (map[string]string, error) {
+		if _, ok := state.groups[key]; !ok {
+			return nil, setting.ErrUserGroupNotFound
+		}
+		delete(state.groups, key)
+		delete(state.special, key)
+		delete(state.matrix, key)
+		return encodeGroupOptions(map[string]any{
+			setting.UserGroupsOptionKey: state.groups,
+			groupGroupRatioOptionKey:    state.matrix,
+			specialUsableGroupOptionKey: state.special,
+		})
 	})
 }
 
 // ReorderUserGroups 按给定顺序重排；未列出的分组保持相对顺序排在后面
 func ReorderUserGroups(keys []string) error {
-	if err := reloadGroupOptions(); err != nil {
-		return err
-	}
-	groups := setting.UserGroupsSnapshot()
-	order := 0
-	seen := make(map[string]struct{}, len(keys))
-	for _, key := range keys {
-		meta, ok := groups[key]
-		if !ok {
-			return fmt.Errorf("%w: %s", setting.ErrUserGroupNotFound, key)
+	return mutateGroupOptions(func(state *groupOptionState) (map[string]string, error) {
+		groups := state.groups
+		order := 0
+		seen := make(map[string]struct{}, len(keys))
+		for _, key := range keys {
+			meta, ok := groups[key]
+			if !ok {
+				return nil, fmt.Errorf("%w: %s", setting.ErrUserGroupNotFound, key)
+			}
+			if _, dup := seen[key]; dup {
+				continue
+			}
+			seen[key] = struct{}{}
+			meta.Order = order
+			groups[key] = meta
+			order++
 		}
-		if _, dup := seen[key]; dup {
-			continue
+		// 未列出的按原先的 order、key 顺序排在后面
+		rest := make([]string, 0, len(groups))
+		for key := range groups {
+			if _, ok := seen[key]; !ok {
+				rest = append(rest, key)
+			}
 		}
-		seen[key] = struct{}{}
-		meta.Order = order
-		groups[key] = meta
-		order++
-	}
-	for _, entry := range setting.ListUserGroups() {
-		if _, ok := seen[entry.Key]; ok {
-			continue
+		slices.SortFunc(rest, func(a, b string) int {
+			return cmp.Or(cmp.Compare(groups[a].Order, groups[b].Order), strings.Compare(a, b))
+		})
+		for _, key := range rest {
+			meta := groups[key]
+			meta.Order = order
+			groups[key] = meta
+			order++
 		}
-		meta := groups[entry.Key]
-		meta.Order = order
-		groups[entry.Key] = meta
-		order++
-	}
-	return writeUserGroups(groups)
+		return encodeGroupOptions(map[string]any{setting.UserGroupsOptionKey: groups})
+	})
 }
 
-func writeUserGroups(groups map[string]setting.UserGroupMeta) error {
-	return writeGroupOptions(map[string]any{setting.UserGroupsOptionKey: groups})
-}
-
-// writeGroupOptions 把若干 option 的新值一次性落库并刷新内存（走上游 option 更新链路，多节点同步照旧）
-func writeGroupOptions(values map[string]any) error {
+// encodeGroupOptions 把 option 的结构化新值序列化成落库字符串
+func encodeGroupOptions(values map[string]any) (map[string]string, error) {
 	encoded := make(map[string]string, len(values))
 	for key, value := range values {
 		data, err := common.Marshal(value)
 		if err != nil {
-			return err
+			return nil, err
 		}
 		encoded[key] = string(data)
+	}
+	return encoded, nil
+}
+
+// writeGroupOptions 不加锁的整表落库，只给启动迁移用；日常写入口一律走 mutateGroupOptions
+func writeGroupOptions(values map[string]any) error {
+	encoded, err := encodeGroupOptions(values)
+	if err != nil {
+		return err
 	}
 	return model.UpdateOptionsBulk(encoded)
 }

@@ -2,7 +2,9 @@ package service
 
 import (
 	"os"
+	"strings"
 	"testing"
+	"time"
 
 	"github.com/QuantumNous/new-api/common"
 	"github.com/QuantumNous/new-api/model"
@@ -271,6 +273,90 @@ func TestSaveUserGroupPricingReloadsOtherReplicaWritesBeforeWriteback(t *testing
 	var option model.Option
 	require.NoError(t, model.DB.Where("key = ?", specialUsableGroupOptionKey).First(&option).Error)
 	assert.Contains(t, option.Value, `"lonely":{`, "数据库里 lonely 的切片仍在")
+}
+
+// 另一副本持锁改分组 option 期间，本副本的保存必须等它提交后再读、再写，两边改动都保留
+func TestMutateGroupOptionsSerializesConcurrentSaves(t *testing.T) {
+	setupTokenFuncGroupPostgres(t)
+	setupGroupPricingState(t)
+	ratio := func(v float64) *float64 { return &v }
+	require.NoError(t, SaveUserGroupPricing("ent_std", []UserGroupPricingInput{
+		{ChannelGroup: "ent_pool", Visible: true, Ratio: ratio(1.2)},
+		{ChannelGroup: "default", Visible: false},
+	}))
+
+	// 副本 A：进入事务后停住，模拟另一副本正在保存 lonely
+	entered := make(chan struct{})
+	release := make(chan struct{})
+	aDone := make(chan error, 1)
+	go func() {
+		aDone <- model.MutateOptionsInTransaction(groupOptionKeys, func(current map[string]string) (map[string]string, error) {
+			close(entered)
+			<-release
+			special := map[string]map[string]string{}
+			if err := common.UnmarshalJsonStr(current[specialUsableGroupOptionKey], &special); err != nil {
+				return nil, err
+			}
+			special["lonely"] = map[string]string{"-:default": "", "+:ent_pool": "Acme 专属池"}
+			data, err := common.Marshal(special)
+			if err != nil {
+				return nil, err
+			}
+			return map[string]string{specialUsableGroupOptionKey: string(data)}, nil
+		})
+	}()
+	<-entered
+
+	// 副本 B：A 持锁期间保存 ent_std
+	bDone := make(chan error, 1)
+	go func() {
+		bDone <- SaveUserGroupPricing("ent_std", []UserGroupPricingInput{
+			{ChannelGroup: "ent_pool", Visible: true, Ratio: ratio(1.3)},
+			{ChannelGroup: "default", Visible: false},
+		})
+	}()
+	select {
+	case err := <-bDone:
+		t.Fatalf("B 没有等 A 提交就完成了: %v", err)
+	case <-time.After(300 * time.Millisecond):
+	}
+
+	close(release)
+	require.NoError(t, <-aDone)
+	require.NoError(t, <-bDone)
+
+	_, visible := GetUserUsableGroups("lonely")["ent_pool"]
+	assert.True(t, visible, "A 给 lonely 开放的 ent_pool 没被 B 覆盖")
+	assert.Equal(t, 1.3, GetUserGroupRatio("ent_std", "ent_pool"), "B 的改动照常生效")
+	var option model.Option
+	require.NoError(t, model.DB.Where("key = ?", specialUsableGroupOptionKey).First(&option).Error)
+	assert.Contains(t, option.Value, `"lonely":{`)
+	assert.Contains(t, option.Value, `"ent_std":{`)
+}
+
+// 渠道分组说明：统一保存去空格后落库、超长拒绝，用户侧下拉与管理员字典都带上
+func TestSaveGroupSettingsPersistsChannelGroupDescription(t *testing.T) {
+	setupTokenFuncGroupPostgres(t)
+	setupGroupPricingState(t)
+	require.NoError(t, SaveGroupSettings(map[string]string{
+		setting.ChannelGroupsOptionKey: `{"ent_pool":{"label":"Acme 专属池","order":0,"description":"  仅编程对话，禁止批量蒸馏  "},"default":{"label":"默认池","order":1},"gptpro":{"label":"GPT 高速池","order":2}}`,
+	}, nil))
+	assert.Equal(t, "仅编程对话，禁止批量蒸馏", setting.ChannelGroupDescription("ent_pool"))
+	assert.Equal(t, "", setting.ChannelGroupDescription("default"))
+	options := ListUserSelectableChannelGroups("ent_std")
+	require.NotEmpty(t, options)
+	assert.Equal(t, "ent_pool", options[0].Key)
+	assert.Equal(t, "仅编程对话，禁止批量蒸馏", options[0].Description)
+	var option model.Option
+	require.NoError(t, model.DB.Where("key = ?", setting.ChannelGroupsOptionKey).First(&option).Error)
+	assert.Contains(t, option.Value, `"description":"仅编程对话，禁止批量蒸馏"`, "落库的是去空格后的值")
+
+	tooLong := strings.Repeat("长", setting.ChannelGroupDescriptionMaxLength+1)
+	err := SaveGroupSettings(map[string]string{
+		setting.ChannelGroupsOptionKey: `{"ent_pool":{"label":"Acme 专属池","order":0,"description":"` + tooLong + `"}}`,
+	}, nil)
+	assert.ErrorIs(t, err, ErrGroupSettingInvalid)
+	assert.Equal(t, "仅编程对话，禁止批量蒸馏", setting.ChannelGroupDescription("ent_pool"), "失败时内存不变")
 }
 
 func TestSaveGroupSettingsCommitsOptionsAndPricingTogether(t *testing.T) {

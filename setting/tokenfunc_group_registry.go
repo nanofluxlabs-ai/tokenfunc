@@ -16,6 +16,7 @@ import (
 	"regexp"
 	"slices"
 	"strings"
+	"unicode/utf8"
 
 	"github.com/QuantumNous/new-api/common"
 	"github.com/QuantumNous/new-api/setting/config"
@@ -52,10 +53,27 @@ type UserGroupMeta struct {
 	ChannelOrder []string `json:"channel_order,omitempty"`
 }
 
-// ChannelGroupMeta 渠道分组的展示信息；key 以 GroupRatio 为准，这里只存名称与排序
+// ChannelGroupMeta 渠道分组的展示信息；key 以 GroupRatio 为准，这里只存名称、说明与排序
 type ChannelGroupMeta struct {
 	Label string `json:"label"`
-	Order int    `json:"order"`
+	// Description 面向用户的一句话说明（用途限制、账号档位等），显示在令牌分组下拉与模型广场的名称下方
+	Description string `json:"description"`
+	Order       int    `json:"order"`
+}
+
+// ChannelGroupDescriptionMaxLength 说明的最大长度（按 rune），超过拒绝保存
+const ChannelGroupDescriptionMaxLength = 200
+
+var ErrChannelGroupDescriptionTooLong = errors.New("channel group description must be 200 characters or fewer")
+
+// NormalizeChannelGroupMeta 去空格并校验说明长度
+func NormalizeChannelGroupMeta(meta ChannelGroupMeta) (ChannelGroupMeta, error) {
+	meta.Label = strings.TrimSpace(meta.Label)
+	meta.Description = strings.TrimSpace(meta.Description)
+	if utf8.RuneCountInString(meta.Description) > ChannelGroupDescriptionMaxLength {
+		return meta, ErrChannelGroupDescriptionTooLong
+	}
+	return meta, nil
 }
 
 // TokenFuncGroupSetting 两张注册表，各占一个 option key：
@@ -82,10 +100,11 @@ type UserGroupEntry struct {
 
 // ChannelGroupEntry 带 key 与基准倍率的渠道分组
 type ChannelGroupEntry struct {
-	Key   string  `json:"key"`
-	Label string  `json:"label"`
-	Order int     `json:"order"`
-	Ratio float64 `json:"ratio"`
+	Key         string  `json:"key"`
+	Label       string  `json:"label"`
+	Description string  `json:"description"`
+	Order       int     `json:"order"`
+	Ratio       float64 `json:"ratio"`
 }
 
 func userGroupsMap() *types.RWMap[string, UserGroupMeta] {
@@ -245,6 +264,14 @@ func ChannelGroupLabel(key string) string {
 	return GetUsableGroupDescription(key)
 }
 
+// ChannelGroupDescription 渠道分组说明；未登记或没填返回空串
+func ChannelGroupDescription(key string) string {
+	if meta, ok := channelGroupsMap().Get(key); ok {
+		return meta.Description
+	}
+	return ""
+}
+
 // ChannelGroupOrder 渠道分组排序值；未登记的排到最后
 func ChannelGroupOrder(key string) int {
 	if meta, ok := channelGroupsMap().Get(key); ok {
@@ -264,10 +291,11 @@ func ListChannelGroups() []ChannelGroupEntry {
 	entries := make([]ChannelGroupEntry, 0, len(ratios))
 	for key, ratio := range ratios {
 		entries = append(entries, ChannelGroupEntry{
-			Key:   key,
-			Label: ChannelGroupLabel(key),
-			Order: ChannelGroupOrder(key),
-			Ratio: ratio,
+			Key:         key,
+			Label:       ChannelGroupLabel(key),
+			Description: ChannelGroupDescription(key),
+			Order:       ChannelGroupOrder(key),
+			Ratio:       ratio,
 		})
 	}
 	slices.SortFunc(entries, func(a, b ChannelGroupEntry) int {

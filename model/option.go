@@ -230,19 +230,60 @@ func LoadOptionsFromDatabase() error {
 	return nil
 }
 
-// ReloadOptions 只从数据库重读给定 key 并刷新本进程内存。
-// 多副本部署时各副本按 SyncOptions 周期对齐数据库，期间本副本内存可能落后；
-// 「读整表 → 改一格 → 写整表」的 option 在写前先调用它，避免用旧内存覆盖别的副本刚写的值。
-func ReloadOptions(keys ...string) error {
+// MutateOptionsInTransaction 在一个事务里锁住并读取给定 key 的 option，交给 mutate 算出新值后写回。
+// 用于「读整表 → 改一格 → 写整表」的 option：行锁让并发保存串行化，mutate 看到的总是最新已提交的值，
+// 多副本下本副本内存落后数据库也不会把别的副本刚写的改动覆盖掉。
+// 数据库里没有的 key 不出现在 current 里，由调用方按内存默认值处理；提交后用读到和写入的值刷新本进程内存。
+func MutateOptionsInTransaction(keys []string, mutate func(current map[string]string) (map[string]string, error)) error {
 	if len(keys) == 0 {
 		return nil
 	}
-	var options []*Option
-	if err := DB.Where(map[string]any{"key": keys}).Find(&options).Error; err != nil {
+	current := make(map[string]string, len(keys))
+	var written map[string]string
+	err := DB.Transaction(func(tx *gorm.DB) error {
+		var options []*Option
+		if err := lockForUpdate(tx).Where(map[string]any{"key": keys}).Find(&options).Error; err != nil {
+			return err
+		}
+		for _, option := range options {
+			current[option.Key] = option.Value
+		}
+		next, err := mutate(maps.Clone(current))
+		if err != nil {
+			return err
+		}
+		for key, value := range next {
+			if err := validateOptionValue(key, value); err != nil {
+				return err
+			}
+		}
+		for key, value := range next {
+			option := Option{Key: key}
+			if err := tx.FirstOrCreate(&option, Option{Key: key}).Error; err != nil {
+				return err
+			}
+			option.Value = value
+			if err := tx.Save(&option).Error; err != nil {
+				return err
+			}
+		}
+		written = next
+		return nil
+	})
+	if err != nil {
 		return err
 	}
-	for _, option := range options {
-		if err := updateOptionMap(option.Key, option.Value); err != nil {
+	BumpSyncTopic(SyncTopicOptions)
+	for key, value := range current {
+		if _, ok := written[key]; ok {
+			continue
+		}
+		if err := updateOptionMap(key, value); err != nil {
+			return err
+		}
+	}
+	for key, value := range written {
+		if err := updateOptionMap(key, value); err != nil {
 			return err
 		}
 	}

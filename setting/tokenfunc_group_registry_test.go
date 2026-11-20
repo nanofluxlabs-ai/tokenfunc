@@ -1,6 +1,7 @@
 package setting
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/QuantumNous/new-api/setting/config"
@@ -75,4 +76,15 @@ func TestListChannelGroupsFollowsRegistryOrderAndFallsBackToUsableDescription(t 
 	assert.Equal(t, "Zeta pool", entries[2].Label)
 	assert.Equal(t, 2.0, entries[2].Ratio)
 	assert.Equal(t, "ghost", ChannelGroupLabel("ghost"))
+}
+
+func TestNormalizeChannelGroupMetaTrimsAndLimitsDescription(t *testing.T) {
+	meta, err := NormalizeChannelGroupMeta(ChannelGroupMeta{Label: " 池 ", Description: "  说明  ", Order: 3})
+	require.NoError(t, err)
+	assert.Equal(t, ChannelGroupMeta{Label: "池", Description: "说明", Order: 3}, meta)
+
+	_, err = NormalizeChannelGroupMeta(ChannelGroupMeta{Description: strings.Repeat("a", ChannelGroupDescriptionMaxLength+1)})
+	assert.ErrorIs(t, err, ErrChannelGroupDescriptionTooLong)
+	_, err = NormalizeChannelGroupMeta(ChannelGroupMeta{Description: strings.Repeat("长", ChannelGroupDescriptionMaxLength)})
+	assert.NoError(t, err, "按字符数不是字节数计")
 }

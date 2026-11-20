@@ -20,6 +20,7 @@ import (
 type channelGroupItem struct {
 	Key            string  `json:"key"`
 	Label          string  `json:"label"`
+	Description    string  `json:"description"`
 	Order          int     `json:"order"`
 	Ratio          float64 `json:"ratio"`
 	TopupRatio     float64 `json:"topup_ratio"`
@@ -43,6 +44,7 @@ func ListTokenFuncChannelGroups(c *gin.Context) {
 		items = append(items, channelGroupItem{
 			Key:            entry.Key,
 			Label:          entry.Label,
+			Description:    entry.Description,
 			Order:          entry.Order,
 			Ratio:          entry.Ratio,
 			TopupRatio:     topupRatio,
@@ -181,11 +183,12 @@ func SaveTokenFuncGroupSettings(c *gin.Context) {
 
 // selfChannelGroupItem 登录用户可选的渠道分组；auto 不带倍率
 type selfChannelGroupItem struct {
-	Key   string   `json:"key"`
-	Label string   `json:"label"`
-	Ratio *float64 `json:"ratio"`
-	Order int      `json:"order"`
-	Auto  bool     `json:"auto"`
+	Key         string   `json:"key"`
+	Label       string   `json:"label"`
+	Description string   `json:"description"`
+	Ratio       *float64 `json:"ratio"`
+	Order       int      `json:"order"`
+	Auto        bool     `json:"auto"`
 }
 
 // ListTokenFuncSelfChannelGroups 当前用户可选的渠道分组，按后台排序；可用时附带 auto
@@ -199,7 +202,7 @@ func ListTokenFuncSelfChannelGroups(c *gin.Context) {
 	items := make([]selfChannelGroupItem, 0, len(options)+1)
 	for _, option := range options {
 		ratio := option.Ratio
-		items = append(items, selfChannelGroupItem{Key: option.Key, Label: option.Label, Ratio: &ratio, Order: option.Order})
+		items = append(items, selfChannelGroupItem{Key: option.Key, Label: option.Label, Description: option.Description, Ratio: &ratio, Order: option.Order})
 	}
 	if _, ok := service.GetUserUsableGroups(userGroup)["auto"]; ok {
 		items = append(items, selfChannelGroupItem{Key: "auto", Label: setting.GetUsableGroupDescription("auto"), Auto: true})

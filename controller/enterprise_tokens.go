@@ -198,7 +198,7 @@ func GetEnterpriseTokenOptions(c *gin.Context) {
 	groups := make([]gin.H, 0, len(options))
 	modelsByGroup := map[string][]string{}
 	for _, option := range options {
-		groups = append(groups, gin.H{"value": option.Key, "desc": option.Label, "label": option.Label, "ratio": option.Ratio, "order": option.Order})
+		groups = append(groups, gin.H{"value": option.Key, "desc": option.Label, "label": option.Label, "description": option.Description, "ratio": option.Ratio, "order": option.Order})
 		modelsByGroup[option.Key] = service.GetGroupsEnabledModels([]string{option.Key})
 	}
 	autoGroups := service.ResolveUsingGroupCandidates(ownerGroup)

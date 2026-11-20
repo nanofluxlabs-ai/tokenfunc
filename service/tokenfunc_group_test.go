@@ -359,6 +359,25 @@ func TestSaveGroupSettingsPersistsChannelGroupDescription(t *testing.T) {
 	assert.Equal(t, "仅编程对话，禁止批量蒸馏", setting.ChannelGroupDescription("ent_pool"), "失败时内存不变")
 }
 
+// 自动分组候选：企业按自己的渠道顺序，个人按全局 AutoGroups ∩ 可选分组，没有可见池的为空
+func TestGetUserAutoGroupUsesEnterpriseOwnOrder(t *testing.T) {
+	setupTokenFuncGroupPostgres(t)
+	setupGroupPricingState(t)
+	previousAuto := setting.AutoGroups2JsonString()
+	t.Cleanup(func() { _ = setting.UpdateAutoGroupsByJsonString(previousAuto) })
+	require.NoError(t, setting.UpdateAutoGroupsByJsonString(`["default","gptpro"]`))
+	// ent_std 的顺序：gptpro 在 ent_pool 前面
+	require.NoError(t, SaveUserGroupPricing("ent_std", []UserGroupPricingInput{
+		{ChannelGroup: "gptpro", Visible: true},
+		{ChannelGroup: "ent_pool", Visible: true},
+		{ChannelGroup: "default", Visible: false},
+	}))
+
+	assert.Equal(t, []string{"gptpro", "ent_pool"}, GetUserAutoGroup("ent_std"), "企业：自己的顺序，ent_pool 不在全局 AutoGroups 里也在")
+	assert.Equal(t, []string{"default", "gptpro"}, GetUserAutoGroup("default"), "个人：全局 AutoGroups")
+	assert.Empty(t, GetUserAutoGroup("lonely"), "没有可见池")
+}
+
 func TestSaveGroupSettingsCommitsOptionsAndPricingTogether(t *testing.T) {
 	setupTokenFuncGroupPostgres(t)
 	setupGroupPricingState(t)

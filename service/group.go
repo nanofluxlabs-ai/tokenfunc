@@ -60,11 +60,17 @@ func IsUserSelectableGroup(userGroup, groupName string) bool {
 	return GroupInUserUsableGroups(userGroup, groupName) && ratio_setting.ContainsGroupRatio(groupName)
 }
 
-// GetUserAutoGroup 根据用户分组获取自动分组设置
+// GetUserAutoGroup 根据用户分组获取自动分组设置。
+// TokenFunc 二开：用户分组本身不是可选渠道分组（企业档位）时，自动分组候选 = 它可见的渠道分组按分组定价页的顺序，
+// 与留空令牌一致，不看全局 AutoGroups；个人（default 这类同名分组）仍按上游：全局 AutoGroups ∩ 可选分组。
 func GetUserAutoGroup(userGroup string) []string {
 	autoGroups := make([]string, 0)
 	seen := make(map[string]struct{})
-	for _, group := range setting.GetAutoGroups() {
+	candidates := setting.GetAutoGroups()
+	if !IsUserSelectableGroup(userGroup, userGroup) {
+		candidates = ResolveUsingGroupCandidates(userGroup)
+	}
+	for _, group := range candidates {
 		if !IsUserSelectableGroup(userGroup, group) {
 			continue
 		}

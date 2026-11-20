@@ -136,6 +136,8 @@ Bedrock 四格的关系：
 
 例外：用户分组 key 与渠道分组 key 同名时永远可见（上游规则），只影响 `default`。
 
+`auto`（自动分组）不是渠道分组，不在 `GroupRatio` 里，分组定价页的行里永远没有它；它是否对用户可见只由基线 `UserUsableGroups` 里有没有 `"auto"` 决定，迁移与渠道分组编辑器都原样保留这一项。令牌选 `auto` 时的候选规则见 3.1 / 3.2。
+
 上架流程：供应商到货 → 渠道管理挂到对应分组 → 分组定价页在 `default`（及签约企业）的可见列表里勾上该分组 → 保存。下架反过来：先取消勾选，再禁用渠道。
 
 ### 2.4 成本参考
@@ -162,12 +164,14 @@ tokensolo 2026-11-19 渠道快照里的成本倍率（人民币 / 官方价 $1�
 - `channel_order`：`default, pool_gpt, pool_claude, pool_cn, awsb_claude_coding, awsb_claude, awsb_claude_f5, azure_gpt, vertex_gemini`
 - 倍率：全部走基准，不写覆盖
 - 留空令牌：`default` 既是用户分组又是渠道分组，候选只有它自己，走混合号池
+- 选 `auto` 的令牌：候选 = 全局 `AutoGroups` ∩ 可见分组，按全局顺序；生产 `AutoGroups` 只放 `default`，所以个人的自动分组就是混合号池，不会被动路由到更贵的池。以后要让个人用户落到高质量池再扩这个列表（按命中池倍率计费）
 
 ### 3.2 企业（enterprise）
 
 - 一客户一用户分组，key 用客户英文 / 拼音简称（`ddjs` 沿用），kind = enterprise
 - 只勾签约的渠道分组；倍率写覆盖；`channel_order` 首位 = 该客户主用池，留空令牌按候选顺序走 auto
-- 候选上限 `MaxTokenAutoGroups`（默认 5）：企业勾选超过 5 个池时留空令牌会被截断，勾选多时先调大
+- 选 `auto` 的令牌：候选同留空令牌（`service.GetUserAutoGroup` 对不是渠道分组的用户分组改走 `ResolveUsingGroupCandidates`，2026-11-21 起），不看全局 `AutoGroups`；两个密钥抽屉里选"自动"结果一致
+- 候选上限 `MaxTokenAutoGroups`（默认 5）：企业勾选超过 5 个池时留空 / auto 令牌会被截断，勾选多时先调大
 - 价格档位（如"同行 2.9"）建成可共享的用户分组 `tier_<name>`，多客户共用；不建渠道分组
 
 `ddjs`（多点计算科技）迁移后：
@@ -352,6 +356,20 @@ SELECT "group", count(*) FROM abilities GROUP BY 1;
 不必等 `fix(group)` 135038735 发版：统一保存接口在同一请求里先覆盖注册表再算定价表，`+:` 快照会按新名重写，所以改注册表的同时把 `default` 的定价表原样提交一遍、再把 `ddjs` 的原样提交一遍，客户侧即显示新名（根因见 `docs/worklog/2026-11-20-fix-channel-group-label-sync.md`）。
 
 执行记录：请求体 `step5-rename-default.json` / `step5-rename-ddjs.json`、脚本 `step5-run.sh` 在 `.tmp/group-migration-20261120/`。第一轮两次 PUT 连发，第二次落在尚未同步的副本上，用它内存里的旧整表覆盖了第一次写的 `+:` 快照（见第 7 节）；第二轮改为每次 PUT 后轮询到连续 12 次 `GET /api/user/self/groups` 都返回新名（SYNC_FREQUENCY=60s）再发下一次。结果：注册表、`group_special_usable_group` 快照、ddjs 覆盖倍率（0.5 / 1 / 0.45 / 0.5）、三副本令牌分组接口全部为新名；`default` 自身描述仍是上游占位，待发版。
+
+### 5.11 开启自动分组（待执行，先发版再改配置）
+
+目的：创建密钥时默认选"自动分组"。前端默认选 auto 的条件是 `/api/status` 的 `default_use_auto_group` 为真且 `/api/tokenfunc/groups/self` 返回 auto 项。三个 option：
+
+| option | 值 | 说明 |
+|---|---|---|
+| `UserUsableGroups` | `{"auto":"自动分组"}` | 基线里有 auto，所有用户分组可见；值就是下拉里显示的名称 |
+| `AutoGroups` | `["default"]` | 个人的自动分组候选 |
+| `DefaultUseAutoGroup` | `true` | 新建密钥默认 auto；新注册用户的默认令牌也是 auto |
+
+顺序：先把含 `GetUserAutoGroup` 企业分支的版本发到生产，再改配置。反过来会让 ddjs 等企业新建密钥默认 auto 而候选为空（`AutoGroups ∩ 可见池` = ∅），请求报 "auto groups is not enabled"。
+
+校验：root 与 ddjs 各调 `GET /api/tokenfunc/groups/self` 看到 `auto`；`GET /api/token/auto-groups` root 得 `["default"]`，ddjs 得其分组定价页顺序；用 ddjs 的 auto 令牌打一次 glm-5.3，日志分组为 pool_cn。
 
 ## 6. 落地页 / 文案改动清单
 

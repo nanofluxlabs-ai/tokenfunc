@@ -1,6 +1,6 @@
 # TokenFunc 渠道分组与定价倍率规划
 
-> 状态：v1（2026-11-20），第 5 节迁移已于当日在生产执行完毕，执行记录见 5.9；第 6 节文案改动未做
+> 状态：v2（2026-11-20），第 5 节迁移已于当日在生产执行完毕（5.9）；v2 把号池改为三档结构并定下同行资源归组规则（D4 / D9 / D10），生产 label 调整待执行（5.10）；第 6 节文案改动未做
 > 范围：渠道分组的命名规范、分组总表与基准倍率、用户分组矩阵、存量迁移步骤、落地页文案改动清单
 > 不在范围：充值汇率与毛利核算、报价单分组（见「7. 遗留」）、代码改动
 > 机制依据：分组定价功能（PR #76，`docs/worklog/2026-11-05-feat-group-pricing-matrix.md`）——渠道分组注册表 `tokenfunc_group_setting.channel_groups` 只存名称与排序，key 以 `GroupRatio` 为准；用户分组显式维护可见渠道分组列表与 `channel_order`，覆盖倍率写 `GroupGroupRatio`；计费链路不变
@@ -14,11 +14,13 @@
 | D1 | **渠道分组 = 同一上游平台、同一成本档、同一用途约束的渠道集合**；拆分只因成本不同、用途 / 质量承诺不同、协议语义不同 | 分组的唯一作用是"走哪个池、按什么价"，其它维度都不该进分组 |
 | D2 | **客户差异一律走用户分组 × 覆盖倍率，绝不按客户 / 按价格建渠道分组** | tokensolo 的 `aws24` / `aws26` / `aws_linshi27` / `awsth32` 把客户和价格做成了渠道分组，渠道挂载与定价纠缠，后期无法清理 |
 | D3 | **渠道分组一次全建（注册表 + `GroupRatio`），可见性当上架开关**：没有启用渠道的分组不勾进任何用户分组的可见列表 | 不可见的分组不会出现在令牌下拉、模型广场和 `/v1/models`，但管理员渠道编辑能选到，供应商到货只需勾可见；避免空分组误导客户（tokensolo `claudeguanss`） |
-| D4 | **`default` = 号池渠道的并集**，每条号池渠道同时挂 `default` 与其专属 `pool_*`；云厂商 / 厂商 API 渠道不挂 `default` | 个人用户零配置可用；`default` 有明确定义，不再是垃圾桶（tokensolo `default` 池 51 条渠道 CC 与 GPT 混挂） |
+| D4 | **号池分三档，一条渠道只进一档**：`default` = 混合号池（自营普通账号 + 同行号池，按模型自动分流）；`pool_<family>` = 高质量专池（只挂自营高优先账号）；`pool_<family>_lite` = 特价池。高优先账号不再同时挂 `default`；云厂商 / 厂商 API 渠道不挂 `default` | 个人用户零配置可用；档位和倍率一一对应，客户买 `default` 价不会拿到高质量池；`default` 有明确定义，不再是垃圾桶（tokensolo `default` 池 51 条渠道 CC 与 GPT 混挂）。v1 曾定义 `default` 为 `pool_*` 并集，v2 因将接入同行资源改为三档 |
 | D5 | **命名 `<platform>_<family>[_<qualifier>]`**，全小写下划线；key 不含客户名、价格、模型版本 | 可读、可 grep、与用户分组 key 正则 `^[a-z0-9][a-z0-9_-]{0,63}$` 一致 |
 | D6 | **`f5` 允许进 key，但它是供应商定价代际标签**：下一代模型出现时新建分组（如 `awsb_claude_f6`）并下线旧组，不改旧 key 语义 | 按模型代际命名必然过期（tokensolo `azgpt_6` / `azgptno6`），用"新建 + 下线"而不是"改含义"来处理 |
 | D7 | **号池对全部用户可见，label 标注【订阅】**（订阅账号即官方订阅，与落地页「官方订阅号池」同口径；「官逆」只用于内部与供应商沟通）；落地页"官 Key 直连 / 无逆向接口"文案同步修改（本文只列清单） | 信任承诺是"不降级不替换、返回原始响应、来源透明"，不是"全部官 Key" |
 | D8 | **基准倍率沿用 tokensolo `default` 等级的数值** | 同一经营者、同一批供应商成本；上线前按汇率核一遍毛利即可 |
+| D9 | **分组名回答"请求最终跑在哪"，不回答"谁卖给我们"**：同行转售的资源按真实上游平台进既有分组，档位按实测质量定，供应商名只写渠道名 | 平台来源藏不住（模型 ID 格式、响应头、报错文案一试即分），且是企业客户的合规与用途决策依据；供应商与进价才是商业机密。按供应商建组是 tokensolo `aws_linshi27` 烂掉的根源 |
+| D10 | **第三方自部署开源权重单独建 `selfhost_*` 分组并标【自部署】**，接入前过模型自检，通不过不挂 | 自部署可能量化裁剪，混进订阅号池或厂商 API 分组就是掺假，直接违反信任承诺 |
 
 ---
 
@@ -33,6 +35,7 @@
 | `azure` | Azure OpenAI / Azure AI Foundry | 3 |
 | `vertex` | Google Vertex AI | 41 |
 | `anthropic` / `openai` / `deepseek` / `xai` / `moonshot` / `zhipu` / `minimax` | 厂商 API；自持 key 还是第三方转售不进 key，记在渠道备注 | 14 / 1 / 43 / 48 / 25 / 16 / 35 |
+| `selfhost` | 第三方自部署的开源权重模型（如同行自建的 Kimi K3 / GLM 5.3），与订阅号池、厂商 API 是三个不同来源 | 按供应商，多为 1（OpenAI 兼容） |
 | `media` | 图像 / 视频生成 | 按供应商 |
 
 ### 1.2 family（模型族）
@@ -49,9 +52,21 @@
 
 未带 `coding` 的 Bedrock 分组标 `可蒸`：供应商允许批量生成 / 数据蒸馏用途。
 
+号池（`pool`）的档位靠 key 形态区分，不另加限定词：
+
+| key 形态 | 档位 | 挂什么 |
+|---|---|---|
+| `default` | 混合号池 | 自营普通账号 + 同行号池，按模型自动分流 |
+| `pool_<family>` | 高质量专池 | 只挂自营高优先账号 |
+| `pool_<family>_lite` | 特价池 | 低质量 / 限速账号，不承诺稳定性 |
+
+档位按实测质量定，不按自营 / 同行定：同行号池实测够格也可进 `pool_<family>`。
+
 ### 1.4 label 格式
 
 `【平台】模型族 · 限定词`，限定词按 `含F5 · 可蒸` 的顺序，整个 label 控制在 30 个字符内（含【】与分隔符），否则分组列表里展示不全。限定词用缩略语（`可蒸` / `不可蒸` / `含F5` / `特价`），含义以 1.3 表为准；需要向客户解释时引用本文，不往 label 里堆字。
+
+号池 label 写成 `【订阅】<模型族> <档位>号池`，模型族列具体名字不写"综合""国产"这类泛称：`【订阅】Claude 高质量号池`、`【订阅】GLM · Kimi · MiniMax 高质量号池`、`【订阅】GPT 特价号池`；混合池写全模型族 `【订阅】Claude · GPT · 国产 混合号池`。
 
 ---
 
@@ -65,16 +80,18 @@
 
 | order | key | label | 基准倍率 | 渠道类型 | 说明 |
 |---|---|---|---|---|---|
-| 0 | default | 【订阅】综合 | 1.0 | 59 / 1 / 14 | 号池并集，个人零配置可用 |
-| 1 | pool_gpt | 【订阅】GPT | 1.0 | 1 (codex2api) / 59 | 原 `gptpro` |
-| 2 | pool_claude | 【订阅】Claude | 1.0 | 14 (crs) / 59 | 原 `claudepro` |
-| 3 | pool_cn | 【订阅】国产 | 1.0 | 59 | 新建，接收现挂在 gptpro 的 glm 与挂在 claudepro 的 kimi |
+| 0 | default | 【订阅】Claude · GPT · 国产 混合号池 | 1.0 | 59 / 1 / 14 | 混合号池：自营普通账号 + 同行号池，按模型自动分流，个人零配置可用 |
+| 1 | pool_gpt | 【订阅】GPT 高质量号池 | 1.0 → 1.2 | 1 (codex2api) / 59 | 原 `gptpro`；高质量专池 |
+| 2 | pool_claude | 【订阅】Claude 高质量号池 | 1.0 → 1.2 | 14 (crs) / 59 | 原 `claudepro`；高质量专池 |
+| 3 | pool_cn | 【订阅】GLM · Kimi · MiniMax 高质量号池 | 1.0 → 1.2 | 59 | 新建，接收现挂在 gptpro 的 glm 与挂在 claudepro 的 kimi；高质量专池 |
 | 10 | awsb_claude_coding | 【AWS Bedrock】Claude · 不可蒸 | 1.0 | 14 / 1 | 不可蒸，不含 Fable 5；tokensolo `awsb_coding` |
 | 11 | awsb_claude | 【AWS Bedrock】Claude · 可蒸 | 1.3 | 14 / 1 | 不含 Fable 5；tokensolo `awszl` / `awsquan` |
 | 12 | awsb_claude_f5 | 【AWS Bedrock】Claude · 含F5 · 可蒸 | 1.4 | 14 / 1 | tokensolo `awsf5` |
 | 13 | awsb_claude_coding_f5 | 【AWS Bedrock】Claude · 含F5 · 不可蒸 | 1.1 | 14 / 1 | 预留，暂无供应商，不建 |
 | 20 | azure_gpt | 【Azure】GPT | 1.1 | 3 | tokensolo `azgpt` |
 | 30 | vertex_gemini | 【Vertex】Gemini | 1.2 | 41 | tokensolo `gemini_quan` |
+
+`pool_*` 的 `1.0 → 1.2`：现在只有自营一档账号，三个专池与 `default` 挂的是同一批渠道，两档同价；同行号池挂进 `default` 那天，把自营高优先账号从 `default` 摘掉并把 `pool_*` 调到 1.2，之前不上调（否则"高质量"是多收钱不多给货）。
 
 Bedrock 四格的关系：
 
@@ -100,7 +117,8 @@ Bedrock 四格的关系：
 | 52 | moonshot_kimi | 【Moonshot】Kimi | 1.3 | 25 | `kimi_guan` |
 | 53 | zhipu_glm | 【智谱】GLM | 1.0 | 16 | — |
 | 54 | minimax | 【MiniMax】 | 1.0 | 35 | — |
-| 60 | pool_gpt_lite | 【订阅】GPT 特价 | 0.4 | 59 | `gpttj`；只对企业用户分组可见 |
+| 55 | selfhost_cn | 【自部署】GLM · Kimi | 待实测，预期全场最低档 | 按供应商 | 同行自建开源权重；接入前过模型自检（D10） |
+| 60 | pool_gpt_lite | 【订阅】GPT 特价号池 | 0.4 | 59 | `gpttj`；只对企业用户分组可见 |
 | 70 | media_image | 【图像】GPT Image | 1.0 | 按供应商 | `gptimage` |
 | 71 | media_video | 【视频】Seedance | 1.0 | 按供应商 | `sd_gj` |
 
@@ -143,7 +161,7 @@ tokensolo 2026-11-19 渠道快照里的成本倍率（人民币 / 官方价 $1�
 - 可见：全部 Phase 1 分组（`pool_gpt_lite` 不可见）
 - `channel_order`：`default, pool_gpt, pool_claude, pool_cn, awsb_claude_coding, awsb_claude, awsb_claude_f5, azure_gpt, vertex_gemini`
 - 倍率：全部走基准，不写覆盖
-- 留空令牌：`default` 既是用户分组又是渠道分组，候选只有它自己，走号池并集
+- 留空令牌：`default` 既是用户分组又是渠道分组，候选只有它自己，走混合号池
 
 ### 3.2 企业（enterprise）
 
@@ -164,16 +182,24 @@ tokensolo 2026-11-19 渠道快照里的成本倍率（人民币 / 官方价 $1�
 
 ## 4. 渠道挂载规则
 
+一条渠道只属于一个分组（D4）。渠道分组字段虽是逗号分隔的多值，本文不使用多值；过渡期例外见末段。
+
 | 渠道 | 挂到 |
 |---|---|
-| codex2api / sub2api Codex（GPT 系列） | `default,pool_gpt` |
-| crs / sub2api Claude | `default,pool_claude` |
-| sub2api GLM / Kimi / MiniMax | `default,pool_cn` |
-| Bedrock 供应商 | 四格之一，不挂 `default` |
-| Azure / Vertex / 厂商 API | 各自分组，不挂 `default` |
-| 特价池 | `pool_gpt_lite`，不挂 `default` |
+| 自营高优先账号：codex2api / crs / sub2api 主力账号 | `pool_gpt` / `pool_claude` / `pool_cn` |
+| 自营普通账号、同行 Claude / GPT / 国产号池 | `default`；实测质量够格可进 `pool_<family>`，差的进 `pool_<family>_lite` |
+| 特价 / 限速账号 | `pool_<family>_lite`，不挂 `default` |
+| Bedrock（自营或同行） | 四格之一，按供应商合同的可蒸 / 含F5 条款归格，不按供应商拆 |
+| Azure / Vertex / 厂商 API（自营或同行） | 各自分组，不挂 `default`；同行低价渠道是同平台同产品就进原组（低成本是利润，不是分类），限速 / 无保障 / 旧区域才建 `_lite` |
+| 同行自部署开源权重 | `selfhost_<family>`，不进 `pool_*` 也不进厂商 API 分组 |
 
-渠道分组字段是逗号分隔的多值，一条渠道可以同时属于 `default` 与一个 `pool_*`；除此之外一条渠道只属于一个分组。
+同行资源的三条规则（D9 / D10）：
+
+1. 供应商名只写渠道名，格式 `<供应商简称> · <分组 key> · <序号>`（如 `laotian · awsb_claude_f5 · 01`），客户只看到分组。
+2. 不为供应商建分组、不为进价建分组。
+3. 自部署渠道接入前跑落地页的模型自检，通不过不挂。
+
+过渡期（2026-11-20 起，同行号池接入前）：生产只有自营一档账号，现有 7 条号池渠道仍同时挂 `default` 与各自的 `pool_*`，保证 `default` 有货。同行号池接入当天把这 7 条从 `default` 摘掉，同时按 2.1 上调 `pool_*` 倍率。
 
 ---
 
@@ -270,10 +296,10 @@ SELECT "group", count(*) FROM abilities GROUP BY 1;
 
 ```json
 {
-  "default":            {"label": "【订阅】综合", "order": 0},
-  "pool_gpt":           {"label": "【订阅】GPT", "order": 1},
-  "pool_claude":        {"label": "【订阅】Claude", "order": 2},
-  "pool_cn":            {"label": "【订阅】国产", "order": 3},
+  "default":            {"label": "【订阅】Claude · GPT · 国产 混合号池", "order": 0},
+  "pool_gpt":           {"label": "【订阅】GPT 高质量号池", "order": 1},
+  "pool_claude":        {"label": "【订阅】Claude 高质量号池", "order": 2},
+  "pool_cn":            {"label": "【订阅】GLM · Kimi · MiniMax 高质量号池", "order": 3},
   "awsb_claude_coding": {"label": "【AWS Bedrock】Claude · 不可蒸", "order": 10},
   "awsb_claude":        {"label": "【AWS Bedrock】Claude · 可蒸", "order": 11},
   "awsb_claude_f5":     {"label": "【AWS Bedrock】Claude · 含F5 · 可蒸", "order": 12},
@@ -319,6 +345,12 @@ SELECT "group", count(*) FROM abilities GROUP BY 1;
 - `TopupGroupRatio` 里的 `gptpro` 一并清掉。
 - 校验：渠道 / options 无旧 key；三个副本的分组列表均为 11 个；root（default 分组）的令牌分组接口返回 4 个新池名称，`default` 自身描述仍是上游占位 "User group"，待 `fix(group)` 135038735 发版后显示注册表名称；`/v1/models` 16 个与迁移前一致。ddjs 留空令牌的实打未做（无 ddjs 密钥）。
 
+### 5.10 号池 label 调整（v2 决策，待执行）
+
+5.9 执行时用的是 v1 的 label（`【订阅】综合` / `【订阅】GPT` / `【订阅】Claude` / `【订阅】国产` / `【订阅】GPT 特价`），v2 改为 1.4 的号池格式，目标值见 5.7 的注册表 JSON（`pool_gpt_lite` 为 `【订阅】GPT 特价号池`）。只动 `tokenfunc_group_setting.channel_groups`，不碰 `GroupRatio`、渠道与计费。
+
+前置：先发版 `fix(group)` 135038735。不发版就改名，客户侧令牌下拉与模型广场仍显示旧名（根因见 `docs/worklog/2026-11-20-fix-channel-group-label-sync.md`）。
+
 ## 6. 落地页 / 文案改动清单
 
 D7 的后续代码项，本次不改。口径：来源逐组标注（厂商 API / 云平台 / 订阅号池），不降级不替换，返回上游原始响应。
@@ -346,3 +378,6 @@ D7 的后续代码项，本次不改。口径：来源逐组标注（厂商 API 
 - 报价单内置分组（`setting/quote_setting/config.go`）与本文分组是两套命名，Phase 2 对齐。
 - 企业勾选池数超过 `MaxTokenAutoGroups`（默认 5）时留空令牌被截断，需同步调大。
 - 第 6 节文案改动未执行，落地页仍写"官 Key 直连 / 无逆向接口"，与号池全员可见冲突，应在号池对个人用户开放前改完。
+- 5.10 号池 label 调整未执行，等 `fix(group)` 135038735 发版。
+- 同行号池接入当天的两件事（第 4 节末段）：把 7 条自营渠道从 `default` 摘掉；`pool_*` 倍率 1.0 → 1.2。
+- `selfhost_cn` 倍率待实测后定；模型自检通过标准沿用落地页四步。

@@ -1,6 +1,6 @@
 # TokenFunc 渠道分组与定价倍率规划
 
-> 状态：v2（2026-11-20），第 5 节迁移已于当日在生产执行完毕（5.9）；v2 把号池改为三档结构并定下同行资源归组规则（D4 / D9 / D10），生产 label 调整待执行（5.10）；第 6 节文案改动未做
+> 状态：v2（2026-11-20），第 5 节迁移与 v2 的号池 label 调整均已在生产执行完毕（5.9 / 5.10）；v2 把号池改为三档结构并定下同行资源归组规则（D4 / D9 / D10）；第 6 节文案改动未做
 > 范围：渠道分组的命名规范、分组总表与基准倍率、用户分组矩阵、存量迁移步骤、落地页文案改动清单
 > 不在范围：充值汇率与毛利核算、报价单分组（见「7. 遗留」）、代码改动
 > 机制依据：分组定价功能（PR #76，`docs/worklog/2026-11-05-feat-group-pricing-matrix.md`）——渠道分组注册表 `tokenfunc_group_setting.channel_groups` 只存名称与排序，key 以 `GroupRatio` 为准；用户分组显式维护可见渠道分组列表与 `channel_order`，覆盖倍率写 `GroupGroupRatio`；计费链路不变
@@ -345,11 +345,13 @@ SELECT "group", count(*) FROM abilities GROUP BY 1;
 - `TopupGroupRatio` 里的 `gptpro` 一并清掉。
 - 校验：渠道 / options 无旧 key；三个副本的分组列表均为 11 个；root（default 分组）的令牌分组接口返回 4 个新池名称，`default` 自身描述仍是上游占位 "User group"，待 `fix(group)` 135038735 发版后显示注册表名称；`/v1/models` 16 个与迁移前一致。ddjs 留空令牌的实打未做（无 ddjs 密钥）。
 
-### 5.10 号池 label 调整（v2 决策，待执行）
+### 5.10 号池 label 调整（v2，2026-11-20 已执行）
 
 5.9 执行时用的是 v1 的 label（`【订阅】综合` / `【订阅】GPT` / `【订阅】Claude` / `【订阅】国产` / `【订阅】GPT 特价`），v2 改为 1.4 的号池格式，目标值见 5.7 的注册表 JSON（`pool_gpt_lite` 为 `【订阅】GPT 特价号池`）。只动 `tokenfunc_group_setting.channel_groups`，不碰 `GroupRatio`、渠道与计费。
 
-前置：先发版 `fix(group)` 135038735。不发版就改名，客户侧令牌下拉与模型广场仍显示旧名（根因见 `docs/worklog/2026-11-20-fix-channel-group-label-sync.md`）。
+不必等 `fix(group)` 135038735 发版：统一保存接口在同一请求里先覆盖注册表再算定价表，`+:` 快照会按新名重写，所以改注册表的同时把 `default` 的定价表原样提交一遍、再把 `ddjs` 的原样提交一遍，客户侧即显示新名（根因见 `docs/worklog/2026-11-20-fix-channel-group-label-sync.md`）。
+
+执行记录：请求体 `step5-rename-default.json` / `step5-rename-ddjs.json`、脚本 `step5-run.sh` 在 `.tmp/group-migration-20261120/`。第一轮两次 PUT 连发，第二次落在尚未同步的副本上，用它内存里的旧整表覆盖了第一次写的 `+:` 快照（见第 7 节）；第二轮改为每次 PUT 后轮询到连续 12 次 `GET /api/user/self/groups` 都返回新名（SYNC_FREQUENCY=60s）再发下一次。结果：注册表、`group_special_usable_group` 快照、ddjs 覆盖倍率（0.5 / 1 / 0.45 / 0.5）、三副本令牌分组接口全部为新名；`default` 自身描述仍是上游占位，待发版。
 
 ## 6. 落地页 / 文案改动清单
 
@@ -378,6 +380,6 @@ D7 的后续代码项，本次不改。口径：来源逐组标注（厂商 API 
 - 报价单内置分组（`setting/quote_setting/config.go`）与本文分组是两套命名，Phase 2 对齐。
 - 企业勾选池数超过 `MaxTokenAutoGroups`（默认 5）时留空令牌被截断，需同步调大。
 - 第 6 节文案改动未执行，落地页仍写"官 Key 直连 / 无逆向接口"，与号池全员可见冲突，应在号池对个人用户开放前改完。
-- 5.10 号池 label 调整未执行，等 `fix(group)` 135038735 发版。
+- **多副本整表覆盖**：`SaveGroupSettings` 把 `group_special_usable_group` / `GroupGroupRatio` / `user_groups` 按本副本内存快照整表写回，三副本 option 同步周期 60s，两次保存落在不同副本且间隔小于一个周期时，后一次会用旧内存覆盖前一次的改动（5.10 第一轮实际发生）。后台连续保存两个用户分组就会触发。修法：保存前从数据库重读这几个 option 再 overlay，或改为只写本用户分组的切片；属代码项。
 - 同行号池接入当天的两件事（第 4 节末段）：把 7 条自营渠道从 `default` 摘掉；`pool_*` 倍率 1.0 → 1.2。
 - `selfhost_cn` 倍率待实测后定；模型自检通过标准沿用落地页四步。

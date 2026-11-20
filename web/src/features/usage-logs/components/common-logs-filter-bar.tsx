@@ -43,6 +43,7 @@ import {
   useChannelGroupOptions,
   useSelfChannelGroupOptions,
   userGroupOptionLabel,
+  userGroupOptionTitle,
 } from '@/hooks/use-group-options'
 
 import { LOG_TYPE_ALL_VALUE, LOG_TYPE_FILTERS } from '../constants'
@@ -137,6 +138,7 @@ export function CommonLogsFilterBar<TData>(
       .filter((group) => !group.auto)
       .map((group) => ({
         label: userGroupOptionLabel(group),
+        title: userGroupOptionTitle(group) || undefined,
         value: group.value,
       }))
   }, [isAdmin, adminGroups.options, selfGroups.options])

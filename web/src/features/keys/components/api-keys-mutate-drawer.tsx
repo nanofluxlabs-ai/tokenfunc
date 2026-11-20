@@ -161,7 +161,8 @@ export function ApiKeysMutateDrawer({
       selfGroupOptions.map((option) => ({
         value: option.key,
         label: option.label,
-        desc: option.description || option.key,
+        // desc 只做 hover 提示（key），列表项不再显示第二行
+        desc: option.key,
         ratio: option.auto ? 'auto' : (option.ratio ?? undefined),
       })),
     [selfGroupOptions]

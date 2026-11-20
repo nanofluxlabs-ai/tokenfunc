@@ -72,6 +72,9 @@ test('saving the popover sends the checked group keys and blocks an empty choice
   const gptpro = within(popover).getByRole('checkbox', { name: /GPT 高速池/ })
   const defaultPool = within(popover).getByRole('checkbox', { name: /默认池/ })
   expect(defaultPool).toBeChecked()
+  // 弹层里只显示名称，key 只在 hover 提示里
+  expect(within(popover).queryByText('gptpro')).not.toBeInTheDocument()
+  expect(within(popover).getByTitle('gptpro')).toHaveTextContent('GPT 高速池')
   // 取消掉唯一的分组：不能保存，并提示至少保留一个
   await user.click(defaultPool)
   expect(defaultPool).not.toBeChecked()

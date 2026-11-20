@@ -11,6 +11,7 @@ import {
   useChannelGroupOptions,
   useUserGroupOptions,
   userGroupOptionLabel,
+  userGroupOptionTitle,
 } from '@/hooks/use-group-options'
 
 const ALL_GROUPS = '__all__'
@@ -38,12 +39,16 @@ export function GroupFilterSelect(props: GroupFilterSelectProps) {
   ).map((option) => ({
     value: option.value,
     label: userGroupOptionLabel(option),
+    title: userGroupOptionTitle(option),
   }))
   // 已选的分组即使已从注册表里删掉，也保留为选项，避免下拉显示空白
   if (props.value && !groups.some((group) => group.value === props.value)) {
-    groups.push({ value: props.value, label: props.value })
+    groups.push({ value: props.value, label: props.value, title: '' })
   }
-  const options = [{ value: ALL_GROUPS, label: t('All groups') }, ...groups]
+  const options = [
+    { value: ALL_GROUPS, label: t('All groups'), title: '' },
+    ...groups,
+  ]
 
   return (
     <Select
@@ -62,7 +67,11 @@ export function GroupFilterSelect(props: GroupFilterSelectProps) {
       </SelectTrigger>
       <SelectContent alignItemWithTrigger={false}>
         {options.map((option) => (
-          <SelectItem key={option.value} value={option.value}>
+          <SelectItem
+            key={option.value}
+            value={option.value}
+            title={option.title || undefined}
+          >
             {option.label}
           </SelectItem>
         ))}

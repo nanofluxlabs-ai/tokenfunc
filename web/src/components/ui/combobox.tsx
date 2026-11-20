@@ -170,6 +170,7 @@ function OptionCombobox(props: LegacyComboboxProps) {
               key={option.value}
               value={option}
               disabled={option.disabled}
+              title={option.title}
             >
               {option.icon && <span aria-hidden>{option.icon}</span>}
               <span className='min-w-0 break-words'>

@@ -273,7 +273,8 @@ export function TokenMutateSheet(props: TokenMutateSheetProps) {
       (options.data?.groups ?? []).map((item) => ({
         value: item.value,
         label: item.label ? translateServerText(t, item.label) : item.value,
-        desc: item.description || item.value,
+        // desc 只做 hover 提示（key），列表项不再显示第二行
+        desc: item.value,
         ratio: item.ratio,
       })),
     [options.data, t]

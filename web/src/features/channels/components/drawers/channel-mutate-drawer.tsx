@@ -110,7 +110,11 @@ import { PluginIcon } from '@/features/task-plugins/components/plugin-icon'
 import type { PluginIconInput } from '@/features/task-plugins/lib/plugin-icon'
 import { fromRequestPluginConfigDraft } from '@/features/task-plugins/lib/request-plugins'
 import { useCopyToClipboard } from '@/hooks/use-copy-to-clipboard'
-import { useChannelGroupOptions } from '@/hooks/use-group-options'
+import {
+  useChannelGroupOptions,
+  userGroupOptionLabel,
+  userGroupOptionTitle,
+} from '@/hooks/use-group-options'
 import { useHiddenClickUnlock } from '@/hooks/use-hidden-click-unlock'
 import {
   ADMIN_PERMISSION_ACTIONS,
@@ -796,20 +800,26 @@ export function ChannelMutateDrawer({
   )
 
   // Transform groups to multi-select options
+  // 只显示名称，key 放 hover 提示；搜索仍按 key（MultiSelect 按 value 过滤）
   const groupOptions = useMemo(() => {
     const known = new Map(
       channelGroupOptions.map((option) => [
         option.key,
-        option.label === option.key
-          ? option.key
-          : `${option.label} (${option.key})`,
+        {
+          label: userGroupOptionLabel(option),
+          title: userGroupOptionTitle(option),
+        },
       ])
     )
     // 渠道当前带着但已不在定价表里的分组也保留为选项
     for (const group of currentGroups || []) {
-      if (!known.has(group)) known.set(group, group)
+      if (!known.has(group)) known.set(group, { label: group, title: '' })
     }
-    return [...known].map(([value, label]) => ({ value, label }))
+    return [...known].map(([value, meta]) => ({
+      value,
+      label: meta.label,
+      title: meta.title || undefined,
+    }))
   }, [channelGroupOptions, currentGroups])
 
   // Parse current models as array

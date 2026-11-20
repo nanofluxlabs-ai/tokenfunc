@@ -122,8 +122,12 @@ export function useSelfChannelGroupOptions(options?: {
   }
 }
 
-/** 单选下拉里的展示文案：名称与 key 不同时括注 key，方便运营对照 */
+/** 单选下拉里的展示文案：只显示名称，没有登记名称时就是 key */
 export function userGroupOptionLabel(option: GroupOption): string {
-  const label = option.label || option.key
-  return label === option.key ? label : `${label} (${option.key})`
+  return option.label || option.key
+}
+
+/** 下拉项 / 徽章的 hover 提示：名称与 key 不同时给 key，运营需要对照时悬停查看；相同时留空避免重复 */
+export function userGroupOptionTitle(option: GroupOption): string {
+  return userGroupOptionLabel(option) === option.key ? '' : option.key
 }

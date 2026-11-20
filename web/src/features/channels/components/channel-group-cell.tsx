@@ -129,11 +129,6 @@ export function ChannelGroupCell(props: ChannelGroupCellProps) {
                   title={choice.key}
                 >
                   {choice.label}
-                  {choice.label !== choice.key && (
-                    <span className='text-muted-foreground ml-1 text-xs'>
-                      {choice.key}
-                    </span>
-                  )}
                 </Label>
               </div>
             )

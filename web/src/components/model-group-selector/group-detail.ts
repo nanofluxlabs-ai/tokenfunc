@@ -38,5 +38,8 @@ export function formatGroupDetail(
     : (group.description ?? '')
   if (!group.ratio) return description
   const value = typeof group.ratio === 'number' ? group.ratio : t('Auto')
-  return `${description} · ${t('Ratio: {{value}}', { value })}`
+  const ratioText = t('Ratio: {{value}}', { value })
+  // 没有描述时只显示倍率，不留悬空的分隔符
+  if (!description) return ratioText
+  return `${description} · ${ratioText}`
 }

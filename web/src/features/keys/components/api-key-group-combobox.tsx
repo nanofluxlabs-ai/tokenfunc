@@ -105,7 +105,7 @@ export function ApiKeyGroupCombobox({
             data-auto-group-effect={isAutoSelected ? 'trigger' : undefined}
             disabled={disabled}
             className={cn(
-              // 与同表单里的 Input / Select 保持 32px 标准高度，说明文字改为同行展示
+              // 与同表单里的 Input / Select 保持 32px 标准高度；只显示名称与倍率，desc（key）只做 hover 提示
               'border-input bg-muted/40 hover:bg-muted/55 hover:text-foreground active:bg-background data-popup-open:border-ring data-popup-open:bg-background data-popup-open:ring-ring/20 relative h-8 w-full justify-between gap-2 rounded-lg px-2.5 py-0 text-start shadow-none transition-[background-color,border-color,box-shadow] duration-150 data-popup-open:ring-[3px]',
               isAutoSelected &&
                 cn(
@@ -119,16 +119,12 @@ export function ApiKeyGroupCombobox({
         {isAutoSelected && (
           <AutoGroupFlowBorder shouldReduceMotion={shouldReduceMotion} />
         )}
-        <span className='flex min-w-0 flex-1 items-center justify-between gap-2 sm:gap-3'>
-          <span className='flex min-w-0 items-baseline gap-2'>
-            <span className='truncate font-medium'>
-              {selectedOption?.label || placeholder || t('Select a group')}
-            </span>
-            {selectedOption?.desc && (
-              <span className='text-muted-foreground hidden truncate text-xs sm:inline'>
-                {selectedOption.desc}
-              </span>
-            )}
+        <span
+          className='flex min-w-0 flex-1 items-center justify-between gap-2 sm:gap-3'
+          title={selectedOption?.desc || undefined}
+        >
+          <span className='truncate font-medium'>
+            {selectedOption?.label || placeholder || t('Select a group')}
           </span>
           <span className='hidden sm:block'>
             <GroupRatioBadge
@@ -165,10 +161,12 @@ export function ApiKeyGroupCombobox({
                   <CommandItem
                     key={option.value}
                     value={option.value}
+                    title={option.desc || undefined}
                     data-auto-group-effect={isAutoOption ? 'option' : undefined}
                     onSelect={() => handleSelect(option.value)}
                     className={cn(
-                      'data-[selected=true]:bg-muted items-start gap-3 rounded-lg px-3 py-3 transition-colors',
+                      // 单行：名称左对齐、倍率徽章、选中勾在最右；未选中不占位，desc 只做 hover 提示
+                      'data-[selected=true]:bg-muted items-center gap-3 rounded-lg px-3 py-2 transition-colors',
                       isAutoOption &&
                         cn(
                           AUTO_GROUP_FRAME_CLASS_NAME,
@@ -181,28 +179,17 @@ export function ApiKeyGroupCombobox({
                         shouldReduceMotion={shouldReduceMotion}
                       />
                     )}
-                    <Check
-                      aria-hidden='true'
-                      className={cn(
-                        'mt-0.5 size-4',
-                        value === option.value ? 'opacity-100' : 'opacity-0'
-                      )}
-                    />
-                    <span className='min-w-0 flex-1'>
-                      <span className='block truncate font-medium'>
-                        {option.label}
-                      </span>
-                      {option.desc && (
-                        <span className='text-muted-foreground block truncate text-xs'>
-                          {option.desc}
-                        </span>
-                      )}
+                    <span className='min-w-0 flex-1 truncate font-medium'>
+                      {option.label}
                     </span>
                     <GroupRatioBadge
                       ratio={option.ratio}
                       isAuto={isAutoOption}
                       shouldReduceMotion={shouldReduceMotion}
                     />
+                    {value === option.value && (
+                      <Check aria-hidden='true' className='size-4 shrink-0' />
+                    )}
                   </CommandItem>
                 )
               })}

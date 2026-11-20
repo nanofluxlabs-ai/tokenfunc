@@ -70,14 +70,13 @@ function renderSelect(kind: 'user' | 'channel') {
   return onChange
 }
 
-test('user kind lists user groups by name with the key in brackets', async () => {
+test('user kind lists user groups by name only and keeps the key as hover title', async () => {
   const user = userEvent.setup()
   const onChange = renderSelect('user')
 
   await user.click(screen.getByRole('combobox', { name: 'Group' }))
-  const option = await screen.findByRole('option', {
-    name: '企业标准 (ent_std)',
-  })
+  const option = await screen.findByRole('option', { name: '企业标准' })
+  expect(option).toHaveAttribute('title', 'ent_std')
   expect(groupsMock.listChannelGroups).not.toHaveBeenCalled()
 
   await user.click(option)
@@ -89,10 +88,14 @@ test('channel kind lists channel groups in the configured order', async () => {
   renderSelect('channel')
 
   await user.click(screen.getByRole('combobox', { name: 'Group' }))
-  await screen.findByRole('option', { name: 'GPT 高速池 (gptpro)' })
+  await screen.findByRole('option', { name: 'GPT 高速池' })
   const names = screen
     .getAllByRole('option')
     .map((option) => option.textContent)
-  expect(names).toEqual(['All groups', 'GPT 高速池 (gptpro)', 'default'])
+  expect(names).toEqual(['All groups', 'GPT 高速池', 'default'])
+  // 名称与 key 相同的分组不重复提示
+  expect(screen.getByRole('option', { name: 'default' })).not.toHaveAttribute(
+    'title'
+  )
   expect(groupsMock.listUserGroups).not.toHaveBeenCalled()
 })

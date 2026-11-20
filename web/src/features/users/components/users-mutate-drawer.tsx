@@ -68,6 +68,7 @@ import { Textarea } from '@/components/ui/textarea'
 import {
   useUserGroupOptions,
   userGroupOptionLabel,
+  userGroupOptionTitle,
 } from '@/hooks/use-group-options'
 import {
   ADMIN_PERMISSION_ACTIONS,
@@ -441,6 +442,8 @@ export function UsersMutateDrawer({
                               .map((option) => ({
                                 value: option.value,
                                 label: userGroupOptionLabel(option),
+                                title:
+                                  userGroupOptionTitle(option) || undefined,
                               }))}
                             onValueChange={field.onChange}
                             value={field.value}

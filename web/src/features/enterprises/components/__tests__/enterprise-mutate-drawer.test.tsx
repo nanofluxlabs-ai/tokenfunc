@@ -607,7 +607,7 @@ test('upgrading picks a personal user, defaults the group to theirs and omits an
     expect.objectContaining({ status: '1', user_type: 'personal' })
   )
   await waitFor(() =>
-    expect(screen.getByLabelText('Group')).toHaveValue('VIP (vip)')
+    expect(screen.getByLabelText('Group')).toHaveValue('VIP')
   )
   await userEvent.type(screen.getByLabelText('Enterprise Name'), 'Alice Co')
   await save()

@@ -47,6 +47,8 @@ export type Option = {
    * values also carry a marker icon whose tooltip repeats the hint.
    */
   hint?: string
+  /** hover 提示（原生 title）：下拉项与已选 chip 都带，用于放 key 这类不进正文的对照信息 */
+  title?: string
   /**
    * Leading icon rendered before the label in the dropdown and on the chip.
    * Decorative only: it never changes the accessible name.
@@ -154,6 +156,14 @@ export function MultiSelect(props: MultiSelectProps) {
     const map = new Map<string, string>()
     for (const option of props.options) {
       if (option.hint) map.set(option.value, option.hint)
+    }
+    return map
+  }, [props.options])
+
+  const titleMap = React.useMemo(() => {
+    const map = new Map<string, string>()
+    for (const option of props.options) {
+      if (option.title) map.set(option.value, option.title)
     }
     return map
   }, [props.options])
@@ -353,7 +363,12 @@ export function MultiSelect(props: MultiSelectProps) {
                           {label}
                         </button>
                       ) : (
-                        <span className='max-w-[16rem] truncate'>{label}</span>
+                        <span
+                          className='max-w-[16rem] truncate'
+                          title={titleMap.get(value)}
+                        >
+                          {label}
+                        </span>
                       )}
                       {hint && (
                         <span
@@ -430,6 +445,7 @@ export function MultiSelect(props: MultiSelectProps) {
                   value={item}
                   className={isCreate ? 'text-foreground' : undefined}
                   aria-description={hint}
+                  title={titleMap.get(item)}
                 >
                   {isCreate ? (
                     <>

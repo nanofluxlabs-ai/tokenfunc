@@ -30,6 +30,8 @@ export type ComboboxInputOption = {
   icon?: React.ReactNode
   disabled?: boolean
   description?: string
+  /** hover 提示（原生 title），用于放 key 这类不进正文的对照信息 */
+  title?: string
 }
 
 interface ComboboxInputProps {
@@ -320,20 +322,22 @@ export function ComboboxInput({
                         'bg-accent text-accent-foreground',
                       value === option.value && 'font-medium'
                     )}
+                    title={option.title}
                     onMouseEnter={() => setHighlightedIndex(index)}
                     onMouseDown={(e) => {
                       e.preventDefault() // Prevent blur
                       handleSelect(option.value)
                     }}
                   >
-                    <Check
-                      className={cn(
-                        'size-4 shrink-0',
-                        value === option.value ? 'opacity-100' : 'opacity-0'
-                      )}
-                    />
                     {option.icon && <span aria-hidden>{option.icon}</span>}
-                    <span className='truncate'>{option.label}</span>
+                    <span className='min-w-0 truncate'>{option.label}</span>
+                    {/* 选中勾放右侧，未选中不占位，正文从左边缘起 */}
+                    {value === option.value && (
+                      <Check
+                        aria-hidden='true'
+                        className='ml-auto size-4 shrink-0'
+                      />
+                    )}
                   </li>
                 ))}
               </ul>

@@ -277,3 +277,42 @@ describe('selected option icons', () => {
     expect(screen.queryByAltText('')).not.toBeInTheDocument()
   })
 })
+
+describe('free-text combobox options', () => {
+  function LegacyFixture() {
+    const [value, setValue] = useState('gptpro')
+    return (
+      <Combobox
+        allowCustomValue
+        options={[
+          { value: 'gptpro', label: 'GPT 高速池', title: 'gptpro' },
+          { value: 'default', label: 'default' },
+        ]}
+        value={value}
+        onValueChange={(next) => setValue(next ?? '')}
+        aria-label='Group'
+      />
+    )
+  }
+
+  it('shows the title on the option and puts the selected check after the label', async () => {
+    const user = userEvent.setup()
+    render(<LegacyFixture />)
+
+    await user.click(screen.getByRole('combobox', { name: 'Group' }))
+    const selected = await screen.findByRole('option', { name: 'GPT 高速池' })
+    const unselected = screen.getByRole('option', { name: 'default' })
+
+    expect(selected).toHaveAttribute('title', 'gptpro')
+    expect(unselected).not.toHaveAttribute('title')
+    const check = selected.querySelector('svg')
+    expect(check).not.toBeNull()
+    const label = screen.getByText('GPT 高速池')
+    // 勾在文字之后（右侧），未选中项没有勾，正文从左边缘起
+    expect(
+      label.compareDocumentPosition(check as Element) &
+        Node.DOCUMENT_POSITION_FOLLOWING
+    ).toBeTruthy()
+    expect(unselected.querySelector('svg')).toBeNull()
+  })
+})

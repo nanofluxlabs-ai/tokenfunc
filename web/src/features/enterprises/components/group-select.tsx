@@ -4,6 +4,7 @@ import { Combobox } from '@/components/ui/combobox'
 import {
   useUserGroupOptions,
   userGroupOptionLabel,
+  userGroupOptionTitle,
 } from '@/hooks/use-group-options'
 
 type GroupSelectProps = {
@@ -16,7 +17,7 @@ type GroupSelectProps = {
   'aria-invalid'?: boolean
 }
 
-/** 企业主账号分组：用户分组注册表里的企业档位加 default，显示名称并括注 key */
+/** 企业主账号分组：用户分组注册表里的企业档位加 default，显示名称，key 放 hover 提示 */
 export function GroupSelect(props: GroupSelectProps) {
   const { t } = useTranslation()
   const { options: userGroupOptions } = useUserGroupOptions()
@@ -27,10 +28,11 @@ export function GroupSelect(props: GroupSelectProps) {
     .map((option) => ({
       value: option.value,
       label: userGroupOptionLabel(option),
+      title: userGroupOptionTitle(option) || undefined,
     }))
   // 企业当前分组已不在候选里时仍保留，避免下拉显示空白
   if (props.value && !options.some((option) => option.value === props.value)) {
-    options.push({ value: props.value, label: props.value })
+    options.push({ value: props.value, label: props.value, title: undefined })
   }
 
   return (

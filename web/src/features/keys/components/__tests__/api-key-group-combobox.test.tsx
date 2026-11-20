@@ -86,12 +86,13 @@ function getTrigger(): HTMLButtonElement {
   return screen.getByRole('combobox')
 }
 
+/** 按名称定位下拉项：项文本 = 名称 + 倍率徽章，desc 不再出现在文本里 */
 function getCommandItem(label: string): HTMLElement {
   const item = [
     ...document.querySelectorAll<HTMLElement>('[data-slot="command-item"]'),
-  ].find((candidate) => candidate.textContent?.includes(label))
+  ].find((candidate) => candidate.textContent?.startsWith(label))
   if (!item) {
-    throw new Error(`Expected command item containing "${label}"`)
+    throw new Error(`Expected command item starting with "${label}"`)
   }
   return item
 }
@@ -137,7 +138,7 @@ describe('API key group combobox Auto effect', () => {
     fireEvent.click(trigger)
     expect(trigger).toHaveAttribute('aria-expanded', 'true')
 
-    const autoOption = getCommandItem('Global automatic routing')
+    const autoOption = getCommandItem('auto')
     expect(autoOption).toHaveAttribute('data-auto-group-effect', 'option')
     expect(autoOption).toHaveAttribute('aria-selected', 'true')
     expect(autoOption).not.toHaveClass('bg-linear-to-r')
@@ -154,7 +155,7 @@ describe('API key group combobox Auto effect', () => {
       optionRatio?.querySelector('[data-auto-group-flow-border]')
     ).toHaveClass('auto-group-flow-border-subtle')
 
-    const defaultOption = getCommandItem('User group')
+    const defaultOption = getCommandItem('default')
     expect(defaultOption).not.toHaveAttribute('data-auto-group-effect')
     expect(defaultOption.querySelector('[data-auto-group-flow-border]')).toBe(
       null
@@ -190,11 +191,9 @@ describe('API key group combobox Auto effect', () => {
       ...document.querySelectorAll<HTMLElement>('[data-slot="command-item"]'),
     ]
     expect(
-      visibleOptions.some((option) =>
-        option.textContent?.includes('Global automatic routing')
-      )
+      visibleOptions.some((option) => option.textContent?.startsWith('auto'))
     ).toBe(false)
-    const vipOption = getCommandItem('Priority group')
+    const vipOption = getCommandItem('vip')
     fireEvent.click(vipOption)
 
     expect(within(container).getByTestId('selected-group')).toHaveTextContent(
@@ -215,7 +214,7 @@ describe('API key group combobox Auto effect', () => {
     expect(within(trigger).getByText('Auto')).toBeInTheDocument()
 
     fireEvent.click(trigger)
-    const autoOption = getCommandItem('Global automatic routing')
+    const autoOption = getCommandItem('auto')
     expect(autoOption).toHaveAttribute('data-auto-group-effect', 'option')
     expect(autoOption.querySelector('[data-auto-group-flow-border]')).toBe(null)
     expect(within(autoOption).getByText('Auto')).toBeInTheDocument()
@@ -224,16 +223,35 @@ describe('API key group combobox Auto effect', () => {
 })
 
 describe('API key group combobox layout', () => {
-  test('renders the trigger at the standard 32px control height with the description inline', () => {
+  test('renders the trigger at the standard 32px control height with only the name and ratio', () => {
     setReducedMotion(false)
     render(<Harness initialValue='default' />)
 
     const trigger = getTrigger()
     expect(trigger).toHaveClass('h-8')
     expect(trigger).not.toHaveClass('h-auto', 'min-h-14', 'sm:min-h-20')
+    expect(within(trigger).queryByText('User group')).toBe(null)
+    expect(within(trigger).getByText('default')).toHaveClass('truncate')
+  })
 
-    const description = within(trigger).getByText('User group')
-    expect(description).not.toHaveClass('block')
-    expect(description).toHaveClass('truncate')
+  test('renders each option on one line with the desc as a hover title and the check after the ratio badge', () => {
+    setReducedMotion(false)
+    render(<Harness initialValue='default' />)
+    fireEvent.click(getTrigger())
+
+    const defaultOption = getCommandItem('default')
+    expect(defaultOption).toHaveAttribute('title', 'User group')
+    expect(defaultOption).not.toHaveTextContent('User group')
+    expect(defaultOption).toHaveClass('items-center')
+    const check = defaultOption.querySelector('svg.lucide-check')
+    expect(check).not.toBe(null)
+    expect(
+      check?.previousElementSibling?.closest('[data-slot="badge"]')
+    ).not.toBe(null)
+
+    const vipOption = getCommandItem('vip')
+    expect(vipOption).toHaveAttribute('title', 'Priority group')
+    expect(vipOption).not.toHaveTextContent('Priority group')
+    expect(vipOption.querySelector('svg.lucide-check')).toBe(null)
   })
 })

@@ -66,6 +66,7 @@ import { getPaymentErrorTranslation } from '@/features/wallet/lib/payment'
 import {
   useUserGroupOptions,
   userGroupOptionLabel,
+  userGroupOptionTitle,
 } from '@/hooks/use-group-options'
 import { getCurrencyDisplay, getCurrencyLabel } from '@/lib/currency'
 import { handleServerError } from '@/lib/handle-server-error'
@@ -105,11 +106,12 @@ export function SubscriptionsMutateDrawer({
   const tokensOnly = currencyMeta.kind === 'tokens'
   const currencyLabel = getCurrencyLabel()
   const [isSubmitting, setIsSubmitting] = useState(false)
-  // 升级 / 降级分组是用户分组（TokenFunc 注册表），显示名称并括注 key
+  // 升级 / 降级分组是用户分组（TokenFunc 注册表），显示名称，key 放 hover 提示
   const { options: userGroupOptions } = useUserGroupOptions()
   const groupOptions = userGroupOptions.map((option) => ({
     value: option.value,
     label: userGroupOptionLabel(option),
+    title: userGroupOptionTitle(option) || undefined,
   }))
   const [creatingPancakeProduct, setCreatingPancakeProduct] = useState(false)
   const [pancakeProducts, setPancakeProducts] = useState<

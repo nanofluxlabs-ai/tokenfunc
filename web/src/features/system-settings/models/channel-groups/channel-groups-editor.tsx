@@ -2,20 +2,20 @@
 // 行数据由上游 6 个分组 option + 注册表合成，每次编辑把差异字段写回表单；
 // 外部（表单 reset）改动字段时按签名比对重建行。
 import { useQuery } from '@tanstack/react-query'
-import { Plus } from 'lucide-react'
 import { Reorder } from 'motion/react'
 import {
   useCallback,
   useEffect,
+  useImperativeHandle,
   useMemo,
   useState,
   type ReactNode,
+  type Ref,
 } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { ConfirmDialog } from '@/components/confirm-dialog'
 import { EmptyState } from '@/components/empty-state'
-import { Button } from '@/components/ui/button'
 import { getChannels } from '@/features/channels/api'
 import { requireServerSuccess } from '@/lib/server-error-message'
 
@@ -40,7 +40,13 @@ const DEFAULT_GROUP_KEY = 'default'
 /** 一次拉取的渠道上限；超过则不展示精确数量 */
 const CHANNEL_USAGE_PAGE_SIZE = 1000
 
+/** 供上层（页面右上角操作区）触发的编辑器动作 */
+export type ChannelGroupsEditorHandle = {
+  addRow: () => void
+}
+
 type ChannelGroupsEditorProps = {
+  ref?: Ref<ChannelGroupsEditorHandle>
   values: ChannelGroupFormValues
   onChange: (field: keyof ChannelGroupFormValues, value: string) => void
   /** 行 key 校验结果变化时通知上层，用于禁用保存按钮 */
@@ -145,6 +151,9 @@ export function ChannelGroupsEditor(props: ChannelGroupsEditorProps) {
     ])
   }, [emitRows, rows])
 
+  // 「新增渠道分组」按钮放在页面右上角操作区（列表长时不用滚回顶部），由表单经 ref 调用
+  useImperativeHandle(props.ref, () => ({ addRow }), [addRow])
+
   const requestDelete = useCallback(
     (row: ChannelGroupRow) => {
       // 尚未保存过的新行直接移除，不需要确认
@@ -200,17 +209,11 @@ export function ChannelGroupsEditor(props: ChannelGroupsEditorProps) {
 
   return (
     <div className='flex min-w-0 flex-col gap-4'>
-      <div className='flex flex-wrap items-center justify-between gap-2'>
-        <p className='text-muted-foreground text-sm'>
-          {t(
-            'Each channel group is a pool of channels with its own base ratio. Drag to change the order shown to users.'
-          )}
-        </p>
-        <Button type='button' size='sm' onClick={addRow}>
-          <Plus className='mr-2 h-4 w-4' aria-hidden='true' />
-          {t('Add channel group')}
-        </Button>
-      </div>
+      <p className='text-muted-foreground text-sm'>
+        {t(
+          'Each channel group is a pool of channels with its own base ratio. Drag to change the order shown to users.'
+        )}
+      </p>
 
       {rows.length === 0 ? (
         <EmptyState

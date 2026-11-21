@@ -2,7 +2,8 @@
 // 自上而下两段：渠道分组（本表单）、用户分组定价（用户管理模块的面板）。
 // 两段的改动都由右上角「保存」一次提交、后端一个事务落库；只有新建用户分组是实时保存。
 import { useQueryClient } from '@tanstack/react-query'
-import { memo, useCallback, useState } from 'react'
+import { Plus } from 'lucide-react'
+import { memo, useCallback, useRef, useState } from 'react'
 import { useWatch, type UseFormReturn } from 'react-hook-form'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
@@ -41,7 +42,10 @@ import {
 } from '../../components/settings-form-layout'
 import { SettingsPageActionsPortal } from '../../components/settings-page-context'
 import { safeNumberFieldProps } from '../../utils/numeric-field'
-import { ChannelGroupsEditor } from './channel-groups-editor'
+import {
+  ChannelGroupsEditor,
+  type ChannelGroupsEditorHandle,
+} from './channel-groups-editor'
 import type { ChannelGroupFormValues } from './lib/serialization'
 
 export type GroupFormValues = ChannelGroupFormValues & {
@@ -71,6 +75,7 @@ export const ChannelGroupsForm = memo(function ChannelGroupsForm(
   const values = useWatch({ control: form.control })
   const [autoOpen, setAutoOpen] = useState(false)
   const [rowsValid, setRowsValid] = useState(true)
+  const editorRef = useRef<ChannelGroupsEditorHandle>(null)
 
   const handleFieldChange = useCallback(
     (field: keyof ChannelGroupFormValues, value: string) => {
@@ -118,6 +123,16 @@ export const ChannelGroupsForm = memo(function ChannelGroupsForm(
     <div className='flex min-w-0 flex-col gap-6 pb-6'>
       <Form {...form}>
         <SettingsPageActionsPortal>
+          {/* 新增放在保存左侧：渠道分组多时滚到底部也能直接新增，不用回到卡片顶部 */}
+          <Button
+            type='button'
+            size='sm'
+            variant='outline'
+            onClick={() => editorRef.current?.addRow()}
+          >
+            <Plus className='mr-2 h-4 w-4' aria-hidden='true' />
+            {t('Add channel group')}
+          </Button>
           <Button
             type='button'
             size='sm'
@@ -147,6 +162,7 @@ export const ChannelGroupsForm = memo(function ChannelGroupsForm(
           </CardHeader>
           <CardContent>
             <ChannelGroupsEditor
+              ref={editorRef}
               values={channelGroupValues}
               onChange={handleFieldChange}
               onValidityChange={setRowsValid}

@@ -151,6 +151,24 @@ describe('channel groups editor', () => {
     ).toBeDisabled()
   })
 
+  it('puts the add button in the page actions before Save pricing so a long list can be extended without scrolling up', async () => {
+    const user = userEvent.setup()
+    render(<Fixture />)
+
+    const add = screen.getByRole('button', { name: 'Add channel group' })
+    const save = screen.getByRole('button', { name: 'Save pricing' })
+    const list = screen.getByRole('list', { name: 'Channel groups' })
+    expect(list).not.toContainElement(add)
+    expect(add.parentElement).toBe(save.parentElement)
+    expect(
+      add.compareDocumentPosition(save) & Node.DOCUMENT_POSITION_FOLLOWING
+    ).toBeTruthy()
+
+    await user.click(add)
+    expect(within(list).getAllByRole('listitem')).toHaveLength(3)
+    expect(screen.getByRole('textbox', { name: 'Group key' })).toHaveValue('')
+  })
+
   it('blocks saving until a new row has a valid unique key and then saves it', async () => {
     const user = userEvent.setup()
     const onSave = vi.fn<SaveHandler>(async () => true)

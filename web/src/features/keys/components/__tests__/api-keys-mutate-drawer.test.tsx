@@ -208,6 +208,16 @@ describe('API keys mutate drawer Auto group integration', () => {
     // 自动分组顺序由后台配置，密钥抽屉不再出现顺序编辑器
     expect(document.body.textContent?.includes('Auto group order')).toBe(false)
 
+    // 后台把 auto 排在最后，下拉里仍固定排第一
+    fireEvent.click(groupTrigger)
+    const optionValues = (await screen.findAllByRole('option')).map((option) =>
+      option.getAttribute('data-value')
+    )
+    expect(optionValues).toEqual(['auto', 'default', 'vip'])
+    fireEvent.keyDown(document.activeElement ?? document.body, {
+      key: 'Escape',
+    })
+
     changeInput(getControlByLabel('Name'), 'batch')
     changeInput(getControlByLabel('Quantity'), '2')
     fireEvent.click(findButton('Save changes', true))

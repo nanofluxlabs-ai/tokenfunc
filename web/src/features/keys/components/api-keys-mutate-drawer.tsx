@@ -145,13 +145,16 @@ export function ApiKeysMutateDrawer({
   const models = modelsData?.data || []
   const groups = useMemo<ApiKeyGroupOption[]>(
     () =>
-      selfGroupOptions.map((option) => ({
-        value: option.key,
-        label: option.label,
-        // desc 只做 hover 提示（key），列表项不再显示第二行
-        desc: option.key,
-        ratio: option.auto ? 'auto' : (option.ratio ?? undefined),
-      })),
+      // 自动分组固定排第一（与企业令牌表单一致），其余保持后台排序
+      [...selfGroupOptions]
+        .sort((a, b) => (b.auto ? 1 : 0) - (a.auto ? 1 : 0))
+        .map((option) => ({
+          value: option.key,
+          label: option.label,
+          // desc 只做 hover 提示（key），列表项不再显示第二行
+          desc: option.key,
+          ratio: option.auto ? 'auto' : (option.ratio ?? undefined),
+        })),
     [selfGroupOptions]
   )
   const backendHasAuto = groups.some((g) => g.value === 'auto')

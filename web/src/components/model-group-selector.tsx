@@ -663,7 +663,11 @@ export const ModelGroupSelector: React.FC<ModelGroupSelectorProps> = ({
       <span className='min-w-0 truncate text-xs'>
         {currentModel?.label || t('Model')}
       </span>
-      <span className='bg-muted text-muted-foreground hidden max-w-20 shrink-0 rounded px-1.5 py-0.5 text-[10px] sm:inline-flex'>
+      {/* 分组名可能很长（如「【订阅】Claude · GPT · 国产 混合号池」），限宽截断，完整名放 hover，不能溢出到右侧发送按钮上 */}
+      <span
+        className='bg-muted text-muted-foreground hidden max-w-24 shrink-0 truncate rounded px-1.5 py-0.5 text-[10px] sm:inline-block'
+        title={currentGroup?.label}
+      >
         {currentGroup?.label || t('Group')}
       </span>
       <ChevronsUpDown className='text-muted-foreground ml-auto size-3.5 shrink-0 opacity-60' />

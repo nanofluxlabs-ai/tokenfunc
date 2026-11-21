@@ -1,6 +1,6 @@
 # TokenFunc 渠道分组与定价倍率规划
 
-> 状态：v3（2026-11-21），第 5 节迁移与 v2 的号池 label 调整均已在生产执行完毕（5.9 / 5.10）；v2 把号池改为三档结构并定下同行资源归组规则（D4 / D9 / D10）；第 6 节文案改动已于 2026-11-21 完成；v3 放开 D4 的"一条渠道只进一档"（多挂合规，逐组核价），新增 `internal` / `beta` 两个用户分组（3.3 / 3.4）
+> 状态：v3（2026-11-21），第 5 节迁移与 v2 的号池 label 调整均已在生产执行完毕（5.9 / 5.10）；v2 把号池改为三档结构并定下同行资源归组规则（D4 / D9 / D10）；第 6 节文案改动已于 2026-11-21 完成；v3 放开 D4 的"一条渠道只进一档"（多挂合规，逐组核价），新增 `internal` / `invited` 两个用户分组（3.3 / 3.4）
 > 范围：渠道分组的命名规范、分组总表与基准倍率、用户分组矩阵、存量迁移步骤、落地页文案改动清单
 > 不在范围：充值汇率与毛利核算、报价单分组（见「7. 遗留」）、代码改动
 > 机制依据：分组定价功能（PR #76，`docs/worklog/2026-11-05-feat-group-pricing-matrix.md`）——渠道分组注册表 `tokenfunc_group_setting.channel_groups` 只存名称与排序，key 以 `GroupRatio` 为准；用户分组显式维护可见渠道分组列表与 `channel_order`，覆盖倍率写 `GroupGroupRatio`；计费链路不变
@@ -191,14 +191,14 @@ tokensolo 2026-11-19 渠道快照里的成本倍率（人民币 / 官方价 $1�
 - 额度 / 限速：管理员在用户管理页按人充额度，不限速
 - 留空 / `auto` 令牌：候选 = `channel_order` 前 `MaxTokenAutoGroups`（5）个 = 五个自营池，被截断是预期效果，不调大；要测 Bedrock / Azure / 同行渠道时令牌显式选分组
 
-### 3.4 `beta`（好友测试）
+### 3.4 `invited`（邀请试用）
 
-- label 好友测试，kind individual
+- label 邀请试用，kind individual。身边资源邀请进来试用的用户默认都进这个分组，不只是内测用户，所以 key 不用 `beta`
 - 可见：只 `default`（混合号池；同行号池接入后也在里面，成本倍率 0.14–0.8，不算高价付费渠道）；Bedrock / Azure / 厂商 API 分组不勾，请求路由不到
 - `channel_order`：`default`
 - 倍率：基准 1.0，不写覆盖。免费靠赠送额度实现，不靠低倍率：账单显示真实价格，转付费时没有落差
 - 额度 / 限速：管理员按人赠额度；限速默认不开，确有滥用再按第 7 节的方式开
-- 进组方式：好友自行注册（落 `default`）后，管理员在用户管理页改分组到 `beta` 并编辑额度；上游没有邀请码自动归组
+- 进组方式：好友自行注册（落 `default`）后，管理员在用户管理页改分组到 `invited` 并编辑额度；上游没有邀请码自动归组
 
 ---
 
@@ -392,9 +392,9 @@ SELECT "group", count(*) FROM abilities GROUP BY 1;
 
 校验：root 与 ddjs 各调 `GET /api/tokenfunc/groups/self` 看到 `auto`；`GET /api/token/auto-groups` root 得 `["default"]`，ddjs 得其分组定价页顺序；用 ddjs 的 auto 令牌打一次 glm-5.3，日志分组为 pool_cn。
 
-### 5.12 新建 `internal` / `beta` 用户分组（2026-11-21 已执行）
+### 5.12 新建 `internal` / `invited` 用户分组（2026-11-21 已执行）
 
-Root 令牌走接口（`POST /api/tokenfunc/groups/user` → `PUT /api/tokenfunc/groups/user/:key/pricing`），请求文件在 `tokenfunc/.tmp/group-usergroups-20261121/`。结果：`internal` 可见 11 个分组、`channel_order` 同 3.3、全部基准价（`pool_gpt_lite` 生产基准 0.3）；`beta` 只可见 `default`；`default` / `ddjs` 定价表未受影响；65s 后三次读取与 DB option 一致。两组 `user_count` 为 0，成员改组与赠额度在用户管理页人工做。
+Root 令牌走接口（`POST /api/tokenfunc/groups/user` → `PUT /api/tokenfunc/groups/user/:key/pricing`），请求文件在 `tokenfunc/.tmp/group-usergroups-20261121/`。结果：`internal` 可见 11 个分组、`channel_order` 同 3.3、全部基准价（`pool_gpt_lite` 生产基准 0.3）；`invited` 只可见 `default`（首建时 key 为 `beta`、label 好友测试，黑鹰指出该组不只内测用户，0 人时删除重建为 `invited` / 邀请试用）；`default` / `ddjs` 定价表未受影响；65s 后三次读取与 DB option 一致。两组 `user_count` 为 0，成员改组与赠额度在用户管理页人工做。
 
 ## 6. 落地页 / 文案改动清单
 
@@ -424,5 +424,5 @@ D7 的后续代码项，2026-11-21 已完成（`docs/worklog/2026-11-21-feat-lan
 - 企业勾选池数超过 `MaxTokenAutoGroups`（默认 5）时留空令牌被截断，需同步调大。
 - 多副本整表覆盖（5.10 第一轮实际发生）已于 2026-11-21 修复：分组 option 改为事务内锁行读改写（`docs/worklog/2026-11-21-fix-group-option-transactional-write.md`），并发保存串行化。
 - 同行号池接入当天的两件事（第 4 节末段）：是否把自营高优先账号从 `default` 摘掉；`pool_*` 倍率 1.0 → 1.2。
-- 按用户分组限速（`ModelRequestRateLimitGroup`，值 `{"beta":[总次数, 成功次数]}` 每分钟）依赖全局开关 `ModelRequestRateLimitEnabled`，开了以后所有用户都按全局默认（总次数 0 = 不限，成功 1000/分钟）计数；`beta` 确有滥用再开。
+- 按用户分组限速（`ModelRequestRateLimitGroup`，值 `{"invited":[总次数, 成功次数]}` 每分钟）依赖全局开关 `ModelRequestRateLimitEnabled`，开了以后所有用户都按全局默认（总次数 0 = 不限，成功 1000/分钟）计数；`invited` 确有滥用再开。
 - `selfhost_cn` 倍率待实测后定；模型自检通过标准沿用落地页四步。

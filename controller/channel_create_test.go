@@ -21,7 +21,11 @@ func setupChannelCreateTest(t *testing.T) int {
 	previousDB, previousLogDB := model.DB, model.LOG_DB
 	previousType, previousLogType := common.MainDatabaseType(), common.LogDatabaseType()
 	previousMaster, previousCache, previousRedis, previousSQLite := common.IsMasterNode, common.MemoryCacheEnabled, common.RedisEnabled, common.SQLitePath
+	// 新建后的后台探测会在本测试清理换回 model.DB 之后才查库，这里桩掉；探测本身由 channel_health_probe 的用例覆盖
+	previousStartChecks := startPostCreateChannelChecks
+	startPostCreateChannelChecks = func([]int) {}
 	t.Cleanup(func() {
+		startPostCreateChannelChecks = previousStartChecks
 		model.DB, model.LOG_DB = previousDB, previousLogDB
 		common.SetDatabaseTypes(previousType, previousLogType)
 		common.IsMasterNode, common.MemoryCacheEnabled, common.RedisEnabled, common.SQLitePath = previousMaster, previousCache, previousRedis, previousSQLite

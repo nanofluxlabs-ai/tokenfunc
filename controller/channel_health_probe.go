@@ -283,6 +283,12 @@ func runExternalSlowProbeTask(ctx context.Context, report func(processed, total 
 
 // ---- 新建渠道后的首次检查 ----
 
+// startPostCreateChannelChecks 新建渠道后在后台启动一次探测。做成变量是为了让渠道新建的测试桩掉它：
+// 探测 goroutine 会在测试清理换掉 model.DB 之后才跑到 GetChannelById，直接空指针 panic 拖垮整个包。
+var startPostCreateChannelChecks = func(channelIds []int) {
+	go runPostCreateChannelChecks(channelIds)
+}
+
 // runPostCreateChannelChecks 新建渠道后异步测一次：写响应时间；外部渠道同时跑一次快探与推理结果记录。
 // 不触发自动禁用，与手动测试语义一致。
 func runPostCreateChannelChecks(channelIds []int) {

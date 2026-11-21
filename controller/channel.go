@@ -977,7 +977,7 @@ func AddChannel(c *gin.Context) {
 			createdIds = append(createdIds, created.Id)
 		}
 	}
-	go runPostCreateChannelChecks(createdIds)
+	startPostCreateChannelChecks(createdIds)
 	createAudit := map[string]any{
 		"name":  addChannelRequest.Channel.Name,
 		"type":  addChannelRequest.Channel.Type,

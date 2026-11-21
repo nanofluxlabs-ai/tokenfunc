@@ -25,6 +25,10 @@ func setupTaskPluginBindChannelTest(t *testing.T) {
 	common.IsMasterNode = true
 	previousRedisEnabled := common.RedisEnabled
 	common.RedisEnabled = false
+	// 新建后的后台探测会在清理换回 model.DB 之后才查库，桩掉（同 setupChannelCreateTest）
+	previousStartChecks := startPostCreateChannelChecks
+	startPostCreateChannelChecks = func([]int) {}
+	t.Cleanup(func() { startPostCreateChannelChecks = previousStartChecks })
 	originalDB, originalLogDB := model.DB, model.LOG_DB
 	database, err := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{})
 	require.NoError(t, err)

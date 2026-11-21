@@ -378,7 +378,7 @@ SELECT "group", count(*) FROM abilities GROUP BY 1;
 
 执行记录：请求体 `step5-rename-default.json` / `step5-rename-ddjs.json`、脚本 `step5-run.sh` 在 `.tmp/group-migration-20261120/`。第一轮两次 PUT 连发，第二次落在尚未同步的副本上，用它内存里的旧整表覆盖了第一次写的 `+:` 快照（见第 7 节）；第二轮改为每次 PUT 后轮询到连续 12 次 `GET /api/user/self/groups` 都返回新名（SYNC_FREQUENCY=60s）再发下一次。结果：注册表、`group_special_usable_group` 快照、ddjs 覆盖倍率（0.5 / 1 / 0.45 / 0.5）、三副本令牌分组接口全部为新名；`default` 自身描述仍是上游占位，待发版。
 
-### 5.11 开启自动分组（待执行，先发版再改配置）
+### 5.11 开启自动分组（2026-11-21 已执行：v2026.11.21.1 发版后三项 option 已改，三副本同步确认）
 
 目的：创建密钥时默认选"自动分组"。前端默认选 auto 的条件是 `/api/status` 的 `default_use_auto_group` 为真且 `/api/tokenfunc/groups/self` 返回 auto 项。三个 option：
 
@@ -391,6 +391,10 @@ SELECT "group", count(*) FROM abilities GROUP BY 1;
 顺序：先把含 `GetUserAutoGroup` 企业分支的版本发到生产，再改配置。反过来会让 ddjs 等企业新建密钥默认 auto 而候选为空（`AutoGroups ∩ 可见池` = ∅），请求报 "auto groups is not enabled"。
 
 校验：root 与 ddjs 各调 `GET /api/tokenfunc/groups/self` 看到 `auto`；`GET /api/token/auto-groups` root 得 `["default"]`，ddjs 得其分组定价页顺序；用 ddjs 的 auto 令牌打一次 glm-5.3，日志分组为 pool_cn。
+
+### 5.12 新建 `internal` / `beta` 用户分组（2026-11-21 已执行）
+
+Root 令牌走接口（`POST /api/tokenfunc/groups/user` → `PUT /api/tokenfunc/groups/user/:key/pricing`），请求文件在 `tokenfunc/.tmp/group-usergroups-20261121/`。结果：`internal` 可见 11 个分组、`channel_order` 同 3.3、全部基准价（`pool_gpt_lite` 生产基准 0.3）；`beta` 只可见 `default`；`default` / `ddjs` 定价表未受影响；65s 后三次读取与 DB option 一致。两组 `user_count` 为 0，成员改组与赠额度在用户管理页人工做。
 
 ## 6. 落地页 / 文案改动清单
 

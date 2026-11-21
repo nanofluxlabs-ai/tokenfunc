@@ -1614,7 +1614,8 @@
     "Fix invalid group settings before saving.": "保存する前に無効なグループ設定を修正してください。",
     "All channel groups are already listed": "すべてのチャネルグループが既に一覧にあります",
     "Select a channel group": "チャネルグループを選択してください",
-    "Pick a channel group to offer to this user group. Leave the ratio empty to use its base ratio.": "このユーザーグループに提供するチャネルグループを選びます。倍率を空にすると基準倍率を使います。",
+    "Select channel groups": "チャネルグループを選択（複数可）",
+    "Pick one or more channel groups to offer to this user group. The ratio applies to all of them; leave it empty to use each group's base ratio.": "このユーザーグループに提供するチャネルグループを 1 つ以上選びます。倍率は選択したすべてに適用され、空にすると各グループの基準倍率を使います。",
     "Auto (by group priority)": "自動（グループ優先順位順）",
     "The order here is what users of this group see in the token group list; tokens of an enterprise tier that leave the group empty try these groups in this order for the requested model; an empty ratio inherits the base ratio of the channel group.": "ここでの順序は、このグループのユーザーがトークンのグループ一覧で見る順序です。企業ティアのトークンでグループを空にした場合、要求されたモデルを持つチャネルグループをこの順序で探します。倍率が空の場合はチャネルグループの基準倍率を継承します。"
   }

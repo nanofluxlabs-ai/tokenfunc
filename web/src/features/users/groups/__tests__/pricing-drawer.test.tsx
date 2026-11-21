@@ -107,7 +107,7 @@ function listedGroups(): string[] {
     )
 }
 
-/** 打开「添加渠道分组」弹窗并展开候选；选项的可访问名称含 key 与基准倍率说明，用前缀匹配 */
+/** 打开「添加渠道分组」弹窗并展开候选；多选框的可访问名称是占位文案，选项名称含 key 与基准倍率说明，用前缀匹配 */
 async function openCandidates() {
   await userEvent.click(
     screen.getByRole('button', { name: 'Configure channel group' })
@@ -116,18 +116,27 @@ async function openCandidates() {
     name: 'Configure channel group',
   })
   await userEvent.click(
-    within(dialog).getByRole('combobox', { name: 'Channel group' })
+    within(dialog).getByRole('combobox', { name: 'Select channel groups' })
   )
   await userEvent.keyboard('{ArrowDown}')
   return dialog
 }
 
-/** 走完整个弹窗：选候选 → 填倍率（可留空）→ 点「添加」 */
-async function addCandidate(label: string, ratio = '') {
+/** 走完整个弹窗：选一个或多个候选 → 填倍率（可留空）→ 点「添加」 */
+async function addCandidate(labels: string | string[], ratio = '') {
   const dialog = await openCandidates()
-  await userEvent.click(
-    await screen.findByRole('option', { name: new RegExp(`^${label}`) })
-  )
+  for (const label of Array.isArray(labels) ? labels : [labels]) {
+    const name = new RegExp(`^${label}`)
+    // 多选选完一项列表可能收起，再点一次输入框展开
+    if (!screen.queryByRole('option', { name })) {
+      await userEvent.click(
+        within(dialog).getByRole('combobox', { name: 'Select channel groups' })
+      )
+    }
+    await userEvent.click(await screen.findByRole('option', { name }))
+  }
+  // 候选列表开着时弹窗其余内容对可访问树不可见，先 Escape 收起列表（不会关掉弹窗）
+  await userEvent.keyboard('{Escape}')
   if (ratio !== '') {
     await userEvent.type(
       within(dialog).getByRole('spinbutton', { name: 'Ratio' }),
@@ -187,6 +196,23 @@ test('adding a candidate with ratio 0.9 through the dialog appends it to the end
     visible: true,
     ratio: 0.9,
   })
+})
+
+test('adding two candidates at once appends both in candidate order and applies the one ratio to each', async () => {
+  await renderDrawer()
+  // 先把 Premium 摘掉，候选变成 Hidden pool、Premium 两个
+  await userEvent.click(screen.getByRole('button', { name: 'Remove Premium' }))
+
+  await addCandidate(['Hidden pool', 'Premium'], '0.9')
+
+  expect(listedGroups()).toEqual(['Default', 'VIP', 'Hidden pool', 'Premium'])
+  expect(ratioInput('Hidden pool')).toHaveValue(0.9)
+  expect(ratioInput('Premium')).toHaveValue(0.9)
+  const rows = await save()
+  expect(rows.slice(2)).toEqual([
+    { channel_group: 'hidden_pool', visible: true, ratio: 0.9 },
+    { channel_group: 'premium', visible: true, ratio: 0.9 },
+  ])
 })
 
 test('adding a candidate with an empty ratio submits null so the base ratio is used', async () => {

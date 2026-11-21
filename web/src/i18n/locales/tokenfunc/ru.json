@@ -1614,7 +1614,8 @@
     "Fix invalid group settings before saving.": "Исправьте недопустимые настройки групп перед сохранением.",
     "All channel groups are already listed": "Все группы каналов уже в списке",
     "Select a channel group": "Выберите группу каналов",
-    "Pick a channel group to offer to this user group. Leave the ratio empty to use its base ratio.": "Выберите группу каналов, которую нужно открыть этой группе пользователей. Пустой коэффициент означает базовый.",
+    "Select channel groups": "Выберите группы каналов",
+    "Pick one or more channel groups to offer to this user group. The ratio applies to all of them; leave it empty to use each group's base ratio.": "Выберите одну или несколько групп каналов, которые нужно открыть этой группе пользователей. Коэффициент применяется ко всем выбранным; пустое значение — базовый коэффициент каждой группы.",
     "Auto (by group priority)": "Авто (по приоритету групп)",
     "The order here is what users of this group see in the token group list; tokens of an enterprise tier that leave the group empty try these groups in this order for the requested model; an empty ratio inherits the base ratio of the channel group.": "Этот порядок видят пользователи группы в списке групп токена; токены корпоративного тарифа без группы перебирают эти группы в этом порядке для запрошенной модели; пустой коэффициент наследует базовый коэффициент группы каналов."
   }

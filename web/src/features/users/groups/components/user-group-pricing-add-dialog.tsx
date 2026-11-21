@@ -1,13 +1,13 @@
-// TokenFunc 二开：「配置渠道分组」按钮 + 弹窗：从已有渠道分组里挑一个配给当前用户分组。
-// 候选 = 定价草稿里当前不可见的渠道分组；确认后把该行置为可见、带上填写的倍率追加到草稿末尾，
+// TokenFunc 二开：「配置渠道分组」按钮 + 弹窗：从已有渠道分组里挑一个或多个配给当前用户分组。
+// 候选 = 定价草稿里当前不可见的渠道分组；确认后把选中的行置为可见、带上同一个倍率、按候选顺序追加到草稿末尾，
 // 不立即保存：系统设置页由右上角「保存」统一提交，定价抽屉由抽屉底部「保存」提交。
 import { Plus } from 'lucide-react'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { Dialog } from '@/components/dialog'
+import { MultiSelect } from '@/components/multi-select'
 import { Button } from '@/components/ui/button'
-import { Combobox } from '@/components/ui/combobox'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import {
@@ -29,7 +29,7 @@ type AddChannelGroupButtonProps = {
 export function AddChannelGroupButton(props: AddChannelGroupButtonProps) {
   const { t } = useTranslation()
   const [open, setOpen] = useState(false)
-  const [groupKey, setGroupKey] = useState<string | null>(null)
+  const [groupKeys, setGroupKeys] = useState<string[]>([])
   const [ratioText, setRatioText] = useState('')
   const [submitted, setSubmitted] = useState(false)
 
@@ -37,31 +37,37 @@ export function AddChannelGroupButton(props: AddChannelGroupButtonProps) {
   const candidates = hiddenRows.map((row) => ({
     value: row.channel_group,
     label: translateServerText(t, row.label) || row.channel_group,
-    description: `${row.channel_group} · ${row.base_ratio}x`,
+    hint: `${row.channel_group} · ${row.base_ratio}x`,
+    title: row.channel_group,
   }))
-  const selected = hiddenRows.find((row) => row.channel_group === groupKey)
+  // 按候选顺序（即注册表顺序）取选中的行，追加时保持这个顺序
+  const selectedRows = hiddenRows.filter((row) =>
+    groupKeys.includes(row.channel_group)
+  )
   const ratioInvalid =
     ratioText.trim() !== '' && parseRatioText(ratioText) === null
   const nothingToAdd = candidates.length === 0
+  // 只选了一个时提示它的基准价；多选各自基准价不同，不提示
+  const ratioPlaceholder =
+    selectedRows.length === 1 ? String(selectedRows[0].base_ratio) : ''
 
   const handleOpenChange = (next: boolean) => {
     setOpen(next)
     if (next) return
-    setGroupKey(null)
+    setGroupKeys([])
     setRatioText('')
     setSubmitted(false)
   }
 
   const handleAdd = () => {
     setSubmitted(true)
-    if (!selected || ratioInvalid) return
+    if (selectedRows.length === 0 || ratioInvalid) return
     // 新行追加到可见列表末尾，顺序由用户再调整
+    const ratio = ratioText.trim()
     props.onChange([
       ...props.rows.filter((row) => row.visible),
-      { ...selected, visible: true, ratioText: ratioText.trim() },
-      ...hiddenRows.filter(
-        (row) => row.channel_group !== selected.channel_group
-      ),
+      ...selectedRows.map((row) => ({ ...row, visible: true, ratioText: ratio })),
+      ...hiddenRows.filter((row) => !groupKeys.includes(row.channel_group)),
     ])
     handleOpenChange(false)
   }
@@ -99,7 +105,7 @@ export function AddChannelGroupButton(props: AddChannelGroupButtonProps) {
         onOpenChange={handleOpenChange}
         title={t('Configure channel group')}
         description={t(
-          'Pick a channel group to offer to this user group. Leave the ratio empty to use its base ratio.'
+          "Pick one or more channel groups to offer to this user group. The ratio applies to all of them; leave it empty to use each group's base ratio."
         )}
         contentClassName='sm:max-w-md'
         footer={
@@ -119,18 +125,18 @@ export function AddChannelGroupButton(props: AddChannelGroupButtonProps) {
       >
         <div className='flex flex-col gap-4'>
           <div className='flex flex-col gap-2'>
-            <Label htmlFor='add-channel-group-key'>{t('Channel group')}</Label>
-            <Combobox
-              id='add-channel-group-key'
+            <Label htmlFor='add-channel-group-keys'>{t('Channel groups')}</Label>
+            <MultiSelect
+              id='add-channel-group-keys'
               options={candidates}
-              value={groupKey}
-              onValueChange={setGroupKey}
-              placeholder={t('Select a channel group')}
+              selected={groupKeys}
+              onChange={setGroupKeys}
+              placeholder={t('Select channel groups')}
               emptyText={t('No matching channel groups')}
-              aria-invalid={submitted && !selected ? true : undefined}
+              maxVisibleChips={8}
               className='w-full'
             />
-            {submitted && !selected && (
+            {submitted && selectedRows.length === 0 && (
               <p className='text-destructive text-sm' role='alert'>
                 {t('Select a channel group')}
               </p>
@@ -145,7 +151,7 @@ export function AddChannelGroupButton(props: AddChannelGroupButtonProps) {
               step={0.01}
               inputMode='decimal'
               value={ratioText}
-              placeholder={selected ? String(selected.base_ratio) : ''}
+              placeholder={ratioPlaceholder}
               aria-invalid={ratioInvalid || undefined}
               className='font-mono tabular-nums'
               onChange={(event) => setRatioText(event.target.value)}

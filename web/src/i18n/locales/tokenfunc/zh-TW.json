@@ -1614,7 +1614,8 @@
     "Fix invalid group settings before saving.": "請先修正無效的分組設定再儲存。",
     "All channel groups are already listed": "所有通道分組都已在清單中",
     "Select a channel group": "請選擇通道分組",
-    "Pick a channel group to offer to this user group. Leave the ratio empty to use its base ratio.": "選擇要開放給該使用者分組的通道分組；倍率留空則沿用其基準價。",
+    "Select channel groups": "請選擇通道分組（可多選）",
+    "Pick one or more channel groups to offer to this user group. The ratio applies to all of them; leave it empty to use each group's base ratio.": "選擇一個或多個要開放給該使用者分組的通道分組；倍率對所選全部生效，留空則各自沿用基準價。",
     "Auto (by group priority)": "自動（按分組優先級）",
     "The order here is what users of this group see in the token group list; tokens of an enterprise tier that leave the group empty try these groups in this order for the requested model; an empty ratio inherits the base ratio of the channel group.": "這裡的順序就是該分組使用者在令牌分組下拉裡看到的順序；企業檔位的令牌分組留空時，按此順序找第一個有該模型的渠道分組；倍率留空沿用渠道分組的基準價。"
   }

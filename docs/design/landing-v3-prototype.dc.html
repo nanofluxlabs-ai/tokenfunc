@@ -1,0 +1,635 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>tokenfunc 落地页 v3</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="_ds/tokenfunc-design-system-28ec0859-e991-4b7a-8ad9-1684309fe638/styles.css">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" crossorigin="anonymous" href="https://cdn.jsdelivr.net/npm/misans@4.1.0/lib/Normal/MiSans-Regular.min.css">
+<link rel="stylesheet" crossorigin="anonymous" href="https://cdn.jsdelivr.net/npm/misans@4.1.0/lib/Normal/MiSans-Medium.min.css">
+<link rel="stylesheet" crossorigin="anonymous" href="https://cdn.jsdelivr.net/npm/misans@4.1.0/lib/Normal/MiSans-Demibold.min.css">
+<link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
+<script src="image-slot.js"></script>
+<style>
+:root{--font-ui:"Geist","MiSans","PingFang SC","Noto Sans SC",system-ui,sans-serif;--font-mono:"Geist Mono","JetBrains Mono",ui-monospace,monospace}
+html{scroll-behavior:smooth}
+body{margin:0;background:#121212;font-family:var(--font-ui);-webkit-font-smoothing:antialiased}
+*{box-sizing:border-box}
+button{font-family:inherit}
+a{text-decoration:none}
+a:hover{opacity:.72}
+/* 主题 token：深色默认，浅色覆盖 */
+.tf{--bg:#121212;--surface:#181818;--surface-2:#1F1F1F;--head:#232323;--line:#2A2A2A;--line-strong:#4D4D4D;--ghost:#7C7C7C;--fg:#FFFFFF;--body:#E6E6E6;--muted:#B3B3B3;--faint:#8C8C8C;--accent:#1ED760;--accent-hover:#3BE477;--on-accent:#000000;--accent-text:#1ED760;--accent-soft:rgba(30,215,96,.10);--accent-line:rgba(30,215,96,.40);--warn:#FFA42B;--warn-text:#FFA42B;--warn-soft:rgba(255,164,43,.12);--hover:rgba(255,255,255,.04);--hover-2:rgba(255,255,255,.06);--track:#333333;--nav:rgba(18,18,18,.82);--glow:rgba(30,215,96,.16);--glow-2:rgba(30,215,96,.04);--code:#141414;--err:#F3727F}
+.tf[data-theme="light"]{--bg:#FFFFFF;--surface:#F7F7F7;--surface-2:#F2F2F2;--head:#EFEFEF;--line:#E6E6E6;--line-strong:#CFCFCF;--ghost:#8A8A8A;--fg:#0A0A0A;--body:#2B2B2B;--muted:#5C5C5C;--faint:#6E6E6E;--accent:#1ED760;--accent-hover:#19C556;--on-accent:#000000;--accent-text:#0E7A37;--accent-soft:rgba(30,215,96,.12);--accent-line:rgba(14,122,55,.35);--warn:#F29A1F;--warn-text:#9A5800;--warn-soft:rgba(242,154,31,.14);--hover:rgba(0,0,0,.04);--hover-2:rgba(0,0,0,.06);--track:#E4E4E4;--nav:rgba(255,255,255,.85);--glow:rgba(30,215,96,.14);--glow-2:rgba(30,215,96,.03);--code:#FAFAFA;--err:#C2283A}
+.tf ::selection{background:#1ED760;color:#000000}
+.tf a{color:inherit}
+@keyframes tfblink{50%{opacity:0}}
+@keyframes tfmarquee{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+.tf-marquee-track{animation:tfmarquee 40s linear infinite}
+.tf-marquee:hover .tf-marquee-track{animation-play-state:paused}
+@media (prefers-reduced-motion:reduce){.tf-marquee-track{animation:none}.tf-marquee{overflow-x:auto}}
+.tf-scroll{scrollbar-width:none}.tf-scroll::-webkit-scrollbar{display:none}
+@media (prefers-reduced-motion:reduce){[style*="tfblink"]{animation:none !important}}
+@media (max-width:640px){.tf-nav{display:none !important}.tf-hide-sm{display:none !important}}
+</style>
+</helmet>
+
+<div class="tf" data-theme="{{ theme }}" style="min-height:100vh;background:var(--bg);color:var(--body);transition:background 180ms,color 180ms">
+
+<header style="position:sticky;top:0;z-index:30;height:64px;background:var(--nav);backdrop-filter:saturate(140%) blur(16px);-webkit-backdrop-filter:saturate(140%) blur(16px);border-bottom:1px solid var(--line)">
+  <div style="max-width:1200px;margin:0 auto;height:100%;padding:0 clamp(20px,5vw,32px);display:flex;align-items:center;gap:40px">
+    <a href="#top" aria-label="tokenfunc 首页" style="display:inline-flex;align-items:center;gap:10px;font:700 20px/1 var(--font-ui);letter-spacing:-0.04em;color:var(--fg)"><img src="assets/logo-mark.svg" alt="" width="28" height="28" style="display:block">tokenfunc</a>
+    <nav class="tf-nav" aria-label="主导航" style="display:flex;gap:28px">
+      <a href="#top" aria-current="page" style="font-size:14px;color:var(--fg);font-weight:600">首页</a>
+      <a href="#console" style="font-size:14px;color:var(--muted)">控制台</a>
+      <a href="#model-plaza" style="font-size:14px;color:var(--muted)">模型广场</a>
+      <a href="#docs" style="font-size:14px;color:var(--muted)">文档</a>
+      <a href="#about" style="font-size:14px;color:var(--muted)">关于</a>
+    </nav>
+    <div style="margin-left:auto;display:flex;gap:8px;align-items:center">
+      <a href="Login.dc.html" style="height:32px;padding:0 14px;border-radius:500px;color:var(--body);font-size:13px;display:inline-flex;align-items:center;white-space:nowrap" style-hover="background:var(--hover-2);opacity:1">登录</a>
+      <sc-if value="{{ hasQr }}" hint-placeholder-val="{{ true }}">
+        <button type="button" onClick="{{ openQr }}" style="height:32px;padding:0 14px;border-radius:500px;border:none;background:var(--accent);color:var(--on-accent);font-size:13px;cursor:pointer;white-space:nowrap" style-hover="background:var(--accent-hover)" style-active="transform:scale(.98)">联系销售</button>
+      </sc-if>
+      <sc-if value="{{ noQr }}" hint-placeholder-val="{{ false }}">
+        <a href="#contact" style="height:32px;padding:0 14px;border-radius:500px;background:var(--accent);color:var(--on-accent);font-size:13px;display:inline-flex;align-items:center;white-space:nowrap" style-hover="background:var(--accent-hover);opacity:1">联系销售</a>
+      </sc-if>
+    </div>
+  </div>
+</header>
+
+<!-- ① Hero：一句定位，无轮播、无指标 -->
+<section id="top" data-screen-label="01 Hero" style="position:relative;overflow:hidden">
+  <div aria-hidden="true" style="position:absolute;inset:0;background:radial-gradient(110% 70% at 50% 0%,var(--glow) 0%,var(--glow-2) 42%,transparent 72%)"></div>
+  <div style="position:relative;max-width:1440px;margin:0 auto;padding:clamp(72px,10vw,120px) clamp(20px,5vw,32px) clamp(56px,7vw,88px);display:flex;flex-direction:column;align-items:center;text-align:center;gap:28px">
+    <span style="display:inline-flex;align-items:center;gap:8px;height:30px;padding:0 14px;border:1px solid var(--line-strong);border-radius:500px;font-size:13px;color:var(--body);white-space:nowrap"><span aria-hidden="true" style="width:6px;height:6px;border-radius:50%;background:var(--accent)"></span>企业级 AI 模型网关</span>
+    <!-- 打字机：前缀与卖点同一行，卖点逐条打出、回删、再打下一条；卖点区定宽，避免前缀左右跳动 -->
+    <h1 aria-label="Token Func，真模型不降智、内容不留存、账单逐条可对" style="margin:0;max-width:100%;font:500 min(100px, calc((100vw - 48px) / 12.4))/1.1 var(--font-ui);letter-spacing:-0.05em;color:var(--fg);white-space:nowrap;display:flex;justify-content:center;align-items:baseline">
+      <span aria-hidden="true">Token Func，</span><span aria-hidden="true" style="display:inline-block;width:6.1em;text-align:left;color:var(--accent-text);letter-spacing:-0.03em">{{ typed }}<span style="display:inline-block;width:0.06em;height:0.84em;margin-left:0.08em;vertical-align:-0.08em;border-radius:2px;background:var(--accent);animation:tfblink 1s steps(1) infinite"></span></span>
+    </h1>
+    <p style="margin:0;max-width:680px;font-size:18px;line-height:30px;color:var(--body);text-wrap:balance">Claude / GPT / Gemini / Grok 多来源供应，来源逐组标注。不降级、不替换，不存储你的请求与响应内容，一套后台从组织管到账单。</p>
+    <div style="display:flex;gap:12px;flex-wrap:wrap;justify-content:center;margin-top:8px">
+      <a href="#contact" style="height:48px;padding:0 24px;border-radius:500px;background:var(--accent);color:var(--on-accent);font-size:15px;font-weight:500;display:inline-flex;align-items:center;gap:8px;white-space:nowrap" style-hover="background:var(--accent-hover);opacity:1" style-active="transform:scale(.98)">申请企业试用<svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:block"><path d="M5 12h14" /><path d="m12 5 7 7-7 7" /></svg></a>
+      <sc-if value="{{ regOpen }}" hint-placeholder-val="{{ true }}">
+        <a href="Register.dc.html" style="height:48px;padding:0 24px;border-radius:500px;border:1px solid var(--ghost);color:var(--fg);font-size:15px;display:inline-flex;align-items:center;white-space:nowrap" style-hover="background:var(--hover);border-color:var(--fg);opacity:1">免费注册</a>
+      </sc-if>
+      <sc-if value="{{ regClosed }}" hint-placeholder-val="{{ false }}">
+        <a href="#pricing" style="height:48px;padding:0 24px;border-radius:500px;border:1px solid var(--ghost);color:var(--fg);font-size:15px;display:inline-flex;align-items:center;white-space:nowrap" style-hover="background:var(--hover);border-color:var(--fg);opacity:1">查看价目</a>
+      </sc-if>
+    </div>
+    <!-- 兼容工具：单行 logo 横向无缝循环滚动（列表渲染两遍，平移 -50%）；悬停暂停；减弱动效下可手动横滑 -->
+    <div style="margin-top:36px;width:100%;max-width:1040px">
+      <div class="tf-marquee" aria-label="兼容的工具" style="width:100%;position:relative;overflow:hidden;-webkit-mask-image:linear-gradient(90deg,transparent 0,#000 10%,#000 90%,transparent 100%);mask-image:linear-gradient(90deg,transparent 0,#000 10%,#000 90%,transparent 100%)">
+        <div class="tf-marquee-track" style="display:flex;width:max-content">
+          <sc-for list="{{ toolsLoop }}" as="t" hint-placeholder-count="10">
+            <a href="{{ t.href }}" aria-hidden="{{ t.dup }}" tabIndex="{{ t.tab }}" style="flex:none;display:flex;align-items:center;gap:10px;height:56px;padding:0 26px;white-space:nowrap;font-size:14px;color:var(--muted)" style-hover="color:var(--fg);opacity:1">
+              <span style="flex:none;width:28px;height:28px"><image-slot id="{{ t.slot }}" shape="rounded" radius="7" fit="contain" placeholder="logo"></image-slot></span>{{ t.name }}
+            </a>
+          </sc-for>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ② 主卖点 ×3：与 Hero 三个词一一对应，左右交替 -->
+<section id="fidelity" data-screen-label="02 Fidelity" style="border-top:1px solid var(--line);scroll-margin-top:64px">
+  <div data-reveal style="max-width:1200px;margin:0 auto;padding:clamp(72px,9vw,112px) clamp(20px,5vw,32px);display:flex;flex-wrap:wrap;gap:clamp(40px,6vw,80px);align-items:center">
+    <div style="flex:1 1 360px;min-width:0;display:flex;flex-direction:column;gap:20px">
+      <span style="font:400 12px/18px var(--font-mono);letter-spacing:1.2px;text-transform:uppercase;color:var(--muted)"><span style="color:var(--accent-text)">01</span> · 真模型</span>
+      <h2 style="margin:0;font:500 clamp(32px,4vw,44px)/1.15 var(--font-ui);letter-spacing:-0.025em;color:var(--fg)">100% 保真，不降智</h2>
+      <p style="margin:0;font-size:16px;line-height:27px;color:var(--body);text-wrap:pretty;max-width:480px">每个渠道分组标明上游来源。不降级、不替换、不改写，返回上游原始响应。</p>
+      <ul style="margin:8px 0 0;padding:0;list-style:none;display:flex;flex-direction:column;gap:12px">
+        <li style="display:flex;gap:12px;align-items:center;font-size:15px;color:var(--body)"><span aria-hidden="true" style="flex:none;width:6px;height:6px;border-radius:50%;background:var(--accent)"></span>来源逐组标注，无静默替换</li>
+        <li style="display:flex;gap:12px;align-items:center;font-size:15px;color:var(--body)"><span aria-hidden="true" style="flex:none;width:6px;height:6px;border-radius:50%;background:var(--accent)"></span>控制台随时发起模型自检</li>
+        <li style="display:flex;gap:12px;align-items:center;font-size:15px;color:var(--body)"><span aria-hidden="true" style="flex:none;width:6px;height:6px;border-radius:50%;background:var(--accent)"></span>usage 与上游账单逐条一致</li>
+      </ul>
+    </div>
+    <!-- demo：模型自检，四步逐项点亮，自动轮换模型 -->
+    <div style="flex:1.25 1 420px;min-width:0;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:24px;display:flex;flex-direction:column;gap:20px">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap">
+        <span style="font:400 12px/18px var(--font-mono);letter-spacing:1.2px;text-transform:uppercase;color:var(--muted)">模型自检</span>
+        <div role="group" aria-label="选择检测模型" class="tf-scroll" style="display:flex;flex-wrap:nowrap;gap:4px;padding:4px;border:1px solid var(--line);border-radius:500px;max-width:100%;overflow-x:auto">
+          <sc-for list="{{ chkTabs }}" as="t" hint-placeholder-count="4">
+            <button type="button" onClick="{{ t.onClick }}" aria-pressed="{{ t.on }}" style="flex:none;height:28px;padding:0 14px;border-radius:500px;border:none;cursor:pointer;white-space:nowrap;font-size:13px;background:{{ t.bg }};color:{{ t.fg }};transition:background 120ms,color 120ms">{{ t.label }}</button>
+          </sc-for>
+        </div>
+      </div>
+      <ol style="margin:0;padding:0;list-style:none;display:flex;flex-direction:column;border-top:1px solid var(--line)">
+        <sc-for list="{{ chkSteps }}" as="c" hint-placeholder-count="4">
+          <li style="display:grid;grid-template-columns:28px minmax(0,1fr) auto;gap:12px;align-items:center;padding:16px 0;border-bottom:1px solid var(--line)">
+            <span aria-hidden="true" style="width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;border:1px solid {{ c.ring }};background:{{ c.dotBg }};transition:all 180ms"><svg aria-hidden="true" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:{{ c.iconBg }};display:block"><path d="M20 6 9 17l-5-5" /></svg></span>
+            <span style="font-size:14px;color:{{ c.fg }};transition:color 180ms">{{ c.label }}</span>
+            <span style="font:400 12px/1 var(--font-mono);color:{{ c.stColor }};white-space:nowrap">{{ c.st }}</span>
+          </li>
+        </sc-for>
+      </ol>
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap">
+        <span aria-live="polite" style="font:400 13px/20px var(--font-mono);color:{{ chkSummaryColor }}">{{ chkSummary }}</span>
+        <span style="font:400 12px/18px var(--font-mono);color:var(--muted)">渠道分组 · 来源已标注</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="privacy" data-screen-label="03 Data security" style="border-top:1px solid var(--line);scroll-margin-top:64px">
+  <div data-reveal style="max-width:1200px;margin:0 auto;padding:clamp(72px,9vw,112px) clamp(20px,5vw,32px);display:flex;flex-direction:row-reverse;flex-wrap:wrap;gap:clamp(40px,6vw,80px);align-items:center">
+    <div style="flex:1 1 360px;min-width:0;display:flex;flex-direction:column;gap:20px">
+      <span style="font:400 12px/18px var(--font-mono);letter-spacing:1.2px;text-transform:uppercase;color:var(--muted)"><span style="color:var(--accent-text)">02</span> · 数据安全</span>
+      <h2 style="margin:0;font:500 clamp(32px,4vw,44px)/1.15 var(--font-ui);letter-spacing:-0.025em;color:var(--fg)">数据安全，内容不留存</h2>
+      <p style="margin:0;font-size:16px;line-height:27px;color:var(--body);text-wrap:pretty;max-width:480px">作为中转服务，我们不存储你的请求体与响应体：内容只在内存中转发，不写入数据库、日志或磁盘，只保留计费所需的用量元数据。</p>
+      <ul style="margin:8px 0 0;padding:0;list-style:none;display:flex;flex-direction:column;gap:12px">
+        <li style="display:flex;gap:12px;align-items:center;font-size:15px;color:var(--body)"><span aria-hidden="true" style="flex:none;width:6px;height:6px;border-radius:50%;background:var(--accent)"></span>请求体、响应体一律不存储</li>
+        <li style="display:flex;gap:12px;align-items:center;font-size:15px;color:var(--body)"><span aria-hidden="true" style="flex:none;width:6px;height:6px;border-radius:50%;background:var(--accent)"></span>签署服务合同与 DPA</li>
+        <li style="display:flex;gap:12px;align-items:center;font-size:15px;color:var(--body)"><span aria-hidden="true" style="flex:none;width:6px;height:6px;border-radius:50%;background:var(--accent)"></span>IP 白名单与访问来源限制</li>
+      </ul>
+    </div>
+    <!-- demo：留存字段对照表，两列 -->
+    <div style="flex:1.25 1 420px;min-width:0;background:var(--surface);border:1px solid var(--line);border-radius:12px;overflow:hidden">
+      <div style="display:flex;justify-content:space-between;gap:12px;padding:16px 20px;border-bottom:1px solid var(--line);flex-wrap:wrap">
+        <span style="font:400 12px/18px var(--font-mono);letter-spacing:1.2px;text-transform:uppercase;color:var(--muted)">单次请求 · 我们存了什么</span>
+        <span style="font:400 12px/18px var(--font-mono);color:var(--muted)">req_8f2a…c41</span>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,200px),1fr))">
+        <div style="padding:20px;display:flex;flex-direction:column;gap:14px;border-right:1px solid var(--line)">
+          <span style="display:inline-flex;align-items:center;gap:8px;font-size:13px;color:var(--fg)"><svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--muted);display:block"><path d="M10.733 5.076a10.744 10.744 0 0 1 11.205 6.575 1 1 0 0 1 0 .696 10.747 10.747 0 0 1-1.444 2.49" /><path d="M14.084 14.158a3 3 0 0 1-4.242-4.242" /><path d="M17.479 17.499a10.75 10.75 0 0 1-15.417-5.151 1 1 0 0 1 0-.696 10.75 10.75 0 0 1 4.446-5.143" /><path d="m2 2 20 20" /></svg>不存储 · 用完即弃</span>
+          <div style="display:flex;flex-direction:column;gap:8px">
+            <div style="display:flex;justify-content:space-between;gap:12px;padding:10px 12px;border:1px dashed var(--line-strong);border-radius:8px;white-space:nowrap"><span style="font:400 13px/20px var(--font-mono);color:var(--muted);text-decoration:line-through">messages</span><span style="font-size:12px;color:var(--muted)">请求正文</span></div>
+            <div style="display:flex;justify-content:space-between;gap:12px;padding:10px 12px;border:1px dashed var(--line-strong);border-radius:8px;white-space:nowrap"><span style="font:400 13px/20px var(--font-mono);color:var(--muted);text-decoration:line-through">choices</span><span style="font-size:12px;color:var(--muted)">响应正文</span></div>
+          </div>
+        </div>
+        <div style="padding:20px;display:flex;flex-direction:column;gap:14px">
+          <span style="display:inline-flex;align-items:center;gap:8px;font-size:13px;color:var(--fg)"><svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--accent-text);display:block"><path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1Z" /><path d="M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8" /><path d="M12 17.5v-11" /></svg>仅存计费元数据</span>
+          <div style="display:flex;flex-direction:column;border-top:1px solid var(--line)">
+            <div style="display:flex;justify-content:space-between;gap:12px;padding:9px 0;border-bottom:1px solid var(--line)"><span style="font:400 13px/20px var(--font-mono);color:var(--fg)">model</span><span style="font-size:12px;color:var(--muted)">模型</span></div>
+            <div style="display:flex;justify-content:space-between;gap:12px;padding:9px 0;border-bottom:1px solid var(--line)"><span style="font:400 13px/20px var(--font-mono);color:var(--fg)">usage.*_tokens</span><span style="font-size:12px;color:var(--muted)">token 用量</span></div>
+            <div style="display:flex;justify-content:space-between;gap:12px;padding:9px 0;border-bottom:1px solid var(--line)"><span style="font:400 13px/20px var(--font-mono);color:var(--fg)">created_at</span><span style="font-size:12px;color:var(--muted)">时间</span></div>
+            <div style="display:flex;justify-content:space-between;gap:12px;padding:9px 0;border-bottom:1px solid var(--line)"><span style="font:400 13px/20px var(--font-mono);color:var(--fg)">latency_ms</span><span style="font-size:12px;color:var(--muted)">延迟</span></div>
+            <div style="display:flex;justify-content:space-between;gap:12px;padding:9px 0"><span style="font:400 13px/20px var(--font-mono);color:var(--fg)">status_code</span><span style="font-size:12px;color:var(--muted)">状态码</span></div>
+          </div>
+        </div>
+      </div>
+      <div style="padding:14px 20px;border-top:1px solid var(--line);background:var(--bg);display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;font:400 12px/18px var(--font-mono);color:var(--muted)"><span>已存储的请求 / 响应内容</span><span style="color:var(--accent-text)">0 B</span></div>
+    </div>
+  </div>
+</section>
+
+<section id="control" data-screen-label="04 Control" style="border-top:1px solid var(--line);scroll-margin-top:64px">
+  <div data-reveal style="max-width:1200px;margin:0 auto;padding:clamp(72px,9vw,112px) clamp(20px,5vw,32px);display:flex;flex-wrap:wrap;gap:clamp(40px,6vw,80px);align-items:center">
+    <div style="flex:1 1 360px;min-width:0;display:flex;flex-direction:column;gap:20px">
+      <span style="font:400 12px/18px var(--font-mono);letter-spacing:1.2px;text-transform:uppercase;color:var(--muted)"><span style="color:var(--accent-text)">03</span> · 可对账</span>
+      <h2 style="margin:0;font:500 clamp(32px,4vw,44px)/1.15 var(--font-ui);letter-spacing:-0.025em;color:var(--fg)">企业管控，账单可对</h2>
+      <p style="margin:0;font-size:16px;line-height:27px;color:var(--body);text-wrap:pretty;max-width:480px">团队预算、密钥归属、账单明细，一套后台管到底。</p>
+      <ul style="margin:8px 0 0;padding:0;list-style:none;display:flex;flex-direction:column;gap:12px">
+        <li style="display:flex;gap:12px;align-items:center;font-size:15px;color:var(--body)"><span aria-hidden="true" style="flex:none;width:6px;height:6px;border-radius:50%;background:var(--accent)"></span>团队月度预算，超额告警与熔断</li>
+        <li style="display:flex;gap:12px;align-items:center;font-size:15px;color:var(--body)"><span aria-hidden="true" style="flex:none;width:6px;height:6px;border-radius:50%;background:var(--accent)"></span>API Key 归属到人，可冻结可限模型</li>
+        <li style="display:flex;gap:12px;align-items:center;font-size:15px;color:var(--body)"><span aria-hidden="true" style="flex:none;width:6px;height:6px;border-radius:50%;background:var(--accent)"></span>多维账单导出，预付或月结，对公专票</li>
+      </ul>
+    </div>
+    <!-- demo：团队预算 + 账单明细（静态） -->
+    <div style="flex:1.25 1 420px;min-width:0;background:var(--surface);border:1px solid var(--line);border-radius:12px;overflow:hidden">
+      <div style="display:flex;justify-content:space-between;gap:12px;padding:16px 20px;border-bottom:1px solid var(--line);flex-wrap:wrap">
+        <span style="font:400 12px/18px var(--font-mono);letter-spacing:1.2px;text-transform:uppercase;color:var(--muted)">团队预算 · 2026-11</span>
+        <span style="font:400 12px/18px var(--font-mono);color:var(--muted)">告警阈值 90%</span>
+      </div>
+      <div style="padding:20px;display:flex;flex-direction:column;gap:18px">
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <div style="display:flex;justify-content:space-between;gap:12px;align-items:baseline"><span style="font-size:14px;color:var(--fg)">研发</span><span style="font:400 12px/18px var(--font-mono);color:var(--muted)"><span style="color:var(--fg)">$7,840</span> / $12,000</span></div>
+          <div style="position:relative;height:6px;border-radius:500px;background:var(--track)"><div style="width:65%;height:100%;border-radius:500px;background:var(--fg)"></div><span aria-hidden="true" style="position:absolute;left:90%;top:-3px;width:1px;height:12px;background:var(--faint)"></span></div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <div style="display:flex;justify-content:space-between;gap:12px;align-items:baseline"><span style="display:inline-flex;align-items:center;gap:8px;font-size:14px;color:var(--fg)">数据<span style="height:20px;padding:0 8px;border-radius:500px;display:inline-flex;align-items:center;gap:5px;font-size:11px;background:var(--warn-soft);color:var(--warn-text);white-space:nowrap"><span aria-hidden="true" style="width:5px;height:5px;border-radius:50%;background:currentColor"></span>接近阈值</span></span><span style="font:400 12px/18px var(--font-mono);color:var(--muted)"><span style="color:var(--warn-text)">$5,530</span> / $6,000</span></div>
+          <div style="position:relative;height:6px;border-radius:500px;background:var(--track)"><div style="width:92%;height:100%;border-radius:500px;background:var(--warn)"></div><span aria-hidden="true" style="position:absolute;left:90%;top:-3px;width:1px;height:12px;background:var(--faint)"></span></div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <div style="display:flex;justify-content:space-between;gap:12px;align-items:baseline"><span style="font-size:14px;color:var(--fg)">产品</span><span style="font:400 12px/18px var(--font-mono);color:var(--muted)"><span style="color:var(--fg)">$740</span> / $2,000</span></div>
+          <div style="position:relative;height:6px;border-radius:500px;background:var(--track)"><div style="width:37%;height:100%;border-radius:500px;background:var(--fg)"></div><span aria-hidden="true" style="position:absolute;left:90%;top:-3px;width:1px;height:12px;background:var(--faint)"></span></div>
+        </div>
+      </div>
+      <div style="border-top:1px solid var(--line);overflow-x:auto">
+        <div style="min-width:460px">
+          <div style="display:grid;grid-template-columns:minmax(0,1.6fr) 0.8fr 1fr 0.8fr 0.9fr;gap:12px;padding:10px 20px;background:var(--head);font:400 11px/16px var(--font-mono);letter-spacing:1px;text-transform:uppercase;color:var(--muted)"><span>账单明细 · 模型</span><span style="text-align:right">输入</span><span style="text-align:right">缓存读取</span><span style="text-align:right">输出</span><span style="text-align:right">金额</span></div>
+          <div style="display:grid;grid-template-columns:minmax(0,1.6fr) 0.8fr 1fr 0.8fr 0.9fr;gap:12px;padding:12px 20px;border-top:1px solid var(--line);align-items:center;font:400 13px/20px var(--font-mono)"><span style="display:flex;flex-direction:column;min-width:0"><span style="color:var(--fg);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">claude-sonnet-5-5</span><span style="font:400 11px/16px var(--font-ui);color:var(--muted)">研发 · 李娜 · tf-…a91c</span></span><span style="text-align:right;color:var(--body)">1,204</span><span style="text-align:right;color:var(--accent-text)">18,560</span><span style="text-align:right;color:var(--body)">642</span><span style="text-align:right;color:var(--fg)">$0.0107</span></div>
+          <div style="display:grid;grid-template-columns:minmax(0,1.6fr) 0.8fr 1fr 0.8fr 0.9fr;gap:12px;padding:12px 20px;border-top:1px solid var(--line);align-items:center;font:400 13px/20px var(--font-mono)"><span style="display:flex;flex-direction:column;min-width:0"><span style="color:var(--fg);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">gpt-6.2-sol</span><span style="font:400 11px/16px var(--font-ui);color:var(--muted)">数据 · 王强 · tf-…07e2</span></span><span style="text-align:right;color:var(--body)">3,420</span><span style="text-align:right;color:var(--accent-text)">12,800</span><span style="text-align:right;color:var(--body)">1,150</span><span style="text-align:right;color:var(--fg)">$0.0196</span></div>
+        </div>
+      </div>
+      <div style="padding:14px 20px;border-top:1px solid var(--line);background:var(--bg);display:flex;gap:8px;flex-wrap:wrap">
+        <span style="height:24px;padding:0 10px;border:1px solid var(--line-strong);border-radius:500px;display:inline-flex;align-items:center;font-size:12px;color:var(--body);white-space:nowrap">导出 CSV</span>
+        <span style="height:24px;padding:0 10px;border:1px solid var(--line-strong);border-radius:500px;display:inline-flex;align-items:center;font-size:12px;color:var(--body);white-space:nowrap">预付 / 月结</span>
+        <span style="height:24px;padding:0 10px;border:1px solid var(--line-strong);border-radius:500px;display:inline-flex;align-items:center;font-size:12px;color:var(--body);white-space:nowrap">对公专票</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ③ 运行质量条：次级卖点，数字须为控制台可复现的实测值 -->
+<section id="quality" data-screen-label="05 Quality" style="border-top:1px solid var(--line);background:var(--surface);scroll-margin-top:64px">
+  <div data-reveal style="max-width:1200px;margin:0 auto;padding:clamp(64px,8vw,96px) clamp(20px,5vw,32px);display:flex;flex-direction:column;gap:32px">
+    <div style="display:flex;justify-content:space-between;align-items:flex-end;gap:16px;flex-wrap:wrap">
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <span style="font:400 12px/18px var(--font-mono);letter-spacing:1.2px;text-transform:uppercase;color:var(--muted)">运行质量</span>
+        <h2 style="margin:0;font:500 clamp(24px,2.8vw,30px)/1.25 var(--font-ui);letter-spacing:-0.02em;color:var(--fg)">生产环境里的真实表现</h2>
+      </div>
+      <span style="font:400 12px/18px var(--font-mono);color:var(--muted)">统计口径：近 7 日全平台请求 · 控制台可查</span>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr));gap:1px;background:var(--line);border:1px solid var(--line);border-radius:12px;overflow:hidden">
+
+      <!-- 供应稳定：渠道准入四项 -->
+      <div style="padding:28px;background:var(--bg);display:flex;flex-direction:column;gap:16px">
+        <div style="display:flex;align-items:center;gap:12px"><span aria-hidden="true" style="flex:none;width:36px;height:36px;border-radius:10px;background:var(--accent-soft);display:inline-flex;align-items:center;justify-content:center"><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--accent-text);display:block"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z" /><path d="m9 12 2 2 4-4" /></svg></span><h3 style="margin:0;font:500 18px/26px var(--font-ui);letter-spacing:-.3px;color:var(--fg)">供应稳定</h3></div>
+        <div style="display:flex;align-items:baseline;gap:10px"><span style="font:400 48px/1 var(--font-mono);letter-spacing:-2px;color:var(--fg)">4</span><span style="font-size:14px;color:var(--muted)">道渠道准入检测</span></div>
+        <div style="display:flex;flex-wrap:wrap;gap:8px">
+          <span style="display:flex;align-items:center;gap:8px;height:34px;padding:0 12px;border:1px solid var(--line);border-radius:8px;font-size:13px;color:var(--body);white-space:nowrap"><svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex:none;color:var(--accent-text);display:block"><path d="M3.85 8.62a4 4 0 0 1 4.78-4.77 4 4 0 0 1 6.74 0 4 4 0 0 1 4.78 4.78 4 4 0 0 1 0 6.74 4 4 0 0 1-4.77 4.78 4 4 0 0 1-6.75 0 4 4 0 0 1-4.78-4.77 4 4 0 0 1 0-6.76Z" /><path d="m9 12 2 2 4-4" /></svg>真实性</span>
+          <span style="display:flex;align-items:center;gap:8px;height:34px;padding:0 12px;border:1px solid var(--line);border-radius:8px;font-size:13px;color:var(--body);white-space:nowrap"><svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex:none;color:var(--accent-text);display:block"><path d="M22 12h-2.48a2 2 0 0 0-1.93 1.46l-2.35 8.36a.25.25 0 0 1-.48 0L9.24 2.18a.25.25 0 0 0-.48 0l-2.35 8.36A2 2 0 0 1 4.49 12H2" /></svg>稳定性</span>
+          <span style="display:flex;align-items:center;gap:8px;height:34px;padding:0 12px;border:1px solid var(--line);border-radius:8px;font-size:13px;color:var(--body);white-space:nowrap"><svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex:none;color:var(--accent-text);display:block"><path d="M4 14a1 1 0 0 1-.78-1.63l9.9-10.2a.5.5 0 0 1 .86.46l-1.92 6.02A1 1 0 0 0 13 10h7a1 1 0 0 1 .78 1.63l-9.9 10.2a.5.5 0 0 1-.86-.46l1.92-6.02A1 1 0 0 0 11 14z" /></svg>性能</span>
+          <span style="display:flex;align-items:center;gap:8px;height:34px;padding:0 12px;border:1px solid var(--line);border-radius:8px;font-size:13px;color:var(--body);white-space:nowrap"><svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex:none;color:var(--accent-text);display:block"><ellipse cx="12" cy="5" rx="9" ry="3" /><path d="M3 5V19A9 3 0 0 0 21 19V5" /><path d="M3 12A9 3 0 0 0 21 12" /></svg>缓存命中率</span>
+        </div>
+        <p style="margin:0;font-size:14px;line-height:22px;color:var(--muted)">渠道上线前逐项检测，运行中持续巡检，不达标自动下线；多条上游并行，单池异常自动切换，调用方无感知。</p>
+      </div>
+
+      <!-- 高缓存命中率 -->
+      <div style="padding:28px;background:var(--bg);display:flex;flex-direction:column;gap:16px">
+        <div style="display:flex;align-items:center;gap:12px"><span aria-hidden="true" style="flex:none;width:36px;height:36px;border-radius:10px;background:var(--accent-soft);display:inline-flex;align-items:center;justify-content:center"><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--accent-text);display:block"><ellipse cx="12" cy="5" rx="9" ry="3" /><path d="M3 5V19A9 3 0 0 0 15 21.84" /><path d="M21 5V8" /><path d="M21 12L18 17H22L19 22" /><path d="M3 12A9 3 0 0 0 14.59 14.87" /></svg></span><h3 style="margin:0;font:500 18px/26px var(--font-ui);letter-spacing:-.3px;color:var(--fg)">高缓存命中率</h3></div>
+        <div style="display:flex;align-items:baseline;gap:10px"><span style="font:400 48px/1 var(--font-mono);letter-spacing:-2px;color:var(--accent-text)">85%+</span><span style="font-size:14px;color:var(--muted)">长会话缓存命中</span></div>
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <div style="display:flex;height:8px;border-radius:500px;overflow:hidden;background:var(--track)"><div style="width:87%;background:var(--accent)"></div></div>
+          <div style="display:flex;justify-content:space-between;font:400 12px/18px var(--font-mono);color:var(--muted)"><span style="display:inline-flex;align-items:center;gap:6px"><span aria-hidden="true" style="width:8px;height:8px;border-radius:2px;background:var(--accent)"></span>缓存读取</span><span style="display:inline-flex;align-items:center;gap:6px"><span aria-hidden="true" style="width:8px;height:8px;border-radius:2px;background:var(--track)"></span>未命中</span></div>
+        </div>
+        <div style="display:flex;flex-wrap:wrap;gap:8px"><span style="display:flex;align-items:center;gap:8px;height:34px;padding:0 12px;border:1px solid var(--line);border-radius:8px;font-size:13px;color:var(--body);white-space:nowrap"><svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex:none;color:var(--accent-text);display:block"><path d="M9 17H7A5 5 0 0 1 7 7h2" /><path d="M15 7h2a5 5 0 1 1 0 10h-2" /><line x1="8" x2="16" y1="12" y2="12" /></svg>会话亲和路由</span><span style="display:flex;align-items:center;gap:8px;height:34px;padding:0 12px;border:1px solid var(--line);border-radius:8px;font-size:13px;color:var(--body);white-space:nowrap"><svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex:none;color:var(--accent-text);display:block"><path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1Z" /><path d="M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8" /><path d="M12 17.5v-11" /></svg>缓存价单独计费</span></div>
+        <p style="margin:0;font-size:14px;line-height:22px;color:var(--muted)">会话亲和路由把同一上下文固定到同一渠道，缓存读取按缓存价单独计费，长对话与 Agent 场景成本明显下降。</p>
+      </div>
+
+      <!-- 高性能：TTFT / TPS / TPM -->
+      <div style="padding:28px;background:var(--bg);display:flex;flex-direction:column;gap:16px">
+        <div style="display:flex;align-items:center;gap:12px"><span aria-hidden="true" style="flex:none;width:36px;height:36px;border-radius:10px;background:var(--accent-soft);display:inline-flex;align-items:center;justify-content:center"><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--accent-text);display:block"><path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09z" /><path d="m12 15-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2z" /><path d="M9 12H4s.55-3.03 2-4c1.62-1.08 5 0 5 0" /><path d="M12 15v5s3.03-.55 4-2c1.08-1.62 0-5 0-5" /></svg></span><h3 style="margin:0;font:500 18px/26px var(--font-ui);letter-spacing:-.3px;color:var(--fg)">高性能</h3></div>
+        <div style="display:flex;flex-direction:column;border-top:1px solid var(--line)">
+          <div style="display:grid;grid-template-columns:minmax(0,1fr) 124px;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--line)"><span style="display:flex;align-items:center;gap:12px;min-width:0"><span aria-hidden="true" style="flex:none;width:34px;height:34px;border-radius:50%;background:var(--accent-soft);display:inline-flex;align-items:center;justify-content:center"><svg aria-hidden="true" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--accent-text);display:block"><line x1="10" x2="14" y1="2" y2="2" /><line x1="12" x2="15" y1="14" y2="11" /><circle cx="12" cy="14" r="8" /></svg></span><span style="display:flex;flex-direction:column;gap:2px"><span style="font:500 13px/18px var(--font-mono);color:var(--fg)">TTFT</span><span style="font-size:12px;color:var(--muted)">首 token 延迟 P50</span></span></span><span style="font:400 28px/1 var(--font-mono);letter-spacing:-1px;color:var(--fg);text-align:left;white-space:nowrap">380<span style="font-size:12px;color:var(--muted);margin-left:4px;letter-spacing:0">ms</span></span></div>
+          <div style="display:grid;grid-template-columns:minmax(0,1fr) 124px;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--line)"><span style="display:flex;align-items:center;gap:12px;min-width:0"><span aria-hidden="true" style="flex:none;width:34px;height:34px;border-radius:50%;background:var(--accent-soft);display:inline-flex;align-items:center;justify-content:center"><svg aria-hidden="true" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--accent-text);display:block"><path d="m12 14 4-4" /><path d="M3.34 19a10 10 0 1 1 17.32 0" /></svg></span><span style="display:flex;flex-direction:column;gap:2px"><span style="font:500 13px/18px var(--font-mono);color:var(--fg)">TPS</span><span style="font-size:12px;color:var(--muted)">单请求输出速度</span></span></span><span style="font:400 28px/1 var(--font-mono);letter-spacing:-1px;color:var(--fg);text-align:left;white-space:nowrap">80+<span style="font-size:12px;color:var(--muted);margin-left:4px;letter-spacing:0">tok/s</span></span></div>
+          <div style="display:grid;grid-template-columns:minmax(0,1fr) 124px;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--line)"><span style="display:flex;align-items:center;gap:12px;min-width:0"><span aria-hidden="true" style="flex:none;width:34px;height:34px;border-radius:50%;background:var(--accent-soft);display:inline-flex;align-items:center;justify-content:center"><svg aria-hidden="true" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--accent-text);display:block"><path d="m12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83Z" /><path d="m22 17.65-9.17 4.16a2 2 0 0 1-1.66 0L2 17.65" /><path d="m22 12.65-9.17 4.16a2 2 0 0 1-1.66 0L2 12.65" /></svg></span><span style="display:flex;flex-direction:column;gap:2px"><span style="font:500 13px/18px var(--font-mono);color:var(--fg)">TPM</span><span style="font-size:12px;color:var(--muted)">单组织吞吐上限</span></span></span><span style="font:400 28px/1 var(--font-mono);letter-spacing:-1px;color:var(--fg);text-align:left;white-space:nowrap">10M+<span style="font-size:12px;color:var(--muted);margin-left:4px;letter-spacing:0">tok/min</span></span></div>
+        </div>
+        <p style="margin:0;font-size:14px;line-height:22px;color:var(--muted)">境内多地就近接入，长连接复用，逐 token 流式透传。</p>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- ④ 接入：左三步，右代码块（高亮 base_url 那一行） -->
+<section id="quickstart" data-screen-label="06 Quickstart" style="border-top:1px solid var(--line);scroll-margin-top:64px">
+  <div data-reveal style="max-width:1200px;margin:0 auto;padding:clamp(72px,9vw,112px) clamp(20px,5vw,32px);display:flex;flex-wrap:wrap;gap:clamp(40px,5vw,64px);align-items:flex-start">
+    <div style="flex:1 1 300px;min-width:0;display:flex;flex-direction:column;gap:32px">
+      <div style="display:flex;flex-direction:column;gap:16px">
+        <span style="font:400 12px/18px var(--font-mono);letter-spacing:1.2px;text-transform:uppercase;color:var(--muted)">Quickstart</span>
+        <h2 style="margin:0;font:500 clamp(28px,3.4vw,36px)/1.2 var(--font-ui);letter-spacing:-0.02em;color:var(--fg)">改一行 base_url，即可切换</h2>
+      </div>
+      <ol style="margin:0;padding:0;list-style:none;display:flex;flex-direction:column;border-left:1px solid var(--line)">
+        <li style="position:relative;padding:0 0 24px 24px;display:flex;flex-direction:column;gap:4px"><span aria-hidden="true" style="position:absolute;left:-5px;top:6px;width:9px;height:9px;border-radius:50%;background:var(--bg);border:1px solid var(--ghost)"></span><span style="font:400 12px/18px var(--font-mono);color:var(--muted)">01</span><span style="font-size:16px;color:var(--fg)">创建密钥</span><span style="font-size:13px;line-height:20px;color:var(--muted)">在控制台生成 tf- 开头的 API Key</span></li>
+        <li style="position:relative;padding:0 0 24px 24px;display:flex;flex-direction:column;gap:4px"><span aria-hidden="true" style="position:absolute;left:-5px;top:6px;width:9px;height:9px;border-radius:50%;background:var(--accent);border:1px solid var(--accent)"></span><span style="font:400 12px/18px var(--font-mono);color:var(--accent-text)">02</span><span style="font-size:16px;color:var(--fg)">替换 base_url</span><span style="font-size:13px;line-height:20px;color:var(--muted)">兼容 OpenAI / Anthropic 协议，右侧高亮行即唯一改动</span></li>
+        <li style="position:relative;padding:0 0 0 24px;display:flex;flex-direction:column;gap:4px"><span aria-hidden="true" style="position:absolute;left:-5px;top:6px;width:9px;height:9px;border-radius:50%;background:var(--bg);border:1px solid var(--ghost)"></span><span style="font:400 12px/18px var(--font-mono);color:var(--muted)">03</span><span style="font-size:16px;color:var(--fg)">按模型名调用</span><span style="font-size:13px;line-height:20px;color:var(--muted)">模型名即路由，现有代码与工具无需改造</span></li>
+      </ol>
+      <a href="#docs" style="font-size:14px;color:var(--body);display:inline-flex;align-items:center;gap:6px">更多 SDK 与 Agent 接入方式 → 文档中心</a>
+    </div>
+    <div style="flex:1.7 1 460px;min-width:0;background:var(--code);border:1px solid var(--line);border-radius:12px;overflow:hidden">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;padding:10px 12px;border-bottom:1px solid var(--line);background:var(--surface)">
+        <div role="group" aria-label="选择语言" style="display:flex;gap:4px;padding:3px;border:1px solid var(--line);border-radius:500px;flex-wrap:wrap">
+          <sc-for list="{{ langTabs }}" as="g" hint-placeholder-count="4">
+            <button type="button" onClick="{{ g.onClick }}" aria-pressed="{{ g.on }}" style="height:28px;padding:0 14px;border-radius:500px;border:none;cursor:pointer;font:400 12px/1 var(--font-mono);background:{{ g.bg }};color:{{ g.fg }};transition:background 120ms,color 120ms;white-space:nowrap">{{ g.label }}</button>
+          </sc-for>
+        </div>
+        <button type="button" onClick="{{ copy }}" style="height:30px;padding:0 12px;border-radius:500px;border:none;background:transparent;color:var(--body);font:400 12px/1 var(--font-mono);cursor:pointer;display:inline-flex;align-items:center;gap:6px;white-space:nowrap" style-hover="background:var(--hover-2);color:var(--fg)"><svg aria-hidden="true" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:block"><rect width="14" height="14" x="8" y="8" rx="2" ry="2" /><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2" /></svg>{{ copyLabel }}</button>
+      </div>
+      <div style="overflow-x:auto;padding:16px 0">
+        <div style="min-width:max-content;font:400 13px/22px var(--font-mono)">
+          <sc-for list="{{ codeLines }}" as="l" hint-placeholder-count="12">
+            <div style="display:grid;grid-template-columns:44px auto;padding-right:24px;background:{{ l.bg }};box-shadow:{{ l.bar }}">
+              <span aria-hidden="true" style="text-align:right;padding-right:16px;color:var(--faint);user-select:none">{{ l.n }}</span>
+              <span style="white-space:pre;color:{{ l.fg }}">{{ l.t }}</span>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ⑤ 价目：按厂商 Tab 展示各家最新主流模型，数据来自 /api/pricing -->
+<section id="pricing" data-screen-label="07 Pricing" style="border-top:1px solid var(--line);scroll-margin-top:64px">
+  <div data-reveal style="max-width:1200px;margin:0 auto;padding:clamp(72px,9vw,112px) clamp(20px,5vw,32px);display:flex;flex-direction:column;gap:32px">
+    <div style="display:flex;justify-content:space-between;align-items:flex-end;gap:24px;flex-wrap:wrap">
+      <div style="display:flex;flex-direction:column;gap:16px">
+        <span style="font:400 12px/18px var(--font-mono);letter-spacing:1.2px;text-transform:uppercase;color:var(--muted)">Pricing</span>
+        <h2 style="margin:0;font:500 clamp(28px,3.4vw,36px)/1.2 var(--font-ui);letter-spacing:-0.02em;color:var(--fg)">主流海外模型，统一价目</h2>
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <a href="#pricing-full" style="height:40px;padding:0 18px;border-radius:500px;border:1px solid var(--ghost);color:var(--fg);font-size:14px;display:inline-flex;align-items:center;white-space:nowrap" style-hover="background:var(--hover);border-color:var(--fg);opacity:1">完整价目</a>
+        <a href="#model-plaza" style="height:40px;padding:0 18px;border-radius:500px;color:var(--body);font-size:14px;display:inline-flex;align-items:center;gap:6px;white-space:nowrap" style-hover="background:var(--hover-2);opacity:1">打开模型广场 →</a>
+      </div>
+    </div>
+    <sc-if value="{{ priceData }}" hint-placeholder-val="{{ true }}">
+      <div style="display:flex;flex-direction:column;gap:16px">
+        <!-- 厂商 Tab -->
+        <div role="tablist" aria-label="选择模型厂商" class="tf-scroll" style="flex-wrap:nowrap;display:flex;gap:4px;padding:4px;border:1px solid var(--line);border-radius:500px;width:fit-content;max-width:100%;overflow-x:auto">
+          <sc-for list="{{ vendorTabs }}" as="v" hint-placeholder-count="4">
+            <button type="button" role="tab" aria-selected="{{ v.on }}" onClick="{{ v.onClick }}" style="flex:none;height:36px;padding:0 18px;border-radius:500px;border:none;cursor:pointer;font-size:14px;white-space:nowrap;display:inline-flex;align-items:center;gap:8px;background:{{ v.bg }};color:{{ v.fg }};transition:background 120ms,color 120ms">{{ v.label }}<span style="font:400 11px/1 var(--font-mono);opacity:.7">{{ v.vendor }}</span></button>
+          </sc-for>
+        </div>
+        <div role="tabpanel" style="border:1px solid var(--line);border-radius:12px;overflow:hidden">
+          <div style="overflow-x:auto">
+            <div style="min-width:600px">
+              <div style="display:grid;grid-template-columns:minmax(240px,2.2fr) 1fr 1fr 1fr;background:var(--head);font:400 12px/18px var(--font-mono);letter-spacing:1px;text-transform:uppercase;color:var(--muted)">
+                <span style="position:sticky;left:0;z-index:1;padding:12px 20px;background:var(--head)">模型</span><span style="padding:12px 20px;text-align:right">输入</span><span style="padding:12px 20px;text-align:right">缓存读取</span><span style="padding:12px 20px;text-align:right">输出</span>
+              </div>
+              <sc-for list="{{ priceRows }}" as="m" hint-placeholder-count="4">
+                <div style="display:grid;grid-template-columns:minmax(240px,2.2fr) 1fr 1fr 1fr;border-top:1px solid var(--line);align-items:center;font:400 14px/20px var(--font-mono)" style-hover="background:var(--hover)">
+                  <span style="position:sticky;left:0;z-index:1;padding:16px 20px;background:var(--bg);display:flex;align-items:center;gap:10px;min-width:0">
+                    <span style="color:var(--fg);white-space:nowrap">{{ m.id }}</span>
+                    <span style="flex:none;height:20px;padding:0 8px;border:1px solid var(--line-strong);border-radius:500px;display:inline-flex;align-items:center;font:400 11px/1 var(--font-ui);color:var(--muted);white-space:nowrap">{{ m.tag }}</span>
+                  </span>
+                  <span style="padding:16px 20px;text-align:right;color:var(--fg)">{{ m.inp }}</span>
+                  <span style="padding:16px 20px;text-align:right;color:var(--accent-text)">{{ m.cache }}</span>
+                  <span style="padding:16px 20px;text-align:right;color:var(--body)">{{ m.out }}</span>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+          <div style="padding:12px 20px;border-top:1px solid var(--line);background:var(--surface);font-size:12px;line-height:18px;color:var(--muted)">{{ priceNote }}</div>
+        </div>
+      </div>
+    </sc-if>
+    <sc-if value="{{ priceEmpty }}" hint-placeholder-val="{{ false }}">
+      <div style="border:1px dashed var(--line-strong);border-radius:12px;padding:56px 24px;display:flex;flex-direction:column;align-items:center;gap:12px;text-align:center">
+        <svg aria-hidden="true" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--muted);display:block"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8" /><path d="M21 3v5h-5" /><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16" /><path d="M8 16H3v5" /></svg>
+        <span style="font-size:16px;color:var(--fg)">价目同步中</span>
+        <span style="font-size:14px;line-height:22px;color:var(--muted);max-width:380px">正在从上游拉取最新价格，稍后刷新，或前往完整价目页查看。</span>
+        <a href="#pricing-full" style="margin-top:8px;height:36px;padding:0 16px;border-radius:500px;border:1px solid var(--ghost);color:var(--fg);font-size:14px;display:inline-flex;align-items:center;white-space:nowrap">查看完整价目</a>
+      </div>
+    </sc-if>
+    <span style="font-size:13px;line-height:20px;color:var(--muted)">每 1M token，美元计价，与上游官方价同步更新。缓存命中部分按缓存价计费。</span>
+  </div>
+</section>
+
+<!-- ⑥ CTA：试用表单 -->
+<section id="contact" data-screen-label="08 Contact" style="position:relative;overflow:hidden;border-top:1px solid var(--line);scroll-margin-top:64px">
+  <div aria-hidden="true" style="position:absolute;inset:0;background:radial-gradient(110% 70% at 50% 0%,var(--glow) 0%,var(--glow-2) 42%,transparent 72%)"></div>
+  <div style="position:relative;max-width:1200px;margin:0 auto;padding:clamp(80px,10vw,128px) clamp(20px,5vw,32px);display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,380px),1fr));gap:clamp(40px,6vw,64px);align-items:start">
+    <div style="display:flex;flex-direction:column;gap:20px">
+      <span style="font:400 12px/18px var(--font-mono);letter-spacing:1.2px;text-transform:uppercase;color:var(--muted)">Enterprise trial</span>
+      <h2 style="margin:0;font:500 clamp(40px,6vw,72px)/1.1 var(--font-ui);letter-spacing:-0.03em;color:var(--fg)">今天就接入</h2>
+      <p style="margin:0;font-size:16px;color:var(--body);line-height:26px;max-width:440px">一个工作日内联系你，开通试用额度。</p>
+      <sc-if value="{{ hasQr }}" hint-placeholder-val="{{ true }}">
+        <button type="button" onClick="{{ openQr }}" style="height:40px;width:fit-content;padding:0 18px;border-radius:500px;border:1px solid var(--ghost);background:transparent;color:var(--fg);font-size:14px;cursor:pointer;display:inline-flex;align-items:center;gap:8px;white-space:nowrap" style-hover="background:var(--hover);border-color:var(--fg)" style-active="transform:scale(.98)"><svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:block"><rect width="5" height="5" x="3" y="3" rx="1" /><rect width="5" height="5" x="16" y="3" rx="1" /><rect width="5" height="5" x="3" y="16" rx="1" /><path d="M21 16h-3a2 2 0 0 0-2 2v3" /><path d="M21 21v.01" /><path d="M12 7v3a2 2 0 0 1-2 2H7" /><path d="M3 12h.01" /><path d="M12 3h.01" /><path d="M12 16v.01" /><path d="M16 12h1" /><path d="M21 12v.01" /><path d="M12 21v-1" /></svg>直接加商务微信</button>
+      </sc-if>
+    </div>
+    <div style="background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:clamp(24px,3vw,32px);display:flex;flex-direction:column;gap:20px">
+      <sc-if value="{{ notSubmitted }}" hint-placeholder-val="{{ true }}">
+        <div style="display:flex;flex-direction:column;gap:20px">
+          <label style="display:flex;flex-direction:column;gap:8px"><span style="font-size:13px;color:var(--body)">公司名称</span><input value="{{ company }}" onChange="{{ onCompany }}" placeholder="例如：某某科技有限公司" style="height:44px;padding:0 18px;border-radius:500px;border:1px solid var(--line-strong);background:var(--bg);color:var(--fg);font:inherit;font-size:14px;outline:none" style-focus="border-color:var(--fg)"></label>
+          <label style="display:flex;flex-direction:column;gap:8px"><span style="font-size:13px;color:var(--body)">微信号或手机号</span><input value="{{ contactVal }}" onChange="{{ onContact }}" placeholder="用于商务经理添加你" style="height:44px;padding:0 18px;border-radius:500px;border:1px solid var(--line-strong);background:var(--bg);color:var(--fg);font:inherit;font-size:14px;outline:none" style-focus="border-color:var(--fg)"></label>
+          <fieldset style="margin:0;padding:0;border:none;display:flex;flex-direction:column;gap:8px">
+            <legend style="padding:0;margin-bottom:8px;font-size:13px;color:var(--body)">预计月用量</legend>
+            <div style="display:flex;gap:8px;flex-wrap:wrap">
+              <sc-for list="{{ volumes }}" as="o" hint-placeholder-count="3">
+                <button type="button" onClick="{{ o.onClick }}" aria-pressed="{{ o.on }}" style="height:36px;padding:0 16px;border-radius:500px;border:1px solid {{ o.bd }};background:{{ o.bg }};color:{{ o.fg }};font:400 13px/1 var(--font-mono);cursor:pointer;white-space:nowrap">{{ o.label }}</button>
+              </sc-for>
+            </div>
+          </fieldset>
+          <span role="alert" style="font-size:13px;color:var(--err);min-height:20px">{{ err }}</span>
+          <button type="button" onClick="{{ submit }}" style="height:48px;border-radius:500px;border:none;background:var(--accent);color:var(--on-accent);font-size:15px;font-weight:500;cursor:pointer" style-hover="background:var(--accent-hover)" style-active="transform:scale(.98)">提交申请</button>
+        </div>
+      </sc-if>
+      <sc-if value="{{ submitted }}" hint-placeholder-val="{{ false }}">
+        <div style="display:flex;flex-direction:column;gap:16px;padding:24px 0">
+          <span aria-hidden="true" style="width:40px;height:40px;border-radius:50%;border:1px solid var(--accent-line);background:var(--accent-soft);display:flex;align-items:center;justify-content:center"><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--accent-text);display:block"><path d="M20 6 9 17l-5-5" /></svg></span>
+          <span style="font-size:24px;letter-spacing:-.3px;color:var(--fg)">已收到申请</span>
+          <span style="font-size:14px;line-height:22px;color:var(--body)">商务经理会在一个工作日内通过微信添加 <span style="font-family:var(--font-mono);color:var(--fg)">{{ contactVal }}</span>。</span>
+          <button type="button" onClick="{{ reset }}" style="height:40px;width:fit-content;padding:0 18px;border-radius:500px;border:1px solid var(--ghost);background:transparent;color:var(--fg);font-size:14px;cursor:pointer;white-space:nowrap" style-hover="background:var(--hover)">重新填写</button>
+        </div>
+      </sc-if>
+    </div>
+  </div>
+</section>
+
+<footer style="border-top:1px solid var(--line)">
+  <div style="max-width:1200px;margin:0 auto;padding:64px clamp(20px,5vw,32px) 48px;display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:32px">
+    <div style="display:flex;flex-direction:column;gap:16px"><span style="display:inline-flex;align-items:center;gap:10px;font:700 20px/1 var(--font-ui);letter-spacing:-0.04em;color:var(--fg)"><img src="assets/logo-mark.svg" alt="" width="24" height="24" style="display:block">tokenfunc</span><span style="font-size:13px;color:var(--muted)">© 2026 tokenfunc</span></div>
+    <div style="display:flex;flex-direction:column;gap:12px"><span style="font:400 12px/18px var(--font-mono);letter-spacing:1.2px;text-transform:uppercase;color:var(--muted)">产品</span><a href="#pricing" style="font-size:14px;color:var(--body)">价目</a><a href="#model-plaza" style="font-size:14px;color:var(--body)">模型广场</a><a href="#status" style="font-size:14px;color:var(--body)">服务状态</a></div>
+    <div style="display:flex;flex-direction:column;gap:12px"><span style="font:400 12px/18px var(--font-mono);letter-spacing:1.2px;text-transform:uppercase;color:var(--muted)">开发者</span><a href="#quickstart" style="font-size:14px;color:var(--body)">快速接入</a><a href="#docs" style="font-size:14px;color:var(--body)">API 参考</a><a href="#docs" style="font-size:14px;color:var(--body)">SDK</a></div>
+    <div style="display:flex;flex-direction:column;gap:12px"><span style="font:400 12px/18px var(--font-mono);letter-spacing:1.2px;text-transform:uppercase;color:var(--muted)">公司</span><a href="#about" style="font-size:14px;color:var(--body)">关于</a><a href="#contact" style="font-size:14px;color:var(--body)">联系</a><a href="#privacy-policy" style="font-size:14px;color:var(--body)">隐私政策</a></div>
+  </div>
+  <div style="max-width:1200px;margin:0 auto;padding:0 clamp(20px,5vw,32px) 40px;font-size:12px;line-height:18px;color:var(--faint)">Claude Code、Codex、Cursor 等工具名称与 logo 为各自所有者的商标，本站仅用于说明兼容性，不代表官方合作。</div>
+</footer>
+
+<sc-if value="{{ qrOpen }}" hint-placeholder-val="{{ false }}">
+<div onClick="{{ closeQr }}" style="position:fixed;inset:0;z-index:100;background:rgba(0,0,0,.6);backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);display:flex;align-items:center;justify-content:center;padding:24px">
+  <div role="dialog" aria-modal="true" aria-label="微信扫码联系商务" onClick="{{ stop }}" style="position:relative;width:100%;max-width:360px;background:var(--surface);border:1px solid var(--line);border-radius:12px;box-shadow:0 16px 40px rgba(0,0,0,.4);padding:32px;display:flex;flex-direction:column;align-items:center;gap:20px;text-align:center">
+    <button type="button" onClick="{{ closeQr }}" aria-label="关闭" style="position:absolute;top:12px;right:12px;width:32px;height:32px;border-radius:500px;border:none;background:transparent;color:var(--muted);cursor:pointer;display:flex;align-items:center;justify-content:center" style-hover="background:var(--hover-2);color:var(--fg)"><svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:block"><path d="M18 6 6 18" /><path d="m6 6 12 12" /></svg></button>
+    <span style="font:400 12px/18px var(--font-mono);letter-spacing:1.2px;text-transform:uppercase;color:var(--muted)">Contact sales</span>
+    <span style="font-size:24px;letter-spacing:-.3px;color:var(--fg)">微信扫码，联系商务</span>
+    <div style="width:200px;height:200px;padding:12px;background:#fff;border-radius:8px;border:1px solid var(--line)">
+      <image-slot id="tf-sales-wechat-qr" shape="rect" placeholder="拖入商务微信二维码"></image-slot>
+    </div>
+    <span style="font-size:14px;line-height:22px;color:var(--body)">工作日 9:00–21:00</span>
+  </div>
+</div>
+</sc-if>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":5200},"heroTyping":{"editor":"boolean","default":true,"tsType":"boolean","section":"Hero"},"theme":{"editor":"enum","options":["dark","light"],"default":"dark","tsType":"string","section":"主题"},"registration":{"editor":"enum","options":["open","closed"],"default":"open","tsType":"string","section":"状态"},"pricing":{"editor":"enum","options":["data","empty"],"default":"data","tsType":"string","section":"状态"},"wechatQr":{"editor":"boolean","default":true,"tsType":"boolean","section":"状态"}}'>
+// 模型自检演示用的模型
+const PG = {
+  claude: { id: 'claude-sonnet-5-5', label: 'Claude' },
+  gpt: { id: 'gpt-6.2-sol', label: 'GPT' },
+  gemini: { id: 'gemini-3.8-flash', label: 'Gemini' },
+  grok: { id: 'grok-4.7', label: 'Grok' }
+};
+const PG_KEYS = Object.keys(PG);
+
+// 价目：各厂商官方当前主流模型（2026-11-22 官方价，每 1M token，美元）
+// 上线后替换为 /api/pricing 返回
+const VENDORS = [
+  { key: 'claude', label: 'Claude', vendor: 'Anthropic', note: 'claude-haiku-5-5 为 ≤100K token 提示价格，超出按长提示价计费。', rows: [
+    ['claude-fable-5-2', '顶配', 8, 0.2, 40],
+    ['claude-opus-5-5', '旗舰', 4, 0.2, 20],
+    ['claude-sonnet-5-5', '均衡', 2, 0.1, 10],
+    ['claude-haiku-5-5', '轻量', 0.1, 0.01, 0.5]
+  ] },
+  { key: 'gpt', label: 'GPT', vendor: 'OpenAI', note: '短上下文标准价；长上下文与 Fast 模式按上游规则计费。', rows: [
+    ['gpt-6.2-astra', '旗舰', 8, 0.4, 40],
+    ['gpt-6.2-sol', '均衡', 2, 0.1, 10],
+    ['gpt-6.1-terra', '高速', 1, 0.05, 5],
+    ['gpt-6-luna', '轻量', 0.1, 0.01, 0.5]
+  ] },
+  { key: 'gemini', label: 'Gemini', vendor: 'Google', note: 'gemini-4-argon 现价至 11/30，12/1 起上游调整为 $4 / $20；gemini-3.8-flash 现价至 12/31。', rows: [
+    ['gemini-4-argon', '旗舰', 2, 0.1, 10],
+    ['gemini-3.8-flash', '均衡', 0.75, 0.075, 3.75],
+    ['gemini-3.5-flash-lite', '轻量', 0.3, 0.03, 2.5]
+  ] },
+  { key: 'grok', label: 'Grok', vendor: 'xAI', note: '短上下文标准价；超过 200K token 按长上下文价计费。', rows: [
+    ['grok-4.7', '旗舰', 2, 0.5, 6],
+    ['grok-build-0.1', '编码', 1, 0.2, 2],
+    ['grok-4.3', '长上下文', 1.25, 0.2, 2.5]
+  ] }
+];
+
+// 接入代码：包含 api.tokenfunc.com 的行高亮
+const CODE = {
+  Python: 'from openai import OpenAI\n\nclient = OpenAI(\n    base_url="https://api.tokenfunc.com/v1",\n    api_key="tf-••••••••",\n)\n\nresp = client.chat.completions.create(\n    model="claude-sonnet-5-5",\n    messages=[{"role": "user", "content": "你好"}],\n)\nprint(resp.choices[0].message.content)',
+  Node: 'import OpenAI from "openai";\n\nconst client = new OpenAI({\n  baseURL: "https://api.tokenfunc.com/v1",\n  apiKey: process.env.TF_KEY,\n});\n\nconst resp = await client.chat.completions.create({\n  model: "gpt-6.2-sol",\n  messages: [{ role: "user", content: "你好" }],\n});\nconsole.log(resp.choices[0].message.content);',
+  cURL: 'curl https://api.tokenfunc.com/v1/chat/completions \\\n  -H "Authorization: Bearer $TF_KEY" \\\n  -H "Content-Type: application/json" \\\n  -d \'{\n    "model": "gemini-3.8-flash",\n    "messages": [{"role": "user", "content": "你好"}]\n  }\'',
+  'Claude Code': '# 终端中设置环境变量后直接启动\nexport ANTHROPIC_BASE_URL="https://api.tokenfunc.com"\nexport ANTHROPIC_AUTH_TOKEN="tf-••••••••"\n\nclaude'
+};
+// Hero 打字机轮播的核心卖点
+const HERO_PHRASES = ['真模型不降智', '内容不留存', '账单逐条可对'];
+// 兼容工具（均已实测；Kiro、豆包 Work 暂不支持，不展示）。分组与协议标签保留给文档使用，落地页只展示名称与 logo
+const TOOL_GROUPS = [
+  { label: '编码 Agent', tools: [
+    ['Claude Code', 'Anthropic 协议'], ['Codex', 'OpenAI 兼容'], ['OpenCode', 'OpenAI / Anthropic'],
+    ['OpenClaw', 'OpenAI 兼容'], ['Hermes', 'OpenAI 兼容'], ['Cursor', 'OpenAI 兼容']
+  ] },
+  { label: '办公 Agent', tools: [['WorkBuddy', 'OpenAI 兼容'], ['千问 Work', 'OpenAI 兼容'], ['Kimi Work', 'OpenAI 兼容']] },
+  { label: '配置工具', tools: [['CC Switch', '一键切换配置']] }
+];
+const slug = (n) => n.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'tool';
+const TOOL_SLUGS = { '千问 Work': 'qwen-work', 'Kimi Work': 'kimi-work' };
+const VOLS = ['< $1k/月', '$1k–10k/月', '> $10k/月'];
+const STEP_MS = 650, HOLD_MS = 2600;
+
+const usd = (v) => { let s = v.toFixed(3).replace(/0+$/, ''); if (s.split('.')[1].length < 2) s = v.toFixed(2); return '$' + s; };
+const tab = (on) => ({ on, bg: on ? 'var(--fg)' : 'transparent', fg: on ? 'var(--bg)' : 'var(--muted)' });
+
+class Component extends DCLogic {
+  state = { vendor: 'claude', lang: 'Python', chkModel: 'claude', chkStep: 0, company: '', contactVal: '', volume: 1, submitted: false, err: '', copied: false, qr: false };
+
+  componentDidMount() {
+    this.reduced = !!(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches);
+    if (this.reduced) this.setState({ chkStep: 4 }); else this.loop('claude');
+    this.type();
+    this.reveal();
+    this.onKey = (e) => { if (e.key === 'Escape') this.setState({ qr: false }); };
+    window.addEventListener('keydown', this.onKey);
+  }
+  componentWillUnmount() {
+    clearInterval(this.ck); clearTimeout(this.nx); clearTimeout(this.ct); clearTimeout(this.ty);
+    this.io && this.io.disconnect();
+    window.removeEventListener('keydown', this.onKey);
+  }
+  // 打字机：打字 110ms/字，停留 2.2s，回删 45ms/字，换下一句
+  type() {
+    const P = HERO_PHRASES;
+    clearTimeout(this.ty);
+    if (this.props.heroTyping === false) { this.setState({ typedText: P[0] }); return; }
+    // 减弱动效：不打字，整句定时切换
+    if (this.reduced) {
+      let k = 0;
+      const swap = () => { k = (k + 1) % P.length; this.setState({ typedText: P[k] }); this.ty = setTimeout(swap, 3200); };
+      this.setState({ typedText: P[0] }); this.ty = setTimeout(swap, 3200); return;
+    }
+    let i = 0, n = P[0].length, del = false;
+    const tick = () => {
+      const ph = P[i]; let wait = del ? 45 : 110;
+      if (!del) { n++; if (n >= ph.length) { n = ph.length; del = true; wait = 2200; } }
+      else { n--; if (n <= 0) { n = 0; del = false; i = (i + 1) % P.length; wait = 360; } }
+      this.setState({ typedText: P[i].slice(0, n) });
+      this.ty = setTimeout(tick, wait);
+    };
+    this.setState({ typedText: P[0] });
+    this.ty = setTimeout(() => { del = true; tick(); }, 2400);
+  }
+  componentDidUpdate(prev) { if (prev.heroTyping !== this.props.heroTyping) this.type(); }
+  // 自检四步逐项点亮，结束停留后轮换到下一个模型
+  loop(model) {
+    clearInterval(this.ck); clearTimeout(this.nx);
+    if (this.reduced) { this.setState({ chkModel: model, chkStep: 4 }); return; }
+    this.setState({ chkModel: model, chkStep: 0 });
+    this.ck = setInterval(() => {
+      if (this.state.chkStep >= 4) {
+        clearInterval(this.ck);
+        this.nx = setTimeout(() => {
+          const i = PG_KEYS.indexOf(this.state.chkModel);
+          this.loop(PG_KEYS[(i + 1) % PG_KEYS.length]);
+        }, HOLD_MS);
+        return;
+      }
+      this.setState((s) => ({ chkStep: s.chkStep + 1 }));
+    }, STEP_MS);
+  }
+  // 区块进入视口时淡入
+  reveal() {
+    if (this.reduced || !window.IntersectionObserver) return;
+    const els = [...document.querySelectorAll('[data-reveal]')];
+    els.forEach((el) => { el.style.opacity = '0'; el.style.transform = 'translateY(24px)'; el.style.transition = 'opacity 700ms cubic-bezier(.16,1,.3,1), transform 700ms cubic-bezier(.16,1,.3,1)'; });
+    this.io = new IntersectionObserver((es) => es.forEach((e) => {
+      if (e.isIntersecting) { e.target.style.opacity = '1'; e.target.style.transform = 'none'; this.io.unobserve(e.target); }
+    }), { threshold: 0.08, rootMargin: '0px 0px -6% 0px' });
+    els.forEach((el) => this.io.observe(el));
+  }
+  renderVals() {
+    const s = this.state, p = this.props;
+    const hasQr = p.wechatQr !== false;
+    const regOpen = (p.registration ?? 'open') !== 'closed';
+    const priceData = (p.pricing ?? 'data') !== 'empty';
+    const code = CODE[s.lang];
+    return {
+      theme: p.theme === 'light' ? 'light' : 'dark',
+      typed: s.typedText ?? HERO_PHRASES[0],
+      hasQr, noQr: !hasQr,
+      regOpen, regClosed: !regOpen,
+      priceData, priceEmpty: !priceData,
+
+      chkTabs: PG_KEYS.map((k) => ({ label: PG[k].label, ...tab(k === s.chkModel), onClick: () => this.loop(k) })),
+      chkSteps: ['模型标识与上游返回一致', '上下文窗口与标称一致', '工具调用与多模态能力匹配', 'usage 与上游账单逐条一致'].map((label, i) => {
+        const done = s.chkStep > i, run = s.chkStep === i;
+        return {
+          label,
+          fg: done || run ? 'var(--fg)' : 'var(--muted)',
+          st: done ? '通过' : run ? '检测中…' : '待检测',
+          stColor: done ? 'var(--accent-text)' : run ? 'var(--body)' : 'var(--faint)',
+          ring: done ? 'var(--accent-line)' : run ? 'var(--ghost)' : 'var(--line-strong)',
+          dotBg: done ? 'var(--accent-soft)' : 'transparent',
+          iconBg: done ? 'var(--accent-text)' : 'transparent'
+        };
+      }),
+      chkSummary: PG[s.chkModel].id + (s.chkStep >= 4 ? ' · 4/4 通过' : ' · 检测中 ' + s.chkStep + '/4'),
+      chkSummaryColor: s.chkStep >= 4 ? 'var(--accent-text)' : 'var(--muted)',
+
+      langTabs: Object.keys(CODE).map((k) => ({ label: k, ...tab(k === s.lang), onClick: () => this.setState({ lang: k, copied: false }) })),
+      codeLines: code.split('\n').map((t, i) => {
+        const hl = t.indexOf('api.tokenfunc.com') !== -1;
+        return { n: i + 1, t: t || ' ', fg: hl ? 'var(--fg)' : 'var(--body)', bg: hl ? 'var(--accent-soft)' : 'transparent', bar: hl ? 'inset 2px 0 0 var(--accent)' : 'none' };
+      }),
+      copyLabel: s.copied ? '已复制' : '复制',
+      copy: () => { try { navigator.clipboard.writeText(code); } catch (e) {} this.setState({ copied: true }); clearTimeout(this.ct); this.ct = setTimeout(() => this.setState({ copied: false }), 1600); },
+
+      toolsLoop: (() => {
+        const list = TOOL_GROUPS.flatMap((g) => g.tools).map(([name]) => { const id = TOOL_SLUGS[name] || slug(name); return { name, slot: 'tf-tool-logo-' + id, href: '#docs-' + id }; });
+        return [...list.map((t) => ({ ...t, dup: false, tab: 0 })), ...list.map((t) => ({ ...t, dup: true, tab: -1 }))];
+      })(),
+      vendorTabs: VENDORS.map((v) => ({ label: v.label, vendor: v.vendor, ...tab(v.key === s.vendor), onClick: () => this.setState({ vendor: v.key }) })),
+      priceRows: (VENDORS.find((v) => v.key === s.vendor) || VENDORS[0]).rows.map((r) => ({ id: r[0], tag: r[1], inp: usd(r[2]), cache: usd(r[3]), out: usd(r[4]) })),
+      priceNote: (VENDORS.find((v) => v.key === s.vendor) || VENDORS[0]).note,
+
+      company: s.company, contactVal: s.contactVal, err: s.err,
+      onCompany: (e) => this.setState({ company: e.target.value, err: '' }),
+      onContact: (e) => this.setState({ contactVal: e.target.value, err: '' }),
+      volumes: VOLS.map((l, i) => { const on = i === s.volume; return { label: l, on, bg: on ? 'var(--fg)' : 'transparent', fg: on ? 'var(--bg)' : 'var(--body)', bd: on ? 'var(--fg)' : 'var(--line-strong)', onClick: () => this.setState({ volume: i }) }; }),
+      submit: () => {
+        if (!s.company.trim()) return this.setState({ err: '请填写公司名称' });
+        if (s.contactVal.trim().length < 5) return this.setState({ err: '请填写微信号或手机号' });
+        this.setState({ submitted: true });
+      },
+      reset: () => this.setState({ submitted: false }),
+      submitted: s.submitted, notSubmitted: !s.submitted,
+      qrOpen: s.qr, openQr: () => this.setState({ qr: true }), closeQr: () => this.setState({ qr: false }), stop: (e) => e.stopPropagation()
+    };
+  }
+}
+</script>
+</body>
+</html>

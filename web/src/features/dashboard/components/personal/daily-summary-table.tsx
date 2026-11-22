@@ -83,6 +83,9 @@ export function DailySummaryTable(props: DailySummaryTableProps) {
     {
       id: 'model',
       header: t('Main model'),
+      // 左侧留白，避免与右对齐的 Token 列文字贴在一起
+      className: 'ps-10',
+      cellClassName: 'ps-10',
       cell: (row) => (
         <span className='font-mono text-xs'>{topModelOf(row) ?? '-'}</span>
       ),
@@ -95,7 +98,8 @@ export function DailySummaryTable(props: DailySummaryTableProps) {
         const percent = sharePercent(row.quota, total)
         return (
           <div className='flex items-center gap-2'>
-            <div className='bg-muted h-1.5 flex-1 overflow-hidden rounded-full'>
+            {/* 卡片底色接近 bg-muted，轨道用前景色叠加，0% 时也能看清 */}
+            <div className='bg-foreground/10 h-1.5 flex-1 overflow-hidden rounded-full'>
               <motion.div
                 className='bg-chart-1 h-full rounded-full'
                 initial={reduceMotion ? false : { width: 0 }}

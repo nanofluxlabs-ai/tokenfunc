@@ -87,11 +87,10 @@ export function usePromoterUsersColumns(
                   />
                 )}
               </div>
-              {(user.display_name || (showContact && user.email)) && (
+              {/* 只展示用户名 + 邮箱（仅管理员视角）；邮箱与用户名相同时不重复显示 */}
+              {showContact && user.email && user.email !== user.username && (
                 <span className='text-muted-foreground truncate text-xs'>
-                  {[user.display_name, showContact ? user.email : '']
-                    .filter(Boolean)
-                    .join(' · ')}
+                  {user.email}
                 </span>
               )}
             </div>

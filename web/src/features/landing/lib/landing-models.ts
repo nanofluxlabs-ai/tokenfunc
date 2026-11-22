@@ -1,12 +1,11 @@
-import type { PricingData, PricingModel } from '@/features/pricing/types'
+import type { PricingData } from '@/features/pricing/types'
 
-import { LANDING_VENDORS } from '../content'
+import type { FeaturedVendor } from '../content'
 import { computeListPrices } from './list-prices'
 
 export type LandingModelRow = {
   id: string
-  vendorKey: string
-  vendorLabel: string
+  tag: string
   inputUSD: number
   cacheUSD: number | null
   outputUSD: number
@@ -21,45 +20,46 @@ export function resolveDefaultGroupRatio(data: PricingData): number {
   return 1
 }
 
-function matchVendor(model: PricingModel) {
-  const haystack = `${model.vendor_name ?? ''} ${model.model_name}`
-  return LANDING_VENDORS.find((vendor) => vendor.match.test(haystack))
-}
-
 /**
- * 把系统定价收敛成营销页价目：只保留四家厂商、按 token 计费的模型，
- * 价格按"模型倍率 × 2 × 默认分组倍率"换算成 USD / 1M tokens。
+ * 按精选配置从系统定价里取价：model_name 精确匹配、只取按 token 计费的模型，
+ * 接口里没有的模型直接跳过（不回退写死价格），顺序与配置一致。
  */
-export function buildLandingModelRows(data: PricingData): LandingModelRow[] {
+export function buildFeaturedRows(
+  data: PricingData,
+  vendor: FeaturedVendor
+): LandingModelRow[] {
   const groupRatio = resolveDefaultGroupRatio(data)
+  const byName = new Map(
+    (data.data ?? [])
+      .filter((model) => model.quota_type === 0)
+      .map((model) => [model.model_name, model])
+  )
   const rows: LandingModelRow[] = []
-  for (const model of data.data ?? []) {
-    if (model.quota_type !== 0) continue
-    const vendor = matchVendor(model)
-    if (!vendor) continue
+  for (const featured of vendor.models) {
+    const model = byName.get(featured.id)
+    if (!model) continue
     const prices = computeListPrices(model, groupRatio)
     rows.push({
-      id: model.model_name,
-      vendorKey: vendor.key,
-      vendorLabel: vendor.label,
+      id: featured.id,
+      tag: featured.tag,
       inputUSD: prices.input,
       cacheUSD: prices.cache,
       outputUSD: prices.output,
     })
   }
-  const order = new Map(
-    LANDING_VENDORS.map((vendor, index) => [vendor.key, index])
-  )
-  return rows.sort((a, b) => {
-    const byVendor =
-      (order.get(a.vendorKey) ?? 99) - (order.get(b.vendorKey) ?? 99)
-    if (byVendor !== 0) return byVendor
-    return b.inputUSD - a.inputUSD
-  })
+  return rows
 }
 
-/** 价目表里的美元展示：小于 1 美元保留 3 位，否则 2 位 */
+// 价目固定按美元展示，与界面语言无关，用合法的固定语言标签
+const usdFormatter = new Intl.NumberFormat('en-US', {
+  style: 'currency',
+  currency: 'USD',
+  minimumFractionDigits: 2,
+  maximumFractionDigits: 3,
+})
+
+/** 价目表美元：至少 2 位、最多 3 位小数，去掉多余的 0（$15.00、$0.30、$0.125） */
 export function formatUsdPerMillion(value: number | null): string {
   if (value === null) return '—'
-  return `$${value.toFixed(value < 1 ? 3 : 2)}`
+  return usdFormatter.format(value)
 }

@@ -420,43 +420,6 @@ claude`,
   },
 ]
 
-export const PRICING_PLANS: {
-  key: 'payg' | 'enterprise'
-  eyebrow: string
-  price: string
-  priceSuffix?: string
-  points: string[]
-  cta: string
-  highlight: boolean
-}[] = [
-  {
-    key: 'payg',
-    eyebrow: 'Pay as you go',
-    price: '$0',
-    priceSuffix: 'to start',
-    points: [
-      'All models at official prices',
-      'Online top-up · electronic invoices',
-      'Usage dashboard',
-    ],
-    cta: 'Sign up free',
-    highlight: false,
-  },
-  {
-    key: 'enterprise',
-    eyebrow: 'Enterprise',
-    price: 'Custom',
-    points: [
-      'Dedicated pools and SLA credits',
-      'Prepaid from 10% off · or monthly settlement',
-      'Bank transfer · VAT special invoices',
-      'Dedicated technical support',
-    ],
-    cta: 'Contact sales',
-    highlight: true,
-  },
-]
-
 export const FAQ_ITEMS: { question: string; answer: string }[] = [
   {
     question: 'Do you support bank transfers and invoices?',
@@ -489,11 +452,67 @@ export const LEAD_VOLUMES: {
   { value: 'gt_10k', label: '> $10,000 / month' },
 ]
 
-/** 模型价目只展示这四家厂商（按 vendor_name 模糊匹配） */
-export const LANDING_VENDORS: { key: string; label: string; match: RegExp }[] =
-  [
-    { key: 'anthropic', label: 'Claude', match: /anthropic|claude/i },
-    { key: 'openai', label: 'GPT', match: /openai|gpt/i },
-    { key: 'google', label: 'Gemini', match: /google|gemini/i },
-    { key: 'xai', label: 'Grok', match: /xai|x\.ai|grok/i },
-  ]
+export type FeaturedVendor = {
+  key: 'claude' | 'gpt' | 'gemini' | 'grok'
+  label: string
+  /** 厂商名（品牌名，不进 i18n） */
+  vendor: string
+  /** 该厂商的计费注脚（i18n key） */
+  note: string
+  /** 精选模型：按 model_name 精确匹配 /api/pricing，接口里没有的不显示 */
+  models: { id: string; tag: string }[]
+}
+
+/**
+ * 价目区精选（2026-11-22 各家官方当前主力）。价格一律来自 /api/pricing，这里只配置
+ * 展示哪些模型和定位标签，不写价格。
+ */
+export const FEATURED_MODELS: FeaturedVendor[] = [
+  {
+    key: 'claude',
+    label: 'Claude',
+    vendor: 'Anthropic',
+    note: 'claude-haiku-5-5 is priced for prompts up to 100K tokens; longer prompts use the long-prompt price.',
+    models: [
+      { id: 'claude-fable-5-2', tag: 'Top tier' },
+      { id: 'claude-opus-5-5', tag: 'Flagship' },
+      { id: 'claude-sonnet-5-5', tag: 'Balanced' },
+      { id: 'claude-haiku-5-5', tag: 'Lite' },
+    ],
+  },
+  {
+    key: 'gpt',
+    label: 'GPT',
+    vendor: 'OpenAI',
+    note: 'Standard short-context price; long context and Fast mode follow upstream rules.',
+    models: [
+      { id: 'gpt-6.2-astra', tag: 'Flagship' },
+      { id: 'gpt-6.2-sol', tag: 'Balanced' },
+      { id: 'gpt-6.1-terra', tag: 'Fast' },
+      { id: 'gpt-6-luna', tag: 'Lite' },
+    ],
+  },
+  {
+    key: 'gemini',
+    label: 'Gemini',
+    vendor: 'Google',
+    // 黑鹰 2026-11-22 拍板：不写调价日期，用通用说法
+    note: 'Prices follow upstream adjustments; the price shown here is current.',
+    models: [
+      { id: 'gemini-4-argon', tag: 'Flagship' },
+      { id: 'gemini-3.8-flash', tag: 'Balanced' },
+      { id: 'gemini-3.5-flash-lite', tag: 'Lite' },
+    ],
+  },
+  {
+    key: 'grok',
+    label: 'Grok',
+    vendor: 'xAI',
+    note: 'Standard short-context price; prompts over 200K tokens use the long-context price.',
+    models: [
+      { id: 'grok-4.7', tag: 'Flagship' },
+      { id: 'grok-build-0.1', tag: 'Coding' },
+      { id: 'grok-4.3', tag: 'Long context' },
+    ],
+  },
+]

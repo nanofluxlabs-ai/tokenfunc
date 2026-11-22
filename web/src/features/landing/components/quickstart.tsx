@@ -1,24 +1,19 @@
-import { Play } from 'lucide-react'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { Link } from '@tanstack/react-router'
+import { ArrowRight, Check, Copy } from 'lucide-react'
+import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
-import { CopyButton } from '@/components/copy-button'
 import { Button } from '@/components/ui/button'
+import { useCopyToClipboard } from '@/hooks/use-copy-to-clipboard'
 import { useStatus } from '@/hooks/use-status'
+import { cn } from '@/lib/utils'
 
-import {
-  PLAYGROUND_REPLIES,
-  QUICKSTART_STEPS,
-  SNIPPET_GROUPS,
-  SNIPPETS,
-  type Snippet,
-  type SnippetGroup,
-} from '../content'
+import { QUICKSTART_STEPS, SNIPPETS } from '../content'
 import { useReveal } from '../hooks/use-reveal'
-import { Panel, PillTabs, Section, SectionHeading } from './landing-primitives'
+import { Eyebrow, PillTabs } from './landing-primitives'
 
-const STREAM_STEP = 2
-const STREAM_INTERVAL = 32
+/** 「已复制」保持时长 */
+const COPIED_RESET_MS = 1600
 
 /** 当前站点对外的 API 地址：后台配置的服务器地址优先，否则取当前 origin */
 function useApiBase(): string {
@@ -32,50 +27,55 @@ function useApiBase(): string {
   return window.location.origin
 }
 
-/** 右侧模拟流式回复：按首 token 延迟等待后逐字输出（演示，不发请求） */
-function usePlaygroundStream(snippet: Snippet, runId: number) {
+function QuickstartSteps() {
   const { t } = useTranslation()
-  const reply = PLAYGROUND_REPLIES[snippet.model]
-  const text = t(reply.text)
-  const [position, setPosition] = useState(0)
-  const [waiting, setWaiting] = useState(true)
-  const timers = useRef<{ delay: number; interval: number }>({
-    delay: 0,
-    interval: 0,
-  })
-
-  useEffect(() => {
-    const current = timers.current
-    window.clearTimeout(current.delay)
-    window.clearInterval(current.interval)
-    setPosition(0)
-    setWaiting(true)
-    current.delay = window.setTimeout(() => {
-      setWaiting(false)
-      current.interval = window.setInterval(() => {
-        setPosition((value) => {
-          if (value >= text.length) {
-            window.clearInterval(current.interval)
-            return value
-          }
-          return Math.min(text.length, value + STREAM_STEP)
-        })
-      }, STREAM_INTERVAL)
-    }, reply.ttft + 300)
-    return () => {
-      window.clearTimeout(current.delay)
-      window.clearInterval(current.interval)
-    }
-  }, [text, reply.ttft, runId])
-
-  return { reply, text: text.slice(0, position), waiting }
+  return (
+    <ol className='border-border m-0 flex list-none flex-col border-l p-0'>
+      {QUICKSTART_STEPS.map((step, index) => {
+        // 第 02 步（替换 base_url）是唯一改动，节点与序号高亮
+        const active = index === 1
+        return (
+          <li
+            key={step.title}
+            className='relative flex flex-col gap-1 pb-6 pl-6 last:pb-0'
+          >
+            <span
+              aria-hidden='true'
+              className={cn(
+                'absolute top-1.5 -left-[5px] size-[9px] rounded-full border',
+                active
+                  ? 'bg-primary border-primary'
+                  : 'bg-background border-foreground/50'
+              )}
+            />
+            <span
+              className={cn(
+                'font-mono text-xs',
+                active ? 'text-brand-ink' : 'text-muted-foreground'
+              )}
+            >
+              0{index + 1}
+            </span>
+            <span className='text-foreground text-base'>{t(step.title)}</span>
+            <span className='text-muted-foreground text-[13px] leading-5'>
+              {t(step.description)}
+            </span>
+          </li>
+        )
+      })}
+    </ol>
+  )
 }
 
+/** 接入：左侧三步竖排，右侧代码块（含 API 地址的那一行高亮） */
 export function Quickstart() {
   const { t } = useTranslation()
   const apiBase = useApiBase()
   const [snippetKey, setSnippetKey] = useState(SNIPPETS[0].key)
-  const [runId, setRunId] = useState(0)
+  const { copiedText, copyToClipboard } = useCopyToClipboard({
+    notify: false,
+    resetAfterMs: COPIED_RESET_MS,
+  })
   const ref = useReveal<HTMLDivElement>()
 
   const snippet =
@@ -84,121 +84,100 @@ export function Quickstart() {
     () => snippet.code.replaceAll('{{base}}', apiBase),
     [snippet, apiBase]
   )
-  const stream = usePlaygroundStream(snippet, runId)
-
-  const selectGroup = (group: SnippetGroup) => {
-    const first = SNIPPETS.find((item) => item.group === group)
-    if (first) setSnippetKey(first.key)
-  }
+  // 行号在拆行时生成，作为每行稳定的 key
+  const lines = code
+    .split('\n')
+    .map((text, index) => ({ number: index + 1, text }))
+  const copied = copiedText === code
 
   return (
-    <Section id='quickstart'>
-      <div ref={ref} className='tf-reveal flex flex-col gap-10'>
-        <SectionHeading
-          className='max-w-[640px]'
-          eyebrow={t('Quickstart')}
-          title={t('Change one base_url and switch over')}
-        />
-        <ol className='bg-border border-border m-0 grid list-none grid-cols-[repeat(auto-fit,minmax(220px,1fr))] gap-px overflow-hidden rounded-xl border p-0'>
-          {QUICKSTART_STEPS.map((step, index) => (
-            <li
-              key={step.title}
-              className='bg-background flex flex-col gap-2 p-6'
-            >
-              <span className='text-muted-foreground font-mono text-xs'>
-                0{index + 1}
-              </span>
-              <span className='text-foreground'>{t(step.title)}</span>
-              <span className='text-muted-foreground text-[13px] leading-5'>
-                {t(step.description)}
-              </span>
-            </li>
-          ))}
-        </ol>
-        <Panel>
-          <div className='border-border flex flex-wrap gap-1 border-b px-4 py-3'>
-            <PillTabs
-              aria-label={t('Integration type')}
-              value={snippet.group}
-              onValueChange={selectGroup}
-              items={SNIPPET_GROUPS.map((group) => ({
-                value: group.key,
-                label: t(group.label),
-              }))}
-            />
+    <section id='quickstart' className='border-border scroll-mt-16 border-t'>
+      <div
+        ref={ref}
+        className='tf-reveal mx-auto flex max-w-[1200px] flex-wrap items-start gap-[clamp(40px,5vw,64px)] px-[clamp(20px,5vw,32px)] py-[clamp(72px,9vw,112px)]'
+      >
+        <div className='flex min-w-0 flex-[1_1_300px] flex-col gap-8'>
+          <div className='flex flex-col gap-4'>
+            <Eyebrow>{t('Quickstart')}</Eyebrow>
+            <h2 className='text-foreground m-0 text-[clamp(28px,3.4vw,36px)] leading-[1.2] font-medium tracking-[-0.02em]'>
+              {t('Change one line of base_url to switch')}
+            </h2>
           </div>
-          <div className='border-border flex flex-wrap items-center justify-between gap-4 border-b px-4 py-3'>
+          <QuickstartSteps />
+          <Link
+            to='/docs'
+            className='text-foreground/90 hover:text-foreground inline-flex w-fit items-center gap-1.5 text-sm'
+          >
+            {t('More SDKs and agent setups')}
+            <ArrowRight className='size-3.5' aria-hidden='true' />
+            {t('Docs')}
+          </Link>
+        </div>
+
+        <div className='bg-card border-border min-w-0 flex-[1.7_1_460px] overflow-hidden rounded-xl border'>
+          <div className='border-border bg-muted/40 flex flex-wrap items-center justify-between gap-3 border-b px-3 py-2.5'>
             <PillTabs
               size='sm'
               mono
-              aria-label={t('Client')}
+              aria-label={t('Language')}
               value={snippet.key}
               onValueChange={setSnippetKey}
-              items={SNIPPETS.filter(
-                (item) => item.group === snippet.group
-              ).map((item) => ({
+              items={SNIPPETS.map((item) => ({
                 value: item.key,
                 label: item.key,
               }))}
             />
-            <div className='flex items-center gap-2'>
-              <CopyButton
-                value={code}
-                variant='ghost'
-                size='sm'
-                className='font-mono text-xs'
-              >
-                {t('Copy')}
-              </CopyButton>
-              <Button
-                variant='outline'
-                size='sm'
-                className='font-mono text-xs'
-                onClick={() => setRunId((value) => value + 1)}
-              >
-                <Play aria-hidden='true' />
-                {t('Run')}
-              </Button>
-            </div>
+            <Button
+              variant='ghost'
+              size='sm'
+              className='h-[30px] rounded-full px-3 font-mono text-xs whitespace-nowrap'
+              onClick={() => void copyToClipboard(code)}
+            >
+              {copied ? (
+                <Check className='text-brand-ink size-3' aria-hidden='true' />
+              ) : (
+                <Copy className='size-3' aria-hidden='true' />
+              )}
+              <span aria-live='polite'>{copied ? t('Copied') : t('Copy')}</span>
+            </Button>
           </div>
-          <div className='grid grid-cols-[repeat(auto-fit,minmax(min(100%,420px),1fr))]'>
-            <pre className='text-foreground/90 border-border m-0 min-h-[300px] min-w-0 border-b p-6 font-mono text-[13px] leading-[22px] wrap-anywhere whitespace-pre-wrap md:border-r md:border-b-0'>
-              {code}
+          <div className='overflow-x-auto py-4'>
+            <pre className='m-0 min-w-max font-mono text-[13px] leading-[22px]'>
+              <code className='block'>
+                {lines.map((line) => {
+                  const highlighted = line.text.includes(apiBase)
+                  return (
+                    <span
+                      key={line.number}
+                      data-highlighted={highlighted || undefined}
+                      className={cn(
+                        'grid grid-cols-[44px_auto] pr-6',
+                        highlighted &&
+                          'bg-primary/10 shadow-[inset_2px_0_0_var(--primary)]'
+                      )}
+                    >
+                      <span
+                        aria-hidden='true'
+                        className='text-muted-foreground pr-4 text-right select-none'
+                      >
+                        {line.number}
+                      </span>
+                      <span
+                        className={cn(
+                          'whitespace-pre',
+                          highlighted ? 'text-foreground' : 'text-foreground/90'
+                        )}
+                      >
+                        {line.text || ' '}
+                      </span>
+                    </span>
+                  )
+                })}
+              </code>
             </pre>
-            <div className='flex min-w-0 flex-col gap-3 p-6'>
-              <div className='text-muted-foreground flex flex-wrap justify-between gap-3 font-mono text-xs leading-[18px]'>
-                <span className='inline-flex items-center gap-2'>
-                  <span
-                    className='bg-primary size-1.5 rounded-full'
-                    aria-hidden='true'
-                  />
-                  {stream.reply.id} · stream
-                </span>
-                <span>
-                  {t('First-token latency')}{' '}
-                  <span className='text-foreground'>{stream.reply.ttft}ms</span>{' '}
-                  · {Math.round(stream.text.length * 1.3)} tokens
-                </span>
-              </div>
-              <p
-                className='text-foreground m-0 leading-7 text-pretty'
-                aria-live='polite'
-              >
-                {stream.text}
-                {stream.waiting && (
-                  <span className='text-muted-foreground'>
-                    {t('Waiting for the first token…')}
-                  </span>
-                )}
-                <span
-                  aria-hidden='true'
-                  className='bg-foreground tf-blink ml-0.5 inline-block h-[18px] w-2 align-[-3px]'
-                />
-              </p>
-            </div>
           </div>
-        </Panel>
+        </div>
       </div>
-    </Section>
+    </section>
   )
 }

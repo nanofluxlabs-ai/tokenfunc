@@ -348,42 +348,30 @@ export const ENTERPRISE_SERVICES: {
 ]
 
 export const QUICKSTART_STEPS: { title: string; description: string }[] = [
-  { title: 'Create a key', description: 'Generate an API key in the console' },
+  {
+    title: 'Create a key',
+    description: 'Generate an sk- API key in the console',
+  },
   {
     title: 'Replace base_url',
     description:
-      'Compatible with the OpenAI / Anthropic protocols, works with SDKs and agents',
+      'OpenAI and Anthropic compatible — the highlighted line is the only change',
   },
   {
     title: 'Call by model name',
     description:
-      'The model name is the route; existing code and tools need no changes',
+      'The model name is the route; existing code and tools work as-is',
   },
 ]
 
-export type SnippetGroup = 'sdk' | 'code' | 'office'
-
-export const SNIPPET_GROUPS: { key: SnippetGroup; label: string }[] = [
-  { key: 'sdk', label: 'SDKs' },
-  { key: 'code', label: 'Coding agents' },
-  { key: 'office', label: 'Office agents' },
-]
-
-export type Snippet = {
-  key: string
-  group: SnippetGroup
-  model: 'claude' | 'gpt' | 'gemini' | 'grok'
-  /** 代码模板，{{base}} 会被替换成当前站点的 API 地址 */
-  code: string
-}
+/** 接入区代码片段：代码不进 i18n；{{base}} 替换成当前站点 API 地址，含该地址的行会高亮 */
+export type Snippet = { key: string; code: string }
 
 const KEY = 'sk-••••••••'
 
 export const SNIPPETS: Snippet[] = [
   {
     key: 'Python',
-    group: 'sdk',
-    model: 'claude',
     code: `from openai import OpenAI
 
 client = OpenAI(
@@ -392,15 +380,13 @@ client = OpenAI(
 )
 
 resp = client.chat.completions.create(
-    model="claude-sonnet-4.5",
-    messages=[{"role": "user", "content": "Describe tokenfunc in one sentence"}],
-    stream=True,
-)`,
+    model="claude-sonnet-5-5",
+    messages=[{"role": "user", "content": "你好"}],
+)
+print(resp.choices[0].message.content)`,
   },
   {
     key: 'Node',
-    group: 'sdk',
-    model: 'gpt',
     code: `import OpenAI from "openai";
 
 const client = new OpenAI({
@@ -408,165 +394,31 @@ const client = new OpenAI({
   apiKey: process.env.TF_KEY,
 });
 
-await client.chat.completions.create({
-  model: "gpt-5",
-  messages: [{ role: "user", content: "Describe tokenfunc in one sentence" }],
-  stream: true,
-});`,
+const resp = await client.chat.completions.create({
+  model: "gpt-6.2-sol",
+  messages: [{ role: "user", content: "你好" }],
+});
+console.log(resp.choices[0].message.content);`,
   },
   {
     key: 'cURL',
-    group: 'sdk',
-    model: 'gemini',
     code: `curl {{base}}/v1/chat/completions \\
   -H "Authorization: Bearer $TF_KEY" \\
   -H "Content-Type: application/json" \\
   -d '{
-    "model": "gemini-2.5-pro",
-    "messages": [{"role": "user", "content": "Describe tokenfunc in one sentence"}],
-    "stream": true
+    "model": "gemini-3.8-flash",
+    "messages": [{"role": "user", "content": "你好"}]
   }'`,
   },
   {
     key: 'Claude Code',
-    group: 'code',
-    model: 'claude',
-    code: `# Export the variables, then launch
+    code: `# 终端中设置环境变量后直接启动
 export ANTHROPIC_BASE_URL="{{base}}"
 export ANTHROPIC_AUTH_TOKEN="${KEY}"
 
 claude`,
   },
-  {
-    key: 'Codex',
-    group: 'code',
-    model: 'gpt',
-    code: `# ~/.codex/config.toml
-model = "gpt-5-codex"
-model_provider = "tokenfunc"
-
-[model_providers.tokenfunc]
-name = "tokenfunc"
-base_url = "{{base}}/v1"
-env_key = "TF_KEY"
-wire_api = "responses"
-
-# Terminal
-export TF_KEY="${KEY}"
-codex`,
-  },
-  {
-    key: 'Cursor',
-    group: 'code',
-    model: 'claude',
-    code: `# Settings → Models → API Keys
-
-OpenAI API Key:
-  ${KEY}
-
-Override OpenAI Base URL:
-  {{base}}/v1`,
-  },
-  {
-    key: 'Cline',
-    group: 'code',
-    model: 'claude',
-    code: `# API Provider: OpenAI Compatible
-
-Base URL:  {{base}}/v1
-API Key:   ${KEY}
-Model ID:  claude-sonnet-4.5`,
-  },
-  {
-    key: 'OpenClaw',
-    group: 'code',
-    model: 'claude',
-    code: `// ~/.openclaw/openclaw.json
-{
-  "models": {
-    "providers": {
-      "tokenfunc": {
-        "baseUrl": "{{base}}/v1",
-        "apiKey": "${KEY}",
-        "api": "openai-completions",
-        "models": [{ "id": "claude-sonnet-4.5" }]
-      }
-    }
-  }
-}`,
-  },
-  {
-    key: 'WorkBuddy',
-    group: 'office',
-    model: 'claude',
-    code: `# Settings → Models → Add custom model
-
-Type:      OpenAI compatible
-Base URL:  {{base}}/v1
-API Key:   ${KEY}
-Model:     claude-sonnet-4.5`,
-  },
-  {
-    key: 'Qwen Work',
-    group: 'office',
-    model: 'gpt',
-    code: `# Settings → Model services → Custom
-
-Type:      OpenAI compatible
-Base URL:  {{base}}/v1
-API Key:   ${KEY}
-Model:     gpt-5`,
-  },
-  {
-    key: 'Doubao Work',
-    group: 'office',
-    model: 'gemini',
-    code: `# Settings → Models → Third-party model
-
-Type:      OpenAI compatible
-Base URL:  {{base}}/v1
-API Key:   ${KEY}
-Model:     gemini-2.5-pro`,
-  },
-  {
-    key: 'Kimi Work',
-    group: 'office',
-    model: 'claude',
-    code: `# Settings → Models → Custom API
-
-Type:      OpenAI compatible
-Base URL:  {{base}}/v1
-API Key:   ${KEY}
-Model:     claude-sonnet-4.5`,
-  },
 ]
-
-/** 快速接入右侧的模拟流式回复 */
-export const PLAYGROUND_REPLIES: Record<
-  Snippet['model'],
-  { id: string; ttft: number; text: string }
-> = {
-  claude: {
-    id: 'claude-sonnet-4.5',
-    ttft: 412,
-    text: 'tokenfunc is an enterprise model gateway: one API key and one base_url to call Claude, GPT, Gemini and Grok with unified billing and management.',
-  },
-  gpt: {
-    id: 'gpt-5',
-    ttft: 520,
-    text: 'tokenfunc puts the major overseas models behind one OpenAI-compatible endpoint, with consolidated settlement and corporate invoicing.',
-  },
-  gemini: {
-    id: 'gemini-2.5-pro',
-    ttft: 640,
-    text: 'tokenfunc gives domestic teams stable access to Claude, GPT, Gemini and Grok, metered by token in real time.',
-  },
-  grok: {
-    id: 'grok-4',
-    ttft: 580,
-    text: 'tokenfunc: one integration for models from four vendors; pools fail over automatically and there is only one bill.',
-  },
-}
 
 export const PRICING_PLANS: {
   key: 'payg' | 'enterprise'

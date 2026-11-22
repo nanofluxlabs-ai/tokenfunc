@@ -2,7 +2,8 @@
  * 营销页文案与演示数据（tokenfunc 二开）。
  *
  * 所有面向用户的字符串都是 i18n 的英文 key，组件里统一经 t() 渲染。
- * 首屏指标、延迟、缓存账单等演示数字是市场口径，集中在这里便于调整。
+ * 首屏不放任何数字；demo 卡里的数字是可在控制台复现的演示数据，
+ * 运行质量数字（QUALITY_METRICS）是待确认的占位，价格只读 /api/pricing。
  */
 
 /** Hero 打字机轮播的三条核心卖点，与下方三个主卖点一一对应 */
@@ -233,120 +234,6 @@ export const BUDGET_DEMO = {
   ],
 }
 
-export type ManagementTab = {
-  key: 'org' | 'team' | 'project' | 'finance'
-  label: string
-  title: string
-  description: string
-  points: string[]
-  columns: string[]
-  rows: string[][]
-}
-
-export const MANAGEMENT_TABS: ManagementTab[] = [
-  {
-    key: 'org',
-    label: 'Organization',
-    title: 'Organization',
-    description:
-      'Members, roles and permissions in one place; revoke keys in one click when someone leaves.',
-    points: [
-      'Owner / admin / member / finance roles',
-      'Member invitations and bulk import',
-      'Keys belong to people and can be frozen at any time',
-    ],
-    columns: ['Member', 'Role', 'Team', 'Keys'],
-    rows: [
-      ['Zhang Wei', 'Owner', '—', '2'],
-      ['Li Na', 'Admin', 'R&D Center', '4'],
-      ['Wang Qiang', 'Member', 'Algorithm Team', '3'],
-      ['Chen Jing', 'Finance', 'Finance Dept.', '0'],
-    ],
-  },
-  {
-    key: 'team',
-    label: 'Teams',
-    title: 'Teams',
-    description:
-      'Budgets per team, alerts near the limit, and automatic cut-off when exceeded.',
-    points: [
-      'Monthly budget per team',
-      'Quota alerts and overage circuit breaker',
-      'Team usage ranking',
-    ],
-    columns: ['Team', 'Members', 'Monthly budget', 'Used'],
-    rows: [
-      ['R&D Center', '24', '$12,000', '$7,840'],
-      ['Algorithm Team', '9', '$6,000', '$5,530'],
-      ['Support Platform', '6', '$2,000', '$740'],
-      ['Marketing', '4', '$800', '$170'],
-    ],
-  },
-  {
-    key: 'project',
-    label: 'Projects',
-    title: 'Projects',
-    description:
-      'Independent keys, model allowlists and rate-limit policies for every project.',
-    points: [
-      'Project-level API keys',
-      'Model allowlist',
-      'RPM / TPM rate limits',
-    ],
-    columns: ['Project', 'Keys', 'Models', 'RPM limit'],
-    rows: [
-      ['Customer Support Bot', '3', '2 models', '2,000'],
-      ['Code Assistant', '5', '1 model', '1,000'],
-      ['Document Search', '2', '3 models', '500'],
-      ['Data Labeling', '1', '1 model', '4,000'],
-    ],
-  },
-  {
-    key: 'finance',
-    label: 'Finance reconciliation',
-    title: 'Finance reconciliation',
-    description:
-      'Bills by organization, team, project and key, with exportable line items.',
-    points: [
-      'Multi-dimensional bills and line-item export',
-      'Prepaid or monthly settlement',
-      'VAT invoices (general / special)',
-    ],
-    columns: ['Period', 'Tokens', 'Amount', 'Status'],
-    rows: [
-      ['2026-09', '1.82B', '$25,890.00', 'Awaiting invoice'],
-      ['2026-08', '1.64B', '$23,755.00', 'Settled'],
-      ['2026-07', '1.31B', '$19,428.00', 'Settled'],
-      ['2026-06', '1.07B', '$15,640.00', 'Settled'],
-    ],
-  },
-]
-
-export const ENTERPRISE_SERVICES: {
-  icon: 'file-check' | 'server' | 'headset'
-  title: string
-  description: string
-}[] = [
-  {
-    icon: 'file-check',
-    title: 'Compliant procurement',
-    description:
-      'Formal contract and DPA, aligned with vendor onboarding and corporate purchasing.',
-  },
-  {
-    icon: 'server',
-    title: 'Dedicated deployment',
-    description:
-      'Exclusive pools, dedicated lines and your own domain; private deployment available.',
-  },
-  {
-    icon: 'headset',
-    title: 'Migration and support',
-    description:
-      'Engineers help with a smooth migration, a dedicated support group, and 24×7 incident on-call.',
-  },
-]
-
 export const QUICKSTART_STEPS: { title: string; description: string }[] = [
   {
     title: 'Create a key',
@@ -420,36 +307,13 @@ claude`,
   },
 ]
 
-export const FAQ_ITEMS: { question: string; answer: string }[] = [
-  {
-    question: 'Do you support bank transfers and invoices?',
-    answer:
-      'Yes. Enterprises can choose prepaid or monthly settlement, and we issue VAT general and special invoices.',
-  },
-  {
-    question: 'Can you work with enterprise compliance and procurement?',
-    answer:
-      'We sign a formal service contract and a Data Processing Agreement (DPA), and provide company credentials and security documentation for vendor onboarding.',
-  },
-  {
-    question: 'Is migrating from another platform hard?',
-    answer:
-      'The protocols are compatible, so usually only base_url and api_key change. Enterprise customers get engineer assistance and can migrate part of the traffic first.',
-  },
-  {
-    question: 'What happens if the SLA is missed?',
-    answer:
-      'Enterprise contracts define the monthly availability; shortfalls are credited under the contract terms.',
-  },
-]
-
 export const LEAD_VOLUMES: {
   value: 'lt_1k' | '1k_10k' | 'gt_10k'
   label: string
 }[] = [
-  { value: 'lt_1k', label: '< $1,000 / month' },
-  { value: '1k_10k', label: '$1,000–10,000 / month' },
-  { value: 'gt_10k', label: '> $10,000 / month' },
+  { value: 'lt_1k', label: '< $1k/mo' },
+  { value: '1k_10k', label: '$1k–10k/mo' },
+  { value: 'gt_10k', label: '> $10k/mo' },
 ]
 
 export type FeaturedVendor = {

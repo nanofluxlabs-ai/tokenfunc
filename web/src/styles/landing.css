@@ -49,16 +49,6 @@
   }
 }
 
-@keyframes tf-pulse {
-  0%,
-  100% {
-    box-shadow: 0 0 0 0 color-mix(in srgb, var(--primary) 50%, transparent);
-  }
-  50% {
-    box-shadow: 0 0 0 6px transparent;
-  }
-}
-
 /* 页面滚动到视口时的淡入上浮 */
 .tf-reveal {
   opacity: 0;
@@ -126,9 +116,6 @@
   }
   .tf-spin {
     animation: tf-spin 24s linear infinite;
-  }
-  .tf-pulse {
-    animation: tf-pulse 2.4s ease-out infinite;
   }
   .tf-blink {
     animation: tf-blink 1s steps(1) infinite;

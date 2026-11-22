@@ -1,4 +1,3 @@
-import { Check } from 'lucide-react'
 import type { ReactNode } from 'react'
 
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -15,53 +14,6 @@ export function Eyebrow(props: { children: ReactNode; className?: string }) {
     >
       {props.children}
     </span>
-  )
-}
-
-export function SectionHeading(props: {
-  eyebrow: ReactNode
-  title: ReactNode
-  size?: 'display' | 'title'
-  className?: string
-}) {
-  const size = props.size ?? 'title'
-  return (
-    <div className={cn('flex flex-col gap-4', props.className)}>
-      <Eyebrow>{props.eyebrow}</Eyebrow>
-      <h2
-        className={cn(
-          'text-foreground m-0 font-medium',
-          size === 'display'
-            ? 'text-[clamp(40px,6vw,72px)] leading-[1.1] tracking-[-0.025em]'
-            : 'text-2xl leading-8 tracking-[-0.6px] sm:text-[32px] sm:leading-10'
-        )}
-      >
-        {props.title}
-      </h2>
-    </div>
-  )
-}
-
-/** 勾选列表：关于页等仍在用 */
-export function CheckList(props: { items: string[]; className?: string }) {
-  if (props.items.length === 0) return null
-  return (
-    <ul
-      className={cn('m-0 flex list-none flex-col gap-2.5 p-0', props.className)}
-    >
-      {props.items.map((item) => (
-        <li
-          key={item}
-          className='text-foreground/90 flex items-center gap-2.5 text-sm'
-        >
-          <Check
-            className='text-foreground size-3.5 shrink-0'
-            aria-hidden='true'
-          />
-          {item}
-        </li>
-      ))}
-    </ul>
   )
 }
 
@@ -144,34 +96,5 @@ export function PillTabs<T extends string>(props: {
         ))}
       </TabsList>
     </Tabs>
-  )
-}
-
-/** 区块容器：1200 内容宽 + 112px 上下留白 */
-export function Section(props: {
-  id: string
-  children: ReactNode
-  className?: string
-  innerClassName?: string
-  bordered?: boolean
-}) {
-  return (
-    <section
-      id={props.id}
-      className={cn(
-        'scroll-mt-16',
-        props.bordered !== false && 'border-border border-t',
-        props.className
-      )}
-    >
-      <div
-        className={cn(
-          'mx-auto flex max-w-[1200px] flex-col gap-10 px-6 py-20 md:px-8 md:py-28',
-          props.innerClassName
-        )}
-      >
-        {props.children}
-      </div>
-    </section>
   )
 }

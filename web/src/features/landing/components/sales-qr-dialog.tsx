@@ -16,7 +16,7 @@ export function SalesQrDialog(props: {
       open={props.open}
       onOpenChange={props.onOpenChange}
       title={t('Scan to reach sales on WeChat')}
-      description={t('Weekdays 9:00–21:00 · usually replies within 10 minutes')}
+      description={t('Weekdays 9:00–21:00')}
       contentClassName='max-w-sm'
       contentHeight='auto'
       bodyClassName='flex flex-col items-center gap-4'

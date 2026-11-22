@@ -4,8 +4,6 @@ import { useStatus } from '@/hooks/use-status'
 
 import { Capabilities } from './components/capabilities'
 import { ContactSection } from './components/contact-section'
-import { EnterpriseSection } from './components/enterprise-section'
-import { FaqSection } from './components/faq-section'
 import { Hero } from './components/hero'
 import { ModelsSection } from './components/models-section'
 import { QualityStrip } from './components/quality-strip'
@@ -13,8 +11,9 @@ import { Quickstart } from './components/quickstart'
 import { SalesQrDialog } from './components/sales-qr-dialog'
 
 /**
- * tokenfunc 营销页（面向企业客户）。
- * 页头/页脚由上游 PublicLayout 与 Footer 提供，这里只负责首屏到联系表单的各个区块。
+ * tokenfunc 营销页（面向企业客户），v3 六个区块：
+ * Hero → 三个主卖点 → 运行质量 → 接入 → 价目 → 试用表单。
+ * 页头/页脚由上游 PublicLayout 与 Footer 提供，这里只负责首屏到试用表单。
  */
 export function Landing() {
   const { status } = useStatus()
@@ -24,27 +23,16 @@ export function Landing() {
   const salesQrCodeUrl =
     typeof status?.sales_qrcode === 'string' ? status.sales_qrcode : ''
 
-  const contactSales = () => {
-    if (salesQrCodeUrl) {
-      setSalesOpen(true)
-      return
-    }
-    document
-      .querySelector('#contact')
-      ?.scrollIntoView({ behavior: 'smooth', block: 'start' })
-  }
-
   return (
     <>
       <Hero registerEnabled={registerEnabled} />
       <Capabilities />
       <QualityStrip />
-      <EnterpriseSection />
       <Quickstart />
       <ModelsSection />
-      <FaqSection />
+      {/* 未配置商务微信二维码时，「直接加商务微信」按钮整体隐藏 */}
       <ContactSection
-        onContactSales={contactSales}
+        onContactSales={() => setSalesOpen(true)}
         salesQrConfigured={Boolean(salesQrCodeUrl)}
       />
       <SalesQrDialog

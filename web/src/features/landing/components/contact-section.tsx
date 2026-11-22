@@ -104,35 +104,32 @@ function TrialLeadForm(props: { onSubmitted: (contact: string) => void }) {
           name='volume'
           render={({ field }) => (
             <FormItem>
-              <FormLabel>{t('Estimated monthly usage')}</FormLabel>
-              <FormControl>
-                <div
-                  role='radiogroup'
-                  aria-label={t('Estimated monthly usage')}
-                  className='flex flex-wrap gap-2'
-                >
+              <fieldset className='m-0 flex flex-col gap-2 border-0 p-0'>
+                <legend className='text-foreground mb-2 p-0 text-sm font-medium'>
+                  {t('Estimated monthly usage')}
+                </legend>
+                <div className='flex flex-wrap gap-2'>
                   {LEAD_VOLUMES.map((option) => {
                     const selected = field.value === option.value
                     return (
                       <button
                         key={option.value}
                         type='button'
-                        role='radio'
-                        aria-checked={selected}
+                        aria-pressed={selected}
                         onClick={() => field.onChange(option.value)}
                         className={cn(
-                          'h-10 cursor-pointer rounded-full border px-4 font-mono text-[13px] transition-colors',
+                          'h-10 cursor-pointer rounded-full border px-4 font-mono text-[13px] whitespace-nowrap transition-colors',
                           selected
                             ? 'bg-foreground text-background border-foreground'
                             : 'border-input text-foreground/90 hover:border-foreground bg-transparent'
                         )}
                       >
-                        {option.label}
+                        {t(option.label)}
                       </button>
                     )
                   })}
                 </div>
-              </FormControl>
+              </fieldset>
               <FormMessage />
             </FormItem>
           )}
@@ -140,7 +137,7 @@ function TrialLeadForm(props: { onSubmitted: (contact: string) => void }) {
         <Button
           type='submit'
           size='lg'
-          className='h-12 text-[15px]'
+          className='h-12 rounded-full text-[15px] whitespace-nowrap'
           disabled={submitting}
         >
           {t('Submit request')}
@@ -182,7 +179,7 @@ export function ContactSection(props: {
             <Button
               variant='outline'
               size='sm'
-              className='h-10 w-fit px-4 text-sm'
+              className='h-10 w-fit rounded-full px-4 text-sm whitespace-nowrap'
               onClick={props.onContactSales}
             >
               <QrCode aria-hidden='true' />
@@ -195,24 +192,25 @@ export function ContactSection(props: {
             <TrialLeadForm onSubmitted={setSubmittedContact} />
           ) : (
             <div className='flex flex-col gap-4 py-6' role='status'>
-              <span className='border-primary/40 bg-primary/10 flex size-10 items-center justify-center rounded-full border'>
-                <Check className='text-brand-ink size-4.5' aria-hidden='true' />
+              <span
+                aria-hidden='true'
+                className='border-primary/40 bg-primary/10 flex size-10 items-center justify-center rounded-full border'
+              >
+                <Check className='text-brand-ink size-4.5' />
               </span>
               <span className='text-foreground text-2xl tracking-[-0.3px]'>
                 {t('Request received')}
               </span>
               <span className='text-foreground/90 text-sm leading-[22px]'>
                 {t(
-                  'Our account manager will add you on WeChat within one business day:'
-                )}{' '}
-                <span className='text-foreground font-mono'>
-                  {submittedContact}
-                </span>
+                  'Our account manager will add {{contact}} on WeChat within one business day.',
+                  { contact: submittedContact }
+                )}
               </span>
               <Button
                 variant='outline'
                 size='sm'
-                className='h-10 w-fit px-4 text-sm'
+                className='h-10 w-fit rounded-full px-4 text-sm whitespace-nowrap'
                 onClick={() => setSubmittedContact(null)}
               >
                 {t('Submit another request')}
@@ -221,6 +219,11 @@ export function ContactSection(props: {
           )}
         </Panel>
       </div>
+      <p className='text-muted-foreground relative m-0 mx-auto max-w-[1200px] px-[clamp(20px,5vw,32px)] pb-8 text-xs leading-5'>
+        {t(
+          'Claude Code, Codex, Cursor and other tool names and logos are trademarks of their respective owners, shown only to indicate compatibility. No official partnership implied.'
+        )}
+      </p>
     </section>
   )
 }

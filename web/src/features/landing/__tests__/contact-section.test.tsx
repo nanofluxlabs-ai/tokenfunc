@@ -25,6 +25,25 @@ function renderSection() {
 }
 
 describe('ContactSection trial request form', () => {
+  it('groups the monthly usage options under a legend with the middle option pressed by default', () => {
+    renderSection()
+
+    const group = screen.getByRole('group', { name: 'Estimated monthly usage' })
+    expect(group.tagName).toBe('FIELDSET')
+    expect(screen.getByRole('button', { name: '$1k–10k/mo' })).toHaveAttribute(
+      'aria-pressed',
+      'true'
+    )
+  })
+
+  it('hides the sales WeChat button when no QR code is configured', () => {
+    renderSection()
+
+    expect(
+      screen.queryByRole('button', { name: 'Add our sales team on WeChat' })
+    ).not.toBeInTheDocument()
+  })
+
   it('shows validation errors and does not submit when fields are empty', async () => {
     const user = userEvent.setup()
     renderSection()
@@ -50,7 +69,10 @@ describe('ContactSection trial request form', () => {
       screen.getByLabelText('WeChat ID or phone number'),
       'wx_123456'
     )
-    await user.click(screen.getByRole('radio', { name: '> $10,000 / month' }))
+    const highVolume = screen.getByRole('button', { name: '> $10k/mo' })
+    expect(highVolume).toHaveAttribute('aria-pressed', 'false')
+    await user.click(highVolume)
+    expect(highVolume).toHaveAttribute('aria-pressed', 'true')
     await user.click(screen.getByRole('button', { name: 'Submit request' }))
 
     await waitFor(() =>

@@ -139,6 +139,27 @@ export const QUALITY_CARDS: QualityCard[] = [
   },
 ]
 
+/**
+ * 运行质量区的数字。全部是设计原型占位，不是实测值，上线前必须逐项确认（手册第 6 节）。
+ * 后端目前没有能直接提供这些指标的公开接口；有接口后优先接接口，这里只作兜底。
+ */
+export const QUALITY_METRICS = {
+  // TODO(黑鹰确认): 是否确有这四道检测，以及上线前检测 + 运行中巡检 + 自动下线流程
+  admissionChecks: '4',
+  // TODO(黑鹰确认): 长会话缓存命中率的统计口径与真实值
+  cacheHitRate: '85%+',
+  // TODO(黑鹰确认): 命中比例条宽度（百分比），需与 cacheHitRate 同口径
+  cacheHitBarPercent: 87,
+  // TODO(黑鹰确认): 首 token 延迟 P50 真实值（ms）
+  ttftP50: '380',
+  // TODO(黑鹰确认): 单请求输出速度真实值（tok/s），不同模型差别大，按模型还是取中位数
+  tps: '80+',
+  // TODO(黑鹰确认): 单组织吞吐上限（tok/min），是对外承诺的容量，必须与实际限流配置一致
+  tpm: '10M+',
+  // TODO(黑鹰确认): 控制台是否真能查到；查不到就把 showScope 改 false 删掉这句口径说明
+  showScope: true,
+} as const
+
 /** 模型自检演示：厂商 Tab 与演示用模型 ID（与价目区保持一致） */
 export const SELF_CHECK_MODELS: {
   key: 'claude' | 'gpt' | 'gemini' | 'grok'

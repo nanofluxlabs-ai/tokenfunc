@@ -9,6 +9,7 @@ import { FaqSection } from './components/faq-section'
 import { Hero } from './components/hero'
 import { ModelsSection } from './components/models-section'
 import { PricingSection } from './components/pricing-section'
+import { QualityStrip } from './components/quality-strip'
 import { Quickstart } from './components/quickstart'
 import { SalesQrDialog } from './components/sales-qr-dialog'
 
@@ -38,6 +39,7 @@ export function Landing() {
     <>
       <Hero registerEnabled={registerEnabled} />
       <Capabilities />
+      <QualityStrip />
       <EnterpriseSection />
       <Quickstart />
       <ModelsSection />

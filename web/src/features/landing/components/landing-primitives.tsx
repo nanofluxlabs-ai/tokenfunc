@@ -61,6 +61,8 @@ export function PillTabs<T extends string>(props: {
   items: { value: T; label: ReactNode }[]
   size?: 'sm' | 'md'
   mono?: boolean
+  /** 追加到每个 Tab 按钮上的类名（如手机端收窄内边距） */
+  triggerClassName?: string
   'aria-label': string
   className?: string
 }) {
@@ -88,7 +90,8 @@ export function PillTabs<T extends string>(props: {
               size === 'sm'
                 ? 'h-7 px-3.5 text-[13px]'
                 : 'px-4 py-1.5 text-[13px]',
-              props.mono && 'font-mono'
+              props.mono && 'font-mono',
+              props.triggerClassName
             )}
           >
             {item.label}

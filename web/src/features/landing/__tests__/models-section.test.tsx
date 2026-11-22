@@ -90,4 +90,14 @@ describe('ModelsSection', () => {
     ])
     expect(screen.getByRole('tablist')).toHaveClass('flex-nowrap')
   })
+
+  it('hides the vendor company names on phones so the four tabs fit on one row', async () => {
+    await renderSection()
+
+    const vendorName = screen.getByText('Anthropic')
+    expect(vendorName).toHaveClass('hidden', 'sm:inline')
+    for (const tab of screen.getAllByRole('tab')) {
+      expect(tab).toHaveClass('px-3', 'sm:px-4')
+    }
+  })
 })

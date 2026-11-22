@@ -60,12 +60,14 @@ export function ModelsSection() {
             value={current.key}
             onValueChange={setSelected}
             className='w-fit'
+            // 手机端收窄内边距并隐藏厂商名，保证四个 Tab 一屏放下（320px 起）
+            triggerClassName='px-3 sm:px-4'
             items={FEATURED_MODELS.map((vendor) => ({
               value: vendor.key,
               label: (
                 <span className='inline-flex items-center gap-2'>
                   {vendor.label}
-                  <span className='font-mono text-[11px] opacity-70'>
+                  <span className='hidden font-mono text-[11px] opacity-70 sm:inline'>
                     {vendor.vendor}
                   </span>
                 </span>

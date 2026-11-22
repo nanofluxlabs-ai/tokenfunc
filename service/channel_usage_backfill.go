@@ -96,7 +96,7 @@ type channelUsageBackfillLog struct {
 //
 // 不动 channels.used_quota（由上游 UpdateChannelUsedQuota 维护，是计费权威）。
 // 同步执行、热路径仍在累加：回填期间 flush 进来的增量会叠加在重建结果之上，
-// 与 tokensolo 一致，属可接受的秒级误差。
+// 属可接受的秒级误差。
 func BackfillChannelUsage(ctx context.Context) (ChannelUsageBackfillReport, error) {
 	startedAt := time.Now()
 	report := ChannelUsageBackfillReport{}

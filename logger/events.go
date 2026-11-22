@@ -1,7 +1,7 @@
 package logger
 
 // 事件名常量。CLS 上按 event 字段聚合，集中定义杜绝拼写漂移。
-// 与 tokensolo 的 CLS 字段保持同名，排障经验与 CQL 可直接复用
+// 与各服务的 CLS 字段保持同名，排障经验与 CQL 可直接复用
 const (
 	// 入口与中间件
 	EventAuthFailed       = "auth_failed"

@@ -7,7 +7,7 @@
 
 ## 背景
 
-总方案批次 4 的 M12（`~/.claude/plans/company_mgr/M12-enterprise-docs.md`）：企业客户的技术负责人不用问客服就能完成员工 key 分发、额度查询、终端用户身份头、理解停服错误码与账单流程。对标 tokensolo 的 `customer-integration.md`，但放在产品内文档中心，不新增仓库 `docs/` 文件。
+总方案批次 4 的 M12（`~/.claude/plans/company_mgr/M12-enterprise-docs.md`）：企业客户的技术负责人不用问客服就能完成员工 key 分发、额度查询、终端用户身份头、理解停服错误码与账单流程。对标参考产品的客户接入文档，但放在产品内文档中心，不新增仓库 `docs/` 文件。
 
 ## 变更
 

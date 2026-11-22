@@ -13,7 +13,7 @@
 #     否则 COPY . . 不带 dist，Go 阶段的 test -f web/dist/index.html 静默失败（2026-10-25 自检踩到）。
 #   - 运行层与 Dockerfile 相同（debian:bookworm-slim + ca-certificates/tzdata/libasan8/wget）。改 Dockerfile 时同步改这里的内嵌 Dockerfile。
 #   - 推送不走 buildx --push / docker push，先 --load 到本机，再 docker save 导出，用 crane 强制 HTTP/1.1 推送
-#     （tokensolo 2026-10-24 实测：HTTP/2 会在大层最后提交处卡死，换线路无用）。crane 不在 PATH 时 go install 到本机缓存目录。
+#     （2026-10-24 历史实测：HTTP/2 会在大层最后提交处卡死，换线路无用）。crane 不在 PATH 时 go install 到本机缓存目录。
 #
 # 退出码: 0 成功 · 1 构建 / 推送 / 核验失败 · 2 参数或本机环境不满足 · 3 GHCR 推送权限缺失（需人工授权）
 set -euo pipefail

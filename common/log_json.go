@@ -8,7 +8,7 @@ import (
 
 )
 
-// 系统日志的 JSON 信封（TokenFunc 二开，schema 与 tokensolo 对齐，便于复用 CLS 查询）。
+// 系统日志的 JSON 信封（TokenFunc 二开，schema 与各号池服务统一，便于复用 CLS 查询）。
 // 应用日志 logHelper、系统日志 SysLog/SysError、访问日志中间件、GORM / 标准库 log 收口
 // 都经由 WriteJSONLog 输出，保证字段名与时间格式完全一致。
 

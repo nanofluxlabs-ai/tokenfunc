@@ -7,7 +7,7 @@
 
 ## 背景
 
-对照 tokensolo 与 OpenAI Projects / Anthropic Workspaces / OpenRouter 的企业组织设计后，黑鹰拍板：原「部门树 + 项目 + 员工 + 单主账号」过重，改为**团队（扁平，有 Default）/ 成员（不登录员工与登录角色一张表）/ key（必属团队、可选持有人）**；团队月度预算默认只告警、可勾「超限拦截」；生产无流量，走启动时一次性迁移。总方案见 `~/.claude/plans/tokensolo-tokensolo-tokenfunc-tokensolo-curious-twilight.md`，本分支对应批次 1 的 M5 + M1。
+对照参考产品与 OpenAI Projects / Anthropic Workspaces / OpenRouter 的企业组织设计后，黑鹰拍板：原「部门树 + 项目 + 员工 + 单主账号」过重，改为**团队（扁平，有 Default）/ 成员（不登录员工与登录角色一张表）/ key（必属团队、可选持有人）**；团队月度预算默认只告警、可勾「超限拦截」；生产无流量，走启动时一次性迁移。总方案见本机 `~/.claude/plans/` 下的企业团队总方案，本分支对应批次 1 的 M5 + M1。
 
 ## 变更
 

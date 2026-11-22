@@ -7,7 +7,7 @@
 
 ## 背景
 
-企业财务拿到账单只有金额级的按模型 / 按团队 / 按成员块，无法自己验算：没有四项 token、没有单价、没有倍率、没有按天。财务中心（`model/finance_usage.go` / `finance_log_dims.go` / `service/finance_export.go`）已经有与 tokensolo 三份报告一致的口径（倍率多值取消费占比最大、单价四列 = 模型 × 分组 × (1e6 / QuotaPerUnit) × 维度倍率、缺失为 null 不倒推），管理员账单详情却全部实时扫 logs，logs 归档清理后就看不到了。方案见 `~/.claude/plans/company_mgr/M9-bill-verifiable.md`：出账时调用财务聚合冻结进 `usage_snapshot`（方案 B），两侧详情已结算读快照、进行中实时。
+企业财务拿到账单只有金额级的按模型 / 按团队 / 按成员块，无法自己验算：没有四项 token、没有单价、没有倍率、没有按天。财务中心（`model/finance_usage.go` / `finance_log_dims.go` / `service/finance_export.go`）已经有与三份参考报告一致的口径（倍率多值取消费占比最大、单价四列 = 模型 × 分组 × (1e6 / QuotaPerUnit) × 维度倍率、缺失为 null 不倒推），管理员账单详情却全部实时扫 logs，logs 归档清理后就看不到了。方案见 `~/.claude/plans/company_mgr/M9-bill-verifiable.md`：出账时调用财务聚合冻结进 `usage_snapshot`（方案 B），两侧详情已结算读快照、进行中实时。
 
 ## 变更
 

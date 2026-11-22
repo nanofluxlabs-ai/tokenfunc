@@ -7,7 +7,7 @@
 
 ## 背景
 
-企业最常见的预算诉求是给员工 key 设「每天 / 每周 / 每月自动恢复到 X 美元」（tokensolo 的 `quota_reset_period`、OpenRouter 的 key 预算对标）。上游 tokens 只有一次性固定额度，用完要人工调高。方案见 `~/.claude/plans/company_mgr/M4-token-quota-policy.md`；本模块改写 `tokens.remain_quota`，实施前已完整阅读 `.agents/rules/billing.md`。
+企业最常见的预算诉求是给员工 key 设「每天 / 每周 / 每月自动恢复到 X 美元」（对标 OpenRouter 的 key 预算）。上游 tokens 只有一次性固定额度，用完要人工调高。方案见 `~/.claude/plans/company_mgr/M4-token-quota-policy.md`；本模块改写 `tokens.remain_quota`，实施前已完整阅读 `.agents/rules/billing.md`。
 
 ## 变更
 

@@ -165,6 +165,7 @@ git status --short | grep '^UU\|^AA\|^DU\|^UD'  # 冲突文件
 - 二开翻译 / 主题 / 常量已拆到独立文件，上游文件只剩接线行；接线行冲突按上游新结构重新接。
 - 解完：AI 执行 `git add -A && git commit --no-edit`（沿用 `merge(upstream): sync new-api $REF`）。每个非机械冲突的取舍（文件 · 上游意图 · 我方意图 · 取舍）记下来，P5 写进 PR 正文。
 - 依赖变化：`go mod tidy`，`cd web && bun install`（lockfile 冲突以上游为准再重装）。
+- **品牌门禁**（工作区根 `AGENTS.md` 品牌隔离红线）：`git grep -n -i -E "$(sed -n 's/^ *BRAND_GUARD_RE=//p' ../AGENTS.md)"` 必须为空；有命中就把品牌名改成中性说法（「上游」「参考产品」等），只改注释和文案、不改逻辑。属机械改动，不是停止条件。
 
 ## Phase 4 — 门禁（全部必须通过）
 
@@ -172,6 +173,7 @@ git status --short | grep '^UU\|^AA\|^DU\|^UD'  # 冲突文件
 
 ```bash
 go build ./... && go vet ./...
+git grep -n -i -E "$(sed -n 's/^ *BRAND_GUARD_RE=//p' ../AGENTS.md)" && exit 1   # 品牌门禁：必须无命中
 cd relaykit && GOWORK=off go build ./... && cd ../tokenkit && GOWORK=off go build ./... && cd ..
 make test                                   # CI 同款
 make test-db                                # 真 PG，覆盖二开 PostgreSQL 回归

@@ -38,7 +38,7 @@
 - 查询条：企业名称 / 账单号（ILIKE，`EnterpriseBillFilter` 新增两个字段，`/api/admin/enterprise/bills` 同样可用）/ 状态下拉（第一项「全部状态」，之后 进行中 / 待出账 / 未付 / 部分已付 / 逾期 / 已付 / 已作废 / 月度对账单 / 对账差异，一个 `status` 参数覆盖原来的 tab + overdue + bill_type + reconcile）/ 查询 / 重置 / 共 N 条；原来的状态 Tabs 删除。
 - 「调用次数」列换成「Token 消耗」（黑鹰：调用次数对计费无意义）。不按月扫 logs：出账时与对账的 `detail_total_quota` 同一条查询从 `ent_usage_daily` 取 `SUM(prompt_tokens) / SUM(completion_tokens)` 冻结进 `ent_bills` 两个新列（授信按 period_id、月度对账单按日区间）；进行中账期列表读时对本页账期一条 `GROUP BY period_id`；加列前的账单启动回填（本地 TF-202610-000001 回填为 4000 / 2000）。展示输入 + 输出合计，悬浮复用财务模块的 `MetricTooltip` 看拆分；两者为 0 显示「—」。口径：prompt 为含缓存的原始输入，账单行与账期行同源。
 - Token 消耗展示：数值按千进位换算 K / M / B / T 并保留 2 位小数（新增 `finance/lib/token-amount.ts formatTokenAmount`；上游 `formatTokens` K 只 1 位且无 B、排行榜那份按量级变精度，都不满足，且改上游会影响使用日志），列表悬浮给精确的输入 / 输出 / 合计；账单详情在请求数旁加「Token 消耗」汇总卡（副行输入 · 输出），后端 `GetFinanceBillContext` 的 `summary.token_usage` 与列表同口径（账单取冻结列，进行中账期按 period_id 求和）。
-- 列表版式参考 tokensolo：账单号带复制、企业 / 用户两行、计费模式徽标、账期只到天（半开区间结束日减一）、期号、调用次数（v2 快照）、消耗 / 授信进度条、状态下附到期日；去掉已付款 / 到期日两列。企业侧同一张表，没有摘要的字段显示「—」。
+- 列表版式参考已有产品：账单号带复制、企业 / 用户两行、计费模式徽标、账期只到天（半开区间结束日减一）、期号、调用次数（v2 快照）、消耗 / 授信进度条、状态下附到期日；去掉已付款 / 到期日两列。企业侧同一张表，没有摘要的字段显示「—」。
 - 前端：`BillsTable` 的行改成 `账单 | 账期` 联合类型（`rows`），企业侧对账页只传账单行；财务中心 `bills-panel.tsx` 承载查询条 + 表 + 行操作对话框，`enterprises/components/bills-admin-page.tsx` 与 `finance/components/bills/open-periods-table.tsx` 删除，对账差异测试迁为 `finance/components/bills/__tests__/bills-panel.test.tsx`（账期行与账单行同表、查询 / 重置、状态下拉）。
 
 ## 验证

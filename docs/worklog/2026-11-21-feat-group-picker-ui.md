@@ -28,7 +28,7 @@
 
 - `make test-db PKG='-count=1 ./service/'` 通过；新增 `TestGetUserAutoGroupUsesEnterpriseOwnOrder`，临时关掉企业分支时失败于"企业：自己的顺序"，恢复后通过。
 - 前端 `bun run typecheck` 无错；全量 `bun run test`：377 个文件 3630 用例通过（含新增：下拉项 title / 勾位置、`formatGroupDetail` 只有倍率、faceted-filter 按 key 搜索、LegacyComboboxInput 勾在右侧）；改动文件 oxlint 无 error。
-- 本地起 API（:3010）+ 前端（:5174）用种子账号 demo_alice 实看：库里写入 `UserUsableGroups={"auto":"自动分组"}`、`DefaultUseAutoGroup=true` 后，创建密钥默认选中「自动分组」；下拉项单行 `名称 … 倍率 ✓`、左对齐、无 key；使用日志分组筛选只显示名称。注意 :3000 当时被 tokensolo 的 air 进程占用，`make api` 的就绪检查会被它骗过，排查时要看 `.tmp/logs/api.out` 的 FATAL 行。
+- 本地起 API（:3010）+ 前端（:5174）用种子账号 demo_alice 实看：库里写入 `UserUsableGroups={"auto":"自动分组"}`、`DefaultUseAutoGroup=true` 后，创建密钥默认选中「自动分组」；下拉项单行 `名称 … 倍率 ✓`、左对齐、无 key；使用日志分组筛选只显示名称。注意 :3000 当时被本机另一个项目的 air 进程占用，`make api` 的就绪检查会被它骗过，排查时要看 `.tmp/logs/api.out` 的 FATAL 行。
 - 生产配置（5.11）未改，等发版后由黑鹰授权执行。
 
 ## 遗留

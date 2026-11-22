@@ -10,7 +10,7 @@
 企业模块总方案（`~/.claude/plans/company_mgr/M7-guards-employee-me.md`）批次 1 的 M7。两件事都是「设计有、代码没有」：
 
 1. 设计 §3.4 规定企业主账号（预付 / 授信）只能由管理员登记线下充值，但 `/api/user/pay`、兑换码、订阅购买、邀请额度划转这些写 `users.quota` 的入口没有任何拦截，钱包页也照常显示充值卡。
-2. 员工拿到的 key 对 `/v1/dashboard/billing/*` 一律 403，员工没有任何渠道知道自己这把 key 的额度、用量和可用模型（tokensolo 有 `/api/employee/me`，黑鹰已拍板开放）。
+2. 员工拿到的 key 对 `/v1/dashboard/billing/*` 一律 403，员工没有任何渠道知道自己这把 key 的额度、用量和可用模型（参考产品有员工自查接口，黑鹰已拍板开放）。
 
 ## 变更
 

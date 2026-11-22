@@ -12,14 +12,14 @@
 | # | 决策 | 理由 |
 |---|---|---|
 | D1 | **渠道分组 = 同一上游平台、同一成本档、同一用途约束的渠道集合**；拆分只因成本不同、用途 / 质量承诺不同、协议语义不同 | 分组的唯一作用是"走哪个池、按什么价"，其它维度都不该进分组 |
-| D2 | **客户差异一律走用户分组 × 覆盖倍率，绝不按客户 / 按价格建渠道分组** | tokensolo 的 `aws24` / `aws26` / `aws_linshi27` / `awsth32` 把客户和价格做成了渠道分组，渠道挂载与定价纠缠，后期无法清理 |
-| D3 | **渠道分组一次全建（注册表 + `GroupRatio`），可见性当上架开关**：没有启用渠道的分组不勾进任何用户分组的可见列表 | 不可见的分组不会出现在令牌下拉、模型广场和 `/v1/models`，但管理员渠道编辑能选到，供应商到货只需勾可见；避免空分组误导客户（tokensolo `claudeguanss`） |
-| D4 | **号池分三档，一条渠道可以挂多个分组，逐组核价**：`default` = 混合号池（自营普通账号 + 同行号池，按模型自动分流）；`pool_<family>` = 高质量专池（自营高优先账号）；`pool_<family>_lite` = 特价池；云厂商 / 厂商 API 渠道不挂 `default`。渠道挂进哪个组，就是把它的全部模型按那个组的倍率卖，每挂一个组由运营核一次价（成本倍率 vs 该组倍率） | 分组同时是能力标签和价签，多挂是容量共享的正常做法（tokensolo `awsb claudeboy.vip 2.4x` 同时挂 4 组）；个人用户零配置可用；`default` 有明确定义，不再是垃圾桶（tokensolo `default` 池 51 条渠道 CC 与 GPT 混挂）。v1 曾定义 `default` 为 `pool_*` 并集，v2 因将接入同行资源改为三档并规定一条渠道只进一档，v3 放开多挂 |
+| D2 | **客户差异一律走用户分组 × 覆盖倍率，绝不按客户 / 按价格建渠道分组** | 把客户和价格做成渠道分组，会让渠道挂载与定价纠缠，后期无法清理（参考产品的历史教训） |
+| D3 | **渠道分组一次全建（注册表 + `GroupRatio`），可见性当上架开关**：没有启用渠道的分组不勾进任何用户分组的可见列表 | 不可见的分组不会出现在令牌下拉、模型广场和 `/v1/models`，但管理员渠道编辑能选到，供应商到货只需勾可见；避免空分组误导客户 |
+| D4 | **号池分三档，一条渠道可以挂多个分组，逐组核价**：`default` = 混合号池（自营普通账号 + 同行号池，按模型自动分流）；`pool_<family>` = 高质量专池（自营高优先账号）；`pool_<family>_lite` = 特价池；云厂商 / 厂商 API 渠道不挂 `default`。渠道挂进哪个组，就是把它的全部模型按那个组的倍率卖，每挂一个组由运营核一次价（成本倍率 vs 该组倍率） | 分组同时是能力标签和价签，多挂是容量共享的正常做法（参考产品里一条供应商渠道同时挂 4 组）；个人用户零配置可用；`default` 有明确定义，不再是垃圾桶（参考产品的 `default` 池曾混挂 51 条 CC 与 GPT 渠道）。v1 曾定义 `default` 为 `pool_*` 并集，v2 因将接入同行资源改为三档并规定一条渠道只进一档，v3 放开多挂 |
 | D5 | **命名 `<platform>_<family>[_<qualifier>]`**，全小写下划线；key 不含客户名、价格、模型版本 | 可读、可 grep、与用户分组 key 正则 `^[a-z0-9][a-z0-9_-]{0,63}$` 一致 |
-| D6 | **`f5` 允许进 key，但它是供应商定价代际标签**：下一代模型出现时新建分组（如 `awsb_claude_f6`）并下线旧组，不改旧 key 语义 | 按模型代际命名必然过期（tokensolo `azgpt_6` / `azgptno6`），用"新建 + 下线"而不是"改含义"来处理 |
+| D6 | **`f5` 允许进 key，但它是供应商定价代际标签**：下一代模型出现时新建分组（如 `awsb_claude_f6`）并下线旧组，不改旧 key 语义 | 按模型代际命名必然过期，用"新建 + 下线"而不是"改含义"来处理 |
 | D7 | **号池对全部用户可见，label 标注【订阅】**（订阅账号即官方订阅，与落地页「官方订阅号池」同口径；「官逆」只用于内部与供应商沟通）；落地页"官 Key 直连 / 无逆向接口"文案同步修改（本文只列清单） | 信任承诺是"不降级不替换、返回原始响应、来源透明"，不是"全部官 Key" |
-| D8 | **基准倍率沿用 tokensolo `default` 等级的数值** | 同一经营者、同一批供应商成本；上线前按汇率核一遍毛利即可 |
-| D9 | **分组名回答"请求最终跑在哪"，不回答"谁卖给我们"**：同行转售的资源按真实上游平台进既有分组，档位按实测质量定，供应商名只写渠道名 | 平台来源藏不住（模型 ID 格式、响应头、报错文案一试即分），且是企业客户的合规与用途决策依据；供应商与进价才是商业机密。按供应商建组是 tokensolo `aws_linshi27` 烂掉的根源 |
+| D8 | **基准倍率沿用参考产品 `default` 等级的数值** | 同一经营者、同一批供应商成本；上线前按汇率核一遍毛利即可 |
+| D9 | **分组名回答"请求最终跑在哪"，不回答"谁卖给我们"**：同行转售的资源按真实上游平台进既有分组，档位按实测质量定，供应商名只写渠道名 | 平台来源藏不住（模型 ID 格式、响应头、报错文案一试即分），且是企业客户的合规与用途决策依据；供应商与进价才是商业机密。按供应商建组是参考产品分组体系烂掉的根源 |
 | D10 | **第三方自部署开源权重单独建 `selfhost_*` 分组并标【自部署】**，接入前过模型自检，通不过不挂 | 自部署可能量化裁剪，混进订阅号池或厂商 API 分组就是掺假，直接违反信任承诺 |
 
 ---
@@ -84,12 +84,12 @@
 | 1 | pool_gpt | 【订阅】GPT 高质量号池 | 1.0 → 1.2 | 1 (codex2api) / 59 | 原 `gptpro`；高质量专池 |
 | 2 | pool_claude | 【订阅】Claude 高质量号池 | 1.0 → 1.2 | 14 (crs) / 59 | 原 `claudepro`；高质量专池 |
 | 3 | pool_cn | 【订阅】GLM · Kimi · MiniMax 高质量号池 | 1.0 → 1.2 | 59 | 新建，接收现挂在 gptpro 的 glm 与挂在 claudepro 的 kimi；高质量专池 |
-| 10 | awsb_claude_coding | 【AWS Bedrock】Claude · 不可蒸 | 1.0 | 14 / 1 | 不可蒸，不含 Fable 5；tokensolo `awsb_coding` |
-| 11 | awsb_claude | 【AWS Bedrock】Claude · 可蒸 | 1.3 | 14 / 1 | 不含 Fable 5；tokensolo `awszl` / `awsquan` |
-| 12 | awsb_claude_f5 | 【AWS Bedrock】Claude · 含F5 · 可蒸 | 1.4 | 14 / 1 | tokensolo `awsf5` |
+| 10 | awsb_claude_coding | 【AWS Bedrock】Claude · 不可蒸 | 1.0 | 14 / 1 | 不可蒸，不含 Fable 5 |
+| 11 | awsb_claude | 【AWS Bedrock】Claude · 可蒸 | 1.3 | 14 / 1 | 不含 Fable 5 |
+| 12 | awsb_claude_f5 | 【AWS Bedrock】Claude · 含F5 · 可蒸 | 1.4 | 14 / 1 | — |
 | 13 | awsb_claude_coding_f5 | 【AWS Bedrock】Claude · 含F5 · 不可蒸 | 1.1 | 14 / 1 | 预留，暂无供应商，不建 |
-| 20 | azure_gpt | 【Azure】GPT | 1.1 | 3 | tokensolo `azgpt` |
-| 30 | vertex_gemini | 【Vertex】Gemini | 1.2 | 41 | tokensolo `gemini_quan` |
+| 20 | azure_gpt | 【Azure】GPT | 1.1 | 3 | — |
+| 30 | vertex_gemini | 【Vertex】Gemini | 1.2 | 41 | — |
 
 `pool_*` 的 `1.0 → 1.2`：现在只有自营一档账号，三个专池与 `default` 挂的是同一批渠道，两档同价；同行号池挂进 `default` 那天，把自营高优先账号从 `default` 摘掉并把 `pool_*` 调到 1.2，之前不上调（否则"高质量"是多收钱不多给货）。
 
@@ -105,22 +105,22 @@ Bedrock 四格的关系：
 
 ### 2.2 Phase 2
 
-按供应商到位顺序建，倍率参考 tokensolo `default` 等级。
+按供应商到位顺序建，倍率沿用参考产品的 `default` 等级。
 
-| order | key | label | 基准倍率 | 渠道类型 | 对应 tokensolo |
+| order | key | label | 基准倍率 | 渠道类型 | 备注 |
 |---|---|---|---|---|---|
-| 21 | azure_claude | 【Azure】Claude | 1.3 | 3 | `azclaude` |
-| 40 | anthropic_claude | 【Anthropic】Claude | 1.4 | 14 | `anth_Guan` |
-| 41 | openai_gpt | 【OpenAI】GPT | 1.1 | 1 | `gpt_oai` |
+| 21 | azure_claude | 【Azure】Claude | 1.3 | 3 | — |
+| 40 | anthropic_claude | 【Anthropic】Claude | 1.4 | 14 | — |
+| 41 | openai_gpt | 【OpenAI】GPT | 1.1 | 1 | — |
 | 50 | deepseek | 【DeepSeek】 | 1.0 | 43 | 生产 2026-10 曾有 DeepSeek 渠道 |
-| 51 | xai_grok | 【xAI】Grok | 1.2 | 48 | `grok` |
-| 52 | moonshot_kimi | 【Moonshot】Kimi | 1.3 | 25 | `kimi_guan` |
+| 51 | xai_grok | 【xAI】Grok | 1.2 | 48 | — |
+| 52 | moonshot_kimi | 【Moonshot】Kimi | 1.3 | 25 | — |
 | 53 | zhipu_glm | 【智谱】GLM | 1.0 | 16 | — |
 | 54 | minimax | 【MiniMax】 | 1.0 | 35 | — |
 | 55 | selfhost_cn | 【自部署】GLM · Kimi | 待实测，预期全场最低档 | 按供应商 | 同行自建开源权重；接入前过模型自检（D10） |
-| 60 | pool_gpt_lite | 【订阅】GPT 特价号池 | 0.4 | 59 | `gpttj`；只对企业用户分组可见 |
-| 70 | media_image | 【图像】GPT Image | 1.0 | 按供应商 | `gptimage` |
-| 71 | media_video | 【视频】Seedance | 1.0 | 按供应商 | `sd_gj` |
+| 60 | pool_gpt_lite | 【订阅】GPT 特价号池 | 0.4 | 59 | 只对企业用户分组可见 |
+| 70 | media_image | 【图像】GPT Image | 1.0 | 按供应商 | — |
+| 71 | media_video | 【视频】Seedance | 1.0 | 按供应商 | — |
 
 ### 2.3 可见性 = 上架开关
 
@@ -142,7 +142,7 @@ Bedrock 四格的关系：
 
 ### 2.4 成本参考
 
-tokensolo 2026-11-19 渠道快照里的成本倍率（人民币 / 官方价 $1）：
+2026-11-19 参考渠道快照里的成本倍率（人民币 / 官方价 $1）：
 
 | 上游 | 成本倍率 |
 |---|---|

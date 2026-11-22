@@ -49,7 +49,7 @@ function FilterSelect(props: {
   )
 }
 
-/** 订单中心筛选：输入不即时请求，点「筛选订单」才生效（与 tokensolo 一致） */
+/** 订单中心筛选：输入不即时请求，点「筛选订单」才生效 */
 export function OrdersFilterBar(props: OrdersFilterBarProps) {
   const { t } = useTranslation()
   const [draft, setDraft] = useState<OrdersFilterValue>(props.value)

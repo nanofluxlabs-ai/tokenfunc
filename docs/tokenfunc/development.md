@@ -69,7 +69,7 @@ make dev          # 自动生成 .env → 起 postgres/redis → 编译并后台
 
 ### 3.1 系统日志（stdout / 文件）
 
-进程日志与 tokensolo 对齐为 NDJSON（每行一个 JSON 对象），字段 `ts`（RFC3339 毫秒带时区）、`level`（info / warn / error / fatal）、`service`（固定 `tokenfunc`）、`request_id`、`msg`；访问日志 `type=access` 另带 `status` / `latency_ms` / `client_ip` / `method` / `path` / `route_tag` / `user_id`；中间件级事件（`auth_failed` / `distribute_failed` / `rate_limited` / `panic`）带 `event` 字段。GORM 与标准库 `log` 的输出收口为 `component=gorm` / `component=stdlog`。上 CLS 时用 JSON 提取模式、时间字段选 `ts`，tokensolo 的查询语句可直接复用。
+进程日志统一为 NDJSON（每行一个 JSON 对象），字段 `ts`（RFC3339 毫秒带时区）、`level`（info / warn / error / fatal）、`service`（固定 `tokenfunc`）、`request_id`、`msg`；访问日志 `type=access` 另带 `status` / `latency_ms` / `client_ip` / `method` / `path` / `route_tag` / `user_id`；中间件级事件（`auth_failed` / `distribute_failed` / `rate_limited` / `panic`）带 `event` 字段。GORM 与标准库 `log` 的输出收口为 `component=gorm` / `component=stdlog`。上 CLS 时用 JSON 提取模式、时间字段选 `ts`，各服务的查询语句可直接复用。
 
 | 变量 | 默认 | 说明 |
 |---|---|---|

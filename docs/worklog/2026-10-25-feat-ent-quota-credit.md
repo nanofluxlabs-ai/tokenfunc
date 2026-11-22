@@ -7,7 +7,7 @@
 
 ## 背景
 
-企业模块总方案 §2.1 第 16 行 / 模块方案 `M10-quota-based-credit.md`：对标 tokensolo 的 `quota_credit`，授信账期不按时间而按「额度用尽」翻转。`auto_reset=true` 用尽即出账并开新期；`auto_reset=false` 用尽后拒绝请求，直到账单收款或管理员手动开期。依赖 M8 已合入的预警 / `AddCreditUsageReturning` / 出账退避。
+企业模块总方案 §2.1 第 16 行 / 模块方案 `M10-quota-based-credit.md`：授信账期不按时间而按「额度用尽」翻转。`auto_reset=true` 用尽即出账并开新期；`auto_reset=false` 用尽后拒绝请求，直到账单收款或管理员手动开期。依赖 M8 已合入的预警 / `AddCreditUsageReturning` / 出账退避。
 
 ## 变更
 

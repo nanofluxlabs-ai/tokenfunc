@@ -7,10 +7,10 @@
 
 ## 背景
 
-对照 tokensolo 的企业运营能力审查（总方案 M8）发现三处「出了事没人知道」：
+对照参考产品的企业运营能力审查（总方案 M8）发现三处「出了事没人知道」：
 
 1. 授信企业的 `SettleBilling` 对 `BillingSourceCredit` 跳过上游 `checkAndSendQuotaNotify`，额度用尽前没有任何通知，直接 403 停服。
-2. 出账任务 `runEnterpriseBillingOnce` 失败只 `LogWarn`，每分钟原样重试、没有告警（tokensolo 曾因同类问题 PG 打满四天半）。
+2. 出账任务 `runEnterpriseBillingOnce` 失败只 `LogWarn`，每分钟原样重试、没有告警（参考产品曾因同类问题 PG 打满四天半）。
 3. 出账时的 `reconcile_diff_quota`（计数器 vs 明细聚合）只落字段，没有通知、没有列表、不能确认闭环。
 
 ## 变更

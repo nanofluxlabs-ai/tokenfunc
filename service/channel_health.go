@@ -191,7 +191,7 @@ func resolveExternalChannel(channel *model.Channel) *model.Channel {
 	return channel
 }
 
-// RecordExternalChannelRelaySuccess relay 成功：推理维度直接置 ok 并清零计数（tokensolo 行为）。
+// RecordExternalChannelRelaySuccess relay 成功：推理维度直接置 ok 并清零计数。
 // 只对推理维度有未清零失败或 failed 的渠道写库，避免热路径每个请求都落一次 DB。
 func RecordExternalChannelRelaySuccess(channel *model.Channel) {
 	if channel == nil || !model.IsChannelInferencePending(channel.Id) {

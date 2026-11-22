@@ -60,6 +60,14 @@ export function DailySummaryTable(props: DailySummaryTableProps) {
       cell: (row) => <span className='tabular-nums'>{row.day}</span>,
     },
     {
+      id: 'model',
+      header: t('Main model'),
+      cellClassName: 'truncate',
+      cell: (row) => (
+        <span className='font-mono text-xs'>{topModelOf(row) ?? '-'}</span>
+      ),
+    },
+    {
       id: 'count',
       header: t('Requests'),
       className: 'text-right',
@@ -81,25 +89,15 @@ export function DailySummaryTable(props: DailySummaryTableProps) {
       cell: (row) => formatCompactNumber(row.tokens, locale),
     },
     {
-      id: 'model',
-      header: t('Main model'),
-      // 左侧留白，避免与右对齐的 Token 列文字贴在一起
-      className: 'ps-10',
-      cellClassName: 'ps-10',
-      cell: (row) => (
-        <span className='font-mono text-xs'>{topModelOf(row) ?? '-'}</span>
-      ),
-    },
-    {
       id: 'share',
       header: t('Share'),
-      className: 'w-40',
+      className: 'text-right',
       cell: (row) => {
         const percent = sharePercent(row.quota, total)
         return (
-          <div className='flex items-center gap-2'>
+          <div className='flex items-center justify-end gap-2'>
             {/* 卡片底色接近 bg-muted，轨道用前景色叠加，0% 时也能看清 */}
-            <div className='bg-foreground/10 h-1.5 flex-1 overflow-hidden rounded-full'>
+            <div className='bg-foreground/10 h-1.5 w-24 overflow-hidden rounded-full'>
               <motion.div
                 className='bg-chart-1 h-full rounded-full'
                 initial={reduceMotion ? false : { width: 0 }}
@@ -130,6 +128,8 @@ export function DailySummaryTable(props: DailySummaryTableProps) {
         ) : (
           <StaticDataTable
             columns={columns}
+            // 文本列在左、数字列在右，等分列宽让各列间距一致
+            tableClassName='min-w-[40rem] table-fixed'
             data={rows}
             getRowKey={(row) => row.day}
             getRowClassName={(row) =>

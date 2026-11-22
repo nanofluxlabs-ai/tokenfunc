@@ -5,20 +5,55 @@
  * 首屏指标、延迟、缓存账单等演示数字是市场口径，集中在这里便于调整。
  */
 
+/** Hero 打字机轮播的三条核心卖点，与下方三个主卖点一一对应 */
 export const HERO_PHRASES = [
-  'High performance, low latency',
-  'Stable supply',
-  'Security and compliance',
-  'Real models, no substitution',
-  'High cache hit rate',
-  'Enterprise-grade control',
+  'Real models, full strength',
+  'Zero content retention',
+  'Bills that reconcile line by line',
 ] as const
 
-export const HERO_STATS: { value: string; label: string }[] = [
-  { value: '99.95%', label: 'Monthly availability SLA' },
-  { value: '380ms', label: 'First-token latency P50' },
-  { value: '90%+', label: 'Prompt cache hit rate' },
-  { value: '500+', label: 'Official subscription pool' },
+export type CompatibleTool = {
+  /** 锚点：同时是 web/public/logos/tools/ 下的文件名 */
+  id: string
+  /** 工具名：产品名原样展示，只有 nameKey 存在时走 i18n */
+  name: string
+  nameKey?: string
+  /** 文档中心 /docs/$slug 的 slug；没有专页的先指向工具概览 */
+  docSlug: string
+  /** 官方 logo 路径；null 时用首字母圆角占位 */
+  logo: string | null
+  /** 深色主题下改用的官方反白版本 */
+  logoDark?: string
+}
+
+/** Hero 下方兼容工具滚动条，增删工具只改这里（Kiro、豆包 Work 暂不支持，不要加） */
+export const COMPATIBLE_TOOLS: CompatibleTool[] = [
+  {
+    id: 'claude-code',
+    name: 'Claude Code',
+    docSlug: 'tools-claude-code',
+    logo: null,
+  },
+  { id: 'codex', name: 'Codex', docSlug: 'tools-codex', logo: null },
+  { id: 'opencode', name: 'OpenCode', docSlug: 'tools-overview', logo: null },
+  { id: 'openclaw', name: 'OpenClaw', docSlug: 'tools-openclaw', logo: null },
+  { id: 'hermes', name: 'Hermes', docSlug: 'tools-hermes', logo: null },
+  { id: 'cursor', name: 'Cursor', docSlug: 'tools-cursor', logo: null },
+  {
+    id: 'workbuddy',
+    name: 'WorkBuddy',
+    docSlug: 'tools-workbuddy',
+    logo: null,
+  },
+  {
+    id: 'qwen-work',
+    name: 'Qwen Work',
+    nameKey: 'Qwen Work',
+    docSlug: 'tools-overview',
+    logo: null,
+  },
+  { id: 'kimi-work', name: 'Kimi Work', docSlug: 'tools-overview', logo: null },
+  { id: 'cc-switch', name: 'CC Switch', docSlug: 'tools-overview', logo: null },
 ]
 
 export type Capability = {

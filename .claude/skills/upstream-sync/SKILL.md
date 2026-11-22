@@ -1,9 +1,9 @@
 ---
 name: upstream-sync
 description: >-
-  把上游 QuantumNous/new-api 的 rc tag（v1.0.0-rc.N）同步进 tokenfunc：拉取 → 选 rc → 评估清单 →
-  变更摘要（bugfix / feature / 影响面）+ 合不合的建议与理由 → 用户拍板 → 建 sync 分支合并 → 只解冲突 →
-  门禁（go/bun 测试、make test-db、迁移幂等、二开冒烟）→ 开 PR → 给用户一份本地验证清单 → 用户确认合并 → 提示独立发版。
+  把上游 QuantumNous/new-api 的 rc tag（v1.0.0-rc.N）同步进 tokenfunc，由 AI 端到端完成：拉取 → 选 rc → 评估清单 →
+  变更摘要 + AI 自决合不合 → 建 sync 分支合并 → AI 解全部冲突 → 门禁（go/bun 测试、make test-db、迁移幂等、二开冒烟）→
+  开 PR → 本地验证清单 → 用户确认合并 → 提示独立发版。只在命中「停止条件」（高风险且无法保证合并正确）时停下，附合并建议让用户决策。
   当用户要"同步上游 / 合并 new-api / 跟进上游 rc / 吸收上游修复"时使用。rc tag 可选，缺省取最新 rc；
   传上游 commit sha 则走 cherry-pick 例外通道。节奏与约定见 docs/tokenfunc/development.md §4.6。
 # 仅人工手动触发（/upstream-sync）：合并上游会大面积改动代码，禁止模型自动调用。
@@ -30,9 +30,21 @@ allowed-tools:
 
 # tokenfunc 上游同步
 
-流程：`P1 选 rc → P2 评估清单 → P2.5 变更摘要 + 建议 + 用户拍板 → P3 合并 + 解冲突 → P4 门禁 → P5 开 PR → P5.5 本地验证清单 → P6 合并后收尾`。
+流程：`P1 选 rc → P2 评估清单 → P2.5 变更摘要 + AI 自决 → P3 合并 + 解冲突 → P4 门禁 → P5 开 PR → P5.5 本地验证清单 → P6 合并后收尾`。
 
-**P2.5 之前不建分支、不合并。** 用户看完摘要和建议说"合"才进 P3；说"不合"或"只要其中几条"就按 cherry-pick 例外通道或直接结束。
+**合并、解冲突、提交、开 PR 都由 AI 完成，不交给用户手动做。** 从 P1 到 P5，只有命中下面的「停止条件」才停下问用户；其余情况一路做完。唯一固定的等待点是 P5 之后：PR 合进 `main` 必须等用户明确同意。
+
+## 停止条件（只有这些情况才停下来让用户决策）
+
+| 阶段 | 条件 |
+|------|------|
+| P1 / P2.5 评估 | 节奏不满足（< 2 周且 < 2 个 rc）；AI 建议「跳过」或「只 cherry-pick」；计费口径变化（读 `.agents/rules/billing.md` 后判断）；relay 协议转换 / 错误码 / 透传语义有客户可感知的变化；有大表（`logs` 等）迁移或全表 UPDATE；上游新功能默认开启且会改变计费或客户行为 |
+| P3 解冲突 | 冲突落在二开挂载点（`model/user.go`、`model/topup.go`、`service/quota.go`、`main.go`、计费文件、消息 / 日志 / 主题 / i18n 覆盖层），且上游重写了同一段逻辑、两边语义无法同时成立；或同一冲突有两种以上说得通的解法、选错会影响计费 / 鉴权 / 企业数据 |
+| P4 门禁 | 失败原因指向语义取舍（不是编译、签名、机械问题）；新增失败用例不改断言就修不好 |
+
+停下时用 `AskUserQuestion`，问题正文必须包含：**位置**（文件 / 函数 / commit）· **上游意图** · **我方意图** · **可选方案（≤ 3）** · **推荐方案与理由** · **选错的后果**。推荐项放第一个并标 (Recommended)。同一阶段的多个决策点合并成一次提问（最多 4 个问题）。
+
+不属于停止条件的冲突（机械改动、两边修复可以共存、下文「解冲突原则」或「已知坑速查」里有解法的）由 AI 直接解决，在 PR 正文的冲突摘要里逐条记录取舍，不打扰用户。
 
 ## 参数
 
@@ -46,7 +58,7 @@ allowed-tools:
 ## ⚠️ 授权与约束
 
 - **只合 rc tag，永远不合 `upstream/main` HEAD**。上游 rc 是作者认为可发布的切点，这就是筛选器。
-- **节奏**：距上次同步 ≥ 2 周或累积 ≥ 2 个 rc 才合；不满足时在 P1 用 `AskUserQuestion` 让用户确认是否仍要合。
+- **节奏**：距上次同步 ≥ 2 周或累积 ≥ 2 个 rc 才合；不满足时属于停止条件，在 P1 用 `AskUserQuestion` 让用户确认是否仍要合。
 - **只解冲突，不重构上游代码**；二开只支持 PostgreSQL，不为上游新代码补 SQLite/MySQL 兼容。
 - **不 push 到 `upstream`**，所有 push 只到 `origin`。**不自动合并到 `main`**，PR 开好后等用户明确同意。
 - 先读 `AGENTS.md`、`docs/tokenfunc/development.md` §4.6；冲突涉及计费读门文件时按 AGENTS.md 读 `.agents/rules/billing.md`。
@@ -60,7 +72,7 @@ git log -1 --format='%ad' --date=short $(git merge-base main upstream/main)   # 
 ```
 
 - 没传参数：取列表最后一个 rc。
-- 节奏不满足（< 2 周且 < 2 个 rc）：说明理由，`AskUserQuestion` 确认。
+- 节奏不满足（< 2 周且 < 2 个 rc）：说明理由，`AskUserQuestion` 确认（停止条件）。
 - 记下 `REF`、基线 rc、commit 数，作为报告头。
 
 ## Phase 2 — 评估清单
@@ -83,9 +95,9 @@ make upstream-diff REF=$REF        # 写到 .tmp/upstream/$REF.md
 
 清单填好后进入 P2.5，不要在这里直接概括给用户。
 
-## Phase 2.5 — 变更摘要 + 合并建议 + 用户拍板
+## Phase 2.5 — 变更摘要 + AI 自决
 
-目的：让用户基于"这个 rc 给 tokenfunc 带来什么、风险多大"决定合不合，而不是基于"到节奏了"。
+目的：AI 基于"这个 rc 给 tokenfunc 带来什么、风险多大"决定合不合，而不是基于"到节奏了"；摘要同时是给用户的记录。
 
 ### 怎么读上游变更
 
@@ -133,9 +145,10 @@ make upstream-diff REF=$REF        # 写到 .tmp/upstream/$REF.md
 
 理由写三点以内：收益（哪几条 fix / feature）、成本（冲突 + 适配 + 迁移）、时机（上游是否还在连续改同一块、我方是否有在飞的分支会撞）。有在飞的二开分支撞上游改动时要点名（`git branch -r --no-merged main` 看有哪些，和冲突文件比对）。
 
-### 拍板
+### 决策
 
-用 `AskUserQuestion` 三个选项：合入 / 只 cherry-pick（列 sha）/ 跳过。推荐项放第一个并标 (Recommended)。用户选"跳过"就结束并把摘要文件路径告诉用户；选"只 cherry-pick"走文末例外通道；选"合入"才进 P3。
+- 结论是「合入」且没有命中停止条件：在回复里贴摘要（一屏内），**直接进入 P3**，不问用户。
+- 结论是「只 cherry-pick」「跳过」，或命中任一评估阶段停止条件：用 `AskUserQuestion` 给三个选项：合入 / 只 cherry-pick（列 sha）/ 跳过，推荐项放第一个并标 (Recommended)，问题里写清命中了哪条停止条件。用户选"跳过"就结束并把摘要文件路径告诉用户；选"只 cherry-pick"走文末例外通道；选"合入"进 P3。
 
 ## Phase 3 — 合并 + 解冲突
 
@@ -144,14 +157,18 @@ make upstream-merge REF=$REF [BASE=<branch>]   # 建 sync/upstream-$REF 并 git 
 git status --short | grep '^UU\|^AA\|^DU\|^UD'  # 冲突文件
 ```
 
+`make upstream-merge` 遇到冲突会停在合并中途，这是正常状态：**由 AI 逐个文件解决**，不要把冲突交给用户手动处理。冲突多（> 20 个文件）时按目录拆给并行 agent，文件归属互不重叠（如 `relay/`、`model/ + service/`、`controller/ + router/ + middleware/`、`web/`、其余），最后由主 agent 统一 `go build` 处理跨模块问题。只有命中 P3 停止条件的冲突才停下问用户，其余全部解完再一起问。
+
 解冲突原则：
 - 上游机械改动（如 `SysLog("…")` → `SysLog(LogText(…))`）与我方逻辑改动叠加时**两边都留**。
 - 我方已删除、上游修改的文件（`docker-compose.yml` 等）：保留删除（`git rm`）。
 - 二开翻译 / 主题 / 常量已拆到独立文件，上游文件只剩接线行；接线行冲突按上游新结构重新接。
-- 解完：`git add -A && git commit --no-edit`（沿用 `merge(upstream): sync new-api $REF`）。
+- 解完：AI 执行 `git add -A && git commit --no-edit`（沿用 `merge(upstream): sync new-api $REF`）。每个非机械冲突的取舍（文件 · 上游意图 · 我方意图 · 取舍）记下来，P5 写进 PR 正文。
 - 依赖变化：`go mod tidy`，`cd web && bun install`（lockfile 冲突以上游为准再重装）。
 
 ## Phase 4 — 门禁（全部必须通过）
+
+门禁失败由 AI 修到通过（补适配代码、补二开翻译 key、修签名），修复作为 sync 分支上的后续 commit；只有失败原因属于 P4 停止条件时才停下问用户。禁止删测试或改弱断言让门禁变绿。
 
 ```bash
 go build ./... && go vet ./...
@@ -175,9 +192,9 @@ gh pr create -R nanofluxlabs-ai/tokenfunc --base main --head sync/upstream-$REF 
   --title "merge(upstream): sync new-api $REF" --body-file <body>
 ```
 
-PR 正文用 `.github/PULL_REQUEST_TEMPLATE.md`（仓库所有者的 PR），首行声明 AI 辅助；变更描述 = 评估清单的概括（基线 → REF、commit 数、需适配项及处理、回退项及理由）；运行证明 = P4 实际跑过的命令与结果。把清单文件内容附在折叠块里。
+PR 正文用 `.github/PULL_REQUEST_TEMPLATE.md`（仓库所有者的 PR），首行声明 AI 辅助；变更描述 = 评估清单的概括（基线 → REF、commit 数、需适配项及处理、回退项及理由）+ **AI 解冲突的取舍表**（文件 · 上游意图 · 我方意图 · 取舍）+ 停止条件里用户做过的决策；运行证明 = P4 实际跑过的命令与结果。把清单文件内容附在折叠块里。
 
-PR 开好后进入 P5.5 出验证清单，然后**停下**：回复里给 PR 链接、冲突/适配摘要和验证清单，等用户确认合并。
+PR 开好后进入 P5.5 出验证清单，然后**停下**：回复里给 PR 链接、冲突/适配摘要和验证清单，等用户确认合并。用户明确同意后由 AI 执行 `gh pr merge --merge`（保留上游历史，禁止 squash / rebase）。
 
 ## Phase 5.5 — 本地验证清单（必做）
 
@@ -225,7 +242,7 @@ make api-stop；删掉验证时建的令牌 / 渠道 / webhook；切回 main。
 
 ## Phase 6 — 合并后收尾
 
-- 提示用户用 `/release-standalone` **独立发版**（同步版本不混二开功能），发布报告的"包含提交"写"基于上游 $REF"。
+- 提示用户用 `/release-tke` **独立发版**（同步版本不混二开功能），发布报告的"包含提交"写"基于上游 $REF"。
 - 清单第 4 节标为"需适配"但本次未处理的项，写进 PR 评论作为后续待办。
 
 ## 例外通道：cherry-pick 单个上游 commit

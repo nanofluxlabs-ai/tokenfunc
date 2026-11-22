@@ -217,7 +217,7 @@ upstream-merge: upstream-fetch ## REF=v1.0.0-rc.N 从 main（BASE= 可改）建 
 	@test -z "$$(git status --porcelain --untracked-files=no)" || { echo "工作区有未提交改动，先提交或 stash"; exit 1; }
 	@git switch -c sync/upstream-$(REF) $(or $(BASE),main)
 	@git merge --no-ff $(REF) -m "merge(upstream): sync new-api $(REF)" \
-		|| echo "有冲突：只解冲突不重构，解决后 git add 并 git commit（沿用上面的 merge 信息）"
+		|| echo "有冲突：合并停在中途，按 /upstream-sync P3 由 AI 解冲突后 git add -A && git commit --no-edit"
 
 # ---------- 全栈 docker（生产形态） ----------
 

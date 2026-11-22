@@ -66,6 +66,7 @@ func newPromoterTestRouter(user *model.User) *gin.Engine {
 	center.GET("/overview", GetPromoterCenterOverview)
 	center.GET("/settlements", ListPromoterCenterSettlements)
 	admin := api.Group("/admin/promoter", asUser)
+	admin.GET("/promoters", AdminListPromoters)
 	admin.POST("/promoters", AdminCreatePromoter)
 	one := admin.Group("/promoters/:id", middleware.PromoterFromParam())
 	one.PUT("", AdminUpdatePromoter)
@@ -126,6 +127,12 @@ func TestPromoterEndpointsAuthAndBindingContract(t *testing.T) {
 	require.Equal(t, true, payload["success"], payload["message"])
 	assert.Equal(t, "r2", payload["data"].(map[string]any)["remark"])
 	assert.Equal(t, 12.5, payload["data"].(map[string]any)["share_rate"])
+	// 管理端列表回显分成比例（曾漏拼该字段，列表恒为 0）
+	rec, payload = doPromoterRequest(t, adminRouter, http.MethodGet, "/api/admin/promoter/promoters", "")
+	assert.Equal(t, http.StatusOK, rec.Code)
+	listItems := payload["data"].(map[string]any)["items"].([]any)
+	require.Len(t, listItems, 1)
+	assert.Equal(t, 12.5, listItems[0].(map[string]any)["share_rate"])
 	rec, _ = doPromoterRequest(t, adminRouter, http.MethodGet, "/api/admin/promoter/promoters/99999/center/overview", "")
 	assert.Equal(t, http.StatusNotFound, rec.Code)
 

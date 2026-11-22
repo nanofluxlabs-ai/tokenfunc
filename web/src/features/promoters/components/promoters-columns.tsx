@@ -49,11 +49,12 @@ export function usePromotersColumns(): ColumnDef<PromoterListItem>[] {
                 />
               )}
             </div>
-            <span className='text-muted-foreground truncate text-xs'>
-              {[promoter.display_name, promoter.email]
-                .filter(Boolean)
-                .join(' · ') || EMPTY_CELL}
-            </span>
+            {/* 只展示用户名 + 邮箱；邮箱注册的用户名就是邮箱，此时不重复显示 */}
+            {promoter.email && promoter.email !== promoter.username && (
+              <span className='text-muted-foreground truncate text-xs'>
+                {promoter.email}
+              </span>
+            )}
           </div>
         )
       },

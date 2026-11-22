@@ -158,7 +158,7 @@ func AdminListPromoters(c *gin.Context) {
 	items := make([]AdminPromoterListItem, 0, len(promoters))
 	for _, promoter := range promoters {
 		item := AdminPromoterListItem{
-			PromoterProfile: service.PromoterProfile{Id: promoter.Id, UserId: promoter.UserId, Remark: promoter.Remark, CreatedAt: promoter.CreatedAt},
+			PromoterProfile: service.NewPromoterProfile(promoter),
 			BoundUserCount:  counts[promoter.UserId], MonthNetQuota: monthNet[promoter.UserId],
 		}
 		if brief := briefs[promoter.UserId]; brief != nil {

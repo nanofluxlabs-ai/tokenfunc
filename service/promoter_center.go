@@ -223,9 +223,14 @@ func promoterRange(r model.FinanceRange) PromoterCenterRange {
 	return PromoterCenterRange{Start: r.Start, EndExcl: r.EndExcl, StartDay: model.FinanceDay(r.Start), EndDay: model.FinanceDay(r.EndExcl - 1)}
 }
 
+// NewPromoterProfile 由推广人记录生成档案（不含用户信息）；管理端列表与档案接口共用，新增字段只改这里
+func NewPromoterProfile(promoter *model.Promoter) PromoterProfile {
+	return PromoterProfile{Id: promoter.Id, UserId: promoter.UserId, Remark: promoter.Remark, ShareRate: promoter.ShareRate, CreatedAt: promoter.CreatedAt}
+}
+
 // GetPromoterProfile 推广人档案 + 用户信息
 func GetPromoterProfile(promoter *model.Promoter) (PromoterProfile, error) {
-	profile := PromoterProfile{Id: promoter.Id, UserId: promoter.UserId, Remark: promoter.Remark, ShareRate: promoter.ShareRate, CreatedAt: promoter.CreatedAt}
+	profile := NewPromoterProfile(promoter)
 	user, err := model.GetUserById(promoter.UserId, false)
 	if err != nil {
 		return profile, err

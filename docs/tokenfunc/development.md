@@ -83,7 +83,7 @@ make dev          # 自动生成 .env → 起 postgres/redis → 编译并后台
 ## 4. 协作约定
 
 ### 4.1 分支与提交
-- `main` 只接受 PR，CI（`.github/workflows/ci.yml`：`make test` + 前端 typecheck/test）必须通过；推到 `main` 只构建 `main-<date>-<sha>` 镜像，**发版用 `/release-standalone` 打 `vYYYY.MM.DD.N` tag**，tag 才触发部署。
+- `main` 只接受 PR，CI（`.github/workflows/ci.yml`：`make test` + 前端 typecheck/test）必须通过；推到 `main` 只构建 `main-<date>-<sha>` 镜像，**发版用 `/release-tke` 打 `vYYYY.MM.DD.N` tag**，tag 才触发部署。
 - 功能分支 `feat/<模块>`、修复分支 `fix/<问题>`；每个模块验证通过后立即 commit，提交信息用 Conventional Commits（`feat(landing): …`），正文中英文均可。
 - 走 worktree 开发时分支名由工具固定为 `worktree-<名>`，worktree 名用 `<type>-<slug>`（如 `feat-user-list-email`）；PR 标题与 commit 仍按 Conventional Commits。见 §4.7。
 - 与上游 new-api 同步见 §4.6。
@@ -113,7 +113,7 @@ make dev          # 自动生成 .env → 起 postgres/redis → 编译并后台
 ### 4.6 与上游 new-api 同步
 - **节奏**：每 2 周或累积 2 个上游 rc 合一次；**只合 rc tag（`v1.0.0-rc.N`），不合 `upstream/main` HEAD**。拖得越久冲突越大，"少同步"不等于"更稳"。
 - **例外通道**：安全修复、数据正确性 fix、生产踩到的 bug，单个 commit `git cherry-pick -x <sha>` 到 `fix/upstream-<sha>` 分支，走同样门禁，不等节奏。
-- **流程**（由 `/upstream-sync` 驱动）：`make upstream-status` 选 rc → `make upstream-diff REF=` 出评估清单，逐条标 接受 / 回退 / 需适配 → 变更摘要（bugfix / feature / 影响面）+ AI 自决合入 / 只 cherry-pick / 跳过 → `make upstream-merge REF=` → **AI 解全部冲突，只解冲突不重构上游代码**，二开只支持 PG，不为上游补 SQLite/MySQL → 门禁 → PR，merge commit 固定 `merge(upstream): sync new-api <REF>` → 用户确认合并 → `/release-tke` **独立发版**。合并、解冲突、提交、开 PR 都由 AI 完成；只有命中 skill 里的「停止条件」（计费 / 协议口径变化、大表迁移、二开挂载点上无法两全的冲突等高风险项）才停下，并附合并建议让用户决策，发布报告注明"基于上游 <REF>"，不与二开功能混在同一版本。
+- **流程**（由 `/upstream-sync` 驱动）：`make upstream-status` 选 rc → `make upstream-diff REF=` 出评估清单，逐条标 接受 / 回退 / 需适配 → 变更摘要（bugfix / feature / 影响面）+ AI 自决合入 / 只 cherry-pick / 跳过 → `make upstream-merge REF=` → **AI 解全部冲突，只解冲突不重构上游代码**，二开只支持 PG，不为上游补 SQLite/MySQL → 门禁 → PR，merge commit 固定 `merge(upstream): sync new-api <REF>` → 用户确认合并 → `/release-tke` **独立发版**，发布报告注明"基于上游 <REF>"，不与二开功能混在同一版本。合并、解冲突、提交、开 PR 都由 AI 完成；只有命中 skill 里的「停止条件」（计费 / 协议口径变化、大表迁移、二开挂载点上无法两全的冲突等高风险项）才停下，并附合并建议让用户决策。
 - **门禁**：CI（`make test` + 前端 typecheck/test）、本地 `make test-db`、迁移幂等（`make up-build` 启动两次，日志无重复 `ALTER`）、二开关键路径冒烟（企业 / 授信 / 报价 / 财务导出 / 手工充值）。
 - **减少冲突的结构约定**：二开内容放独立文件，上游文件只留一两行接线——翻译在 `web/src/i18n/locales/tokenfunc/` 与 `i18n/locales/tokenfunc.*.yaml`；品牌主题在 `web/src/lib/tokenfunc-theme.ts`、`web/src/lib/tokenfunc-site-theme.ts`、`web/src/styles/tokenfunc-theme.css`；二开全局变量在 `common/tokenfunc_constants.go`；服务端日志中文文案的覆盖在 `common/log_text.tokenfunc.zh-CN.json`。新增二开翻译 key 必须同时写进 `tokenfunc/en.json` 与 `tokenfunc/zh.json`，否则 `bun run i18n:sync` 会把孤立 key 挪进 `_extras`。
 - 基线不另记文件：`make upstream-status` 用 `git describe` 从 merge-base 算出当前 rc。
@@ -173,7 +173,7 @@ ExitWorktree remove              # 删目录和分支
 
 1. 生产机 `/opt/tokenfunc` 放仓库的 `compose.yml` 与一份生产 `.env`：改掉 `TF_PG_PASSWORD`、`TF_REDIS_PASSWORD`、`TF_SESSION_SECRET`，设置 `TF_API_IMAGE=ghcr.io/<owner>/<repo>:<tag>`，HTTPS 下打开 `TF_SESSION_COOKIE_SECURE=true` 并填写 `TF_SESSION_COOKIE_TRUSTED_URL`。
 2. `make up`（等价于 `docker compose --profile app up -d --wait`）。
-3. 发版：在 Claude Code 里运行 `/release-standalone`（技能在 `.claude/skills/release-standalone/`）：预检 → 打 tag → `deploy-ghcr.yml` 构建镜像、推 GHCR、SSH 到生产机改写 `.env` 的 `TF_API_IMAGE` 并 `up -d --wait` → 冒烟 → 监控 → 报告写到 `docs/tokenfunc/releases/`。回滚 = 把 `TF_API_IMAGE` 改回上一 tag 再 `up -d --wait api`。
+3. 发版：在 Claude Code 里运行 `/release-tke`（技能在 `.claude/skills/release-tke/`）：预检 → 打 tag → `deploy-ghcr.yml` 构建镜像推 GHCR（失败时本机构建）→ `kubectl set image` 先滚 master 再滚 slave → 冒烟 → 监控 → 报告写到 `docs/tokenfunc/releases/`。回滚命令见该技能的 P5。2026-11-18 起生产在 TKE，单机 docker 的 `/release-standalone` 已停用。
 4. 生产机上与仓库无关的差异（接管旧数据卷、把 `postgres` 别名挂到别的项目网络上、钉旧版本镜像）写在同目录的 `compose.override.yml`，compose 会自动叠加，仓库里不放这个文件。当前生产机就是这样复用了老的 `tokenfun_pg_data` 卷。
 5. 迁移到腾讯云 TKE：清单与脚本在 `deploy/k8s/`（主从两个 Deployment、ConfigMap / Secret、ingress、bootstrap / deploy 脚本），见该目录的 README。PG / Redis 走 PaaS，连接串放 Secret。
 6. 单机 docker 的 API 固定 `NODE_TYPE=master`（compose 默认），上游定时任务与二开后台任务都在它上面跑；k8s 下 master 单副本、slave 多副本，Service 只指向 slave。

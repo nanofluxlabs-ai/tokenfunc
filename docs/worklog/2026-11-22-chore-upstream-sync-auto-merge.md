@@ -16,6 +16,7 @@
 - `.claude/skills/upstream-sync/SKILL.md`：新增「停止条件」表（评估 / 解冲突 / 门禁三个阶段）和停下时的固定提问格式（位置 · 上游意图 · 我方意图 · 可选方案 · 推荐与理由 · 选错后果）；P2.5 改为 AI 自决，没命中停止条件就直接进 P3；P3 明确由 AI 解完全部冲突并提交，冲突多时并行 agent；P4 门禁失败由 AI 修；PR 正文加 AI 解冲突的取舍表；P6 发版命令从已停用的 `/release-standalone` 改为 `/release-tke`。
 - `makefile` `upstream-merge`：冲突提示改为指向 skill P3，去掉暗示人工处理的措辞。
 - `docs/tokenfunc/development.md` §4.6：流程描述同步。
+- `docs/tokenfunc/development.md` §4 分支规则与 §6 生产部署：发版命令从 `/release-standalone` 改为 `/release-tke`，§6 第 3 条按 TKE 流程重写（set image 先 master 后 slave、回滚见技能 P5）。
 
 ## 验证
 
@@ -24,5 +25,5 @@
 
 ## 遗留
 
-- `docs/tokenfunc/development.md` §4 其他段落（发版一节）仍写 `/release-standalone`，生产已迁 TKE，需要另开改动整理。
+- `docs/tokenfunc/development.md` §6 第 1、2、4 条仍是单机 docker 部署说明，旧单机 11-25 下线后可整体删掉或改为 TKE 首次部署说明。
 - 合进 `main` 仍需用户明确同意（不变）。

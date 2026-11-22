@@ -8,7 +8,7 @@ import {
 import { cleanup, render, screen } from '@testing-library/react'
 import { afterEach, describe, expect, it } from 'vitest'
 
-import { CAPABILITIES } from '@/features/landing/content'
+import { CAPABILITIES, QUALITY_CARDS } from '@/features/landing/content'
 
 import { BrandAbout } from '../brand-about'
 
@@ -35,7 +35,7 @@ afterEach(() => {
 })
 
 describe('BrandAbout', () => {
-  it('renders one card per landing capability with its title', async () => {
+  it('renders the three landing selling points followed by the three quality cards', async () => {
     await renderBrandAbout()
 
     const cardTitles = screen
@@ -43,7 +43,7 @@ describe('BrandAbout', () => {
       .map((heading) => heading.textContent)
 
     expect(cardTitles).toEqual(
-      CAPABILITIES.map((capability) => capability.title)
+      [...CAPABILITIES, ...QUALITY_CARDS].map((card) => card.title)
     )
   })
 

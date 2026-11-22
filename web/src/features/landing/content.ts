@@ -57,150 +57,159 @@ export const COMPATIBLE_TOOLS: CompatibleTool[] = [
 ]
 
 export type Capability = {
-  id: 'security' | 'fidelity' | 'supply' | 'performance' | 'cache'
-  eyebrow: string
+  /** 区块锚点 */
+  id: 'fidelity' | 'privacy' | 'control'
+  /** 序号标签，如 01 */
+  index: string
+  label: string
   title: string
   description: string
   points: string[]
 }
 
+/** 三个主卖点：与 Hero 三条打字卖点一一对应，桌面左右交替 */
 export const CAPABILITIES: Capability[] = [
   {
-    id: 'security',
-    eyebrow: '01 · Security',
-    title: 'Security and compliance',
+    id: 'fidelity',
+    index: '01',
+    label: 'Real models',
+    title: '100% fidelity, no downgrades',
     description:
-      'Request and response bodies are only relayed in memory and never written to disk. The platform keeps only the usage metadata needed for billing.',
+      'Every channel group names its upstream source. No downgrades, swaps or rewrites — you get the upstream response as-is.',
     points: [
-      'Request data never touches disk',
-      'Service contract and Data Processing Agreement (DPA)',
-      'IP allowlist and origin restrictions',
+      'Sources labeled per group, no silent swaps',
+      'Run a model self-check from the console anytime',
+      'usage matches upstream billing line by line',
     ],
   },
   {
-    id: 'fidelity',
-    eyebrow: '02 · Fidelity',
-    title: 'Real models, no substitution',
+    id: 'privacy',
+    index: '02',
+    label: 'Data security',
+    title: 'Data security: no content retained',
+    // 黑鹰 2026-11-22 拍板：去掉手册里的「日志」，上线前再核错误日志与任务表
     description:
-      'Every channel group is labeled with its upstream source: vendor API, cloud platform or subscription pool. The model you request is the model that runs: no downgrade, no swap, and the upstream response is returned untouched.',
+      'As a relay, we never store your request or response bodies. Content is forwarded in memory only and never written to a database or disk. We keep only the usage metadata needed for billing.',
     points: [
-      'Source labeled per channel group, no silent substitution',
-      'Run a model self-check from the console at any time',
+      'Request and response bodies are never stored',
+      'Service agreement and DPA',
+      'IP allowlists and source restrictions',
     ],
   },
+  {
+    id: 'control',
+    index: '03',
+    label: 'Reconcilable',
+    title: 'Enterprise controls, bills that reconcile',
+    description:
+      'Team budgets, key ownership and itemized bills, all in one console.',
+    points: [
+      'Monthly team budgets with alerts and hard stops',
+      'API keys owned by people, freezable and model-restricted',
+      'Multi-dimensional bill export, prepaid or monthly, official VAT invoices',
+    ],
+  },
+]
+
+export type QualityCard = {
+  id: 'supply' | 'cache' | 'performance'
+  title: string
+  description: string
+}
+
+/** 运行质量三张卡的标题与说明（数字见 QUALITY_METRICS），顺序：供应稳定 → 高缓存命中率 → 高性能 */
+export const QUALITY_CARDS: QualityCard[] = [
   {
     id: 'supply',
-    eyebrow: '03 · Supply',
-    title: 'Stable supply',
+    title: 'Reliable supply',
     description:
-      '500+ official subscription accounts across multiple upstream channels serve in parallel. If one pool errors or times out, the request moves to the next one with no change on the caller side.',
-    points: [],
-  },
-  {
-    id: 'performance',
-    eyebrow: '04 · Performance',
-    title: 'High performance, low latency',
-    description:
-      'Multiple domestic access points, reused long-lived upstream connections, and token-by-token streaming so the first chunk never waits.',
-    points: [
-      'Multiple domestic access points',
-      'Connection reuse · streaming passthrough',
-      'No queueing under high concurrency',
-    ],
+      'Every channel is checked before going live and monitored continuously; failing channels are pulled automatically. Upstreams run in parallel and fail over automatically, invisible to callers.',
   },
   {
     id: 'cache',
-    eyebrow: '05 · Cache',
     title: 'High cache hit rate',
     description:
-      'Session-affinity routing pins the same context to the same pool so prompt cache keeps hitting, averaging 90%+.',
-    points: [
-      'Cache reads are priced separately',
-      'Every bill line matches upstream usage',
-    ],
+      'Session-affinity routing pins the same context to the same channel, and cache reads are billed at the cache price — a clear cost drop for long conversations and agents.',
+  },
+  {
+    id: 'performance',
+    title: 'High performance',
+    description:
+      'Multi-region access points in mainland China, persistent upstream connections, token-by-token streaming.',
   },
 ]
 
-/** 留存字段演示：哪些数据经过网关会被记录 */
-export const RETENTION_ROWS: { field: string; kept: boolean; note: string }[] =
-  [
-    { field: 'Request body · messages', kept: false, note: 'Not retained' },
-    { field: 'Response body · choices', kept: false, note: 'Not retained' },
-    { field: 'Model · token usage', kept: true, note: 'For billing' },
-    {
-      field: 'Time · latency · status code',
-      kept: true,
-      note: 'For reconciliation',
-    },
-  ]
-
+/** 模型自检演示：厂商 Tab 与演示用模型 ID（与价目区保持一致） */
 export const SELF_CHECK_MODELS: {
   key: 'claude' | 'gpt' | 'gemini' | 'grok'
+  label: string
   id: string
-  context: string
 }[] = [
-  { key: 'claude', id: 'claude-sonnet-4.5', context: '200K' },
-  { key: 'gpt', id: 'gpt-5', context: '400K' },
-  { key: 'gemini', id: 'gemini-2.5-pro', context: '1M' },
-  { key: 'grok', id: 'grok-4', context: '256K' },
+  { key: 'claude', label: 'Claude', id: 'claude-sonnet-5-5' },
+  { key: 'gpt', label: 'GPT', id: 'gpt-6.2-sol' },
+  { key: 'gemini', label: 'Gemini', id: 'gemini-3.8-flash' },
+  { key: 'grok', label: 'Grok', id: 'grok-4.7' },
 ]
+
+/** 自检时序（毫秒）：每步 650，四步完成后停留 2600 再轮换到下一个厂商 */
+export const SELF_CHECK_TIMING = { step: 650, hold: 2600 } as const
 
 export const SELF_CHECK_STEPS = [
-  'Model identifier matches upstream response',
-  'Context window {{context}} verified',
-  'Tool calling and multimodal capabilities match',
-  'usage matches the upstream bill line by line',
+  'Model ID matches upstream response',
+  'Context window matches spec',
+  'Tool use and multimodal match',
+  'usage matches upstream billing',
 ] as const
 
-export const FAILOVER_CHANNELS: {
-  name: string
-  size: string
-  latency: number
-  availability: string
-}[] = [
-  {
-    name: 'Official · primary pool',
-    size: '128 accounts',
-    latency: 412,
-    availability: '99.99%',
-  },
-  {
-    name: 'Official · standby pool',
-    size: '64 accounts',
-    latency: 436,
-    availability: '99.97%',
-  },
-  {
-    name: 'Official · dedicated pool',
-    size: '16 accounts',
-    latency: 398,
-    availability: '99.99%',
-  },
+/** 留存对照：左列不存储，右列只存计费元数据（字段名是技术标识，不进 i18n） */
+export const RETENTION_DISCARDED: { field: string; label: string }[] = [
+  { field: 'messages', label: 'Request body' },
+  { field: 'choices', label: 'Response body' },
 ]
 
-export const LATENCY_ROWS: {
-  model: string
-  p50: number
-  p95: number
-  width: number
-}[] = [
-  { model: 'claude-sonnet-4.5', p50: 380, p95: 690, width: 48 },
-  { model: 'gpt-5', p50: 420, p95: 760, width: 53 },
-  { model: 'gemini-2.5-flash', p50: 290, p95: 540, width: 36 },
-  { model: 'grok-4-fast', p50: 310, p95: 580, width: 39 },
+export const RETENTION_KEPT: { field: string; label: string }[] = [
+  { field: 'model', label: 'Model' },
+  { field: 'usage.*_tokens', label: 'Token usage' },
+  { field: 'created_at', label: 'Time' },
+  { field: 'latency_ms', label: 'Latency' },
+  { field: 'status_code', label: 'Status code' },
 ]
 
-export const CACHE_BILL = {
-  model: 'claude-sonnet-4.5',
-  hitPercent: 93.9,
-  rows: [
-    { label: 'Input · cache miss', tokens: '1,204', cost: '$0.0036' },
-    { label: 'Input · cache read', tokens: '18,560', cost: '$0.0056' },
-    { label: 'Output', tokens: '642', cost: '$0.0096' },
+/** 团队预算演示（静态）：90% 告警阈值 */
+export const BUDGET_DEMO = {
+  period: '2026-11',
+  thresholdPercent: 90,
+  teams: [
+    { name: 'R&D', used: '$7,840', budget: '$12,000', percent: 65 },
+    { name: 'Data', used: '$5,530', budget: '$6,000', percent: 92 },
+    { name: 'Product', used: '$740', budget: '$2,000', percent: 37 },
   ],
-  listTotal: '$0.0689',
-  total: '$0.0188',
-  savedPercent: '72.7%',
+  /**
+   * 账单明细：金额按两个模型当前官方价算出（输入 $2、缓存读取 $0.10、输出 $10 / 1M token），
+   * 改模型或 token 数时要重算。
+   */
+  bills: [
+    {
+      model: 'claude-sonnet-5-5',
+      team: 'R&D',
+      owner: 'Li Na',
+      key: 'sk-…a91c',
+      input: '1,204',
+      cacheRead: '18,560',
+      output: '642',
+      amount: '$0.0107',
+    },
+    {
+      model: 'gpt-6.2-sol',
+      team: 'Data',
+      owner: 'Wang Qiang',
+      key: 'sk-…07e2',
+      input: '3,420',
+      cacheRead: '12,800',
+      output: '1,150',
+      amount: '$0.0196',
+    },
+  ],
 }
 
 export type ManagementTab = {

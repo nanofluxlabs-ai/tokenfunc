@@ -42,6 +42,7 @@ export function SectionHeading(props: {
   )
 }
 
+/** 勾选列表：关于页等仍在用 */
 export function CheckList(props: { items: string[]; className?: string }) {
   if (props.items.length === 0) return null
   return (
@@ -56,6 +57,29 @@ export function CheckList(props: { items: string[]; className?: string }) {
           <Check
             className='text-foreground size-3.5 shrink-0'
             aria-hidden='true'
+          />
+          {item}
+        </li>
+      ))}
+    </ul>
+  )
+}
+
+/** 要点列表：6px 品牌绿圆点 + 15px 文字 */
+export function DotList(props: { items: string[]; className?: string }) {
+  if (props.items.length === 0) return null
+  return (
+    <ul
+      className={cn('m-0 flex list-none flex-col gap-3 p-0', props.className)}
+    >
+      {props.items.map((item) => (
+        <li
+          key={item}
+          className='text-foreground/90 flex items-center gap-3 text-[15px]'
+        >
+          <span
+            aria-hidden='true'
+            className='bg-primary size-1.5 flex-none rounded-full'
           />
           {item}
         </li>
@@ -98,7 +122,7 @@ export function PillTabs<T extends string>(props: {
     >
       <TabsList
         aria-label={props['aria-label']}
-        className='border-border h-auto max-w-full flex-nowrap gap-1 overflow-x-auto rounded-full border bg-transparent p-1 group-data-horizontal/tabs:h-auto sm:flex-wrap'
+        className='border-border h-auto max-w-full [scrollbar-width:none] flex-nowrap gap-1 overflow-x-auto rounded-full border bg-transparent p-1 group-data-horizontal/tabs:h-auto [&::-webkit-scrollbar]:hidden'
       >
         {props.items.map((item) => (
           <TabsTrigger
@@ -106,10 +130,12 @@ export function PillTabs<T extends string>(props: {
             value={item.value}
             className={cn(
               // 选中态用前景色做底、背景色做字：明暗两套主题都能保证对比度
-              'text-muted-foreground hover:text-foreground h-auto flex-none rounded-full border-0 after:hidden',
+              'text-muted-foreground hover:text-foreground h-auto flex-none rounded-full border-0 whitespace-nowrap after:hidden',
               'data-active:bg-foreground data-active:text-background data-active:shadow-none',
               'dark:data-active:border-transparent dark:data-active:bg-foreground dark:data-active:text-background',
-              size === 'sm' ? 'px-3 py-1 text-xs' : 'px-4 py-1.5 text-[13px]',
+              size === 'sm'
+                ? 'h-7 px-3.5 text-[13px]'
+                : 'px-4 py-1.5 text-[13px]',
               props.mono && 'font-mono'
             )}
           >

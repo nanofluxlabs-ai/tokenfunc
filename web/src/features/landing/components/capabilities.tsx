@@ -1,74 +1,76 @@
+import type { ReactElement } from 'react'
 import { useTranslation } from 'react-i18next'
+
+import { cn } from '@/lib/utils'
 
 import { CAPABILITIES, type Capability } from '../content'
 import { useReveal } from '../hooks/use-reveal'
-import { CacheBillCard } from './demos/cache-bill-card'
-import { FailoverDemo } from './demos/failover-demo'
-import { LatencyCard } from './demos/latency-card'
+import { BudgetBillCard } from './demos/budget-bill-card'
 import { RetentionCard } from './demos/retention-card'
 import { SelfCheckDemo } from './demos/self-check-demo'
-import {
-  CheckList,
-  Eyebrow,
-  Section,
-  SectionHeading,
-} from './landing-primitives'
+import { DotList } from './landing-primitives'
 
-const DEMOS: Record<Capability['id'], () => React.ReactElement> = {
-  security: RetentionCard,
+const DEMOS: Record<Capability['id'], () => ReactElement> = {
   fidelity: SelfCheckDemo,
-  supply: FailoverDemo,
-  performance: LatencyCard,
-  cache: CacheBillCard,
+  privacy: RetentionCard,
+  control: BudgetBillCard,
 }
 
-// 手机上只保留可交互的两个演示，静态示意卡隐藏，避免能力区拉得太长
-const MOBILE_DEMOS = new Set<Capability['id']>(['fidelity', 'supply'])
-
-function CapabilityRow(props: { capability: Capability }) {
+/**
+ * 单个主卖点：文案 + demo。偶数块（02）文案在右，用 row-reverse + flex-wrap 实现，
+ * 这样手机端换行后仍是文案在上、demo 在下。
+ */
+function CapabilityBlock(props: { capability: Capability; reversed: boolean }) {
   const { t } = useTranslation()
   const ref = useReveal<HTMLDivElement>()
   const Demo = DEMOS[props.capability.id]
   return (
-    <div
-      ref={ref}
-      className='tf-reveal border-border grid grid-cols-[repeat(auto-fit,minmax(min(100%,400px),1fr))] items-center gap-8 border-b py-10 last:border-b-0 last:pb-0 sm:gap-12 sm:py-14'
+    <section
+      id={props.capability.id}
+      className='border-border scroll-mt-16 border-t'
     >
-      <div className='flex flex-col gap-5'>
-        <Eyebrow>{props.capability.eyebrow}</Eyebrow>
-        <h3 className='text-foreground m-0 text-2xl leading-8 font-medium tracking-[-0.6px] sm:text-[32px] sm:leading-10'>
-          {t(props.capability.title)}
-        </h3>
-        <p className='text-foreground/90 m-0 leading-[26px] text-pretty'>
-          {t(props.capability.description)}
-        </p>
-        <CheckList items={props.capability.points.map((point) => t(point))} />
-      </div>
       <div
-        className={
-          MOBILE_DEMOS.has(props.capability.id) ? undefined : 'hidden sm:block'
-        }
+        ref={ref}
+        className={cn(
+          'tf-reveal mx-auto flex max-w-[1200px] flex-wrap items-center gap-[clamp(40px,6vw,80px)] px-[clamp(20px,5vw,32px)] py-[clamp(72px,9vw,112px)]',
+          props.reversed && 'flex-row-reverse'
+        )}
       >
-        <Demo />
+        <div className='flex min-w-0 flex-[1_1_360px] flex-col gap-5'>
+          <span className='text-muted-foreground font-mono text-xs leading-[18px] tracking-[1.2px] uppercase'>
+            <span className='text-brand-ink'>{props.capability.index}</span> ·{' '}
+            {t(props.capability.label)}
+          </span>
+          <h2 className='text-foreground m-0 text-[clamp(32px,4vw,44px)] leading-[1.15] font-medium tracking-[-0.025em]'>
+            {t(props.capability.title)}
+          </h2>
+          <p className='text-foreground/90 m-0 max-w-[480px] text-base leading-[27px] text-pretty'>
+            {t(props.capability.description)}
+          </p>
+          <DotList
+            className='mt-2'
+            items={props.capability.points.map((point) => t(point))}
+          />
+        </div>
+        <div className='min-w-0 flex-[1.25_1_420px]'>
+          <Demo />
+        </div>
       </div>
-    </div>
+    </section>
   )
 }
 
+/** 三个主卖点：真模型 → 数据安全 → 可对账，桌面左右交替 */
 export function Capabilities() {
-  const { t } = useTranslation()
   return (
-    <Section id='capabilities' bordered={false} innerClassName='gap-12'>
-      <SectionHeading
-        size='display'
-        eyebrow={t('Why tokenfunc')}
-        title={t('Built for production')}
-      />
-      <div className='border-border flex flex-col border-t'>
-        {CAPABILITIES.map((capability) => (
-          <CapabilityRow key={capability.id} capability={capability} />
-        ))}
-      </div>
-    </Section>
+    <>
+      {CAPABILITIES.map((capability, index) => (
+        <CapabilityBlock
+          key={capability.id}
+          capability={capability}
+          reversed={index % 2 === 1}
+        />
+      ))}
+    </>
   )
 }

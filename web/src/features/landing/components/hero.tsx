@@ -81,7 +81,7 @@ export function Hero(props: { registerEnabled: boolean }) {
             className='h-12 rounded-full px-6 text-[15px] font-medium whitespace-nowrap'
             render={<a href='#contact' />}
           >
-            {t('Request enterprise trial')}
+            {t('Request an enterprise trial')}
             <ArrowRight aria-hidden='true' />
           </Button>
           <Button

@@ -7,9 +7,10 @@ import { Link } from '@tanstack/react-router'
 import {
   ArrowRight,
   BadgeCheck,
-  Database,
-  Gauge,
-  Layers,
+  DatabaseZap,
+  EyeOff,
+  Receipt,
+  Rocket,
   ShieldCheck,
   type LucideIcon,
 } from 'lucide-react'
@@ -20,17 +21,30 @@ import {
   Eyebrow,
   Panel,
 } from '@/features/landing/components/landing-primitives'
-import { CAPABILITIES, type Capability } from '@/features/landing/content'
+import {
+  CAPABILITIES,
+  QUALITY_CARDS,
+  type Capability,
+  type QualityCard,
+} from '@/features/landing/content'
 import { useSystemConfig } from '@/hooks/use-system-config'
 import { DEFAULT_LOGO, DEFAULT_SYSTEM_NAME } from '@/lib/constants'
 
-const CAPABILITY_ICONS: Record<Capability['id'], LucideIcon> = {
-  security: ShieldCheck,
+// 关于页 = 落地页三个主卖点 + 三项运行质量（只取定性说明，不放数字）
+const CARD_ICONS: Record<Capability['id'] | QualityCard['id'], LucideIcon> = {
   fidelity: BadgeCheck,
-  supply: Layers,
-  performance: Gauge,
-  cache: Database,
+  privacy: EyeOff,
+  control: Receipt,
+  supply: ShieldCheck,
+  cache: DatabaseZap,
+  performance: Rocket,
 }
+
+const ABOUT_CARDS: {
+  id: Capability['id'] | QualityCard['id']
+  title: string
+  description: string
+}[] = [...CAPABILITIES, ...QUALITY_CARDS]
 
 export function BrandAbout() {
   const { t } = useTranslation()
@@ -98,10 +112,10 @@ export function BrandAbout() {
         </div>
       </Panel>
 
-      {/* 五张卡在大屏固定一行，避免 auto-fit 折成 4+1 */}
-      <div className='grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5'>
-        {CAPABILITIES.map((capability) => {
-          const Icon = CAPABILITY_ICONS[capability.id]
+      {/* 六张卡：大屏 3×2，平板 2×3 */}
+      <div className='grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3'>
+        {ABOUT_CARDS.map((capability) => {
+          const Icon = CARD_ICONS[capability.id]
           return (
             <Panel key={capability.id} className='flex flex-col gap-4 p-5'>
               <span className='bg-primary/10 text-primary flex size-12 items-center justify-center rounded-lg'>

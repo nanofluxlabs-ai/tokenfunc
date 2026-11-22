@@ -95,7 +95,7 @@ export function BudgetBillCard() {
             >
               <span className='flex min-w-0 flex-col'>
                 <span className='text-foreground truncate'>{bill.model}</span>
-                <span className='text-muted-foreground font-sans text-[11px]'>
+                <span className='text-muted-foreground truncate font-sans text-[11px]'>
                   {t(bill.team)} · {t(bill.owner)} · {bill.key}
                 </span>
               </span>

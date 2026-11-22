@@ -1554,7 +1554,6 @@
     "Standard short-context price; long context and Fast mode follow upstream rules.": "Стандартная цена для короткого контекста; длинный контекст и режим Fast — по правилам поставщика.",
     "Prices follow upstream adjustments; the price shown here is current.": "Цены меняются вслед за поставщиком; здесь указана актуальная цена.",
     "Standard short-context price; prompts over 200K tokens use the long-context price.": "Стандартная цена для короткого контекста; свыше 200K токенов — по цене длинного контекста.",
-    "Per 1M tokens, in USD, synced with official upstream prices. Cached input is billed at the cache price.": "За 1M токенов, в долларах США, синхронно с официальными ценами поставщиков. Кэшированный ввод оплачивается по цене кэша.",
     "< $1k/mo": "< $1k/мес.",
     "$1k–10k/mo": "$1k–10k/мес.",
     "> $10k/mo": "> $10k/мес.",
@@ -1562,6 +1561,7 @@
     "Our account manager will add {{contact}} on WeChat within one business day.": "Наш менеджер добавит {{contact}} в WeChat в течение одного рабочего дня.",
     "Weekdays 9:00–21:00": "По будням 9:00–21:00",
     "Claude Code, Codex, Cursor and other tool names and logos are trademarks of their respective owners, shown only to indicate compatibility. No official partnership implied.": "Claude Code, Codex, Cursor и другие названия и логотипы инструментов являются товарными знаками их владельцев и показаны только для указания совместимости. Официальное партнёрство не подразумевается.",
-    "Awaiting check": "Ожидает"
+    "Awaiting check": "Ожидает",
+    "Per 1M tokens, in USD, updated when upstream prices change. Cached input is billed at the cache price.": "За 1M токенов, в долларах США, обновляется при изменении цен поставщиков. Кэшированный ввод оплачивается по цене кэша."
   }
 }

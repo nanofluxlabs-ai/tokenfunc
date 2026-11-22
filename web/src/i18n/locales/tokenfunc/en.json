@@ -1554,7 +1554,6 @@
     "Standard short-context price; long context and Fast mode follow upstream rules.": "Standard short-context price; long context and Fast mode follow upstream rules.",
     "Prices follow upstream adjustments; the price shown here is current.": "Prices follow upstream adjustments; the price shown here is current.",
     "Standard short-context price; prompts over 200K tokens use the long-context price.": "Standard short-context price; prompts over 200K tokens use the long-context price.",
-    "Per 1M tokens, in USD, synced with official upstream prices. Cached input is billed at the cache price.": "Per 1M tokens, in USD, synced with official upstream prices. Cached input is billed at the cache price.",
     "< $1k/mo": "< $1k/mo",
     "$1k–10k/mo": "$1k–10k/mo",
     "> $10k/mo": "> $10k/mo",
@@ -1562,6 +1561,7 @@
     "Our account manager will add {{contact}} on WeChat within one business day.": "Our account manager will add {{contact}} on WeChat within one business day.",
     "Weekdays 9:00–21:00": "Weekdays 9:00–21:00",
     "Claude Code, Codex, Cursor and other tool names and logos are trademarks of their respective owners, shown only to indicate compatibility. No official partnership implied.": "Claude Code, Codex, Cursor and other tool names and logos are trademarks of their respective owners, shown only to indicate compatibility. No official partnership implied.",
-    "Awaiting check": "Awaiting check"
+    "Awaiting check": "Awaiting check",
+    "Per 1M tokens, in USD, updated when upstream prices change. Cached input is billed at the cache price.": "Per 1M tokens, in USD, updated when upstream prices change. Cached input is billed at the cache price."
   }
 }

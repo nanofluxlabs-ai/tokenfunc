@@ -133,7 +133,7 @@ export function ModelsSection() {
 
         <span className='text-muted-foreground text-[13px]'>
           {t(
-            'Per 1M tokens, in USD, synced with official upstream prices. Cached input is billed at the cache price.'
+            'Per 1M tokens, in USD, updated when upstream prices change. Cached input is billed at the cache price.'
           )}
         </span>
       </div>

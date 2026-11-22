@@ -1554,7 +1554,6 @@
     "Standard short-context price; long context and Fast mode follow upstream rules.": "Giá chuẩn cho ngữ cảnh ngắn; ngữ cảnh dài và chế độ Fast tính theo quy tắc thượng nguồn.",
     "Prices follow upstream adjustments; the price shown here is current.": "Giá được cập nhật theo điều chỉnh của thượng nguồn; giá hiển thị là giá hiện hành.",
     "Standard short-context price; prompts over 200K tokens use the long-context price.": "Giá chuẩn cho ngữ cảnh ngắn; prompt trên 200K token tính theo giá ngữ cảnh dài.",
-    "Per 1M tokens, in USD, synced with official upstream prices. Cached input is billed at the cache price.": "Tính trên 1M token, bằng USD, đồng bộ với giá chính thức của thượng nguồn. Phần trúng cache tính theo giá cache.",
     "< $1k/mo": "< $1k/tháng",
     "$1k–10k/mo": "$1k–10k/tháng",
     "> $10k/mo": "> $10k/tháng",
@@ -1562,6 +1561,7 @@
     "Our account manager will add {{contact}} on WeChat within one business day.": "Quản lý tài khoản sẽ thêm {{contact}} trên WeChat trong vòng một ngày làm việc.",
     "Weekdays 9:00–21:00": "Ngày làm việc 9:00–21:00",
     "Claude Code, Codex, Cursor and other tool names and logos are trademarks of their respective owners, shown only to indicate compatibility. No official partnership implied.": "Claude Code, Codex, Cursor cùng tên và logo của các công cụ khác là nhãn hiệu của chủ sở hữu tương ứng, chỉ dùng để thể hiện khả năng tương thích, không hàm ý hợp tác chính thức.",
-    "Awaiting check": "Chờ kiểm tra"
+    "Awaiting check": "Chờ kiểm tra",
+    "Per 1M tokens, in USD, updated when upstream prices change. Cached input is billed at the cache price.": "Tính trên 1M token, bằng USD, cập nhật khi thượng nguồn điều chỉnh giá. Phần trúng cache tính theo giá cache."
   }
 }

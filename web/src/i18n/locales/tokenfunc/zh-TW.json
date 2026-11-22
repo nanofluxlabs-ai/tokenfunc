@@ -1554,7 +1554,6 @@
     "Standard short-context price; long context and Fast mode follow upstream rules.": "短上下文標準價；長上下文與 Fast 模式按上游規則計費。",
     "Prices follow upstream adjustments; the price shown here is current.": "上游調價時同步更新，以目前顯示為準。",
     "Standard short-context price; prompts over 200K tokens use the long-context price.": "短上下文標準價；超過 200K token 按長上下文價計費。",
-    "Per 1M tokens, in USD, synced with official upstream prices. Cached input is billed at the cache price.": "每 1M token，美元計價，與上游官方價同步更新。快取命中部分按快取價計費。",
     "< $1k/mo": "< $1k/月",
     "$1k–10k/mo": "$1k–10k/月",
     "> $10k/mo": "> $10k/月",
@@ -1562,6 +1561,7 @@
     "Our account manager will add {{contact}} on WeChat within one business day.": "商務經理會在一個工作日內透過微信新增 {{contact}}。",
     "Weekdays 9:00–21:00": "工作日 9:00–21:00",
     "Claude Code, Codex, Cursor and other tool names and logos are trademarks of their respective owners, shown only to indicate compatibility. No official partnership implied.": "Claude Code、Codex、Cursor 等工具名稱與 logo 為各自所有者的商標，本站僅用於說明相容性，不代表官方合作。",
-    "Awaiting check": "待檢測"
+    "Awaiting check": "待檢測",
+    "Per 1M tokens, in USD, updated when upstream prices change. Cached input is billed at the cache price.": "每 1M token，美元計價，上游調價時同步更新。快取命中部分按快取價計費。"
   }
 }

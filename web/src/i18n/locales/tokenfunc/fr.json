@@ -1554,7 +1554,6 @@
     "Standard short-context price; long context and Fast mode follow upstream rules.": "Tarif standard en contexte court ; le contexte long et le mode Fast suivent les règles amont.",
     "Prices follow upstream adjustments; the price shown here is current.": "Les tarifs suivent les ajustements amont ; le prix affiché ici est le prix en vigueur.",
     "Standard short-context price; prompts over 200K tokens use the long-context price.": "Tarif standard en contexte court ; au-delà de 200K tokens, le tarif contexte long s'applique.",
-    "Per 1M tokens, in USD, synced with official upstream prices. Cached input is billed at the cache price.": "Par million de tokens, en USD, synchronisé avec les tarifs officiels amont. L'entrée en cache est facturée au prix du cache.",
     "< $1k/mo": "< 1 k$/mois",
     "$1k–10k/mo": "1–10 k$/mois",
     "> $10k/mo": "> 10 k$/mois",
@@ -1562,6 +1561,7 @@
     "Our account manager will add {{contact}} on WeChat within one business day.": "Notre chargé de compte ajoutera {{contact}} sur WeChat sous un jour ouvré.",
     "Weekdays 9:00–21:00": "Jours ouvrés 9:00–21:00",
     "Claude Code, Codex, Cursor and other tool names and logos are trademarks of their respective owners, shown only to indicate compatibility. No official partnership implied.": "Claude Code, Codex, Cursor et les autres noms et logos d'outils sont des marques de leurs propriétaires respectifs, affichées uniquement pour indiquer la compatibilité. Aucun partenariat officiel n'est sous-entendu.",
-    "Awaiting check": "En attente"
+    "Awaiting check": "En attente",
+    "Per 1M tokens, in USD, updated when upstream prices change. Cached input is billed at the cache price.": "Par million de tokens, en USD, mis à jour lorsque les tarifs amont changent. L'entrée en cache est facturée au prix du cache."
   }
 }

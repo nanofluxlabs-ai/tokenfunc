@@ -48,7 +48,7 @@ describe('ContactSection trial request form', () => {
     const user = userEvent.setup()
     renderSection()
 
-    await user.click(screen.getByRole('button', { name: 'Submit request' }))
+    await user.click(screen.getByRole('button', { name: 'Submit application' }))
 
     expect(
       await screen.findByText('Please enter your company name')
@@ -73,7 +73,7 @@ describe('ContactSection trial request form', () => {
     expect(highVolume).toHaveAttribute('aria-pressed', 'false')
     await user.click(highVolume)
     expect(highVolume).toHaveAttribute('aria-pressed', 'true')
-    await user.click(screen.getByRole('button', { name: 'Submit request' }))
+    await user.click(screen.getByRole('button', { name: 'Submit application' }))
 
     await waitFor(() =>
       expect(submitTrialLead).toHaveBeenCalledWith({
@@ -84,7 +84,7 @@ describe('ContactSection trial request form', () => {
     )
     expect(await screen.findByRole('status')).toHaveTextContent('wx_123456')
     expect(
-      screen.queryByRole('button', { name: 'Submit request' })
+      screen.queryByRole('button', { name: 'Submit application' })
     ).not.toBeInTheDocument()
   })
 
@@ -101,11 +101,11 @@ describe('ContactSection trial request form', () => {
       screen.getByLabelText('WeChat ID or phone number'),
       'wx_123456'
     )
-    await user.click(screen.getByRole('button', { name: 'Submit request' }))
+    await user.click(screen.getByRole('button', { name: 'Submit application' }))
 
     await waitFor(() => expect(submitTrialLead).toHaveBeenCalledTimes(1))
     expect(
-      screen.getByRole('button', { name: 'Submit request' })
+      screen.getByRole('button', { name: 'Submit application' })
     ).toBeInTheDocument()
     expect(screen.queryByRole('status')).not.toBeInTheDocument()
   })

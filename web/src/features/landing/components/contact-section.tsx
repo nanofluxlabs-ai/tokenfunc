@@ -140,7 +140,7 @@ function TrialLeadForm(props: { onSubmitted: (contact: string) => void }) {
           className='h-12 rounded-full text-[15px] whitespace-nowrap'
           disabled={submitting}
         >
-          {t('Submit request')}
+          {t('Submit application')}
         </Button>
       </form>
     </Form>

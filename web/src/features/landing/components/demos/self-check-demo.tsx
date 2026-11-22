@@ -83,7 +83,7 @@ export function SelfCheckDemo() {
         {SELF_CHECK_STEPS.map((label, index) => {
           const passed = step > index
           const running = !passed && step === index
-          let status = t('Pending')
+          let status = t('Awaiting check')
           let state = 'pending'
           if (passed) {
             status = t('Passed')

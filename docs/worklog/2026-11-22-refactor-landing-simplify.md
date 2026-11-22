@@ -13,10 +13,10 @@
 
 区块顺序：Hero → 三个主卖点 → 运行质量 → 接入 → 价目 → 试用表单。
 
-- **Hero**：删 NEW 徽标、六句轮播、四个指标数字；单行前缀 `TokenFunc，` + 定宽 6.1em 打字区（三条卖点），手机端逗号后换行；打字机时序按手册；新增兼容工具滚动条 `compatible-tools.tsx`（配置在 `COMPATIBLE_TOOLS`）。
+- **Hero**：删 NEW 徽标、六句轮播、四个指标数字；单行前缀 `TokenFunc，` + 定宽打字区（三条卖点），手机端逗号后换行。打字区宽度与字号不再写死 6.1em / 12.4：新增 `hooks/use-hero-title-metrics.ts` 用 canvas 按当前字体实测前缀与最长卖点宽度，字号 = min(100px, (100vw − 48px) / 单行总宽)，七种语言在 PC 端都能单行（中日文 ≥640px，其余 ≥768px），西文逗号后补 0.25em 词距；打字机时序按手册；新增兼容工具滚动条 `compatible-tools.tsx`（配置在 `COMPATIBLE_TOOLS`）。
 - **主卖点**：五卡改三卡，锚点 fidelity / privacy / control，左右交替，要点改绿点；自检 demo 改厂商 Tab + 自动轮换；留存卡改两列对照；新增 `demos/budget-bill-card.tsx`。
 - **运行质量**：新增 `quality-strip.tsx`，数字全部在 `QUALITY_METRICS`，逐项 `TODO(黑鹰确认)`。
-- **接入**：左三步竖排 + 右代码块（四种语言，含 API 地址的行高亮），复制复用 `useCopyToClipboard`；标题在 ≥640px 不换行，左栏基准宽度 440px 以容纳单行标题。
+- **接入**：左三步竖排 + 右代码块（四种语言，含 API 地址的行高亮），复制复用 `useCopyToClipboard`；左栏基准宽度 440px，中文标题在 PC 端自然单行。曾用 `sm:whitespace-nowrap` 强制不换行，英文标题因此钻到代码块下面（v2026.11.22.1 上线后发现），已改为允许折行 + `text-balance`。
 - **价目**：厂商 Tab + `FEATURED_MODELS`。初版按 model_name 读 `/api/pricing`，因生产游客定价接口为空，黑鹰随后拍板改为 content.ts 里的静态官方价（2026-11-22 核对），删掉接口请求、加载态、空态和 `lib/list-prices.ts`。
 - **试用表单**：用量胶囊改 fieldset + legend + aria-pressed；成功态带联系方式；商标声明放在表单区底部。
 - **关于页**：原来直接复用落地页五张能力卡，黑鹰拍板改为三卖点 + 三项运行质量共六张卡（只用定性说明）。
@@ -67,6 +67,8 @@
   - 390 宽（同源 iframe 模拟，Chrome 窗口最窄 614）：无横向溢出；标题换两行 53px；三个卖点均为文案在上 demo 在下；自检 Tab 单行；标签不换行。
   - 浅色主题：绿色文字最低对比度 5.02:1，橙色 4.63:1。
   - 价目改静态后：默认 Claude 四行价格正确；接入区标题 1440 宽下单行，右端 896px，未碰到代码块（961px）。
+
+- 发版后修复（v2026.11.22.1 之后）：浏览器逐语言测量 en / fr / ru / vi / ja / zh / zh-TW，在 768–1440 宽下 Hero 均单行且不溢出，接入区标题均不与代码块重叠；390 宽 Hero 为两行。另修复 `cn` 合并时字号类覆盖 `leading-[1.1]` 导致 Hero 行高丢失。
 
 ## 遗留
 

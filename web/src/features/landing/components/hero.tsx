@@ -1,18 +1,26 @@
 import { Link } from '@tanstack/react-router'
 import { ArrowRight } from 'lucide-react'
-import { useMemo } from 'react'
+import { type CSSProperties, useMemo, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 
 import { HERO_PHRASES } from '../content'
+import { useHeroTitleMetrics } from '../hooks/use-hero-title-metrics'
 import { useTypewriter } from '../hooks/use-typewriter'
 import { CompatibleTools } from './compatible-tools'
 
-/** 中日文卖点短，能与前缀同行；其余语言卖点太长，固定上下两行 */
+/** 中日文卖点短，640px 起就能与前缀同行；其余语言卖点较长，768px 起才单行 */
 function isCompactScript(language: string | undefined): boolean {
   return /^(zh|ja)/i.test(language ?? '')
+}
+
+/** 单行时的字号：按实测的单行总宽缩放，封顶 100px（中日文 ≥640px、其余 ≥768px 单行） */
+const SINGLE_LINE_FONT = {
+  compact:
+    'sm:text-[length:min(100px,calc((100vw_-_48px)/var(--hero-line-em)))]',
+  wide: 'md:text-[length:min(100px,calc((100vw_-_48px)/var(--hero-line-em)))]',
 }
 
 /**
@@ -29,6 +37,8 @@ export function Hero(props: { registerEnabled: boolean }) {
   )
   const typed = useTypewriter(phrases)
   const compact = isCompactScript(i18n.resolvedLanguage)
+  const titleRef = useRef<HTMLHeadingElement>(null)
+  const metrics = useHeroTitleMetrics(titleRef, t('TokenFunc,'), phrases)
 
   return (
     <section id='top' className='relative overflow-hidden'>
@@ -43,15 +53,31 @@ export function Hero(props: { registerEnabled: boolean }) {
         </span>
 
         <h1
+          ref={titleRef}
           aria-label={t(
             'TokenFunc, real models at full strength, zero content retention, and bills that reconcile line by line'
           )}
+          style={
+            {
+              '--hero-line-em': metrics.lineEm,
+              '--hero-typed-em': metrics.typedEm,
+            } as CSSProperties
+          }
           className={cn(
-            'text-foreground m-0 flex max-w-full items-center leading-[1.1] font-medium tracking-[-0.05em]',
+            'text-foreground m-0 flex max-w-full flex-col items-center font-medium tracking-[-0.05em]',
+            // 单行：字号随视口缩放，保证「前缀 + 最长卖点」整行放得下
             compact
-              ? // 手机逗号后换行、字号放大；≥640px 单行，字号随视口缩放封顶 100px
-                'flex-col text-[length:min(64px,calc((100vw_-_48px)/6.4))] sm:flex-row sm:items-baseline sm:justify-center sm:text-[length:min(100px,calc((100vw_-_48px)/12.4))] sm:whitespace-nowrap'
-              : 'flex-col text-[clamp(40px,8vw,100px)]'
+              ? cn(
+                  'text-[length:min(64px,calc((100vw_-_48px)/var(--hero-typed-em)))] sm:flex-row sm:items-baseline sm:justify-center sm:whitespace-nowrap',
+                  SINGLE_LINE_FONT.compact
+                )
+              : cn(
+                  // 西文逗号不带间距，同行时补一个词距（已计入 lineEm）
+                  'text-[clamp(40px,10vw,64px)] md:flex-row md:items-baseline md:justify-center md:gap-x-[0.25em] md:whitespace-nowrap',
+                  SINGLE_LINE_FONT.wide
+                ),
+            // 行高放在字号之后：tailwind-merge 会让后出现的字号类覆盖前面的 leading
+            'leading-[1.1]'
           )}
         >
           <span aria-hidden='true'>{t('TokenFunc,')}</span>
@@ -60,8 +86,9 @@ export function Hero(props: { registerEnabled: boolean }) {
             className={cn(
               'text-brand-ink inline-block tracking-[-0.03em]',
               compact
-                ? 'w-[6.1em] text-left whitespace-nowrap'
-                : 'min-h-[1.2em] max-w-[18em] text-[0.56em] leading-[1.2] text-balance'
+                ? 'w-[calc(var(--hero-typed-em)*1em)] text-left whitespace-nowrap'
+                : // 手机两行时英文等卖点较长，缩小并允许折行；≥768px 与前缀同行、定宽不换行
+                  'min-h-[1.2em] max-w-[18em] text-[0.56em] leading-[1.2] text-balance md:w-[calc(var(--hero-typed-em)*1em)] md:max-w-none md:text-left md:text-[1em] md:leading-[1.1] md:whitespace-nowrap'
             )}
           >
             {typed}

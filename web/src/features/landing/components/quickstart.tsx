@@ -96,11 +96,11 @@ export function Quickstart() {
         ref={ref}
         className='tf-reveal mx-auto flex max-w-[1200px] flex-wrap items-start gap-[clamp(40px,5vw,64px)] px-[clamp(20px,5vw,32px)] py-[clamp(72px,9vw,112px)]'
       >
-        {/* 左栏基准宽度要容得下单行标题（36px 约 420px），PC 端标题不换行 */}
+        {/* 左栏基准宽度容得下中文单行标题（36px 约 420px）；不强制 nowrap，英文等长标题放不下时自然折行，避免钻到右侧代码块下面 */}
         <div className='flex min-w-0 flex-[1_1_440px] flex-col gap-8'>
           <div className='flex flex-col gap-4'>
             <Eyebrow>{t('Quickstart')}</Eyebrow>
-            <h2 className='text-foreground m-0 text-[clamp(28px,3.4vw,36px)] leading-[1.2] font-medium tracking-[-0.02em] sm:whitespace-nowrap'>
+            <h2 className='text-foreground m-0 text-[clamp(28px,3.4vw,36px)] leading-[1.2] font-medium tracking-[-0.02em] text-balance'>
               {t('Change one line of base_url to switch')}
             </h2>
           </div>

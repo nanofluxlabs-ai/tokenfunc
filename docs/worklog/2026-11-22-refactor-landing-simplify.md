@@ -16,8 +16,8 @@
 - **Hero**：删 NEW 徽标、六句轮播、四个指标数字；单行前缀 `TokenFunc，` + 定宽 6.1em 打字区（三条卖点），手机端逗号后换行；打字机时序按手册；新增兼容工具滚动条 `compatible-tools.tsx`（配置在 `COMPATIBLE_TOOLS`）。
 - **主卖点**：五卡改三卡，锚点 fidelity / privacy / control，左右交替，要点改绿点；自检 demo 改厂商 Tab + 自动轮换；留存卡改两列对照；新增 `demos/budget-bill-card.tsx`。
 - **运行质量**：新增 `quality-strip.tsx`，数字全部在 `QUALITY_METRICS`，逐项 `TODO(黑鹰确认)`。
-- **接入**：左三步竖排 + 右代码块（四种语言，含 API 地址的行高亮），复制复用 `useCopyToClipboard`。
-- **价目**：厂商 Tab + `FEATURED_MODELS` 精选，按 model_name 精确取 `/api/pricing` 价格，接口没有的模型不显示，空态「价目同步中」。
+- **接入**：左三步竖排 + 右代码块（四种语言，含 API 地址的行高亮），复制复用 `useCopyToClipboard`；标题在 ≥640px 不换行，左栏基准宽度 440px 以容纳单行标题。
+- **价目**：厂商 Tab + `FEATURED_MODELS`。初版按 model_name 读 `/api/pricing`，因生产游客定价接口为空，黑鹰随后拍板改为 content.ts 里的静态官方价（2026-11-22 核对），删掉接口请求、加载态、空态和 `lib/list-prices.ts`。
 - **试用表单**：用量胶囊改 fieldset + legend + aria-pressed；成功态带联系方式；商标声明放在表单区底部。
 - **关于页**：原来直接复用落地页五张能力卡，黑鹰拍板改为三卖点 + 三项运行质量共六张卡（只用定性说明）。
 - **删除的区块与组件**：`enterprise-section.tsx`（四 Tab + 三服务卡）、`faq-section.tsx`、`pricing-section.tsx`（按量 / 企业对比卡）、`demos/failover-demo.tsx`、`demos/latency-card.tsx`、`demos/cache-bill-card.tsx`；`landing-primitives` 里无引用的 `Section` / `SectionHeading` / `CheckList`；`landing.css` 的 `tf-pulse`；content.ts 里 HERO_STATS、旧 CAPABILITIES、FAILOVER / LATENCY / CACHE_BILL、MANAGEMENT_TABS、ENTERPRISE_SERVICES、PLAYGROUND_REPLIES、SNIPPET_GROUPS、PRICING_PLANS、FAQ_ITEMS、LANDING_VENDORS。
@@ -37,7 +37,7 @@
 | Gemini 注脚带调价日期 | 通用说法「上游调价时同步更新，以当前显示为准」 | 黑鹰拍板 |
 | 色板 accent-text / warn-text | 映射到已有 `text-brand-ink`、`text-warning`，未新增 token | 已有 token 覆盖 |
 | 价目「完整价目」与「打开模型广场」 | 分别指向 `/pricing?view=table` 与 `/pricing` | 站内只有模型广场一个价目页 |
-| 价目「默认 Claude」 | 只显示接口里至少有一个精选模型的厂商 Tab | 接口里没有的不显示 |
+| 价目数据来自 `/api/pricing` | 静态官方价 | 黑鹰拍板 |
 | 自检「待检测」、表单「提交申请」 | 用独立 key `Awaiting check`、`Submit application` | 上游 `Not checked`（未检查）、`Submit request`（提交请求）在别处使用，不能覆盖 |
 
 ### 兼容工具 logo 来源
@@ -60,13 +60,13 @@
 ## 验证
 
 - 每个区块提交前：`bun run typecheck` 通过；`bun run lint` 共 142 个 error，与改动前 main 相同（全在上游与脚本文件），落地页与关于页 0 个。
-- `bunx vitest run src/features/landing src/features/about src/i18n`：10 个文件 36 个用例全部通过（新增打字机、自检、价目、Hero 四个测试文件）。
-- `bun run i18n:sync` 后 tokenfunc 七个语言文件均为 1566 个 key，互相无差异；上游语言包无改动。
+- `bunx vitest run src/features/landing src/features/about src/i18n`：9 个文件 30 个用例全部通过（价目改静态后删掉 list-prices 测试，价目测试改为校验静态数据）。
+- `bun run i18n:sync` 后 tokenfunc 七个语言文件均为 1563 个 key，互相无差异；上游语言包无改动。
 - 浏览器（`make api TF_API_PORT=3010` + `make web TF_WEB_PORT=5174`）：
   - 1440 宽：区块顺序正确；标题单行 100px；01 区块顶部在页面 772px 处，1440×900 首屏能露出；自检自动轮换；运行质量三卡顺序正确、高性能数字左对齐；无破图。
   - 390 宽（同源 iframe 模拟，Chrome 窗口最窄 614）：无横向溢出；标题换两行 53px；三个卖点均为文案在上 demo 在下；自检 Tab 单行；标签不换行。
   - 浅色主题：绿色文字最低对比度 5.02:1，橙色 4.63:1。
-  - 本地与生产游客 `/api/pricing` 都返回 0 个模型，价目区只能看到空态，有数据时的表格由单元测试覆盖。
+  - 价目改静态后：默认 Claude 四行价格正确；接入区标题 1440 宽下单行，右端 896px，未碰到代码块（961px）。
 
 ## 遗留
 
@@ -77,7 +77,8 @@
   4. 「不写入数据库或磁盘」：文案已收窄，上线前仍需核对错误日志与异步任务表是否落正文。
   5. 兼容工具 logo 与文档页：logo 10 个齐全；OpenCode、千问 Work、Kimi Work、CC Switch 缺文档配置页，暂链到工具概览页。
   6. 手机端 Hero：已定逗号后换行。
-- **生产价目为空**：生产游客 `/api/pricing` 返回 0 个模型（11-06 迁移后既有），上线后价目区会一直显示「价目同步中」，需要先解决游客定价可见性。
+- **静态价目需手工维护**：gemini-4-argon 2026-12-01 起调为 $4 / $0.20 / $20，gemini-3.8-flash 2027-01-01 起调为 $1.50 / $0.15 / $7.50，到期要改 `FEATURED_MODELS`；总注脚「与上游官方价同步更新」现在依赖人工更新。
+- 生产游客 `/api/pricing` 返回 0 个模型（11-06 迁移后既有），落地页已不依赖它，但模型广场对游客仍为空。
 - OpenCode、千问 Work、Kimi Work 的官方图标是黑色底块，深色主题下底块融入背景，图形仍可辨认；如需更清楚可给图标加浅色描边。
 - 账单 demo 副行在窄屏改为单行截断（浏览器验收时发现折行拆开了 key）。
 - 关于页六张卡里运行质量的说明含「渠道上线前逐项检测」等表述，同样依赖第 2 项确认。

@@ -3,7 +3,7 @@
  *
  * 所有面向用户的字符串都是 i18n 的英文 key，组件里统一经 t() 渲染。
  * 首屏不放任何数字；demo 卡里的数字是可在控制台复现的演示数据，
- * 运行质量数字（QUALITY_METRICS）是待确认的占位，价格只读 /api/pricing。
+ * 运行质量数字（QUALITY_METRICS）是待确认的占位，价目是手工维护的静态官方价。
  */
 
 /** Hero 打字机轮播的三条核心卖点，与下方三个主卖点一一对应 */
@@ -353,6 +353,9 @@ export const LEAD_VOLUMES: {
   { value: 'gt_10k', label: '> $10k/mo' },
 ]
 
+/** 每 1M token 的美元价格 */
+export type ModelPrice = { input: number; cacheRead: number; output: number }
+
 export type FeaturedVendor = {
   key: 'claude' | 'gpt' | 'gemini' | 'grok'
   label: string
@@ -360,13 +363,13 @@ export type FeaturedVendor = {
   vendor: string
   /** 该厂商的计费注脚（i18n key） */
   note: string
-  /** 精选模型：按 model_name 精确匹配 /api/pricing，接口里没有的不显示 */
-  models: { id: string; tag: string }[]
+  models: { id: string; tag: string; price: ModelPrice }[]
 }
 
 /**
- * 价目区精选（2026-11-22 各家官方当前主力）。价格一律来自 /api/pricing，这里只配置
- * 展示哪些模型和定位标签，不写价格。
+ * 价目区静态价目：各家官方当前主力模型与官方标准价（USD / 1M token，2026-11-22 核对）。
+ * 黑鹰 2026-11-22 拍板改用静态数据，不再读 /api/pricing；上游调价时手工改这里。
+ * 已知待改：gemini-4-argon 2026-12-01 起 $4 / $0.20 / $20；gemini-3.8-flash 2027-01-01 起 $1.50 / $0.15 / $7.50。
  */
 export const FEATURED_MODELS: FeaturedVendor[] = [
   {
@@ -375,10 +378,26 @@ export const FEATURED_MODELS: FeaturedVendor[] = [
     vendor: 'Anthropic',
     note: 'claude-haiku-5-5 is priced for prompts up to 100K tokens; longer prompts use the long-prompt price.',
     models: [
-      { id: 'claude-fable-5-2', tag: 'Top tier' },
-      { id: 'claude-opus-5-5', tag: 'Flagship' },
-      { id: 'claude-sonnet-5-5', tag: 'Balanced' },
-      { id: 'claude-haiku-5-5', tag: 'Lite' },
+      {
+        id: 'claude-fable-5-2',
+        tag: 'Top tier',
+        price: { input: 8, cacheRead: 0.2, output: 40 },
+      },
+      {
+        id: 'claude-opus-5-5',
+        tag: 'Flagship',
+        price: { input: 4, cacheRead: 0.2, output: 20 },
+      },
+      {
+        id: 'claude-sonnet-5-5',
+        tag: 'Balanced',
+        price: { input: 2, cacheRead: 0.1, output: 10 },
+      },
+      {
+        id: 'claude-haiku-5-5',
+        tag: 'Lite',
+        price: { input: 0.1, cacheRead: 0.01, output: 0.5 },
+      },
     ],
   },
   {
@@ -387,10 +406,26 @@ export const FEATURED_MODELS: FeaturedVendor[] = [
     vendor: 'OpenAI',
     note: 'Standard short-context price; long context and Fast mode follow upstream rules.',
     models: [
-      { id: 'gpt-6.2-astra', tag: 'Flagship' },
-      { id: 'gpt-6.2-sol', tag: 'Balanced' },
-      { id: 'gpt-6.1-terra', tag: 'Fast' },
-      { id: 'gpt-6-luna', tag: 'Lite' },
+      {
+        id: 'gpt-6.2-astra',
+        tag: 'Flagship',
+        price: { input: 8, cacheRead: 0.4, output: 40 },
+      },
+      {
+        id: 'gpt-6.2-sol',
+        tag: 'Balanced',
+        price: { input: 2, cacheRead: 0.1, output: 10 },
+      },
+      {
+        id: 'gpt-6.1-terra',
+        tag: 'Fast',
+        price: { input: 1, cacheRead: 0.05, output: 5 },
+      },
+      {
+        id: 'gpt-6-luna',
+        tag: 'Lite',
+        price: { input: 0.1, cacheRead: 0.01, output: 0.5 },
+      },
     ],
   },
   {
@@ -400,9 +435,21 @@ export const FEATURED_MODELS: FeaturedVendor[] = [
     // 黑鹰 2026-11-22 拍板：不写调价日期，用通用说法
     note: 'Prices follow upstream adjustments; the price shown here is current.',
     models: [
-      { id: 'gemini-4-argon', tag: 'Flagship' },
-      { id: 'gemini-3.8-flash', tag: 'Balanced' },
-      { id: 'gemini-3.5-flash-lite', tag: 'Lite' },
+      {
+        id: 'gemini-4-argon',
+        tag: 'Flagship',
+        price: { input: 2, cacheRead: 0.1, output: 10 },
+      },
+      {
+        id: 'gemini-3.8-flash',
+        tag: 'Balanced',
+        price: { input: 0.75, cacheRead: 0.075, output: 3.75 },
+      },
+      {
+        id: 'gemini-3.5-flash-lite',
+        tag: 'Lite',
+        price: { input: 0.3, cacheRead: 0.03, output: 2.5 },
+      },
     ],
   },
   {
@@ -411,9 +458,21 @@ export const FEATURED_MODELS: FeaturedVendor[] = [
     vendor: 'xAI',
     note: 'Standard short-context price; prompts over 200K tokens use the long-context price.',
     models: [
-      { id: 'grok-4.7', tag: 'Flagship' },
-      { id: 'grok-build-0.1', tag: 'Coding' },
-      { id: 'grok-4.3', tag: 'Long context' },
+      {
+        id: 'grok-4.7',
+        tag: 'Flagship',
+        price: { input: 2, cacheRead: 0.5, output: 6 },
+      },
+      {
+        id: 'grok-build-0.1',
+        tag: 'Coding',
+        price: { input: 1, cacheRead: 0.2, output: 2 },
+      },
+      {
+        id: 'grok-4.3',
+        tag: 'Long context',
+        price: { input: 1.25, cacheRead: 0.2, output: 2.5 },
+      },
     ],
   },
 ]

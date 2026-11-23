@@ -1562,6 +1562,17 @@
     "Weekdays 9:00–21:00": "Ngày làm việc 9:00–21:00",
     "Claude Code, Codex, Cursor and other tool names and logos are trademarks of their respective owners, shown only to indicate compatibility. No official partnership implied.": "Claude Code, Codex, Cursor cùng tên và logo của các công cụ khác là nhãn hiệu của chủ sở hữu tương ứng, chỉ dùng để thể hiện khả năng tương thích, không hàm ý hợp tác chính thức.",
     "Awaiting check": "Chờ kiểm tra",
-    "Per 1M tokens, in USD, updated when upstream prices change. Cached input is billed at the cache price.": "Tính trên 1M token, bằng USD, cập nhật khi thượng nguồn điều chỉnh giá. Phần trúng cache tính theo giá cache."
+    "Per 1M tokens, in USD, updated when upstream prices change. Cached input is billed at the cache price.": "Tính trên 1M token, bằng USD, cập nhật khi thượng nguồn điều chỉnh giá. Phần trúng cache tính theo giá cache.",
+    "API key usage": "Mức sử dụng khóa API",
+    "Account balance {{balance}}, used {{used}}": "Số dư tài khoản {{balance}}, đã dùng {{used}}",
+    "Available models": "Mô hình khả dụng",
+    "Call records": "Lịch sử gọi",
+    "Enter an API key to start": "Nhập khóa API để bắt đầu",
+    "Paste an API key to see its quota, usage and call records. The key is only sent in the request header and is not stored.": "Dán khóa API để xem hạn mức, mức sử dụng và lịch sử gọi. Khóa chỉ được gửi trong header của yêu cầu và không được lưu lại.",
+    "Query failed, please try again later": "Truy vấn thất bại, vui lòng thử lại sau",
+    "The API key is invalid or disabled": "Khóa API không hợp lệ hoặc đã bị vô hiệu hóa",
+    "Too many queries, please try again later": "Truy vấn quá thường xuyên, vui lòng thử lại sau",
+    "Top models this month": "Mô hình dùng nhiều tháng này",
+    "Usage of this key within the enterprise account": "Mức sử dụng của khóa này trong tài khoản doanh nghiệp"
   }
 }

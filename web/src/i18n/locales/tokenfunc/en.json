@@ -1562,6 +1562,17 @@
     "Weekdays 9:00–21:00": "Weekdays 9:00–21:00",
     "Claude Code, Codex, Cursor and other tool names and logos are trademarks of their respective owners, shown only to indicate compatibility. No official partnership implied.": "Claude Code, Codex, Cursor and other tool names and logos are trademarks of their respective owners, shown only to indicate compatibility. No official partnership implied.",
     "Awaiting check": "Awaiting check",
-    "Per 1M tokens, in USD, updated when upstream prices change. Cached input is billed at the cache price.": "Per 1M tokens, in USD, updated when upstream prices change. Cached input is billed at the cache price."
+    "Per 1M tokens, in USD, updated when upstream prices change. Cached input is billed at the cache price.": "Per 1M tokens, in USD, updated when upstream prices change. Cached input is billed at the cache price.",
+    "API key usage": "API key usage",
+    "Account balance {{balance}}, used {{used}}": "Account balance {{balance}}, used {{used}}",
+    "Available models": "Available models",
+    "Call records": "Call records",
+    "Enter an API key to start": "Enter an API key to start",
+    "Paste an API key to see its quota, usage and call records. The key is only sent in the request header and is not stored.": "Paste an API key to see its quota, usage and call records. The key is only sent in the request header and is not stored.",
+    "Query failed, please try again later": "Query failed, please try again later",
+    "The API key is invalid or disabled": "The API key is invalid or disabled",
+    "Too many queries, please try again later": "Too many queries, please try again later",
+    "Top models this month": "Top models this month",
+    "Usage of this key within the enterprise account": "Usage of this key within the enterprise account"
   }
 }

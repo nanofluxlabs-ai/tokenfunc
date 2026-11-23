@@ -1562,6 +1562,17 @@
     "Weekdays 9:00–21:00": "工作日 9:00–21:00",
     "Claude Code, Codex, Cursor and other tool names and logos are trademarks of their respective owners, shown only to indicate compatibility. No official partnership implied.": "Claude Code、Codex、Cursor 等工具名称与 logo 为各自所有者的商标，本站仅用于说明兼容性，不代表官方合作。",
     "Awaiting check": "待检测",
-    "Per 1M tokens, in USD, updated when upstream prices change. Cached input is billed at the cache price.": "每 1M token，美元计价，上游调价时同步更新。缓存命中部分按缓存价计费。"
+    "Per 1M tokens, in USD, updated when upstream prices change. Cached input is billed at the cache price.": "每 1M token，美元计价，上游调价时同步更新。缓存命中部分按缓存价计费。",
+    "API key usage": "API 密钥用量查询",
+    "Account balance {{balance}}, used {{used}}": "账户余额 {{balance}}，已用 {{used}}",
+    "Available models": "可用模型",
+    "Call records": "调用记录",
+    "Enter an API key to start": "输入 API 密钥开始查询",
+    "Paste an API key to see its quota, usage and call records. The key is only sent in the request header and is not stored.": "粘贴 API 密钥即可查看它的额度、用量和调用记录。密钥只放在请求头里发送，不会被保存。",
+    "Query failed, please try again later": "查询失败，请稍后再试",
+    "The API key is invalid or disabled": "API 密钥无效或已停用",
+    "Too many queries, please try again later": "查询过于频繁，请稍后再试",
+    "Top models this month": "本月常用模型",
+    "Usage of this key within the enterprise account": "这把密钥在企业账户中的归属与用量"
   }
 }

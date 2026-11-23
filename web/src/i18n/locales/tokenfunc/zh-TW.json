@@ -1562,6 +1562,17 @@
     "Weekdays 9:00–21:00": "工作日 9:00–21:00",
     "Claude Code, Codex, Cursor and other tool names and logos are trademarks of their respective owners, shown only to indicate compatibility. No official partnership implied.": "Claude Code、Codex、Cursor 等工具名稱與 logo 為各自所有者的商標，本站僅用於說明相容性，不代表官方合作。",
     "Awaiting check": "待檢測",
-    "Per 1M tokens, in USD, updated when upstream prices change. Cached input is billed at the cache price.": "每 1M token，美元計價，上游調價時同步更新。快取命中部分按快取價計費。"
+    "Per 1M tokens, in USD, updated when upstream prices change. Cached input is billed at the cache price.": "每 1M token，美元計價，上游調價時同步更新。快取命中部分按快取價計費。",
+    "API key usage": "API 金鑰用量查詢",
+    "Account balance {{balance}}, used {{used}}": "帳戶餘額 {{balance}}，已用 {{used}}",
+    "Available models": "可用模型",
+    "Call records": "呼叫紀錄",
+    "Enter an API key to start": "輸入 API 金鑰開始查詢",
+    "Paste an API key to see its quota, usage and call records. The key is only sent in the request header and is not stored.": "貼上 API 金鑰即可查看其額度、用量與呼叫紀錄。金鑰只放在請求標頭中傳送，不會被儲存。",
+    "Query failed, please try again later": "查詢失敗，請稍後再試",
+    "The API key is invalid or disabled": "API 金鑰無效或已停用",
+    "Too many queries, please try again later": "查詢過於頻繁，請稍後再試",
+    "Top models this month": "本月常用模型",
+    "Usage of this key within the enterprise account": "這把金鑰在企業帳戶中的歸屬與用量"
   }
 }

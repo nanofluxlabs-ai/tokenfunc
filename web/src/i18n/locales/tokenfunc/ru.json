@@ -1562,6 +1562,17 @@
     "Weekdays 9:00–21:00": "По будням 9:00–21:00",
     "Claude Code, Codex, Cursor and other tool names and logos are trademarks of their respective owners, shown only to indicate compatibility. No official partnership implied.": "Claude Code, Codex, Cursor и другие названия и логотипы инструментов являются товарными знаками их владельцев и показаны только для указания совместимости. Официальное партнёрство не подразумевается.",
     "Awaiting check": "Ожидает",
-    "Per 1M tokens, in USD, updated when upstream prices change. Cached input is billed at the cache price.": "За 1M токенов, в долларах США, обновляется при изменении цен поставщиков. Кэшированный ввод оплачивается по цене кэша."
+    "Per 1M tokens, in USD, updated when upstream prices change. Cached input is billed at the cache price.": "За 1M токенов, в долларах США, обновляется при изменении цен поставщиков. Кэшированный ввод оплачивается по цене кэша.",
+    "API key usage": "Использование API-ключа",
+    "Account balance {{balance}}, used {{used}}": "Баланс аккаунта {{balance}}, использовано {{used}}",
+    "Available models": "Доступные модели",
+    "Call records": "История вызовов",
+    "Enter an API key to start": "Введите API-ключ, чтобы начать",
+    "Paste an API key to see its quota, usage and call records. The key is only sent in the request header and is not stored.": "Вставьте API-ключ, чтобы увидеть его квоту, использование и историю вызовов. Ключ передаётся только в заголовке запроса и не сохраняется.",
+    "Query failed, please try again later": "Не удалось выполнить запрос, попробуйте позже",
+    "The API key is invalid or disabled": "API-ключ недействителен или отключён",
+    "Too many queries, please try again later": "Слишком много запросов, попробуйте позже",
+    "Top models this month": "Популярные модели за месяц",
+    "Usage of this key within the enterprise account": "Использование этого ключа в корпоративном аккаунте"
   }
 }

@@ -1562,6 +1562,17 @@
     "Weekdays 9:00–21:00": "Jours ouvrés 9:00–21:00",
     "Claude Code, Codex, Cursor and other tool names and logos are trademarks of their respective owners, shown only to indicate compatibility. No official partnership implied.": "Claude Code, Codex, Cursor et les autres noms et logos d'outils sont des marques de leurs propriétaires respectifs, affichées uniquement pour indiquer la compatibilité. Aucun partenariat officiel n'est sous-entendu.",
     "Awaiting check": "En attente",
-    "Per 1M tokens, in USD, updated when upstream prices change. Cached input is billed at the cache price.": "Par million de tokens, en USD, mis à jour lorsque les tarifs amont changent. L'entrée en cache est facturée au prix du cache."
+    "Per 1M tokens, in USD, updated when upstream prices change. Cached input is billed at the cache price.": "Par million de tokens, en USD, mis à jour lorsque les tarifs amont changent. L'entrée en cache est facturée au prix du cache.",
+    "API key usage": "Utilisation de la clé API",
+    "Account balance {{balance}}, used {{used}}": "Solde du compte {{balance}}, utilisé {{used}}",
+    "Available models": "Modèles disponibles",
+    "Call records": "Historique des appels",
+    "Enter an API key to start": "Saisissez une clé API pour commencer",
+    "Paste an API key to see its quota, usage and call records. The key is only sent in the request header and is not stored.": "Collez une clé API pour voir son quota, son utilisation et l'historique des appels. La clé est uniquement envoyée dans l'en-tête de la requête et n'est pas enregistrée.",
+    "Query failed, please try again later": "La requête a échoué, veuillez réessayer plus tard",
+    "The API key is invalid or disabled": "La clé API est invalide ou désactivée",
+    "Too many queries, please try again later": "Trop de requêtes, veuillez réessayer plus tard",
+    "Top models this month": "Modèles les plus utilisés ce mois-ci",
+    "Usage of this key within the enterprise account": "Utilisation de cette clé dans le compte entreprise"
   }
 }

@@ -1562,6 +1562,17 @@
     "Weekdays 9:00–21:00": "平日 9:00–21:00",
     "Claude Code, Codex, Cursor and other tool names and logos are trademarks of their respective owners, shown only to indicate compatibility. No official partnership implied.": "Claude Code、Codex、Cursor などのツール名とロゴは各所有者の商標です。互換性を示す目的でのみ掲載しており、公式な提携を意味するものではありません。",
     "Awaiting check": "未検査",
-    "Per 1M tokens, in USD, updated when upstream prices change. Cached input is billed at the cache price.": "1M トークンあたり、米ドル建て、上流の価格改定時に更新します。キャッシュヒット分はキャッシュ価格で課金します。"
+    "Per 1M tokens, in USD, updated when upstream prices change. Cached input is billed at the cache price.": "1M トークンあたり、米ドル建て、上流の価格改定時に更新します。キャッシュヒット分はキャッシュ価格で課金します。",
+    "API key usage": "API キー使用状況",
+    "Account balance {{balance}}, used {{used}}": "アカウント残高 {{balance}}、使用済み {{used}}",
+    "Available models": "利用可能なモデル",
+    "Call records": "呼び出し履歴",
+    "Enter an API key to start": "API キーを入力して照会を開始",
+    "Paste an API key to see its quota, usage and call records. The key is only sent in the request header and is not stored.": "API キーを貼り付けると、クォータ・使用量・呼び出し履歴を確認できます。キーはリクエストヘッダーでのみ送信され、保存されません。",
+    "Query failed, please try again later": "照会に失敗しました。しばらくしてから再試行してください",
+    "The API key is invalid or disabled": "API キーが無効か、停止されています",
+    "Too many queries, please try again later": "照会が多すぎます。しばらくしてから再試行してください",
+    "Top models this month": "今月よく使うモデル",
+    "Usage of this key within the enterprise account": "エンタープライズアカウント内でのこのキーの使用状況"
   }
 }

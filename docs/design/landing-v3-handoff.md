@@ -30,6 +30,7 @@
 |---|---|---|
 | 兼容工具 | 无 | Hero 按钮下方新增**兼容工具 logo 单行循环滚动条**，商标声明放页脚 |
 | Hero 主标题 | 静态「企业级 AI 模型网关」+ 小一号「真模型 · 可对账 · 不落盘」，删除打字机 | **保留打字机**。单行：白色前缀「Token Func，」+ 绿色打字卖点，三条卖点逐条打出、回删、再打下一条。「企业级 AI 模型网关」降为顶部小标签 |
+| Hero 主标题（2026-11-23 改版） | 单行打字机：前缀「Token Func，」+ 三条卖点轮播 | **固定标题**「真模型 · 供应稳定 · 数据安全」，直接摆企业刚需；打字机降为标题下方一行小字轮播副句。原因：轮播时任一时刻只露出 1/3 主张 |
 | 第 2 个主卖点 | 「数据不落盘」 | 改为「**数据安全，内容不留存**」，用大白话说明中转不存请求体与响应体 |
 | 主卖点要点标识 | 勾选图标 | **6px 品牌绿小圆点** |
 | 模型自检 demo | 四步循环 | 四步逐项点亮，完成后停留再**自动轮换到下一个厂商**；Tab 用厂商名，**单行不换行**，窄屏横向滑动 |
@@ -61,13 +62,13 @@
 ### ① Hero
 
 - 顶部小标签（胶囊，带 6px 绿点）：`企业级 AI 模型网关`
-- **主标题（单行，不换行）**：
-  - 白色前缀：`Token Func，`
-  - 绿色打字区，三条卖点轮播：`真模型不降智` → `内容不留存` → `账单逐条可对`
-  - 字号：`min(100px, calc((100vw - 48px) / 12.4))`，字重 500，行高 1.1，字距 -0.05em（打字区 -0.03em）。桌面约 100px，390 宽手机约 27px。
-  - 打字区**定宽** `6.1em`、左对齐，保证打字过程中前缀不左右跳动。**不要**用"隐藏最长句占位"的做法，编辑器和部分环境下会把隐藏文本显示出来。
+- **主标题（固定，不轮播）**：`真模型 · 供应稳定 · 数据安全`
+  - 字号：中日文 `clamp(28px, 7.2vw, 88px)`，其余语言 `clamp(30px, 5.6vw, 68px)`；字重 500，行高 1.1，字距 -0.05em，`text-wrap: balance`。中日文各宽度单行；西文 1440 单行，窄屏折两行。
+- **轮播副句**（标题下方一行，绿色，打字机）：`高性能，低延迟` → `高缓存命中，成本更低` → `数据安全，内容不存档` → `对公开票，账单可对`
+  - 字号 `clamp(16px, 2.6vw, 30px)`，字重 500，行高 1.3，居中。
+  - 定最小高度一行（西文手机端两行），回删到空时下方内容不跳动。
   - 光标：宽 0.06em、高 0.84em 的绿色竖条，`steps(1)` 1s 闪烁。
-- 副标题（最大宽 680px，18/30）：`Claude / GPT / Gemini / Grok 多来源供应，来源逐组标注。不降级、不替换，不存储你的请求与响应内容，一套后台从组织管到账单。`
+- 副标题（最大宽 680px，18/30）：`Claude / GPT / Gemini / Grok 多来源供应，来源逐组标注。不降级、不替换，数据不存档，一套后台从组织管到账单。`
 - 按钮：
   - 主按钮 `申请企业试用 →`，锚到 `#contact`
   - 次按钮：注册开放时为 `免费注册`（跳注册页）；**注册关闭时换成 `查看价目`，锚到 `#pricing`**
@@ -113,7 +114,7 @@
 | 删空后间隔 | 360ms |
 | 减弱动效 | 不逐字打，整句每 3200ms 切换 |
 
-无障碍：`<h1>` 设静态 `aria-label="Token Func，真模型不降智、内容不留存、账单逐条可对"`，可视的前缀与打字区 `aria-hidden`。组件卸载时清理定时器。
+无障碍：`<h1>` 是真实文本的固定标题；可视的打字区 `aria-hidden`，四条副句另用一句 `sr-only` 完整句提供给读屏。组件卸载时清理定时器。
 
 ### ② 主卖点 ×3
 
@@ -380,10 +381,11 @@ claude
 | 位置 | 中文 | English |
 |---|---|---|
 | Hero 小标签 | 企业级 AI 模型网关 | Enterprise AI model gateway |
-| Hero 前缀 | Token Func， | Token Func, |
-| Hero 卖点 1 | 真模型不降智 | Real models, full strength |
-| Hero 卖点 2 | 内容不留存 | Zero content retention |
-| Hero 卖点 3 | 账单逐条可对 | Bills that reconcile line by line |
+| Hero 标题 | 真模型 · 供应稳定 · 数据安全 | Real models. Reliable supply. Secure data. |
+| Hero 副句 1 | 高性能，低延迟 | High performance, low latency |
+| Hero 副句 2 | 高缓存命中，成本更低 | High cache hit rate, lower cost |
+| Hero 副句 3 | 数据安全，内容不存档 | Secure data, no content archived |
+| Hero 副句 4 | 对公开票，账单可对 | VAT invoices, bills that reconcile |
 | Hero 副标题 | Claude / GPT / Gemini / Grok 多来源供应…… | Multi-source supply for Claude, GPT, Gemini and Grok, with every source labeled. No downgrades, no swaps, no storage of your requests or responses — one console from org setup to billing. |
 | 主按钮 | 申请企业试用 | Request enterprise trial |
 | 次按钮 | 免费注册 / 查看价目 | Sign up free / View pricing |
@@ -449,7 +451,7 @@ claude
 - [ ] `bun run i18n:sync` 后 7 个语言文件 key 一致
 
 **浏览器（`make dev`）**，桌面 1440 和手机 390 各走一遍，深浅两个主题：
-- [ ] Hero 单行不换行；打字机逐条出现，前缀不跳动；开启减弱动效时改为整句切换
+- [ ] Hero 标题固定不轮播；副句打字机逐条出现，回删时下方内容不跳动；开启减弱动效时改为整句切换
 - [ ] 首屏没有任何数字；按钮下方有工具滚动条；桌面 1440×900 下首屏下沿仍能露出 01 区块的顶部
 - [ ] 关闭注册时，次按钮变成「查看价目」并锚到价目区
 - [ ] 01 自检 Tab 在窄屏下单行可滑动，自动轮换正常

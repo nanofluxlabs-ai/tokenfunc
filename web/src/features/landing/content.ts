@@ -6,12 +6,26 @@
  * 运行质量数字（QUALITY_METRICS）是待确认的占位，价目是手工维护的静态官方价。
  */
 
-/** Hero 打字机轮播的三条核心卖点，与下方三个主卖点一一对应 */
+/**
+ * Hero 固定标题：三个企业刚需直接摆出来，
+ * 依次对应下方 01 真模型、运行质量区的供应稳定、02 数据安全。
+ */
+export const HERO_TITLE = 'Real models. Reliable supply. Secure data.'
+
+/**
+ * Hero 标题下方打字机轮播的副句：性能、缓存、数据安全、对公对账。
+ * 不放数字；性能与缓存是定性说法，口径与下方运行质量区的卡片标题一致。
+ */
 export const HERO_PHRASES = [
-  'Real models, full strength',
-  'Zero content retention',
-  'Bills that reconcile line by line',
+  'High performance, low latency',
+  'High cache hit rate, lower cost',
+  'Secure data, no content archived',
+  'VAT invoices, bills that reconcile',
 ] as const
+
+/** 读屏用的完整句：可视的打字区对辅助技术隐藏，全部副句由这一句完整读出 */
+export const HERO_PHRASES_SUMMARY =
+  'High performance and low latency, a high cache hit rate at lower cost, secure data with no content archived, and VAT invoices with bills that reconcile'
 
 export type CompatibleTool = {
   /** 锚点：同时是 web/public/logos/tools/ 下的文件名 */

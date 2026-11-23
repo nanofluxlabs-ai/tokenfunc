@@ -1,30 +1,22 @@
 import { Link } from '@tanstack/react-router'
 import { ArrowRight } from 'lucide-react'
-import { type CSSProperties, useMemo, useRef } from 'react'
+import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 
-import { HERO_PHRASES } from '../content'
-import { useHeroTitleMetrics } from '../hooks/use-hero-title-metrics'
+import { HERO_PHRASES, HERO_PHRASES_SUMMARY, HERO_TITLE } from '../content'
 import { useTypewriter } from '../hooks/use-typewriter'
 import { CompatibleTools } from './compatible-tools'
 
-/** 中日文卖点短，640px 起就能与前缀同行；其余语言卖点较长，768px 起才单行 */
+/** 中日文标题短，可以用更大的字号单行放下；其余语言标题较长，字号小一档并允许折行 */
 function isCompactScript(language: string | undefined): boolean {
   return /^(zh|ja)/i.test(language ?? '')
 }
 
-/** 单行时的字号：按实测的单行总宽缩放，封顶 100px（中日文 ≥640px、其余 ≥768px 单行） */
-const SINGLE_LINE_FONT = {
-  compact:
-    'sm:text-[length:min(100px,calc((100vw_-_48px)/var(--hero-line-em)))]',
-  wide: 'md:text-[length:min(100px,calc((100vw_-_48px)/var(--hero-line-em)))]',
-}
-
 /**
- * 首屏：小标签 → 打字机标题 → 副标题 → 两个 CTA → 兼容工具滚动条。
+ * 首屏：小标签 → 固定卖点标题 → 打字机轮播副句 → 副标题 → 两个 CTA → 兼容工具滚动条。
  * 首屏不出现任何数字；高度不锁一屏，桌面下沿露出 01 卖点的顶部。
  */
 export function Hero(props: { registerEnabled: boolean }) {
@@ -37,8 +29,6 @@ export function Hero(props: { registerEnabled: boolean }) {
   )
   const typed = useTypewriter(phrases)
   const compact = isCompactScript(i18n.resolvedLanguage)
-  const titleRef = useRef<HTMLHeadingElement>(null)
-  const metrics = useHeroTitleMetrics(titleRef, t('TokenFunc,'), phrases)
 
   return (
     <section id='top' className='relative overflow-hidden'>
@@ -52,49 +42,35 @@ export function Hero(props: { registerEnabled: boolean }) {
           {t('Enterprise AI model gateway')}
         </span>
 
-        <h1
-          ref={titleRef}
-          aria-label={t(
-            'TokenFunc, real models at full strength, zero content retention, and bills that reconcile line by line'
-          )}
-          style={
-            {
-              '--hero-line-em': metrics.lineEm,
-              '--hero-typed-em': metrics.typedEm,
-            } as CSSProperties
-          }
-          className={cn(
-            'text-foreground m-0 flex max-w-full flex-col items-center font-medium tracking-[-0.05em]',
-            // 单行：字号随视口缩放，保证「前缀 + 最长卖点」整行放得下
-            compact
-              ? cn(
-                  'text-[length:min(64px,calc((100vw_-_48px)/var(--hero-typed-em)))] sm:flex-row sm:items-baseline sm:justify-center sm:whitespace-nowrap',
-                  SINGLE_LINE_FONT.compact
-                )
-              : cn(
-                  // 西文逗号不带间距，同行时补一个词距（已计入 lineEm）
-                  'text-[clamp(40px,10vw,64px)] md:flex-row md:items-baseline md:justify-center md:gap-x-[0.25em] md:whitespace-nowrap',
-                  SINGLE_LINE_FONT.wide
-                ),
-            // 行高放在字号之后：tailwind-merge 会让后出现的字号类覆盖前面的 leading
-            'leading-[1.1]'
-          )}
-        >
-          <span aria-hidden='true'>{t('TokenFunc,')}</span>
-          <span
-            aria-hidden='true'
+        <div className='flex max-w-full flex-col items-center gap-[clamp(14px,2vw,24px)]'>
+          <h1
             className={cn(
-              'text-brand-ink inline-block tracking-[-0.03em]',
+              'text-foreground m-0 max-w-full font-medium tracking-[-0.05em] text-balance',
               compact
-                ? 'w-[calc(var(--hero-typed-em)*1em)] text-left whitespace-nowrap'
-                : // 手机两行时英文等卖点较长，缩小并允许折行；≥768px 与前缀同行、定宽不换行
-                  'min-h-[1.2em] max-w-[18em] text-[0.56em] leading-[1.2] text-balance md:w-[calc(var(--hero-typed-em)*1em)] md:max-w-none md:text-left md:text-[1em] md:leading-[1.1] md:whitespace-nowrap'
+                ? 'text-[clamp(28px,7.2vw,88px)]'
+                : 'text-[clamp(30px,5.6vw,68px)]',
+              // 行高放在字号之后：tailwind-merge 会让后出现的字号类覆盖前面的 leading
+              'leading-[1.1]'
+            )}
+          >
+            {t(HERO_TITLE)}
+          </h1>
+
+          {/* 可视的打字区对辅助技术隐藏，完整内容由下面的 sr-only 句子提供 */}
+          <p
+            aria-hidden='true'
+            data-testid='hero-typed'
+            className={cn(
+              'text-brand-ink m-0 max-w-full text-[clamp(16px,2.6vw,30px)] leading-[1.3] font-medium tracking-[-0.02em] text-balance',
+              // 定最小高度：回删到空时下方内容不跳动；西文手机端可能折两行
+              compact ? 'min-h-[1.3em]' : 'min-h-[2.6em] sm:min-h-[1.3em]'
             )}
           >
             {typed}
             <span className='bg-primary tf-blink ml-[0.08em] inline-block h-[0.84em] w-[0.06em] rounded-[2px] align-[-0.08em]' />
-          </span>
-        </h1>
+          </p>
+          <p className='sr-only'>{t(HERO_PHRASES_SUMMARY)}</p>
+        </div>
 
         <p className='text-foreground/90 m-0 max-w-[680px] text-lg leading-[30px] text-balance'>
           {t(

@@ -9,7 +9,11 @@ import { render, screen } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
 
 import { Hero } from '../components/hero'
-import { COMPATIBLE_TOOLS } from '../content'
+import {
+  COMPATIBLE_TOOLS,
+  HERO_PHRASES_SUMMARY,
+  HERO_TITLE,
+} from '../content'
 
 async function renderHero(registerEnabled: boolean) {
   const rootRoute = createRootRoute({
@@ -28,11 +32,20 @@ async function renderHero(registerEnabled: boolean) {
 }
 
 describe('Hero', () => {
-  it('exposes a static accessible name on the typewriter heading', async () => {
+  it('uses the fixed selling-point title as the heading name', async () => {
     await renderHero(true)
     expect(screen.getByRole('heading', { level: 1 })).toHaveAccessibleName(
-      'TokenFunc, real models at full strength, zero content retention, and bills that reconcile line by line'
+      HERO_TITLE
     )
+  })
+
+  it('hides the typewriter line from assistive tech and reads all phrases in one sentence', async () => {
+    await renderHero(true)
+    expect(screen.getByTestId('hero-typed')).toHaveAttribute(
+      'aria-hidden',
+      'true'
+    )
+    expect(screen.getByText(HERO_PHRASES_SUMMARY)).toBeInTheDocument()
   })
 
   it('links the secondary button to the pricing section when sign-up is closed', async () => {

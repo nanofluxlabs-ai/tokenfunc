@@ -298,6 +298,7 @@ func SetApiRouter(router *gin.Engine) {
 		registerFinanceRoutes(apiRouter)
 		registerSiteAssetRoutes(apiRouter)
 		registerPromoterRoutes(apiRouter)
+		registerKeyUsageRoutes(apiRouter)
 		registerLogArchiveRoutes(apiRouter)
 		registerLogStatRoutes(apiRouter)
 		registerAuthzRoutes(apiRouter)

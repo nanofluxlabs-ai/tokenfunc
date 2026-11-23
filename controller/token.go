@@ -272,7 +272,18 @@ func GetTokenUsage(c *gin.Context) {
 		"expires_at":           expiredAt,
 	}
 	// 用户额度只在令牌允许时返回；IP 白名单已由 TokenAuthReadOnly 检查。
-	if token.AllowUserQuotaQuery {
+	allowUserQuota := token.AllowUserQuotaQuery
+	// TokenFunc 二开：分配给企业团队 / 成员的 key 一律不返回企业钱包余额，与员工自查接口口径一致
+	if allowUserQuota {
+		assigned, err := model.IsEnterpriseAssignedToken(token.Id)
+		if err != nil {
+			common.SysError(common.LogText("failed to get token attribution: %s", err.Error()))
+			common.ApiErrorI18n(c, i18n.MsgTokenGetInfoFailed)
+			return
+		}
+		allowUserQuota = !assigned
+	}
+	if allowUserQuota {
 		userQuota, err := model.GetUserQuota(token.UserId, false)
 		var userUsedQuota int
 		if err == nil {

@@ -92,6 +92,12 @@ func IsEnterpriseEmployeeToken(tokenId int) (bool, error) {
 	return attribution.MemberId != 0, err
 }
 
+// IsEnterpriseAssignedToken key 已分配到企业团队或成员（会被分发给员工），不应看到企业账户余额
+func IsEnterpriseAssignedToken(tokenId int) (bool, error) {
+	attribution, err := getTokenAttribution(tokenId)
+	return attribution.TeamId != 0 || attribution.MemberId != 0, err
+}
+
 // InvalidateTokenAttribution 归属变更后调用，让后续请求立刻按新归属统计
 func InvalidateTokenAttribution(tokenId int) {
 	tokenAttributionCache.Delete(tokenId)

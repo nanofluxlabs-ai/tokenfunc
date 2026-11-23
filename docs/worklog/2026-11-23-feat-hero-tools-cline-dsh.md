@@ -12,3 +12,6 @@
 ## 验证
 - `vitest run src/features/landing`：6 files / 24 tests 通过。
 - 本地 5173 深色主题：两个 logo 正常加载，DeepSeek Harness 显示白色版本。
+
+## 追加：打字机文案
+- zh / zh-TW：「高缓存命中，成本更低」→「高缓存命中率，成本更低」（繁体同步「高快取命中率」），读屏完整句同步改。

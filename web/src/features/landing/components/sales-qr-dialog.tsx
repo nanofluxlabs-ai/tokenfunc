@@ -2,8 +2,6 @@ import { useTranslation } from 'react-i18next'
 
 import { Dialog } from '@/components/dialog'
 
-import { Eyebrow } from './landing-primitives'
-
 /** 联系商务：展示后台配置的商务微信二维码（系统设置 → 站点与品牌） */
 export function SalesQrDialog(props: {
   open: boolean
@@ -17,11 +15,10 @@ export function SalesQrDialog(props: {
       onOpenChange={props.onOpenChange}
       title={t('Scan to reach sales on WeChat')}
       description={t('Weekdays 9:00–21:00')}
-      contentClassName='max-w-sm'
+      contentClassName='sm:max-w-sm'
       contentHeight='auto'
       bodyClassName='flex flex-col items-center gap-4'
     >
-      <Eyebrow>{t('Contact sales')}</Eyebrow>
       {props.qrCodeUrl ? (
         <div className='size-[200px] rounded-lg bg-white p-3'>
           <img

@@ -31,6 +31,7 @@
 - 反向验证：去掉余额兜底后，团队 key 与成员 key 的用例都因返回 `user_quota` 失败。
 - 前端：`bun check -b`、oxlint、oxfmt 通过；`vitest run src/components/layout src/features/key-usage src/features/docs` 17 个文件 179 个用例通过（key-usage 新增 4 个：只带 key 头、不带 cookie、URL 不含 key、403 视为非员工、401、粘贴规范化）。
 - 浏览器（5173 → 3000，已登录 root 的情况下）：用 seed 企业成员 key 查询，额度 / 企业卡片 / 调用记录正常，说明请求未被登录态覆盖；模型筛选与翻页请求参数正确，URL 只含 model / page；无效 key 显示「API 密钥无效或已停用」且无全局 toast；文档侧栏「开始使用」中出现入口并能跳转；未查询时的占位与「模型选好后点查询才请求」已验证。
+- 发版前跑全量 `./controller/` 时，上游用例 `TestGetTokenUsageFollowsTheUserQuotaSwitchAndIPWhitelist` 失败：余额查询新增了企业密钥归属判断，而该用例的夹具没有 `ent_token_assignments` 表。已在夹具里补建表，业务代码未改；补完后 `make test-db PKG='-count=1 ./controller/'` 通过。
 
 ## 遗留
 

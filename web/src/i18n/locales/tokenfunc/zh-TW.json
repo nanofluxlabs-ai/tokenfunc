@@ -1578,6 +1578,19 @@
     "Enterprise member": "企業成員",
     "For an enterprise member's key, this shows the enterprise, team and holder, with today's and this month's usage and top models": "企業成員的金鑰會在這裡顯示所屬企業、團隊與持有人，以及今天、本月的用量和常用模型",
     "The models this key can call will be listed here": "這把金鑰可呼叫的模型會列在這裡",
-    "Each record shows the time, model, input and output tokens, cost and duration": "每筆紀錄包含時間、模型、輸入與輸出 token、費用與耗時，可依時間和模型篩選"
+    "Each record shows the time, model, input and output tokens, cost and duration": "每筆紀錄包含時間、模型、輸入與輸出 token、費用與耗時，可依時間和模型篩選",
+    "Frequently asked questions": "常見問題",
+    "Do you support bank transfers and invoices?": "支援對公轉帳和開立發票嗎？",
+    "Yes. Enterprises can choose prepaid or monthly settlement, and we issue VAT general and special invoices.": "支援。企業可選擇預付或月結，開立增值稅普通發票和專用發票。",
+    "Can you work with enterprise compliance and procurement?": "能配合企業的合規和採購流程嗎？",
+    "We sign a formal service contract and a Data Processing Agreement (DPA), and provide company credentials and security documentation for vendor onboarding.": "可以簽署正式服務合約和資料處理協議（DPA），並提供公司資質與安全說明，配合供應商准入。",
+    "Is migrating from another platform hard?": "從其他平台遷移過來難嗎？",
+    "The protocols are compatible, so usually only base_url and api_key change. Enterprise customers get engineer assistance and a dedicated support group, and can migrate part of the traffic first.": "協定相容，通常只需要修改 base_url 和 api_key。企業客戶有工程師協助遷移和專屬服務群，可以先切一部分流量。",
+    "How is availability guaranteed?": "可用性怎麼保障？",
+    "Enterprise contracts define the monthly availability of the gateway, and shortfalls are compensated under the contract terms. Outages on the upstream model vendors' side are outside this commitment. Incidents are handled by a 24×7 on-call team.": "企業合約會約定閘道的月可用率，未達標按合約條款補償。上游模型廠商自身的故障不在承諾範圍內。故障由 7×24 小時值班團隊處理。",
+    "Do you offer dedicated resources or private deployment?": "能提供專屬資源或私有部署嗎？",
+    "Yes. We can provide dedicated resource pools and your own domain, and support private deployment. Contact sales for an assessment.": "可以。我們能提供專屬資源池和自有網域，也支援私有化部署，具體方案請聯絡商務評估。",
+    "How do employees check their own usage?": "員工怎麼查自己的用量？",
+    "No login is needed: paste the API key on the [API key usage](/key-usage) page to see its quota, usage and call records.": "不用登入，在 [API 金鑰用量查詢](/key-usage) 頁面貼上金鑰，就能看到額度、用量和呼叫記錄。"
   }
 }

@@ -1578,6 +1578,19 @@
     "Enterprise member": "Membre de l'entreprise",
     "For an enterprise member's key, this shows the enterprise, team and holder, with today's and this month's usage and top models": "Pour la clé d'un membre d'entreprise, affiche l'entreprise, l'équipe et le titulaire, avec l'utilisation du jour et du mois et les modèles les plus utilisés",
     "The models this key can call will be listed here": "Les modèles accessibles avec cette clé s'afficheront ici",
-    "Each record shows the time, model, input and output tokens, cost and duration": "Chaque entrée indique l'heure, le modèle, les tokens d'entrée et de sortie, le coût et la durée"
+    "Each record shows the time, model, input and output tokens, cost and duration": "Chaque entrée indique l'heure, le modèle, les tokens d'entrée et de sortie, le coût et la durée",
+    "Frequently asked questions": "Questions fréquentes",
+    "Do you support bank transfers and invoices?": "Acceptez-vous les virements bancaires et émettez-vous des factures ?",
+    "Yes. Enterprises can choose prepaid or monthly settlement, and we issue VAT general and special invoices.": "Oui. Les entreprises peuvent choisir le prépaiement ou le règlement mensuel, et nous émettons des factures de TVA ordinaires et spéciales.",
+    "Can you work with enterprise compliance and procurement?": "Pouvez-vous vous adapter aux processus de conformité et d'achat des entreprises ?",
+    "We sign a formal service contract and a Data Processing Agreement (DPA), and provide company credentials and security documentation for vendor onboarding.": "Nous signons un contrat de service formel et un accord de traitement des données (DPA), et fournissons les justificatifs de l'entreprise et la documentation de sécurité pour le référencement fournisseur.",
+    "Is migrating from another platform hard?": "La migration depuis une autre plateforme est-elle difficile ?",
+    "The protocols are compatible, so usually only base_url and api_key change. Enterprise customers get engineer assistance and a dedicated support group, and can migrate part of the traffic first.": "Les protocoles sont compatibles : il suffit généralement de modifier base_url et api_key. Les clients entreprise bénéficient de l'aide d'un ingénieur et d'un groupe d'assistance dédié, et peuvent migrer d'abord une partie du trafic.",
+    "How is availability guaranteed?": "Comment la disponibilité est-elle garantie ?",
+    "Enterprise contracts define the monthly availability of the gateway, and shortfalls are compensated under the contract terms. Outages on the upstream model vendors' side are outside this commitment. Incidents are handled by a 24×7 on-call team.": "Les contrats entreprise définissent la disponibilité mensuelle de la passerelle, et les écarts sont compensés selon les termes du contrat. Les pannes côté fournisseurs de modèles en amont sont exclues de cet engagement. Les incidents sont traités par une équipe d'astreinte 24 h/24, 7 j/7.",
+    "Do you offer dedicated resources or private deployment?": "Proposez-vous des ressources dédiées ou un déploiement privé ?",
+    "Yes. We can provide dedicated resource pools and your own domain, and support private deployment. Contact sales for an assessment.": "Oui. Nous pouvons fournir des pools de ressources dédiés et votre propre domaine, et prenons en charge le déploiement privé. Contactez l'équipe commerciale pour une évaluation.",
+    "How do employees check their own usage?": "Comment les employés consultent-ils leur propre consommation ?",
+    "No login is needed: paste the API key on the [API key usage](/key-usage) page to see its quota, usage and call records.": "Aucune connexion n'est nécessaire : collez la clé API sur la page [Consommation de la clé API](/key-usage) pour voir son quota, sa consommation et ses appels."
   }
 }

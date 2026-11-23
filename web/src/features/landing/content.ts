@@ -503,3 +503,40 @@ export const FEATURED_MODELS: FeaturedVendor[] = [
     ],
   },
 ]
+
+/**
+ * 内置默认问答：非中文界面，或后台「常见问答」没填 / 关闭时显示。
+ * 中文界面优先用后台内容（见 lib/landing-faq.ts）。答案按 Markdown 渲染。
+ */
+export const FAQ_ITEMS: { question: string; answer: string }[] = [
+  {
+    question: 'Do you support bank transfers and invoices?',
+    answer:
+      'Yes. Enterprises can choose prepaid or monthly settlement, and we issue VAT general and special invoices.',
+  },
+  {
+    question: 'Can you work with enterprise compliance and procurement?',
+    answer:
+      'We sign a formal service contract and a Data Processing Agreement (DPA), and provide company credentials and security documentation for vendor onboarding.',
+  },
+  {
+    question: 'Is migrating from another platform hard?',
+    answer:
+      'The protocols are compatible, so usually only base_url and api_key change. Enterprise customers get engineer assistance and a dedicated support group, and can migrate part of the traffic first.',
+  },
+  {
+    question: 'How is availability guaranteed?',
+    answer:
+      "Enterprise contracts define the monthly availability of the gateway, and shortfalls are compensated under the contract terms. Outages on the upstream model vendors' side are outside this commitment. Incidents are handled by a 24×7 on-call team.",
+  },
+  {
+    question: 'Do you offer dedicated resources or private deployment?',
+    answer:
+      'Yes. We can provide dedicated resource pools and your own domain, and support private deployment. Contact sales for an assessment.',
+  },
+  {
+    question: 'How do employees check their own usage?',
+    answer:
+      'No login is needed: paste the API key on the [API key usage](/key-usage) page to see its quota, usage and call records.',
+  },
+]

@@ -1578,6 +1578,19 @@
     "Enterprise member": "Сотрудник компании",
     "For an enterprise member's key, this shows the enterprise, team and holder, with today's and this month's usage and top models": "Для ключа сотрудника компании здесь показаны компания, команда и владелец, использование за сегодня и за месяц и популярные модели",
     "The models this key can call will be listed here": "Здесь появятся модели, доступные этому ключу",
-    "Each record shows the time, model, input and output tokens, cost and duration": "Каждая запись содержит время, модель, входные и выходные токены, стоимость и длительность"
+    "Each record shows the time, model, input and output tokens, cost and duration": "Каждая запись содержит время, модель, входные и выходные токены, стоимость и длительность",
+    "Frequently asked questions": "Частые вопросы",
+    "Do you support bank transfers and invoices?": "Поддерживаете ли вы банковские переводы и выставление счетов?",
+    "Yes. Enterprises can choose prepaid or monthly settlement, and we issue VAT general and special invoices.": "Да. Компании могут выбрать предоплату или ежемесячный расчёт, мы выставляем обычные и специальные счета-фактуры НДС.",
+    "Can you work with enterprise compliance and procurement?": "Можете ли вы работать с корпоративными требованиями комплаенса и закупок?",
+    "We sign a formal service contract and a Data Processing Agreement (DPA), and provide company credentials and security documentation for vendor onboarding.": "Мы подписываем официальный договор на обслуживание и соглашение об обработке данных (DPA), а также предоставляем документы компании и материалы по безопасности для аккредитации поставщика.",
+    "Is migrating from another platform hard?": "Сложно ли перейти с другой платформы?",
+    "The protocols are compatible, so usually only base_url and api_key change. Enterprise customers get engineer assistance and a dedicated support group, and can migrate part of the traffic first.": "Протоколы совместимы, поэтому обычно меняются только base_url и api_key. Корпоративным клиентам помогает инженер, для них создаётся отдельная группа поддержки, и можно сначала перевести часть трафика.",
+    "How is availability guaranteed?": "Как гарантируется доступность?",
+    "Enterprise contracts define the monthly availability of the gateway, and shortfalls are compensated under the contract terms. Outages on the upstream model vendors' side are outside this commitment. Incidents are handled by a 24×7 on-call team.": "В корпоративных договорах фиксируется месячная доступность шлюза, а её недостижение компенсируется по условиям договора. Сбои на стороне вышестоящих поставщиков моделей в это обязательство не входят. Инциденты обрабатывает дежурная команда 24×7.",
+    "Do you offer dedicated resources or private deployment?": "Предлагаете ли вы выделенные ресурсы или частное развёртывание?",
+    "Yes. We can provide dedicated resource pools and your own domain, and support private deployment. Contact sales for an assessment.": "Да. Мы можем предоставить выделенные пулы ресурсов и ваш собственный домен, а также поддерживаем частное развёртывание. Для оценки свяжитесь с отделом продаж.",
+    "How do employees check their own usage?": "Как сотрудникам посмотреть собственное потребление?",
+    "No login is needed: paste the API key on the [API key usage](/key-usage) page to see its quota, usage and call records.": "Вход не нужен: вставьте API-ключ на странице [Использование API-ключа](/key-usage), чтобы увидеть квоту, потребление и записи вызовов."
   }
 }

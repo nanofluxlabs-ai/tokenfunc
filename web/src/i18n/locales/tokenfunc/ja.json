@@ -1578,6 +1578,19 @@
     "Enterprise member": "エンタープライズメンバー",
     "For an enterprise member's key, this shows the enterprise, team and holder, with today's and this month's usage and top models": "エンタープライズメンバーのキーでは、所属企業・チーム・保有者と、今日・今月の使用量やよく使うモデルが表示されます",
     "The models this key can call will be listed here": "このキーで呼び出せるモデルがここに表示されます",
-    "Each record shows the time, model, input and output tokens, cost and duration": "各レコードには時刻・モデル・入出力トークン・費用・所要時間が表示されます"
+    "Each record shows the time, model, input and output tokens, cost and duration": "各レコードには時刻・モデル・入出力トークン・費用・所要時間が表示されます",
+    "Frequently asked questions": "よくある質問",
+    "Do you support bank transfers and invoices?": "銀行振込と請求書発行に対応していますか？",
+    "Yes. Enterprises can choose prepaid or monthly settlement, and we issue VAT general and special invoices.": "対応しています。企業は前払いまたは月次精算を選べ、増値税の普通インボイスと専用インボイスを発行します。",
+    "Can you work with enterprise compliance and procurement?": "企業のコンプライアンスや調達手続きに対応できますか？",
+    "We sign a formal service contract and a Data Processing Agreement (DPA), and provide company credentials and security documentation for vendor onboarding.": "正式なサービス契約とデータ処理契約（DPA）を締結し、ベンダー登録に必要な会社資格とセキュリティ資料を提供します。",
+    "Is migrating from another platform hard?": "他のプラットフォームからの移行は難しいですか？",
+    "The protocols are compatible, so usually only base_url and api_key change. Enterprise customers get engineer assistance and a dedicated support group, and can migrate part of the traffic first.": "プロトコル互換のため、通常は base_url と api_key の変更だけで済みます。企業のお客様にはエンジニアによる移行支援と専用サポートグループがあり、一部のトラフィックから移行できます。",
+    "How is availability guaranteed?": "可用性はどのように保証されますか？",
+    "Enterprise contracts define the monthly availability of the gateway, and shortfalls are compensated under the contract terms. Outages on the upstream model vendors' side are outside this commitment. Incidents are handled by a 24×7 on-call team.": "企業契約でゲートウェイの月間可用性を定め、未達の場合は契約条項に従って補償します。上流のモデルベンダー側の障害はこの保証の対象外です。障害には 24 時間 365 日のオンコール体制で対応します。",
+    "Do you offer dedicated resources or private deployment?": "専用リソースやプライベートデプロイは提供していますか？",
+    "Yes. We can provide dedicated resource pools and your own domain, and support private deployment. Contact sales for an assessment.": "はい。専用リソースプールと独自ドメインを提供でき、プライベートデプロイにも対応します。詳細は営業担当にご相談ください。",
+    "How do employees check their own usage?": "従業員は自分の利用量をどう確認しますか？",
+    "No login is needed: paste the API key on the [API key usage](/key-usage) page to see its quota, usage and call records.": "ログインは不要です。[API キー利用量照会](/key-usage) ページに API キーを貼り付けると、クォータ、利用量、呼び出し記録を確認できます。"
   }
 }

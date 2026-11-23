@@ -1578,6 +1578,19 @@
     "Enterprise member": "Thành viên doanh nghiệp",
     "For an enterprise member's key, this shows the enterprise, team and holder, with today's and this month's usage and top models": "Với khóa của thành viên doanh nghiệp, mục này hiển thị doanh nghiệp, nhóm và người giữ khóa, cùng mức sử dụng hôm nay, tháng này và các mô hình dùng nhiều",
     "The models this key can call will be listed here": "Các mô hình khóa này có thể gọi sẽ hiển thị ở đây",
-    "Each record shows the time, model, input and output tokens, cost and duration": "Mỗi bản ghi gồm thời gian, mô hình, token đầu vào và đầu ra, chi phí và thời lượng"
+    "Each record shows the time, model, input and output tokens, cost and duration": "Mỗi bản ghi gồm thời gian, mô hình, token đầu vào và đầu ra, chi phí và thời lượng",
+    "Frequently asked questions": "Câu hỏi thường gặp",
+    "Do you support bank transfers and invoices?": "Có hỗ trợ chuyển khoản doanh nghiệp và xuất hóa đơn không?",
+    "Yes. Enterprises can choose prepaid or monthly settlement, and we issue VAT general and special invoices.": "Có. Doanh nghiệp có thể chọn trả trước hoặc thanh toán hằng tháng, và chúng tôi xuất hóa đơn VAT thông thường và đặc biệt.",
+    "Can you work with enterprise compliance and procurement?": "Có thể phối hợp với quy trình tuân thủ và mua sắm của doanh nghiệp không?",
+    "We sign a formal service contract and a Data Processing Agreement (DPA), and provide company credentials and security documentation for vendor onboarding.": "Chúng tôi ký hợp đồng dịch vụ chính thức và Thỏa thuận xử lý dữ liệu (DPA), đồng thời cung cấp hồ sơ công ty và tài liệu bảo mật để đăng ký nhà cung cấp.",
+    "Is migrating from another platform hard?": "Chuyển từ nền tảng khác sang có khó không?",
+    "The protocols are compatible, so usually only base_url and api_key change. Enterprise customers get engineer assistance and a dedicated support group, and can migrate part of the traffic first.": "Giao thức tương thích nên thường chỉ cần đổi base_url và api_key. Khách hàng doanh nghiệp được kỹ sư hỗ trợ chuyển đổi, có nhóm hỗ trợ riêng và có thể chuyển trước một phần lưu lượng.",
+    "How is availability guaranteed?": "Độ khả dụng được đảm bảo như thế nào?",
+    "Enterprise contracts define the monthly availability of the gateway, and shortfalls are compensated under the contract terms. Outages on the upstream model vendors' side are outside this commitment. Incidents are handled by a 24×7 on-call team.": "Hợp đồng doanh nghiệp quy định độ khả dụng hằng tháng của cổng, nếu không đạt sẽ được bồi hoàn theo điều khoản hợp đồng. Sự cố từ phía nhà cung cấp mô hình thượng nguồn nằm ngoài cam kết này. Sự cố được đội trực 24×7 xử lý.",
+    "Do you offer dedicated resources or private deployment?": "Có cung cấp tài nguyên riêng hoặc triển khai riêng tư không?",
+    "Yes. We can provide dedicated resource pools and your own domain, and support private deployment. Contact sales for an assessment.": "Có. Chúng tôi có thể cung cấp nhóm tài nguyên riêng và tên miền của bạn, đồng thời hỗ trợ triển khai riêng tư. Hãy liên hệ bộ phận kinh doanh để được đánh giá.",
+    "How do employees check their own usage?": "Nhân viên tự xem mức sử dụng của mình bằng cách nào?",
+    "No login is needed: paste the API key on the [API key usage](/key-usage) page to see its quota, usage and call records.": "Không cần đăng nhập: dán khóa API vào trang [Mức sử dụng khóa API](/key-usage) để xem hạn mức, mức sử dụng và lịch sử gọi."
   }
 }

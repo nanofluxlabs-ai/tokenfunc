@@ -9,11 +9,7 @@ import { render, screen } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
 
 import { Hero } from '../components/hero'
-import {
-  COMPATIBLE_TOOLS,
-  HERO_PHRASES_SUMMARY,
-  HERO_TITLE,
-} from '../content'
+import { COMPATIBLE_TOOLS, HERO_PHRASES_SUMMARY, HERO_TITLE } from '../content'
 
 async function renderHero(registerEnabled: boolean) {
   const rootRoute = createRootRoute({

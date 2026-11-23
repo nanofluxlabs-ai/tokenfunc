@@ -1578,6 +1578,19 @@
     "Enterprise member": "Enterprise member",
     "For an enterprise member's key, this shows the enterprise, team and holder, with today's and this month's usage and top models": "For an enterprise member's key, this shows the enterprise, team and holder, with today's and this month's usage and top models",
     "The models this key can call will be listed here": "The models this key can call will be listed here",
-    "Each record shows the time, model, input and output tokens, cost and duration": "Each record shows the time, model, input and output tokens, cost and duration"
+    "Each record shows the time, model, input and output tokens, cost and duration": "Each record shows the time, model, input and output tokens, cost and duration",
+    "Frequently asked questions": "Frequently asked questions",
+    "Do you support bank transfers and invoices?": "Do you support bank transfers and invoices?",
+    "Yes. Enterprises can choose prepaid or monthly settlement, and we issue VAT general and special invoices.": "Yes. Enterprises can choose prepaid or monthly settlement, and we issue VAT general and special invoices.",
+    "Can you work with enterprise compliance and procurement?": "Can you work with enterprise compliance and procurement?",
+    "We sign a formal service contract and a Data Processing Agreement (DPA), and provide company credentials and security documentation for vendor onboarding.": "We sign a formal service contract and a Data Processing Agreement (DPA), and provide company credentials and security documentation for vendor onboarding.",
+    "Is migrating from another platform hard?": "Is migrating from another platform hard?",
+    "The protocols are compatible, so usually only base_url and api_key change. Enterprise customers get engineer assistance and a dedicated support group, and can migrate part of the traffic first.": "The protocols are compatible, so usually only base_url and api_key change. Enterprise customers get engineer assistance and a dedicated support group, and can migrate part of the traffic first.",
+    "How is availability guaranteed?": "How is availability guaranteed?",
+    "Enterprise contracts define the monthly availability of the gateway, and shortfalls are compensated under the contract terms. Outages on the upstream model vendors' side are outside this commitment. Incidents are handled by a 24×7 on-call team.": "Enterprise contracts define the monthly availability of the gateway, and shortfalls are compensated under the contract terms. Outages on the upstream model vendors' side are outside this commitment. Incidents are handled by a 24×7 on-call team.",
+    "Do you offer dedicated resources or private deployment?": "Do you offer dedicated resources or private deployment?",
+    "Yes. We can provide dedicated resource pools and your own domain, and support private deployment. Contact sales for an assessment.": "Yes. We can provide dedicated resource pools and your own domain, and support private deployment. Contact sales for an assessment.",
+    "How do employees check their own usage?": "How do employees check their own usage?",
+    "No login is needed: paste the API key on the [API key usage](/key-usage) page to see its quota, usage and call records.": "No login is needed: paste the API key on the [API key usage](/key-usage) page to see its quota, usage and call records."
   }
 }

@@ -82,6 +82,12 @@ export const COMPATIBLE_TOOLS: CompatibleTool[] = [
     logoDark: '/logos/tools/cursor-dark.svg',
   },
   {
+    id: 'cline',
+    name: 'Cline',
+    docSlug: 'tools-cline',
+    logo: '/logos/tools/cline.png',
+  },
+  {
     id: 'workbuddy',
     name: 'WorkBuddy',
     docSlug: 'tools-workbuddy',
@@ -99,6 +105,13 @@ export const COMPATIBLE_TOOLS: CompatibleTool[] = [
     name: 'Kimi Work',
     docSlug: 'tools-overview',
     logo: '/logos/tools/kimi-work.png',
+  },
+  {
+    id: 'deepseek-harness',
+    name: 'DeepSeek Harness',
+    docSlug: 'tools-deepseek-harness',
+    logo: '/logos/tools/deepseek-harness.svg',
+    logoDark: '/logos/tools/deepseek-harness-dark.svg',
   },
   {
     id: 'cc-switch',

@@ -1567,12 +1567,16 @@
     "Account balance {{balance}}, used {{used}}": "Баланс аккаунта {{balance}}, использовано {{used}}",
     "Available models": "Доступные модели",
     "Call records": "История вызовов",
-    "Enter an API key to start": "Введите API-ключ, чтобы начать",
     "Paste an API key to see its quota, usage and call records. The key is only sent in the request header and is not stored.": "Вставьте API-ключ, чтобы увидеть его квоту, использование и историю вызовов. Ключ передаётся только в заголовке запроса и не сохраняется.",
     "Query failed, please try again later": "Не удалось выполнить запрос, попробуйте позже",
     "The API key is invalid or disabled": "API-ключ недействителен или отключён",
     "Too many queries, please try again later": "Слишком много запросов, попробуйте позже",
     "Top models this month": "Популярные модели за месяц",
-    "Usage of this key within the enterprise account": "Использование этого ключа в корпоративном аккаунте"
+    "Usage of this key within the enterprise account": "Использование этого ключа в корпоративном аккаунте",
+    "Call records will appear after you query a key": "История вызовов появится после запроса ключа",
+    "Enterprise member": "Сотрудник компании",
+    "For an enterprise member's key, this shows the enterprise, team and holder, with today's and this month's usage and top models": "Для ключа сотрудника компании здесь показаны компания, команда и владелец, использование за сегодня и за месяц и популярные модели",
+    "The models this key can call will be listed here": "Здесь появятся модели, доступные этому ключу",
+    "Each record shows the time, model, input and output tokens, cost and duration": "Каждая запись содержит время, модель, входные и выходные токены, стоимость и длительность"
   }
 }

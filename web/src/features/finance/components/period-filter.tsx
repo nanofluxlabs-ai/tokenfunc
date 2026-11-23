@@ -1,3 +1,5 @@
+import type { ReactNode } from 'react'
+
 import { MobileFilterSheet } from '@/components/mobile-filter-sheet'
 
 import type { useFinanceDateRange } from '../hooks/use-finance-date-range'
@@ -10,6 +12,10 @@ type PeriodFilterProps = {
   presets: DatePresetId[]
   onPreset: (preset: DatePresetId) => void
   disabled?: boolean
+  /** 区间选择器与「查询」之间的额外筛选；带额外筛选时用 onApply / onReset 一并提交与清空 */
+  children?: ReactNode
+  onApply?: () => void
+  onReset?: () => void
 }
 
 /**
@@ -32,10 +38,12 @@ export function PeriodFilter(props: PeriodFilterProps) {
         <DayRangeControls
           draft={props.range.draft}
           onDraftChange={props.range.setDraft}
-          onApply={props.range.apply}
-          onReset={props.range.reset}
+          onApply={props.onApply ?? props.range.apply}
+          onReset={props.onReset ?? props.range.reset}
           disabled={props.disabled}
-        />
+        >
+          {props.children}
+        </DayRangeControls>
       </div>
     </MobileFilterSheet>
   )

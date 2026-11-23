@@ -96,3 +96,22 @@ export function EmployeeCard(props: EmployeeCardProps) {
     </Card>
   )
 }
+
+/** 未查询时的占位：说明企业成员的密钥还能查到哪些信息 */
+export function EmployeeCardPlaceholder() {
+  const { t } = useTranslation()
+  return (
+    <Card className='border-dashed'>
+      <CardHeader>
+        <CardTitle className='text-muted-foreground'>
+          {t('Enterprise member')}
+        </CardTitle>
+        <CardDescription>
+          {t(
+            "For an enterprise member's key, this shows the enterprise, team and holder, with today's and this month's usage and top models"
+          )}
+        </CardDescription>
+      </CardHeader>
+    </Card>
+  )
+}

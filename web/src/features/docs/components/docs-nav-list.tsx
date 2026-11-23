@@ -20,6 +20,7 @@ import { Link } from '@tanstack/react-router'
 import {
   BookOpen,
   Building2,
+  ChartNoAxesColumn,
   ChevronRight,
   Code,
   KeyRound,
@@ -29,7 +30,7 @@ import {
   TriangleAlert,
   type LucideIcon,
 } from 'lucide-react'
-import { useEffect } from 'react'
+import { Fragment, useEffect } from 'react'
 
 import {
   Collapsible,
@@ -42,6 +43,7 @@ import { useDocsNavStore } from '@/stores/docs-nav-store'
 
 import { docsLangSearch } from '../lib/docs-links'
 import {
+  DOCS_NAV_LINKS,
   getDocsEntry,
   getDocsNav,
   type DocsGroupId,
@@ -117,49 +119,74 @@ export function DocsNavList(props: {
                 const groupHasMethods = group.pages.some((item) => item.method)
                 const GuideIcon = GUIDE_ICONS[page.slug] ?? BookOpen
                 const isActive = page.slug === props.activeSlug
+                const links = DOCS_NAV_LINKS.filter(
+                  (link) => link.group === group.id && link.after === page.slug
+                )
                 return (
-                  <li key={page.slug}>
-                    <Link
-                      to='/docs/$slug'
-                      params={{ slug: page.slug }}
-                      search={docsLangSearch(props.lang)}
-                      onClick={props.onNavigate}
-                      aria-current={isActive ? 'page' : undefined}
-                      className={cn(
-                        'flex items-center gap-2.5 rounded-md px-3 py-2.5 text-sm transition-colors lg:py-1.5',
-                        isActive
-                          ? 'bg-muted text-foreground font-medium'
-                          : 'text-muted-foreground hover:bg-muted/50 hover:text-foreground'
-                      )}
-                    >
-                      {page.method && (
-                        <MethodBadge method={page.method} size='sm' />
-                      )}
-                      {!page.method && groupHasMethods && (
-                        <span
-                          data-slot='docs-nav-method-icon'
-                          aria-hidden='true'
-                          className='flex h-4 w-9 shrink-0 items-center justify-center'
-                        >
-                          <GuideIcon className='size-3.5' />
+                  <Fragment key={page.slug}>
+                    <li>
+                      <Link
+                        to='/docs/$slug'
+                        params={{ slug: page.slug }}
+                        search={docsLangSearch(props.lang)}
+                        onClick={props.onNavigate}
+                        aria-current={isActive ? 'page' : undefined}
+                        className={cn(
+                          'flex items-center gap-2.5 rounded-md px-3 py-2.5 text-sm transition-colors lg:py-1.5',
+                          isActive
+                            ? 'bg-muted text-foreground font-medium'
+                            : 'text-muted-foreground hover:bg-muted/50 hover:text-foreground'
+                        )}
+                      >
+                        {page.method && (
+                          <MethodBadge method={page.method} size='sm' />
+                        )}
+                        {!page.method && groupHasMethods && (
+                          <span
+                            data-slot='docs-nav-method-icon'
+                            aria-hidden='true'
+                            className='flex h-4 w-9 shrink-0 items-center justify-center'
+                          >
+                            <GuideIcon className='size-3.5' />
+                          </span>
+                        )}
+                        {groupHasIcons && (
+                          <span
+                            data-slot='docs-nav-icon'
+                            aria-hidden='true'
+                            className='flex size-4 shrink-0 items-center justify-center'
+                          >
+                            {page.icon ? (
+                              getLobeIcon(page.icon, 16)
+                            ) : (
+                              <LayoutGrid className='size-4' />
+                            )}
+                          </span>
+                        )}
+                        <span className='min-w-0'>
+                          {page.title[props.lang]}
                         </span>
-                      )}
-                      {groupHasIcons && (
-                        <span
-                          data-slot='docs-nav-icon'
-                          aria-hidden='true'
-                          className='flex size-4 shrink-0 items-center justify-center'
+                      </Link>
+                    </li>
+                    {/* tokenfunc 二开：站内独立页面的入口（如 API 密钥用量查询），点击离开文档布局 */}
+                    {links.map((link) => (
+                      <li key={link.to}>
+                        <Link
+                          to={link.to}
+                          onClick={props.onNavigate}
+                          className='text-muted-foreground hover:bg-muted/50 hover:text-foreground flex items-center gap-2.5 rounded-md px-3 py-2.5 text-sm transition-colors lg:py-1.5'
                         >
-                          {page.icon ? (
-                            getLobeIcon(page.icon, 16)
-                          ) : (
-                            <LayoutGrid className='size-4' />
-                          )}
-                        </span>
-                      )}
-                      <span className='min-w-0'>{page.title[props.lang]}</span>
-                    </Link>
-                  </li>
+                          <span className='min-w-0'>
+                            {link.title[props.lang]}
+                          </span>
+                          <ChartNoAxesColumn
+                            className='size-3.5 shrink-0 opacity-60'
+                            aria-hidden='true'
+                          />
+                        </Link>
+                      </li>
+                    ))}
+                  </Fragment>
                 )
               })}
             </ul>

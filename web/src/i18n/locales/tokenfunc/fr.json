@@ -1567,12 +1567,16 @@
     "Account balance {{balance}}, used {{used}}": "Solde du compte {{balance}}, utilisé {{used}}",
     "Available models": "Modèles disponibles",
     "Call records": "Historique des appels",
-    "Enter an API key to start": "Saisissez une clé API pour commencer",
     "Paste an API key to see its quota, usage and call records. The key is only sent in the request header and is not stored.": "Collez une clé API pour voir son quota, son utilisation et l'historique des appels. La clé est uniquement envoyée dans l'en-tête de la requête et n'est pas enregistrée.",
     "Query failed, please try again later": "La requête a échoué, veuillez réessayer plus tard",
     "The API key is invalid or disabled": "La clé API est invalide ou désactivée",
     "Too many queries, please try again later": "Trop de requêtes, veuillez réessayer plus tard",
     "Top models this month": "Modèles les plus utilisés ce mois-ci",
-    "Usage of this key within the enterprise account": "Utilisation de cette clé dans le compte entreprise"
+    "Usage of this key within the enterprise account": "Utilisation de cette clé dans le compte entreprise",
+    "Call records will appear after you query a key": "L'historique des appels s'affichera après la recherche d'une clé",
+    "Enterprise member": "Membre de l'entreprise",
+    "For an enterprise member's key, this shows the enterprise, team and holder, with today's and this month's usage and top models": "Pour la clé d'un membre d'entreprise, affiche l'entreprise, l'équipe et le titulaire, avec l'utilisation du jour et du mois et les modèles les plus utilisés",
+    "The models this key can call will be listed here": "Les modèles accessibles avec cette clé s'afficheront ici",
+    "Each record shows the time, model, input and output tokens, cost and duration": "Chaque entrée indique l'heure, le modèle, les tokens d'entrée et de sortie, le coût et la durée"
   }
 }

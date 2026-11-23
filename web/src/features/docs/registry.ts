@@ -60,6 +60,23 @@ export const DOCS_GROUPS: { id: DocsGroupId; title: Localized }[] = [
   { id: 'tools', title: { zh: '三方工具接入', en: 'Tool integration' } },
 ]
 
+/** 侧栏里指向站内独立页面的链接（不是文档正文，不参与预渲染、sitemap 与翻页），排在 after 指定的页面后面 */
+export type DocsNavLink = {
+  to: '/key-usage'
+  group: DocsGroupId
+  after: string
+  title: Localized
+}
+
+export const DOCS_NAV_LINKS: DocsNavLink[] = [
+  {
+    to: '/key-usage',
+    group: 'getting-started',
+    after: 'self-check',
+    title: { zh: 'API 密钥用量查询', en: 'API key usage' },
+  },
+]
+
 export const DOCS_PAGES: DocsPageEntry[] = [
   {
     slug: 'quick-start',

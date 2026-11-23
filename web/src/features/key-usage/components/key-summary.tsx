@@ -8,8 +8,10 @@ import { formatQuota, formatTimestampToDate } from '@/lib/format'
 import type { KeyTokenUsage } from '../types'
 
 const VISIBLE_MODEL_COUNT = 12
+const PLACEHOLDER = '—'
 
 type KeySummaryProps = {
+  /** 未查询时为空：卡片显示占位，让用户先看到能查到哪些信息 */
   usage?: KeyTokenUsage
   models: string[]
   loading: boolean
@@ -22,41 +24,44 @@ export function KeySummary(props: KeySummaryProps) {
   const unlimited = usage?.unlimited_quota ?? false
   const hiddenModelCount = props.models.length - VISIBLE_MODEL_COUNT
 
+  let remaining = PLACEHOLDER
+  let used = PLACEHOLDER
+  let total = PLACEHOLDER
+  let expires = PLACEHOLDER
+  if (usage) {
+    remaining = unlimited ? t('Unlimited') : formatQuota(usage.total_available)
+    used = formatQuota(usage.total_used)
+    total = unlimited ? t('Unlimited') : formatQuota(usage.total_granted)
+    expires = usage.expires_at
+      ? formatTimestampToDate(usage.expires_at)
+      : t('Never expires')
+  }
+
   return (
     <div className='flex flex-col gap-4'>
       <div className='grid grid-cols-2 gap-3 lg:grid-cols-4'>
         <MetricCard
           icon={Wallet}
           label={t('Remaining quota')}
-          value={
-            unlimited
-              ? t('Unlimited')
-              : formatQuota(usage?.total_available ?? 0)
-          }
+          value={remaining}
           loading={props.loading}
         />
         <MetricCard
           icon={CircleDollarSign}
           label={t('Used quota')}
-          value={formatQuota(usage?.total_used ?? 0)}
+          value={used}
           loading={props.loading}
         />
         <MetricCard
           icon={Gauge}
           label={t('Total quota')}
-          value={
-            unlimited ? t('Unlimited') : formatQuota(usage?.total_granted ?? 0)
-          }
+          value={total}
           loading={props.loading}
         />
         <MetricCard
           icon={CalendarClock}
           label={t('Expires at')}
-          value={
-            usage?.expires_at
-              ? formatTimestampToDate(usage.expires_at)
-              : t('Never expires')
-          }
+          value={expires}
           loading={props.loading}
         />
       </div>
@@ -70,11 +75,17 @@ export function KeySummary(props: KeySummaryProps) {
         </p>
       )}
 
-      {props.models.length > 0 && (
-        <div className='flex flex-col gap-2'>
-          <span className='text-muted-foreground text-sm'>
-            {t('Available models')}
+      <div className='flex flex-col gap-2'>
+        <span className='text-muted-foreground text-sm'>
+          {t('Available models')}
+        </span>
+        {props.models.length === 0 ? (
+          <span className='text-muted-foreground/70 text-sm'>
+            {usage
+              ? PLACEHOLDER
+              : t('The models this key can call will be listed here')}
           </span>
+        ) : (
           <div className='flex flex-wrap gap-1.5'>
             {props.models.slice(0, VISIBLE_MODEL_COUNT).map((model) => (
               <StatusBadge
@@ -95,8 +106,8 @@ export function KeySummary(props: KeySummaryProps) {
               />
             )}
           </div>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   )
 }

@@ -1567,12 +1567,16 @@
     "Account balance {{balance}}, used {{used}}": "アカウント残高 {{balance}}、使用済み {{used}}",
     "Available models": "利用可能なモデル",
     "Call records": "呼び出し履歴",
-    "Enter an API key to start": "API キーを入力して照会を開始",
     "Paste an API key to see its quota, usage and call records. The key is only sent in the request header and is not stored.": "API キーを貼り付けると、クォータ・使用量・呼び出し履歴を確認できます。キーはリクエストヘッダーでのみ送信され、保存されません。",
     "Query failed, please try again later": "照会に失敗しました。しばらくしてから再試行してください",
     "The API key is invalid or disabled": "API キーが無効か、停止されています",
     "Too many queries, please try again later": "照会が多すぎます。しばらくしてから再試行してください",
     "Top models this month": "今月よく使うモデル",
-    "Usage of this key within the enterprise account": "エンタープライズアカウント内でのこのキーの使用状況"
+    "Usage of this key within the enterprise account": "エンタープライズアカウント内でのこのキーの使用状況",
+    "Call records will appear after you query a key": "キーを照会すると、ここに呼び出し履歴が表示されます",
+    "Enterprise member": "エンタープライズメンバー",
+    "For an enterprise member's key, this shows the enterprise, team and holder, with today's and this month's usage and top models": "エンタープライズメンバーのキーでは、所属企業・チーム・保有者と、今日・今月の使用量やよく使うモデルが表示されます",
+    "The models this key can call will be listed here": "このキーで呼び出せるモデルがここに表示されます",
+    "Each record shows the time, model, input and output tokens, cost and duration": "各レコードには時刻・モデル・入出力トークン・費用・所要時間が表示されます"
   }
 }

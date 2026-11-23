@@ -1,10 +1,8 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { getRouteApi } from '@tanstack/react-router'
-import { KeyRound } from 'lucide-react'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
-import { EmptyState } from '@/components/empty-state'
 import { ErrorState } from '@/components/error-state'
 import { PublicLayout } from '@/components/layout'
 import { PasswordInput } from '@/components/password-input'
@@ -33,7 +31,10 @@ import {
   KeyUsageError,
   normalizeApiKey,
 } from './api'
-import { EmployeeCard } from './components/employee-card'
+import {
+  EmployeeCard,
+  EmployeeCardPlaceholder,
+} from './components/employee-card'
 import { KeyLogsTable } from './components/key-logs-table'
 import { KeySummary } from './components/key-summary'
 
@@ -69,13 +70,15 @@ export function KeyUsagePage() {
   const [draftKey, setDraftKey] = useState('')
   const [apiKey, setApiKey] = useState('')
   const enabled = apiKey !== ''
+  // 进入页面时定下默认区间，重置时草稿与 URL 回退值保持一致
+  const [defaultRange] = useState(() => presetRange('last30'))
 
   const range = useFinanceDateRange({
     search,
     navigate,
     startKey: 'start',
     endKey: 'end',
-    fallback: presetRange('last30'),
+    fallback: defaultRange,
     resetKeys: ['page'],
   })
   const { pagination, onPaginationChange, ensurePageInRange } =
@@ -87,6 +90,11 @@ export function KeyUsagePage() {
     })
   const model = search.model ?? ''
   const timestamps = dayRangeToTimestamps(range.applied)
+  // 模型放在「查询」左侧，与日期一样先改草稿，点「查询」才生效
+  const [modelDraft, setModelDraft] = useState(model)
+  useEffect(() => {
+    setModelDraft(model)
+  }, [model])
 
   const usage = useQuery({
     queryKey: ['key-usage', 'token', apiKey],
@@ -158,11 +166,29 @@ export function KeyUsagePage() {
   const applyPreset = (preset: DatePresetId) => {
     range.applyRange(presetRange(preset))
   }
-  const setModel = (value: string) => {
+  // 日期与模型一次写入 URL，避免两次 navigate 互相覆盖
+  const applyFilters = () => {
+    const draft = range.draft
+    if (!draft.start || !draft.end || draft.start > draft.end) return
     navigate({
       search: (previous) => ({
         ...previous,
-        model: value === ALL_MODELS ? undefined : value,
+        start: draft.start,
+        end: draft.end,
+        model: modelDraft || undefined,
+        page: undefined,
+      }),
+    })
+  }
+  const resetFilters = () => {
+    range.setDraft(defaultRange)
+    setModelDraft('')
+    navigate({
+      search: (previous) => ({
+        ...previous,
+        start: undefined,
+        end: undefined,
+        model: undefined,
         page: undefined,
       }),
     })
@@ -174,6 +200,7 @@ export function KeyUsagePage() {
     ...(employee.data?.top_models ?? []).map((item) => item.model),
     ...(logs.data?.items ?? []).map((item) => item.model_name),
     ...(model ? [model] : []),
+    ...(modelDraft ? [modelDraft] : []),
   ])
   const modelOptions = [
     { value: ALL_MODELS, label: t('All models') },
@@ -216,24 +243,19 @@ export function KeyUsagePage() {
           </div>
         </form>
 
-        {!enabled && (
-          <EmptyState icon={KeyRound} title={t('Enter an API key to start')} />
-        )}
-
-        {enabled && usage.isError && (
+        {enabled && usage.isError ? (
           <ErrorState
             title={keyUsageErrorMessage(usage.error, t)}
             onRetry={() => void usage.refetch()}
           />
-        )}
-
-        {enabled && !usage.isError && (
+        ) : (
           <>
             <KeySummary
               usage={usage.data}
               models={models.data ?? []}
-              loading={usage.isLoading}
+              loading={enabled && usage.isLoading}
             />
+            {!enabled && <EmployeeCardPlaceholder />}
             {employee.data && <EmployeeCard info={employee.data} />}
             <div className='flex flex-col gap-3'>
               <h2 className='text-lg font-semibold'>{t('Call records')}</h2>
@@ -246,28 +268,46 @@ export function KeyUsagePage() {
                 <KeyLogsTable
                   logs={logs.data?.items ?? []}
                   total={logs.data?.total ?? 0}
-                  loading={logs.isLoading}
+                  loading={keyValid && logs.isLoading}
                   fetching={logs.isFetching}
                   pagination={pagination}
                   onPaginationChange={onPaginationChange}
                   ensurePageInRange={ensurePageInRange}
+                  emptyTitle={
+                    enabled
+                      ? undefined
+                      : t('Call records will appear after you query a key')
+                  }
+                  emptyDescription={
+                    enabled
+                      ? undefined
+                      : t(
+                          'Each record shows the time, model, input and output tokens, cost and duration'
+                        )
+                  }
                   toolbar={
-                    <div className='flex flex-col gap-2 md:flex-row md:flex-wrap md:items-center'>
-                      <PeriodFilter
-                        range={range}
-                        presets={['today', 'week', 'month', 'last30']}
-                        onPreset={applyPreset}
-                      />
+                    <PeriodFilter
+                      range={range}
+                      presets={['today', 'week', 'month', 'last30']}
+                      onPreset={applyPreset}
+                      onApply={applyFilters}
+                      onReset={resetFilters}
+                      disabled={!keyValid}
+                    >
                       <Select
                         items={modelOptions}
-                        value={model || ALL_MODELS}
+                        value={modelDraft || ALL_MODELS}
                         onValueChange={(value) =>
-                          value !== null && setModel(String(value))
+                          value !== null &&
+                          setModelDraft(
+                            value === ALL_MODELS ? '' : String(value)
+                          )
                         }
+                        disabled={!keyValid}
                       >
                         <SelectTrigger
                           aria-label={t('Model')}
-                          className='w-full md:w-60'
+                          className='w-full md:w-56'
                         >
                           <SelectValue />
                         </SelectTrigger>
@@ -279,7 +319,7 @@ export function KeyUsagePage() {
                           ))}
                         </SelectContent>
                       </Select>
-                    </div>
+                    </PeriodFilter>
                   }
                 />
               )}

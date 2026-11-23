@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { DateRangePicker } from '@/components/date-range-picker'
@@ -14,6 +15,8 @@ type DayRangeControlsProps = {
   resetLabel?: string
   disabled?: boolean
   className?: string
+  /** 区间选择器与「查询」之间的额外筛选，和日期一起点「查询」生效 */
+  children?: ReactNode
 }
 
 /** 日期范围选择器 + 查询 / 重置；财务中心各 tab 与详情页共用 */
@@ -39,6 +42,7 @@ export function DayRangeControls(props: DayRangeControlsProps) {
         disabled={props.disabled}
         className='min-w-[240px]'
       />
+      {props.children}
       <Button
         size='sm'
         onClick={props.onApply}

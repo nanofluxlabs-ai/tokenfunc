@@ -1567,12 +1567,16 @@
     "Account balance {{balance}}, used {{used}}": "Account balance {{balance}}, used {{used}}",
     "Available models": "Available models",
     "Call records": "Call records",
-    "Enter an API key to start": "Enter an API key to start",
     "Paste an API key to see its quota, usage and call records. The key is only sent in the request header and is not stored.": "Paste an API key to see its quota, usage and call records. The key is only sent in the request header and is not stored.",
     "Query failed, please try again later": "Query failed, please try again later",
     "The API key is invalid or disabled": "The API key is invalid or disabled",
     "Too many queries, please try again later": "Too many queries, please try again later",
     "Top models this month": "Top models this month",
-    "Usage of this key within the enterprise account": "Usage of this key within the enterprise account"
+    "Usage of this key within the enterprise account": "Usage of this key within the enterprise account",
+    "Call records will appear after you query a key": "Call records will appear after you query a key",
+    "Enterprise member": "Enterprise member",
+    "For an enterprise member's key, this shows the enterprise, team and holder, with today's and this month's usage and top models": "For an enterprise member's key, this shows the enterprise, team and holder, with today's and this month's usage and top models",
+    "The models this key can call will be listed here": "The models this key can call will be listed here",
+    "Each record shows the time, model, input and output tokens, cost and duration": "Each record shows the time, model, input and output tokens, cost and duration"
   }
 }

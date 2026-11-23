@@ -1567,12 +1567,16 @@
     "Account balance {{balance}}, used {{used}}": "Số dư tài khoản {{balance}}, đã dùng {{used}}",
     "Available models": "Mô hình khả dụng",
     "Call records": "Lịch sử gọi",
-    "Enter an API key to start": "Nhập khóa API để bắt đầu",
     "Paste an API key to see its quota, usage and call records. The key is only sent in the request header and is not stored.": "Dán khóa API để xem hạn mức, mức sử dụng và lịch sử gọi. Khóa chỉ được gửi trong header của yêu cầu và không được lưu lại.",
     "Query failed, please try again later": "Truy vấn thất bại, vui lòng thử lại sau",
     "The API key is invalid or disabled": "Khóa API không hợp lệ hoặc đã bị vô hiệu hóa",
     "Too many queries, please try again later": "Truy vấn quá thường xuyên, vui lòng thử lại sau",
     "Top models this month": "Mô hình dùng nhiều tháng này",
-    "Usage of this key within the enterprise account": "Mức sử dụng của khóa này trong tài khoản doanh nghiệp"
+    "Usage of this key within the enterprise account": "Mức sử dụng của khóa này trong tài khoản doanh nghiệp",
+    "Call records will appear after you query a key": "Lịch sử gọi sẽ hiển thị sau khi truy vấn khóa",
+    "Enterprise member": "Thành viên doanh nghiệp",
+    "For an enterprise member's key, this shows the enterprise, team and holder, with today's and this month's usage and top models": "Với khóa của thành viên doanh nghiệp, mục này hiển thị doanh nghiệp, nhóm và người giữ khóa, cùng mức sử dụng hôm nay, tháng này và các mô hình dùng nhiều",
+    "The models this key can call will be listed here": "Các mô hình khóa này có thể gọi sẽ hiển thị ở đây",
+    "Each record shows the time, model, input and output tokens, cost and duration": "Mỗi bản ghi gồm thời gian, mô hình, token đầu vào và đầu ra, chi phí và thời lượng"
   }
 }

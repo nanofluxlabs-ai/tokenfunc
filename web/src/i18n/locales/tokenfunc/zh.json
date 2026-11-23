@@ -1567,12 +1567,16 @@
     "Account balance {{balance}}, used {{used}}": "账户余额 {{balance}}，已用 {{used}}",
     "Available models": "可用模型",
     "Call records": "调用记录",
-    "Enter an API key to start": "输入 API 密钥开始查询",
     "Paste an API key to see its quota, usage and call records. The key is only sent in the request header and is not stored.": "粘贴 API 密钥即可查看它的额度、用量和调用记录。密钥只放在请求头里发送，不会被保存。",
     "Query failed, please try again later": "查询失败，请稍后再试",
     "The API key is invalid or disabled": "API 密钥无效或已停用",
     "Too many queries, please try again later": "查询过于频繁，请稍后再试",
     "Top models this month": "本月常用模型",
-    "Usage of this key within the enterprise account": "这把密钥在企业账户中的归属与用量"
+    "Usage of this key within the enterprise account": "这把密钥在企业账户中的归属与用量",
+    "Call records will appear after you query a key": "查询密钥后，这里会显示逐条调用记录",
+    "Enterprise member": "企业成员",
+    "For an enterprise member's key, this shows the enterprise, team and holder, with today's and this month's usage and top models": "企业成员的密钥会在这里显示所属企业、团队和持有人，以及今天、本月的用量和常用模型",
+    "The models this key can call will be listed here": "这把密钥可调用的模型会列在这里",
+    "Each record shows the time, model, input and output tokens, cost and duration": "每条记录包含时间、模型、输入与输出 token、费用和耗时，可按时间和模型筛选"
   }
 }

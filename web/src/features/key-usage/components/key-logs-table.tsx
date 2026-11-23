@@ -23,6 +23,8 @@ type KeyLogsTableProps = {
   onPaginationChange: OnChangeFn<PaginationState>
   ensurePageInRange: (pageCount: number) => void
   toolbar: React.ReactNode
+  emptyTitle?: string
+  emptyDescription?: string
 }
 
 /** 调用记录：服务端分页，筛选条件由页面放在 toolbar 里 */
@@ -120,7 +122,8 @@ export function KeyLogsTable(props: KeyLogsTableProps) {
       columns={columns}
       isLoading={props.loading}
       isFetching={props.fetching}
-      emptyTitle={t('No records')}
+      emptyTitle={props.emptyTitle ?? t('No records')}
+      emptyDescription={props.emptyDescription}
       skeletonKeyPrefix='key-usage-logs-skeleton'
       fixedHeight={false}
       paginationInFooter={false}

@@ -1567,12 +1567,16 @@
     "Account balance {{balance}}, used {{used}}": "帳戶餘額 {{balance}}，已用 {{used}}",
     "Available models": "可用模型",
     "Call records": "呼叫紀錄",
-    "Enter an API key to start": "輸入 API 金鑰開始查詢",
     "Paste an API key to see its quota, usage and call records. The key is only sent in the request header and is not stored.": "貼上 API 金鑰即可查看其額度、用量與呼叫紀錄。金鑰只放在請求標頭中傳送，不會被儲存。",
     "Query failed, please try again later": "查詢失敗，請稍後再試",
     "The API key is invalid or disabled": "API 金鑰無效或已停用",
     "Too many queries, please try again later": "查詢過於頻繁，請稍後再試",
     "Top models this month": "本月常用模型",
-    "Usage of this key within the enterprise account": "這把金鑰在企業帳戶中的歸屬與用量"
+    "Usage of this key within the enterprise account": "這把金鑰在企業帳戶中的歸屬與用量",
+    "Call records will appear after you query a key": "查詢金鑰後，這裡會顯示逐筆呼叫紀錄",
+    "Enterprise member": "企業成員",
+    "For an enterprise member's key, this shows the enterprise, team and holder, with today's and this month's usage and top models": "企業成員的金鑰會在這裡顯示所屬企業、團隊與持有人，以及今天、本月的用量和常用模型",
+    "The models this key can call will be listed here": "這把金鑰可呼叫的模型會列在這裡",
+    "Each record shows the time, model, input and output tokens, cost and duration": "每筆紀錄包含時間、模型、輸入與輸出 token、費用與耗時，可依時間和模型篩選"
   }
 }

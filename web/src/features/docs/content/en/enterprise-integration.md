@@ -76,7 +76,7 @@ Keys issued to a member get `403 access_denied` here, so give integrations a tea
 
 ## Employee self-check
 
-Employees do not sign in. With their own key they can still see what the key may do and how much it has used:
+Employees do not sign in. With their own key they can still see what the key may do and how much it has used. The simplest way is the [API key usage](/key-usage) page: paste the key to see its quota, team, today's and this month's usage, and each call record. To query from code, call this endpoint:
 
 ```bash
 curl {{baseUrl}}/v1/enterprise/employee/me \

@@ -91,7 +91,12 @@ function LegalLinks() {
       href: '/privacy-policy',
     })
   }
-  // tokenfunc 二开：关于页有默认内容，页脚常驻入口
+  // tokenfunc 二开：关于页有默认内容，页脚常驻入口；公开的 API 密钥用量查询页同样常驻
+  items.push({
+    key: 'key-usage',
+    label: t('API key usage'),
+    href: '/key-usage',
+  })
   items.push({ key: 'about', label: t('About'), href: '/about' })
   return (
     <>

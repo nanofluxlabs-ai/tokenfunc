@@ -76,7 +76,7 @@ curl {{baseUrl}}/v1/dashboard/billing/credit \
 
 ## 员工自查
 
-员工不需要登录，用自己的密钥就能查看这把密钥能做什么、用了多少：
+员工不需要登录，用自己的密钥就能查看这把密钥能做什么、用了多少。最简单的方式是打开 [API 密钥用量查询](/key-usage) 页面，粘贴密钥即可看到额度、归属、今日和本月用量以及逐条调用记录。需要在代码里查询时调用下面的接口：
 
 ```bash
 curl {{baseUrl}}/v1/enterprise/employee/me \

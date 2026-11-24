@@ -1,361 +1,108 @@
-<div align="center">
+# TokenFunc
 
-![new-api](/web/public/logo.png)
+**面向企业的 AI 模型 API 网关** — [tokenfunc.com](https://tokenfunc.com)
 
-# New API
+基于 [new-api](https://github.com/QuantumNous/new-api) 二次开发的商用网关：聚合多家上游模型供应商，对外暴露 OpenAI / Anthropic / Gemini 兼容协议，客户只改 `base_url` 和 `api_key` 即可接入；在此之上叠加企业账务、分组定价、推广分成等商业化能力。
 
-**An AI gateway for models, applications, and agents**
-
-<p align="center">
-  <a href="./README.zh_CN.md">简体中文</a> |
-  <a href="./README.zh_TW.md">繁體中文</a> |
-  <strong>English</strong> |
-  <a href="./README.fr.md">Français</a> |
-  <a href="./README.ja.md">日本語</a>
-</p>
-
-<p align="center">
-  <a href="https://raw.githubusercontent.com/Calcium-Ion/new-api/main/LICENSE">
-    <img src="https://img.shields.io/github/license/Calcium-Ion/new-api?color=brightgreen" alt="license">
-  </a><!--
-  --><a href="https://github.com/Calcium-Ion/new-api/releases/latest">
-    <img src="https://img.shields.io/github/v/release/Calcium-Ion/new-api?color=brightgreen&include_prereleases" alt="release">
-  </a><!--
-  --><a href="https://hub.docker.com/r/CalciumIon/new-api">
-    <img src="https://img.shields.io/badge/docker-dockerHub-blue" alt="docker">
-  </a>
-  <a href="https://atomgit.com/QuantumNous/new-api" target="_blank">
-    <img alt="AtomGit G-Star" src="https://atomgit.com/QuantumNous/new-api/star/badge.svg"/>
-  </a>
-</p>
-
-<p align="center">
-  <a href="https://trendshift.io/repositories/20180" target="_blank">
-    <img src="https://trendshift.io/api/badge/repositories/20180" alt="QuantumNous%2Fnew-api | Trendshift" style="width: 250px; height: 55px;" width="250" height="55"/>
-  </a>
-  <br>
-  <a href="https://hellogithub.com/repository/QuantumNous/new-api" target="_blank">
-    <img src="https://api.hellogithub.com/v1/widgets/recommend.svg?rid=539ac4217e69431684ad4a0bab768811&claim_uid=tbFPfKIDHpc4TzR" alt="Featured｜HelloGitHub" style="width: 250px; height: 54px;" width="250" height="54" />
-  </a><!--
-  -->
-  <a href="https://atomgit.com/QuantumNous/new-api" target="_blank">
-    <img alt="AtomGit G-Star" src="https://atomgit.com/QuantumNous/new-api/star/new_badge.svg" width="250" height="55" />
-  </a>
-</p>
-
-<p align="center">
-  <a href="#screenshots">Screenshots</a> •
-  <a href="#capabilities">Capabilities</a> •
-  <a href="#quick-start">Quick start</a> •
-  <a href="#deployment">Deployment</a> •
-  <a href="#development">Development</a> •
-  <a href="#documentation">Documentation</a>
-</p>
-
-</div>
+> 本仓库为 nanofluxlabs 内部商业项目。上游代码遵循 AGPLv3 及其附加条款，对外提供服务前须确认许可合规（商业授权安排见内部记录）。
 
 ---
 
-## 📝 Project Description
+## 业务特点
 
-New API is a self-hosted AI gateway for applications, agents, and teams. Connect upstream model services, expose a consistent API to your clients, and manage routing, access, usage, and costs in one place.
+对客户的三个核心承诺（落地页卖点即产品约束）：
 
-Use it to share authorized model access across a team, switch providers without configuring every client again, or operate a private multi-model service with a web console. Upstreams include OpenAI, Anthropic, Google Gemini, Azure OpenAI, AWS Bedrock, Vertex AI, DeepSeek, Qwen, and other compatible services.
+1. **满血不降级**：转发官方正式接口，不掺假、不偷换模型。
+2. **数据安全**：网关不留存请求 / 响应正文（异步任务 prompt 为已知例外，待清理）。
+3. **企业管控、账能对平**：额度、账单、流水三者可相互核对，`ent_ledger` 是资金的唯一事实来源。
 
-> [!IMPORTANT]
-> - This project is intended solely for lawful and authorized AI API gateway, organization-level authentication, multi-model management, usage analytics, cost accounting, and private deployment scenarios.
-> - Users must lawfully obtain upstream API keys, accounts, model services, and interface permissions, and must comply with upstream terms of service and applicable laws and regulations.
-> - Users should ensure their use complies with upstream terms of service and applicable laws and regulations.
-> - When providing generative AI services to the public, users should comply with applicable regulatory requirements and fulfill all filing, licensing, content safety, real-name verification, log retention, tax, and upstream authorization obligations required by their jurisdiction.
+SLA 口径：只承诺网关自身的月可用率，**上游模型厂商故障不在承诺范围内**。
 
-<!-- -->
+### 二开功能全景
 
-> [!WARNING]
-> When operating this project as a public generative AI service or API resale service, users should first complete all required filing, licensing, content safety, real-name verification, log retention, tax, payment, and upstream authorization obligations.
+| 模块 | 内容 | 代码入口 |
+| --- | --- | --- |
+| 企业组织 | 企业与 users 1:1，多管理员、扁平团队、成员（登录角色与不登录员工同表） | `model/enterprise_org.go`、`controller/enterprise_*.go` |
+| 企业账务 | 预付钱包 + 授信账期（自然月 / 固定天 / 额度信用）、账单 Invoice、报价单、人工调账、账单归档冻结件 | `model/enterprise_credit.go`、`enterprise_bill*.go`、`docs/tokenfunc/enterprise-design.md` |
+| 预算与限额 | 团队月度预算拦截、key 周期限额、授信预警 | `service/enterprise_team_budget.go` 等 |
+| 员工自查 | 无需登录，粘贴 API key 即查额度、归属与调用记录（`/key-usage`） | `controller/tokenfunc_key_usage.go`、`web/src/features/key-usage/` |
+| 分组定价 | 用户分组 × 渠道分组矩阵，倍率基准价 + 覆盖，可见性为显式列表（无默认可见） | `docs/tokenfunc/channel-groups.md` |
+| 推广分成 | 推广人、分成比例、结算 | `model/tokenfunc_promoter*.go` |
+| 财务与对账 | 财务中心、对账差异告警、日志归档到腾讯云 COS（含回放导入） | `web/src/features/finance/`、`model/tokenfunc_log_archive.go` |
+| 落地页与文档 | 营销落地页（卖点 / 价目 / FAQ / 留资）、文档中心 | `web/src/features/landing/`、`web/src/features/docs/` |
 
----
-
-<a id="screenshots"></a>
-
-## Screenshots
-
-Accounts, channels, plugin installation states, usage, prices, and costs shown below are simulated data. The marketplace displays the official plugin catalog. Click an image to view it at full size.
-
-| Usage dashboard | Plugin marketplace |
-| --- | --- |
-| [![Usage dashboard with simulated requests, costs, and performance metrics](assets/screenshots/dashboard.en.jpg)](assets/screenshots/dashboard.en.jpg) | [![Official plugin marketplace with simulated installation status](assets/screenshots/plugin-marketplace.en.jpg)](assets/screenshots/plugin-marketplace.en.jpg) |
-| **Model square** | **Usage logs** |
-| [![Model square with simulated model pricing and availability](assets/screenshots/models.en.jpg)](assets/screenshots/models.en.jpg) | [![Usage logs with simulated tokens, costs, and response times](assets/screenshots/usage-logs.en.jpg)](assets/screenshots/usage-logs.en.jpg) |
+二开约定：新表一律 `ent_` / `tokenfunc_` 前缀，**只支持 PostgreSQL**（可用 jsonb、`ON CONFLICT`、部分唯一索引）；上游代码保持原样，不为二开补 SQLite / MySQL 兼容；二开内容尽量放独立文件，减少与上游的合并冲突。
 
 ---
 
-## 🤝 Trusted Partners
+## 技术架构
 
-<p align="center">
-  <em>No particular order</em>
-</p>
-
-<p align="center">
-  <a href="https://www.cherry-ai.com/" target="_blank">
-    <img src="./docs/images/cherry-studio.png" alt="Cherry Studio" height="80" />
-  </a><!--
-  --><a href="https://github.com/iOfficeAI/AionUi/" target="_blank">
-    <img src="./docs/images/aionui.png" alt="Aion UI" height="80" />
-  </a><!--
-  --><a href="https://bda.pku.edu.cn/" target="_blank">
-    <img src="./docs/images/pku.png" alt="Peking University" height="80" />
-  </a><!--
-  --><a href="https://www.aliyun.com/" target="_blank">
-    <img src="./docs/images/aliyun.png" alt="Alibaba Cloud" height="80" />
-  </a><!--
-  --><a href="https://io.net/" target="_blank">
-    <img src="./docs/images/io-net.png" alt="IO.NET" height="80" />
-  </a>
-</p>
-
----
-
-## 🙏 Special Thanks
-
-<p align="center">
-  <a href="https://www.jetbrains.com/?from=new-api" target="_blank">
-    <img src="https://resources.jetbrains.com/storage/products/company/brand/logos/jb_beam.png" alt="JetBrains Logo" width="120" />
-  </a>
-</p>
-
-<p align="center">
-  <strong>Thanks to <a href="https://www.jetbrains.com/?from=new-api">JetBrains</a> for providing free open-source development license for this project</strong>
-</p>
-
----
-
-<a id="capabilities"></a>
-
-## Capabilities
-
-| Area | What you can do |
-| --- | --- |
-| Model access | Use OpenAI Chat Completions, Responses, Anthropic Messages, and Gemini APIs; stream responses and use tools, reasoning, and multimodal inputs where supported |
-| Routing | Configure model mappings, channel priorities and weights, retries, channel affinity, and multiple upstream keys |
-| Usage and costs | Manage quotas, subscriptions, usage logs, cache accounting, and expression-based pricing for different usage tiers |
-| Access control | Manage users, groups, fine-grained permissions, and API key restrictions; use OAuth/OIDC, passkeys, two-factor authentication, and login session management |
-| Asynchronous tasks | Extend image, video, and other task APIs with JavaScript plugins, including task status and output retrieval |
-| Web console | Configure channels and models, inspect usage and audit logs, and try models in the playground; available in English, Simplified Chinese, Traditional Chinese, French, Japanese, Russian, and Vietnamese |
-
-### Protocols and endpoints
-
-| Interface | Common endpoints |
-| --- | --- |
-| OpenAI Chat / Responses | `POST /v1/chat/completions`, `POST /v1/responses` |
-| Anthropic Messages | `POST /v1/messages` |
-| Gemini | `POST /v1beta/models/{model}:generateContent`, `POST /v1beta/models/{model}:streamGenerateContent` |
-| Realtime / Responses WebSocket | `GET /v1/realtime`, `GET /v1/responses` (WebSocket upgrade) |
-| Images / audio | `/v1/images/generations`, `/v1/images/edits`, `/v1/audio/speech`, `/v1/audio/transcriptions`, `/v1/audio/translations` |
-| Embeddings / rerank | `POST /v1/embeddings`, `POST /v1/rerank` |
-| Task plugins | `POST /v1/tasks/{pluginKey}`, `GET /v1/tasks/{taskId}`, plus routes declared by each plugin |
-
-[RelayKit](./relaykit/README.md) provides request, response, and streaming conversion between the four text protocols. Available features depend on the channel, upstream model, and conversion path; protocol-specific tools and fields may not map exactly. WebSocket support also requires a compatible upstream and channel configuration.
-
-This README describes the current source tree. Check the release notes for the version you deploy.
-
-<a id="quick-start"></a>
-
-## Quick start
-
-### Try locally with Docker
-
-This starts a single instance with SQLite and binds it to localhost:
-
-```bash
-mkdir -p data
-docker run --name new-api -d --restart unless-stopped \
-  -p 127.0.0.1:3000:3000 \
-  -e TZ=Asia/Shanghai \
-  -v "$(pwd)/data:/data" \
-  calciumion/new-api:latest
+```
+ 客户端 (Cursor / Claude Code / SDK / 浏览器)
+      │  OpenAI / Anthropic / Gemini 协议 + sk- key
+      ▼
+┌─────────────────────────── TKE (ns tokenfunc) ───────────────────────────┐
+│  tokenfunc-api-slave ×N ── 接流量：鉴权 → 计费预扣 → relay 转发 → 结算    │
+│  tokenfunc-api-master ×1 ─ 不接流量：迁移、出账、预警、归档等后台任务      │
+└──────────┬────────────────────────┬──────────────────────────────────────┘
+           │                        │
+      PostgreSQL (PaaS)        Redis (PaaS)
+      业务 + 账务 + 日志        缓存 / 限流 / 会话
+           │
+      腾讯云 COS（日志归档、账期冻结件、二维码等静态资源）
 ```
 
-Open [http://localhost:3000](http://localhost:3000) and complete the setup wizard to create the administrator account. The `data` directory persists the SQLite database across container replacements.
-
-### Make your first request
-
-1. Add a channel with your upstream API key, available models, and group assignment; run a channel test.
-2. Configure model pricing and ensure the user has quota or a valid subscription.
-3. Create an API key in the console with access to the same group and models.
-4. Set your client's base URL to `http://localhost:3000/v1` for OpenAI-compatible clients and use the **New API-issued key**.
-
-Set `NEW_API_KEY` in your shell to that key. List the models accessible to it:
-
-```bash
-curl --fail-with-body http://localhost:3000/v1/models \
-  -H "Authorization: Bearer ${NEW_API_KEY}"
-```
-
-Then call Responses, replacing `your-enabled-model` with an enabled model that supports this interface:
-
-```bash
-curl --fail-with-body http://localhost:3000/v1/responses \
-  -H "Authorization: Bearer ${NEW_API_KEY}" \
-  -H "Content-Type: application/json" \
-  -d '{"model":"your-enabled-model","input":"Hello!"}'
-```
-
-<a id="deployment"></a>
-
-## Deployment
-
-### Docker Compose
-
-The repository's [Compose configuration](./docker-compose.yml) starts **New API + PostgreSQL + Redis** by default. It also contains examples for MySQL and a separate ClickHouse log database.
-
-```bash
-git clone https://github.com/QuantumNous/new-api.git
-cd new-api
-```
-
-Before starting, edit `docker-compose.yml`: replace the database and Redis example passwords in both the services and connection strings, and set a persistent random `SESSION_SECRET` (generate one with `openssl rand -hex 32`). For an HTTPS console, configure `SESSION_COOKIE_SECURE=true` and `SESSION_COOKIE_TRUSTED_URL` with its exact public HTTPS origin.
-
-```bash
-docker compose up -d
-docker compose logs -f new-api
-```
-
-### Storage and configuration
-
-| Component | Options |
+| 层 | 技术 |
 | --- | --- |
-| Main database | SQLite, MySQL ≥ 5.7.8, or PostgreSQL ≥ 9.6 |
-| Separate log database | Configure with `LOG_SQL_DSN`; also supports ClickHouse |
-| Cache | Optional Redis plus in-memory caching; use shared Redis when application nodes need shared rate limits |
-| Container platforms | Linux amd64 / arm64 |
-
-| Variable | Purpose |
-| --- | --- |
-| `SQL_DSN` | Main database connection; unset uses SQLite |
-| `LOG_SQL_DSN` | Optional separate log database connection |
-| `REDIS_CONN_STRING` | Redis connection string |
-| `SESSION_SECRET` | Persistent authentication secret; all nodes must use the same value |
-| `CRYPTO_SECRET` | Defaults to `SESSION_SECRET`; nodes sharing Redis must use the same effective value |
-| `SESSION_COOKIE_SECURE` | Set to `true` for an HTTPS console; enables Secure refresh cookies and strict refresh/logout origin checks |
-| `SESSION_COOKIE_TRUSTED_URL` | Required in Secure mode: comma-separated exact HTTPS origins, without paths or wildcards; leave unset for local HTTP |
-| `TRUSTED_PROXIES` | Trusted reverse-proxy IPs/CIDRs, or `none`; explicitly configure for your network |
-
-See the [environment example](./.env.example), [environment reference](https://docs.newapi.ai/en/docs/installation/config-maintenance/environment-variables), and [authentication and session guide](./docs/authentication.md) for full configuration. Configure container variables in Compose's `environment` or `env_file`; copying `.env.example` alone does not inject variables into the container.
-
-For production, put the console behind HTTPS and configure your reverse proxy for streaming and WebSocket upgrades. Persist and back up the database and mounted data. Multi-node deployments must share the main database and authentication secrets; separate Redis instances or in-memory rate limiters count limits independently per node. The session guide describes propagation behavior for each topology.
-
-Pin an image version from [Releases](https://github.com/QuantumNous/new-api/releases), review its upgrade notes, and back up before upgrading. The `latest` tag follows published builds and can change; migrations and compatibility must be assessed for your existing installation.
-
-<a id="development"></a>
-
-## Development and extensions
-
-The backend uses Go and Gin. The web console uses React 19, TypeScript, Rsbuild, TanStack, and Tailwind CSS 4. Use Bun for frontend dependencies and scripts; see [go.mod](./go.mod) for the Go language baseline and [Dockerfile](./Dockerfile) for the container build toolchain.
-
-Build the frontend before starting the backend, which embeds `web/dist`:
-
-```bash
-# Repository root
-cd web
-bun install --frozen-lockfile
-bun run build
-cd ..
-go run .
-```
-
-In a second terminal, start the frontend development server:
-
-```bash
-cd web
-bun run dev -- --port 5173
-```
-
-Open [http://localhost:5173](http://localhost:5173); the development server proxies API requests to the backend on port 3000. For a containerized development backend, see [docker-compose.dev.yml](./docker-compose.dev.yml) and the `make dev` target in [makefile](./makefile).
-
-| Location | Responsibility |
-| --- | --- |
-| `router/`, `middleware/`, `controller/` | HTTP routes, access checks, and API handlers |
-| `relay/` | Upstream adapters and request routing |
-| `service/`, `model/` | Business logic and persistence |
-| [relaykit/](./relaykit/README.md) | Independently buildable Go module for protocol DTOs and conversions |
-| [plugins/tasks/](./plugins/tasks/) | JavaScript task plugins; see [Task Plugin API v1](./docs/plugin-api/v1.md) for authoring and host boundaries |
-| `web/` | Web console; see [frontend conventions](./web/AGENTS.md) |
-| [electron/](./electron/README.md) | Desktop wrapper and packaging |
-
-Read [AGENTS.md](./AGENTS.md) before contributing. Run checks appropriate to your change, including `make test` for the Go modules and `bun check -b`, `bun run lint`, `bun run test`, and `bun run build` in `web/` for frontend changes. Changes to RelayKit must also pass `GOWORK=off go build ./...` from `relaykit/`.
-
-<a id="documentation"></a>
-
-## Documentation and community
-
-| Resource | Link |
-| --- | --- |
-| Official documentation | [Guides](https://docs.newapi.ai/en/docs) · [Installation](https://docs.newapi.ai/en/docs/installation) · [API reference](https://docs.newapi.ai/en/docs/api) |
-| Project exploration | [DeepWiki](https://deepwiki.com/QuantumNous/new-api) |
-| Questions and discussion | [FAQ](https://docs.newapi.ai/en/docs/support/faq) · [Community](https://docs.newapi.ai/en/docs/support/community-interaction) |
-| Bugs and feature requests | [GitHub Issues](https://github.com/QuantumNous/new-api/issues) |
-| Security reports | Follow the [security policy](./.github/SECURITY.md) for private reporting |
-
-For bug reports, include the version, deployment method, reproduction steps, and redacted logs. Documentation, translations, provider integrations, and focused regression tests are all welcome contributions.
+| 后端 | Go 1.26 + Gin + GORM v2；`router/ → middleware/ → controller/ → service/ → model/`，转发在 `relay/` |
+| 独立模块 | `relaykit/`（四种文本协议 DTO 与互转）、`tokenkit/`（token 计数估算），均可独立构建，不依赖主模块 |
+| 任务插件 | JavaScript 插件（moejs 执行）扩展图片 / 视频等异步任务，见 `docs/plugin-api/v1.md` |
+| 前端 | React 19 + TypeScript + Rsbuild + TanStack Router/Query/Table + Tailwind CSS 4，包管理用 Bun；7 语言 i18n |
+| 存储 | PostgreSQL（上游层仍兼容 SQLite/MySQL，二开层只用 PG）、Redis、COS |
+| 镜像 | `ghcr.io/nanofluxlabs-ai/tokenfunc:<tag>`，GitHub Actions 构建（失败时本机 `scripts/tokenfunc/tke-local-image.sh` 兜底） |
 
 ---
 
-## 🔗 Related Projects
+## 快速上手
 
-### Upstream Projects
+本地环境只通过 `make` 管理：单 PG 多 schema（dev / test）、单 Redis 多 db（0 / 1），开发与测试共用一套容器。
 
-| Project | Description |
-|------|------|
-| [One API](https://github.com/songquanpeng/one-api) | Original project base |
-| [Midjourney-Proxy](https://github.com/novicezk/midjourney-proxy) | Midjourney interface support |
+```bash
+make dev        # 基础设施 + API(3000) + 前端 dev server(5173)
+make test       # Go 单测（根模块 + relaykit + tokenkit，不依赖库）
+make test-db    # 需要 PG 的 Go 测试（PKG=./model/... 可缩小范围）
+make test-web   # 前端 vitest
+make seed-demo  # 往 dev schema 灌示例数据
+make help       # 全部目标
+```
 
-### Supporting Tools
-
-| Project | Description |
-|------|------|
-| [new-api-key-tool](https://github.com/Calcium-Ion/new-api-key-tool) | Key quota query tool |
-| [new-api-horizon](https://github.com/Calcium-Ion/new-api-horizon) | New API high-performance optimized version |
-
----
-
-## 📜 License
-
-This project is licensed under the [GNU Affero General Public License v3.0 (AGPLv3)](./LICENSE).
-
-Additional terms under AGPLv3 Section 7 apply. Modified versions must preserve
-the author attribution notice `Frontend design and development by New API
-contributors.` in the appropriate legal notices and in any prominent about,
-legal, footer, or attribution location presented by the user interface.
-
-Modified versions that present a user interface must also preserve a visible
-link to the original project: <https://github.com/QuantumNous/new-api>.
-
-This is an open-source project developed based on [One API](https://github.com/songquanpeng/one-api) (MIT License).
-
-If your organization's policies do not permit the use of AGPLv3-licensed software, or if you wish to avoid the open-source obligations of AGPLv3, please contact us at: [support@quantumnous.com](mailto:support@quantumnous.com)
-
-See [NOTICE](./NOTICE) and [third-party licenses](./THIRD-PARTY-LICENSES.md) for attribution and dependency notices.
+多任务并行用 git worktree，每个 worktree 一套隔离环境：进入后先 `make wt-init`（领 slot、独立 schema / Redis db / 端口），退出前 `make wt-clean`。细节见 `docs/tokenfunc/development.md` §4.7。
 
 ---
 
-## 🌟 Star History
+## 发版与上游同步
 
-<div align="center">
-
-[![Star History Chart](https://api.star-history.com/svg?repos=Calcium-Ion/new-api&type=Date)](https://star-history.com/#Calcium-Ion/new-api&Date)
-
-</div>
+- **生产发版**：走 `/release-tke`（Claude Code skill）：前置检查 → 打 tag → Actions 构建 → `deploy/k8s/scripts/deploy.sh` 滚动部署（先 master 后 slave）→ 冒烟 → 监控。tag 格式 `vYYYY.MM.DD.N`，每次发版在 `docs/tokenfunc/releases/` 留发布报告。禁止 `kubectl apply` 清单发版（会把镜像回滚成文件里的旧 tag）。
+- **上游同步**：只合上游 rc tag，约每 2 周或每 2 个 rc 一次：`make upstream-status` → `make upstream-diff REF=…`（生成评估清单）→ `make upstream-merge REF=…`，同步后独立发版。
 
 ---
 
-<div align="center">
+## 文档索引
 
-### 💖 Thank you for using New API
+| 文档 | 内容 |
+| --- | --- |
+| [AGENTS.md](./AGENTS.md) | 全仓库开发规范（Go / 数据库 / 计费 / 测试 / worklog），**改代码前必读** |
+| [web/AGENTS.md](./web/AGENTS.md) | 前端规范（组件复用优先、i18n、测试） |
+| [.agents/rules/billing.md](./.agents/rules/billing.md) | 计费规则，触碰计费链路前必须全文读 |
+| [docs/tokenfunc/development.md](./docs/tokenfunc/development.md) | 环境拓扑、make 目标、协作与 worktree 约定 |
+| [docs/tokenfunc/enterprise-design.md](./docs/tokenfunc/enterprise-design.md) | 企业模块设计基线（数据模型、计费改造、账期出账） |
+| [docs/tokenfunc/channel-groups.md](./docs/tokenfunc/channel-groups.md) | 渠道分组与定价倍率规划 |
+| [docs/tokenfunc/releases/](./docs/tokenfunc/releases/) | 历次发布报告与事故归档 |
+| [docs/worklog/](./docs/worklog/) | 每次代码变更的工作日志（为什么改、根因、验证、遗留） |
+| [deploy/k8s/README.md](./deploy/k8s/README.md) | TKE 部署清单与脚本 |
 
-If this project is helpful to you, welcome to give us a ⭐️ Star！
+---
 
-**[Official Documentation](https://docs.newapi.ai/en/docs)** • **[Issue Feedback](https://github.com/Calcium-Ion/new-api/issues)** • **[Latest Release](https://github.com/Calcium-Ion/new-api/releases)**
+## 许可
 
-<sub>Built with ❤️ by QuantumNous</sub>
-
-</div>
+上游 new-api 以 [AGPLv3](./LICENSE) 授权并附加 Section 7 条款（界面须保留上游署名与项目链接）。本仓库的二开部分为 nanofluxlabs 商业代码；对外分发或提供网络服务时，须满足 AGPLv3 义务或按商业授权执行。第三方依赖声明见 [NOTICE](./NOTICE) 与 [THIRD-PARTY-LICENSES.md](./THIRD-PARTY-LICENSES.md)。
